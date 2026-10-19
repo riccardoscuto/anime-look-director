@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.1 — 2026-10-19
+### Added
+- Auto Sun: applying a palette creates a tagged sun light when the scene has
+  none; toggle in the World & Shadows panel section.
+- Per-scene compositor stacks: each scene gets its own `ALD | Compositor Stack`
+  group (suffixed when names collide), so multiple scenes no longer fight over
+  one Render Layers node.
+- Gate checks for auto-sun creation/toggle and for two scenes with independent
+  stacks (build, Render Layers scene, removal isolation).
+
+### Changed
+- `ald.remove` unassigns the scene's stack and deletes it only when no other scene
+  uses it; custom compositor groups are left untouched.
+
 ## 0.2.0 — 2026-10-19
 ### Added
 - Palette-driven world gradient (sky / horizon / ground) with horizon offset and

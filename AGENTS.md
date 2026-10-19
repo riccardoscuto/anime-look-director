@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.2.0**).
+  (currently **0.2.1**).
 
 ## Verify (run after every change)
 ```powershell
@@ -22,8 +22,8 @@ TECH_NOTES); move it on-screen before capturing.
 ## Architecture
 - `properties.py` — `Scene.ald` settings (palette, toggles, sliders, update hooks).
 - `palette.py` — atmospheric presets, world gradient group, world + sun apply.
-- `compositor.py` — builds/removes `ALD | Compositor Stack` (Render Layers → Glare
-  → Kuwahara (depth-mixed) → Light Wrap → Lensdist → Group Output).
+- `compositor.py` — builds/removes one `ALD | Compositor Stack` per scene
+  (Render Layers → Glare → Kuwahara (depth-mixed) → Light Wrap → Lensdist → Group Output).
 - `materials.py` — shared `ALD | Shadow Tint` group, reversible Base Color insertion.
 - `operators.py` — `ald.build`, `ald.remove`, `ald.apply_palette`,
   `ald.clear_shadow_tint`, `ald.viewport_compositor`.
@@ -58,6 +58,14 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Light Wrap mask = outer silhouette band + depth-discontinuity band (normalize
   depth by 100 m, blur 4 px, abs diff ×100, threshold 0.05 m, blur by wrap size,
   multiply by the geometry mask).
+- Compositor stacks are **per scene**: `_group_for_scene` looks up the group tagged
+  `ald_scene`, the first scene keeps `ALD | Compositor Stack`, later scenes get
+  `ALD | Compositor Stack | <scene>`. `ald.remove` deletes only the assigned group,
+  and only if no other scene references it.
+- Palette auto-Sun creates `ALD | Sun` tagged `ald_auto_sun` only when the scene has
+  no SUN light. Never delete or retint a user sun that is linked from a library.
+- A full stack rebuild costs ~5–8 ms on the target machine, so slider updates can
+  rebuild synchronously; no debounce is needed.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
 - The AO node does produce occlusion in both EEVEE and Cycles in 5.1 (see TECH_NOTES).
@@ -69,7 +77,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Shadow tint is opt-in and must stay reversible: clearing it restores the original
   Base Color link or value. Do not touch linked-library materials.
 - Test GUI panels with a screenshot before claiming UI works.
-- Keep the stack idempotent: rebuilding must not duplicate groups or nodes.
+- Keep the stack idempotent: rebuilding must not duplicate groups, nodes or scenes'
+  stacks.
+- Auto-Sun may create a light; tag it `ald_auto_sun` and never remove user lights.
 - Rebuild the stack after changing the render camera's clip end: the light-wrap
   depth threshold is baked at build time.
 - `bl_info`, `blender_manifest.toml`, `README.md`, `CHANGELOG.md` versions stay aligned.

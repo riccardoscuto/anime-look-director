@@ -14,7 +14,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 2, 0)
+EXPECTED_VERSION = (0, 2, 1)
 TOLERANCE = 1e-4
 
 
@@ -70,6 +70,12 @@ def gradient_node(scene):
         return None
     return next((n for n in world.node_tree.nodes if n.get("ald_world_gradient")),
                 None)
+
+
+def find_sun(scene):
+    return next((o for o in scene.objects
+                 if o.type == "LIGHT" and o.data is not None
+                 and o.data.type == "SUN"), None)
 
 
 def background_node(scene):
@@ -135,11 +141,19 @@ def check_world_gradient(scene, settings):
           "world gradient group not reused")
     background = background_node(scene)
     check(background is not None, "world background missing")
+    expected = palette_module.preset(settings.palette)
+    sun = find_sun(scene)
+    check(sun is not None, "palette did not create a sun")
+    check(bool(sun.get("ald_auto_sun")), "auto sun is not tagged")
+    check(close(sun.data.color, expected["sun_color"]),
+          "auto sun color not synced to palette")
+    check(abs(sun.data.energy - expected["sun_energy"]) <= TOLERANCE,
+          "auto sun energy not synced to palette")
+
     check(background.inputs["Color"].is_linked
           and same(background.inputs["Color"].links[0].from_node, node),
           "background is not driven by the world gradient")
 
-    expected = palette_module.preset(settings.palette)
     check(close(node.inputs["Sky Color"].default_value, expected["sky_color"]),
           "sky color not synced to palette")
     check(close(node.inputs["Horizon Color"].default_value,
@@ -165,6 +179,17 @@ def check_world_gradient(scene, settings):
 
     settings.world_gradient = True
     check(gradient_node(scene) is not None, "gradient not restored when enabled")
+
+    # Auto sun: disabled must not create one, enabled must recreate it.
+    sun = find_sun(scene)
+    sun_data = sun.data
+    bpy.data.objects.remove(sun, do_unlink=True)
+    if sun_data.users == 0:
+        bpy.data.lights.remove(sun_data)
+    settings.auto_sun = False
+    check(find_sun(scene) is None, "auto sun created while disabled")
+    settings.auto_sun = True
+    check(find_sun(scene) is not None, "auto sun not recreated when enabled")
 
 
 def check_shadow_tint(scene, settings, data):
@@ -381,6 +406,45 @@ def check_idempotent_build(scene):
     check(len(groups) == 1, "compositor group duplicated")
 
 
+def check_multiscene(scene):
+    from anime_look_director import compositor
+
+    other = bpy.data.scenes.new("ALD_GATE_SCENE_B")
+    try:
+        compositor.build(other)
+        group_a = scene.compositing_node_group
+        group_b = other.compositing_node_group
+        check(group_a is not None and group_b is not None,
+              "per-scene stack not assigned")
+        check(group_a.as_pointer() != group_b.as_pointer(),
+              "scenes share one compositor group")
+        check(group_a.get("ald_scene") == scene.name,
+              "stack A not tagged for its scene")
+        check(group_b.get("ald_scene") == other.name,
+              "stack B not tagged for its scene")
+
+        def rl_scene(ng):
+            rl = next(n for n in ng.nodes
+                      if n.bl_idname == "CompositorNodeRLayers")
+            return rl.scene.name if rl.scene is not None else None
+
+        check(rl_scene(group_a) == scene.name,
+              "stack A renders the wrong scene")
+        check(rl_scene(group_b) == other.name,
+              "stack B renders the wrong scene")
+
+        name_b = group_b.name
+        compositor.remove(other)
+        check(other.compositing_node_group is None,
+              "scene B stack not unassigned")
+        check(bpy.data.node_groups.get(name_b) is None,
+              "scene B stack not deleted")
+        check(scene.compositing_node_group is not None,
+              "removing scene B stack affected scene A")
+    finally:
+        bpy.data.scenes.remove(other)
+
+
 def check_render(scene):
     scene.render.engine = "BLENDER_EEVEE"
     scene.render.resolution_x = 64
@@ -399,10 +463,7 @@ def main():
     scene = bpy.context.scene
     check(hasattr(scene, "ald"), "settings not registered")
     settings = scene.ald
-
-    sun_data = bpy.data.lights.new("ALD_GATE_SUN", "SUN")
-    sun = bpy.data.objects.new("ALD_GATE_SUN", sun_data)
-    scene.collection.objects.link(sun)
+    check(find_sun(scene) is None, "gate must start without a sun")
     data = build_test_materials(scene)
 
     try:
@@ -423,13 +484,20 @@ def main():
         check_idempotent_build(scene)
         check_pixels(scene, settings)
         check_render(scene)
+        check_multiscene(scene)
 
         bpy.ops.ald.remove()
         check(scene.compositing_node_group is None, "stack not removed")
         check(bpy.data.node_groups.get("ALD | Compositor Stack") is None,
               "compositor group not deleted")
     finally:
-        bpy.data.objects.remove(sun, do_unlink=True)
+        for obj in list(bpy.data.objects):
+            if not obj.get("ald_auto_sun"):
+                continue
+            light = obj.data
+            bpy.data.objects.remove(obj, do_unlink=True)
+            if light is not None and light.users == 0:
+                bpy.data.lights.remove(light)
         bpy.data.objects.remove(data["object"], do_unlink=True)
         bpy.data.meshes.remove(data["mesh"])
         for mat in (data["plain"], data["linked"]):

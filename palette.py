@@ -3,6 +3,7 @@
 import bpy
 
 GRADIENT_GROUP = "ALD | World Gradient"
+AUTO_SUN_TAG = "ald_auto_sun"
 
 PRESETS = {
     "GOLDEN_HOUR": {
@@ -294,6 +295,29 @@ def _apply_gradient(scene, settings, nt, background, p):
     nt.links.new(node.outputs["Color"], background.inputs["Color"])
 
 
+def ensure_sun(scene, p):
+    """Tint the scene sun, creating one when none exists (auto_sun)."""
+    settings = getattr(scene, "ald", None)
+    sun = next((o for o in scene.objects
+                if o.type == "LIGHT" and o.data is not None
+                and o.data.type == "SUN"), None)
+    created = False
+    if sun is None and (settings is None or settings.auto_sun):
+        data = bpy.data.lights.new("ALD | Sun", "SUN")
+        data.angle = 0.05
+        sun = bpy.data.objects.new("ALD | Sun", data)
+        sun[AUTO_SUN_TAG] = True
+        sun.rotation_euler = (0.9, 0.15, -0.6)
+        scene.collection.objects.link(sun)
+        created = True
+
+    if sun is not None and sun.data is not None:
+        if sun.library is None and sun.data.library is None:
+            sun.data.color = p["sun_color"]
+            sun.data.energy = p["sun_energy"]
+    return sun, created
+
+
 def apply_palette(scene, key):
     """Apply world gradient + sun values for a palette. Returns the preset."""
     p = preset(key)
@@ -302,12 +326,6 @@ def apply_palette(scene, key):
     nt, background = _world_nodes(world)
     _apply_gradient(scene, settings, nt, background, p)
     background.inputs["Strength"].default_value = p["world_strength"]
-
-    sun = next((o for o in scene.objects
-                if o.type == "LIGHT" and o.data.type == "SUN"), None)
-    if sun is not None:
-        sun.data.color = p["sun_color"]
-        sun.data.energy = p["sun_energy"]
-
+    ensure_sun(scene, p)
     scene["ald_last_palette"] = key
     return p

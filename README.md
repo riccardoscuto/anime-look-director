@@ -2,16 +2,18 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v0.2)
+## What it does (v0.2.1)
 - Four atmosphere presets (Shinkai Golden Hour, Ghibli Summer Noon, Rainy Tokyo,
   Cyberpunk Neon) driving world, sun, shadow tint and halation tint.
+- **Auto Sun**: applying a palette creates a sun light when the scene has none
+  (can be disabled in the panel).
 - Palette-driven **world gradient** with separate sky, horizon and ground colors,
   plus horizon offset and softness.
 - **Shadow tint** on scene materials: a reversible node group mixes Base Color
   toward the palette shadow color where ambient occlusion is low.
 - **Light Wrap** around object silhouettes and environment edges, using a
   depth-derived mask plus depth-discontinuity edges.
-- A node-group compositor stack:
+- A node-group compositor stack, **one per scene**:
   `Render Layers → Glare (Bloom) → Kuwahara (depth-mixed) → Light Wrap → Lens Distortion → Group Output`.
 - One-click enable of the viewport compositor.
 
@@ -36,6 +38,7 @@ Expected output: `ALD GATE: PASS`.
 
 ## Roadmap
 - v0.1 — stack + palettes
-- v0.2 — world gradient, material shadow tint, light wrap (current)
+- v0.2 — world gradient, material shadow tint, light wrap
+- v0.2.1 — auto sun, per-scene stacks (current)
 - v0.3 — God Rays presets, per-shot overrides, material presets
 - v1.0 — store release (legacy ZIP + Extension), presets and docs

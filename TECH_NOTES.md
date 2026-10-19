@@ -114,3 +114,21 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - `preset_dev/lookdev.py` builds a 2×2 contact sheet by loading the rendered PNGs
   into NumPy and writing a new image; its pixels are linear, so the sheet saves
   with the expected sRGB transform.
+
+### v0.2.1 notes
+- **Auto Sun**: a palette apply creates `ALD | Sun` (tagged `ald_auto_sun`) only
+  when the scene has no SUN light. It is created once and reused; disabling
+  `auto_sun` stops creation but leaves an existing sun in place.
+- **Per-scene stacks**: one compositor group per scene. The first scene keeps the
+  base name `ALD | Compositor Stack`; later scenes get
+  `ALD | Compositor Stack | <scene>`. The group carries an `ald_scene` tag so scene
+  renames still find the right stack, while `Render Layers.Scene` points at the
+  owning scene. `ald.remove` unassigns only the current scene and deletes the
+  group only if no other scene references it.
+- A legacy single group without `ald_scene` is claimed by the first scene that
+  builds, so upgrading a 0.2.0 file does not duplicate it.
+- Rebuild timing on the target machine: min 5.05 ms, average 5.85 ms, max 8.63 ms
+  over 20 builds. Slider updates rebuild synchronously; no debounce needed.
+- The gate now creates a second scene and checks that both stacks exist, that each
+  Render Layers node points at its own scene, and that removing one leaves the
+  other intact.

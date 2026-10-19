@@ -25,8 +25,9 @@ class ALD_PT_scene(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="World & Shadows", icon="LIGHT_SUN")
-        row = box.row()
+        row = box.row(align=True)
         row.prop(s, "world_gradient", toggle=True)
+        row.prop(s, "auto_sun", toggle=True)
         if s.world_gradient:
             col = box.column(align=True)
             col.prop(s, "horizon_offset")

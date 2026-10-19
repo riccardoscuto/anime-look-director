@@ -78,6 +78,12 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Sky / horizon / ground gradient driven by the palette",
         update=_on_world,
     )
+    auto_sun: BoolProperty(
+        name="Auto Sun",
+        default=True,
+        description="Create a sun light when the scene has none",
+        update=_on_world,
+    )
     horizon_offset: FloatProperty(
         name="Horizon",
         default=0.0,

@@ -3,15 +3,37 @@
 import bpy
 
 GROUP_NAME = "ALD | Compositor Stack"
+SCENE_TAG = "ald_scene"
 
 
-def _group(create=True):
-    ng = bpy.data.node_groups.get(GROUP_NAME)
-    if ng is not None and ng.bl_idname != "CompositorNodeTree":
-        bpy.data.node_groups.remove(ng)
-        ng = None
-    if ng is None and create:
-        ng = bpy.data.node_groups.new(GROUP_NAME, "CompositorNodeTree")
+def _is_stack(ng):
+    return (ng.bl_idname == "CompositorNodeTree"
+            and (ng.get(SCENE_TAG) is not None
+                 or ng.name == GROUP_NAME
+                 or ng.name.startswith(GROUP_NAME + " | ")))
+
+
+def _group_for_scene(scene, create=True):
+    """One stack per scene; the first scene keeps the plain group name."""
+    for ng in bpy.data.node_groups:
+        if (ng.bl_idname == "CompositorNodeTree"
+                and ng.get(SCENE_TAG) == scene.name):
+            return ng
+
+    legacy = bpy.data.node_groups.get(GROUP_NAME)
+    if (legacy is not None and legacy.bl_idname == "CompositorNodeTree"
+            and legacy.get(SCENE_TAG) is None):
+        # Claim a stack created before per-scene groups.
+        legacy[SCENE_TAG] = scene.name
+        return legacy
+
+    if not create:
+        return None
+    name = GROUP_NAME
+    if bpy.data.node_groups.get(name) is not None:
+        name = GROUP_NAME + " | " + scene.name
+    ng = bpy.data.node_groups.new(name, "CompositorNodeTree")
+    ng[SCENE_TAG] = scene.name
     return ng
 
 
@@ -227,7 +249,8 @@ def build(scene):
     if scene.camera is not None and scene.camera.data is not None:
         clip_end = float(scene.camera.data.clip_end)
 
-    ng = _group()
+    ng = _group_for_scene(scene)
+    ng[SCENE_TAG] = scene.name
     nodes = ng.nodes
     links = ng.links
     nodes.clear()
@@ -317,8 +340,13 @@ def build(scene):
 
 
 def remove(scene):
-    ng = bpy.data.node_groups.get(GROUP_NAME)
-    if scene.compositing_node_group is ng:
-        scene.compositing_node_group = None
-    if ng is not None:
-        bpy.data.node_groups.remove(ng)
+    """Unassign the scene's stack and delete it if unused by other scenes."""
+    ng = scene.compositing_node_group
+    if ng is None:
+        return
+    scene.compositing_node_group = None
+    if not _is_stack(ng):
+        return
+    if any(other.compositing_node_group == ng for other in bpy.data.scenes):
+        return
+    bpy.data.node_groups.remove(ng)
