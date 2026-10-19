@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.1 — 2026-10-19
+### Added
+- God Rays **Size** control.
+- God Rays live refresh on frame change: the Sun Position follows the camera and
+  sun during animation; the node is muted (strength 0) when the sun goes behind
+  the camera and restored when it comes back.
+- **Emission** material preset (neon surface) with Emission Color/Strength; other
+  presets explicitly reset emission strength.
+- `RECAP.md`: an Italian end-to-end recap of the add-on.
+
+### Changed
+- Sun Beams defaults: 6 iterations, fade 0.95.
+- Version 0.3.1.
+
 ## 0.3.0 — 2026-10-19
 ### Added
 - **God Rays**: optional Sun Beams glare placed at the sun's projected screen

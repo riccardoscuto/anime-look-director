@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 3, 0)
+EXPECTED_VERSION = (0, 3, 1)
 TOLERANCE = 1e-4
 
 
@@ -222,6 +222,19 @@ def check_god_rays(scene, settings):
         check(abs(position[0] - 0.5) < 0.01
               and abs(position[1] - 0.5) < 0.01,
               "god rays sun position not projected")
+
+        from anime_look_director import compositor
+        sun.rotation_euler = (math.pi / 2.0, 0.0, 0.0)
+        bpy.context.view_layer.update()
+        compositor.update_god_rays(scene)
+        check(beams[0].inputs["Strength"].default_value <= TOLERANCE,
+              "god rays not muted with the sun behind the camera")
+        sun.rotation_euler = (-math.pi / 2.0, 0.0, 0.0)
+        bpy.context.view_layer.update()
+        compositor.update_god_rays(scene)
+        check(abs(beams[0].inputs["Strength"].default_value
+                  - settings.god_rays_strength) <= TOLERANCE,
+              "god rays not restored when the sun comes back")
     finally:
         settings.god_rays = old_god
         sun.rotation_euler = old_rotation
@@ -533,12 +546,20 @@ def check_material_presets(scene, settings, data):
                 (0.86, 0.68, 0.58, 1.0)),
           "skin preset base color wrong")
 
+    settings.material_preset = "EMISSION"
+    bpy.ops.ald.apply_material_preset()
+    emission = bpy.data.materials.get("ALD | Emission")
+    check(emission is not None, "emission preset material missing")
+    check(principled(emission).inputs["Emission Strength"].default_value > 0.5,
+          "emission preset has no emission")
+
     for index in range(len(obj.data.materials) - 1, -1, -1):
         slot = obj.data.materials[index]
-        if slot == metal or slot == skin:
+        if slot == metal or slot == skin or slot == emission:
             obj.data.materials.pop(index=index)
     bpy.data.materials.remove(metal)
     bpy.data.materials.remove(skin)
+    bpy.data.materials.remove(emission)
     obj.select_set(False)
 
 

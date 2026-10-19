@@ -35,6 +35,14 @@ PRESET_DATA = {
         "roughness": 0.25,
         "metallic": 1.0,
     },
+    "EMISSION": {
+        "name": "ALD | Emission",
+        "color": (1.0, 0.35, 0.12),
+        "roughness": 0.4,
+        "metallic": 0.0,
+        "emission": (1.0, 0.35, 0.12),
+        "emission_strength": 3.0,
+    },
 }
 
 
@@ -276,6 +284,14 @@ def _preset_material(key):
     bsdf.inputs["Base Color"].default_value = (*info["color"], 1.0)
     bsdf.inputs["Roughness"].default_value = info["roughness"]
     bsdf.inputs["Metallic"].default_value = info["metallic"]
+    emission_color = bsdf.inputs.get("Emission Color")
+    emission_strength = bsdf.inputs.get("Emission Strength")
+    if emission_color is not None and emission_strength is not None:
+        if "emission" in info:
+            emission_color.default_value = (*info["emission"], 1.0)
+            emission_strength.default_value = info.get("emission_strength", 1.0)
+        else:
+            emission_strength.default_value = 0.0
     node = _tint_node(mat)
     if node is not None and not node.inputs["Color"].is_linked:
         node.inputs["Color"].default_value = (*info["color"], 1.0)

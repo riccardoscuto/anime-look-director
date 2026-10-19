@@ -114,6 +114,8 @@ class ALD_PT_compositor(bpy.types.Panel):
         if s.light_wrap:
             col.prop(s, "light_wrap_strength")
             col.prop(s, "light_wrap_size")
+        if s.god_rays:
+            col.prop(s, "god_rays_size")
 
         col.separator()
         col.prop(s, "depth_near")

@@ -160,3 +160,18 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   ~`(0.5, 0.5)` for a sun placed in front of a test camera, applies shot markers A
   and B and checks the world changed, and applies the Metal/Skin presets including
   shadow tint and slot idempotency.
+
+### v0.3.1 notes
+- **God Rays refresh**: `update_god_rays(scene)` looks up the existing Sun Beams
+  node and rewrites `Sun Position` and `Strength` on `frame_change_pre`; it does
+  not rebuild the stack. When the projected sun is behind the camera it sets
+  `Strength` to 0 and restores the setting value when the sun comes back. Manual
+  sun/camera moves between frames still need Build.
+- Sun Beams now use `Size` from `god_rays_size` (default 0.5), 6 iterations and
+  fade 0.95. The handler is registered by `compositor.register()` after the shot
+  marker handler, so a palette change and its rebuild happen first.
+- **Emission preset**: `ALD | Emission` sets `Emission Color` and
+  `Emission Strength` (3.0); other presets reset emission strength to 0 so a
+  reused preset material cannot keep a stale glow.
+- Gate additions: God Rays mute/restore after rotating the sun behind/in front of
+  the camera, and the Emission preset must have a positive Emission Strength.

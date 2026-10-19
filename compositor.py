@@ -256,6 +256,45 @@ def _sun_screen_position(scene):
     return (max(0.0, min(1.0, co.x)), max(0.0, min(1.0, co.y)))
 
 
+def update_god_rays(scene):
+    """Follow the sun/camera without rebuilding the whole stack."""
+    ng = scene.compositing_node_group
+    if (ng is None or not _is_stack(ng)
+            or ng.get(SCENE_TAG) != scene.name):
+        return
+    beams = next((n for n in ng.nodes
+                  if n.bl_idname == "CompositorNodeGlare"
+                  and n.inputs["Type"].default_value == "Sun Beams"), None)
+    if beams is None:
+        return
+
+    settings = getattr(scene, "ald", None)
+    strength = settings.god_rays_strength if settings is not None else 0.35
+    position = _sun_screen_position(scene)
+    if position is None:
+        beams.inputs["Strength"].default_value = 0.0
+        return
+    beams.inputs["Sun Position"].default_value = position
+    beams.inputs["Strength"].default_value = strength
+
+
+def _on_frame_change(scene, *_args):
+    try:
+        update_god_rays(scene)
+    except Exception:
+        pass
+
+
+def register():
+    if _on_frame_change not in bpy.app.handlers.frame_change_pre:
+        bpy.app.handlers.frame_change_pre.append(_on_frame_change)
+
+
+def unregister():
+    if _on_frame_change in bpy.app.handlers.frame_change_pre:
+        bpy.app.handlers.frame_change_pre.remove(_on_frame_change)
+
+
 def build(scene):
     """Create or refresh the stack and assign it to the scene."""
     settings = getattr(scene, "ald", None)
@@ -315,9 +354,9 @@ def build(scene):
             beams.inputs["Type"].default_value = "Sun Beams"
             beams.inputs["Threshold"].default_value = 0.9
             beams.inputs["Strength"].default_value = settings.god_rays_strength
-            beams.inputs["Size"].default_value = 0.5
-            beams.inputs["Iterations"].default_value = 5
-            beams.inputs["Fade"].default_value = 0.9
+            beams.inputs["Size"].default_value = settings.god_rays_size
+            beams.inputs["Iterations"].default_value = 6
+            beams.inputs["Fade"].default_value = 0.95
             beams.inputs["Color Modulation"].default_value = 0.15
             beams.inputs["Saturation"].default_value = 1.0
             if "Tint" in beams.inputs:

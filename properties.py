@@ -13,6 +13,7 @@ MATERIALS = [
     ("HAIR", "Hair", "Dark hair base"),
     ("FABRIC", "Fabric", "Matte cloth"),
     ("METAL", "Metal", "Polished metal"),
+    ("EMISSION", "Emission", "Neon emissive surface"),
 ]
 
 
@@ -182,6 +183,8 @@ class ALD_Settings(bpy.types.PropertyGroup):
                                    min=1.0, max=256.0, update=_on_stack)
     god_rays_strength: FloatProperty(name="God Rays Strength", default=0.35,
                                      min=0.0, max=1.0, update=_on_stack)
+    god_rays_size: FloatProperty(name="God Rays Size", default=0.5,
+                                 min=0.0, max=1.0, update=_on_stack)
     depth_near: FloatProperty(name="Depth Near", default=4.0, min=0.0,
                               max=1000.0, subtype="DISTANCE",
                               update=_on_stack)
