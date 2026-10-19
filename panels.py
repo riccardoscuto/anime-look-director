@@ -7,6 +7,7 @@ class ALD_PT_scene(bpy.types.Panel):
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "scene"
+    bl_order = -10
 
     def draw(self, context):
         layout = self.layout
@@ -15,6 +16,7 @@ class ALD_PT_scene(bpy.types.Panel):
             layout.label(text="Settings not registered", icon="ERROR")
             return
         s = scene.ald
+        count = scene.get("ald_shadow_materials", 0)
 
         box = layout.box()
         box.label(text="Atmosphere", icon="WORLD")
@@ -22,15 +24,49 @@ class ALD_PT_scene(bpy.types.Panel):
         box.operator("ald.apply_palette", icon="FILE_REFRESH")
 
         box = layout.box()
-        box.label(text="Compositor Stack", icon="NODETREE")
+        box.label(text="World & Shadows", icon="LIGHT_SUN")
+        row = box.row()
+        row.prop(s, "world_gradient", toggle=True)
+        if s.world_gradient:
+            col = box.column(align=True)
+            col.prop(s, "horizon_offset")
+            col.prop(s, "horizon_softness")
+
+        box.separator()
+        row = box.row(align=True)
+        row.prop(s, "shadow_tint", toggle=True)
+        row.label(text="%d mats" % count, icon="MATERIAL")
+        row.operator("ald.clear_shadow_tint", text="", icon="X")
+        if s.shadow_tint:
+            col = box.column(align=True)
+            col.prop(s, "shadow_tint_strength")
+            col.prop(s, "shadow_tint_distance")
+
+        box = layout.box()
+        row = box.row()
+        row.label(text="Compositor Stack", icon="NODETREE")
+        if scene.compositing_node_group is None:
+            row.label(text="Not assigned", icon="INFO")
+        else:
+            row.label(text="Assigned", icon="CHECKMARK")
         row = box.row(align=True)
         row.prop(s, "halation", toggle=True)
         row.prop(s, "painterly", toggle=True)
+        row = box.row(align=True)
         row.prop(s, "dispersion", toggle=True)
+        row.prop(s, "light_wrap", toggle=True)
+
         col = box.column(align=True)
-        col.prop(s, "halation_strength")
-        col.prop(s, "kuwahara_size")
-        col.prop(s, "dispersion_amount")
+        if s.halation:
+            col.prop(s, "halation_strength")
+        if s.painterly:
+            col.prop(s, "kuwahara_size")
+        if s.dispersion:
+            col.prop(s, "dispersion_amount")
+        if s.light_wrap:
+            col.prop(s, "light_wrap_strength")
+            col.prop(s, "light_wrap_size")
+
         col.separator()
         col.label(text="Kuwahara depth range")
         col.prop(s, "depth_near")
@@ -40,11 +76,6 @@ class ALD_PT_scene(bpy.types.Panel):
         row.operator("ald.build", icon="PLAY")
         row.operator("ald.remove", icon="TRASH")
         layout.operator("ald.viewport_compositor", icon="RESTRICT_VIEW_OFF")
-
-        if scene.compositing_node_group is None:
-            layout.label(text="Stack not assigned", icon="INFO")
-        else:
-            layout.label(text="Stack: " + scene.compositing_node_group.name, icon="CHECKMARK")
 
 
 _classes = (ALD_PT_scene,)

@@ -1,6 +1,19 @@
 import bpy
 
-from . import compositor, palette
+from . import compositor, materials, palette
+
+
+def _sync_shadow(scene):
+    settings = scene.ald
+    if settings.shadow_tint:
+        return materials.sync_scene(
+            scene,
+            palette.shadow_tint(settings.palette),
+            settings.shadow_tint_strength,
+            settings.shadow_tint_distance,
+        )
+    materials.clear_scene(scene)
+    return 0
 
 
 class ALD_OT_build(bpy.types.Operator):
@@ -14,8 +27,11 @@ class ALD_OT_build(bpy.types.Operator):
         return context.scene is not None
 
     def execute(self, context):
-        compositor.build(context.scene)
-        self.report({"INFO"}, "Anime Look Director: stack built")
+        scene = context.scene
+        compositor.build(scene)
+        count = _sync_shadow(scene)
+        self.report({"INFO"},
+                    "Anime Look Director: stack built, %d materials tinted" % count)
         return {"FINISHED"}
 
 
@@ -34,15 +50,31 @@ class ALD_OT_remove(bpy.types.Operator):
 class ALD_OT_apply_palette(bpy.types.Operator):
     bl_idname = "ald.apply_palette"
     bl_label = "Apply Palette"
-    bl_description = "Apply the selected atmosphere to world, sun and halation"
+    bl_description = "Apply the selected atmosphere to world, sun, shadows and halation"
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
         scene = context.scene
         palette.apply_palette(scene, scene.ald.palette)
+        count = _sync_shadow(scene)
         if scene.compositing_node_group is not None:
             compositor.build(scene)
-        self.report({"INFO"}, "Anime Look Director: palette applied")
+        self.report({"INFO"},
+                    "Anime Look Director: palette applied, %d materials tinted" % count)
+        return {"FINISHED"}
+
+
+class ALD_OT_clear_shadow_tint(bpy.types.Operator):
+    bl_idname = "ald.clear_shadow_tint"
+    bl_label = "Clear Shadow Tint"
+    bl_description = "Remove the shadow tint from every material and restore Base Color"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        count = materials.clear_scene(context.scene)
+        context.scene.ald.shadow_tint = False
+        self.report({"INFO"},
+                    "Anime Look Director: shadow tint cleared from %d materials" % count)
         return {"FINISHED"}
 
 
@@ -66,7 +98,8 @@ class ALD_OT_viewport_compositor(bpy.types.Operator):
         return {"FINISHED"}
 
 
-_classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette, ALD_OT_viewport_compositor)
+_classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
+            ALD_OT_clear_shadow_tint, ALD_OT_viewport_compositor)
 
 
 def register():

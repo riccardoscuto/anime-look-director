@@ -29,6 +29,93 @@ def _mix_sockets(mix):
     return a, b, result
 
 
+def _silhouette_mask(nodes, links, render_layers):
+    """Mask of rendered geometry, independent of world alpha.
+
+    With an opaque world, render alpha is 1 everywhere, so the depth pass is
+    used to separate geometry from the background.
+    """
+    alpha = render_layers.outputs["Alpha"]
+    depth = render_layers.outputs.get("Depth")
+    if depth is None:
+        return alpha
+    near = nodes.new("ShaderNodeMath")
+    near.location = (-1240, 300)
+    near.operation = "LESS_THAN"
+    near.inputs[1].default_value = 1.0e6
+    links.new(depth, near.inputs[0])
+    combine = nodes.new("ShaderNodeMath")
+    combine.location = (-1060, 300)
+    combine.operation = "MULTIPLY"
+    combine.use_clamp = True
+    links.new(near.outputs[0], combine.inputs[0])
+    links.new(alpha, combine.inputs[1])
+    return combine.outputs[0]
+
+
+def _light_wrap(nodes, links, image, render_layers, settings):
+    """Add blurred scene light inside the silhouette's edge band."""
+    size = max(1.0, settings.light_wrap_size)
+    strength = settings.light_wrap_strength
+    mask_value = _silhouette_mask(nodes, links, render_layers)
+
+    light = nodes.new("CompositorNodeBlur")
+    light.location = (-500, -220)
+    light.inputs["Type"].default_value = "Gaussian"
+    light.inputs["Size"].default_value = (size, size)
+    light.inputs["Extend Bounds"].default_value = True
+    links.new(image, light.inputs["Image"])
+
+    # White image carrying the silhouette, blurred to widen the edge.
+    white = nodes.new("CompositorNodeRGB")
+    white.location = (-1240, 480)
+    white.outputs[0].default_value = (1.0, 1.0, 1.0, 1.0)
+
+    set_alpha = nodes.new("CompositorNodeSetAlpha")
+    set_alpha.location = (-1050, 480)
+    set_alpha.inputs["Type"].default_value = "Replace Alpha"
+    links.new(white.outputs[0], set_alpha.inputs["Image"])
+    links.new(mask_value, set_alpha.inputs["Alpha"])
+
+    mask = nodes.new("CompositorNodeBlur")
+    mask.location = (-860, 480)
+    mask.inputs["Type"].default_value = "Gaussian"
+    mask.inputs["Size"].default_value = (size, size)
+    links.new(set_alpha.outputs["Image"], mask.inputs["Image"])
+
+    separate = nodes.new("CompositorNodeSeparateColor")
+    separate.location = (-670, 520)
+    links.new(mask.outputs["Image"], separate.inputs["Image"])
+
+    # mask - blurred_mask: positive inside the silhouette, clipped outside.
+    rim = nodes.new("ShaderNodeMath")
+    rim.location = (-480, 540)
+    rim.operation = "SUBTRACT"
+    rim.use_clamp = True
+    links.new(mask_value, rim.inputs[0])
+    links.new(separate.outputs["Alpha"], rim.inputs[1])
+
+    boost = nodes.new("ShaderNodeMath")
+    boost.location = (-290, 540)
+    boost.operation = "MULTIPLY"
+    boost.use_clamp = True
+    boost.inputs[1].default_value = 1.6
+    links.new(rim.outputs[0], boost.inputs[0])
+
+    wrapped = nodes.new("CompositorNodeSetAlpha")
+    wrapped.location = (-80, -220)
+    wrapped.inputs["Type"].default_value = "Replace Alpha"
+    links.new(light.outputs["Image"], wrapped.inputs["Image"])
+    links.new(boost.outputs[0], wrapped.inputs["Alpha"])
+
+    over = nodes.new("CompositorNodeAlphaOver")
+    over.location = (160, 0)
+    over.inputs["Factor"].default_value = strength
+    links.new(image, over.inputs["Background"])
+    links.new(wrapped.outputs["Image"], over.inputs["Foreground"])
+    return over.outputs["Image"]
+
+
 def build(scene):
     """Create or refresh the stack and assign it to the scene."""
     settings = getattr(scene, "ald", None)
@@ -46,20 +133,21 @@ def build(scene):
     outputs = [item for item in ng.interface.items_tree
                if getattr(item, "in_out", "") == "OUTPUT"]
     if not outputs:
-        ng.interface.new_socket(name="Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+        ng.interface.new_socket(name="Image", in_out="OUTPUT",
+                                socket_type="NodeSocketColor")
 
     layer_name = scene.view_layers[0].name
     rl = nodes.new("CompositorNodeRLayers")
     rl.scene = scene
     rl.layer = layer_name
-    rl.location = (-950, 0)
+    rl.location = (-1500, 0)
     current = rl.outputs["Image"]
     depth = rl.outputs.get("Depth")
 
     if settings.halation:
         from . import palette as palette_module
         glare = nodes.new("CompositorNodeGlare")
-        glare.location = (-700, 0)
+        glare.location = (-1250, 0)
         glare.inputs["Type"].default_value = "Bloom"
         glare.inputs["Threshold"].default_value = 0.9
         glare.inputs["Strength"].default_value = settings.halation_strength
@@ -68,13 +156,14 @@ def build(scene):
         if "Saturation" in glare.inputs:
             glare.inputs["Saturation"].default_value = 1.1
         if "Tint" in glare.inputs:
-            glare.inputs["Tint"].default_value = palette_module.glare_tint(settings.palette)
+            glare.inputs["Tint"].default_value = palette_module.glare_tint(
+                settings.palette)
         links.new(current, glare.inputs["Image"])
         current = glare.outputs["Image"]
 
     if settings.painterly:
         kuwahara = nodes.new("CompositorNodeKuwahara")
-        kuwahara.location = (-430, -180)
+        kuwahara.location = (-1000, -220)
         kuwahara.inputs["Type"].default_value = "Anisotropic"
         kuwahara.inputs["Size"].default_value = settings.kuwahara_size
         if "Sharpness" in kuwahara.inputs:
@@ -82,7 +171,7 @@ def build(scene):
         links.new(current, kuwahara.inputs["Image"])
 
         mix = nodes.new("ShaderNodeMix")
-        mix.location = (-160, 0)
+        mix.location = (-760, 0)
         mix.data_type = "RGBA"
         a_sock, b_sock, result_sock = _mix_sockets(mix)
         if a_sock is None or b_sock is None or result_sock is None:
@@ -92,7 +181,7 @@ def build(scene):
         factor = mix.inputs[0]
         if depth is not None:
             depth_range = nodes.new("ShaderNodeMapRange")
-            depth_range.location = (-430, -420)
+            depth_range.location = (-1000, -500)
             depth_range.clamp = True
             depth_range.inputs["From Min"].default_value = settings.depth_near
             depth_range.inputs["From Max"].default_value = max(
@@ -105,16 +194,19 @@ def build(scene):
             factor.default_value = 1.0
         current = result_sock
 
+    if settings.light_wrap:
+        current = _light_wrap(nodes, links, current, rl, settings)
+
     if settings.dispersion:
         lens = nodes.new("CompositorNodeLensdist")
-        lens.location = (120, 0)
+        lens.location = (420, 0)
         if "Dispersion" in lens.inputs:
             lens.inputs["Dispersion"].default_value = settings.dispersion_amount
         links.new(current, lens.inputs["Image"])
         current = lens.outputs["Image"]
 
     output = nodes.new("NodeGroupOutput")
-    output.location = (380, 0)
+    output.location = (680, 0)
     links.new(current, output.inputs[0])
 
     scene.compositing_node_group = ng

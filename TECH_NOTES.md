@@ -42,3 +42,58 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 ## Known environment noise
 - `physical-starlight-atmosphere` render handlers raise when `scene.world` is None.
 - `flip_fluids_addon` raises on file load in this profile (unrelated to this addon).
+
+## v0.2 spikes (2026-10-19)
+
+### Compositor nodes
+- `CompositorNodeBlur`: `Size` is `FLOAT` with 2 components (default `(0, 0)`),
+  not a scalar. `Type` enum: `Flat`, `Tent`, `Quadratic`, `Cubic`, `Gaussian`,
+  `Fast Gaussian`, `Catrom`, `Mitch`. `Extend Bounds` is a boolean input.
+- `CompositorNodeDilateErode`: `Type` = `Steps` / `Threshold` / `Distance` /
+  `Feather`; `Falloff` = `Smooth` / `Sphere` / `Root` / `Inverse Square` /
+  `Sharp` / `Linear`. Not needed for the current light wrap.
+- `CompositorNodeSetAlpha`: `Type` = `Apply Mask` / `Replace Alpha`.
+- `CompositorNodeAlphaOver` inputs: `Background`, `Foreground`, `Factor`, `Type`,
+  `Straight Alpha`.
+- `CompositorNodeRGB` has a single output named `Color` (no Alpha); pair it with
+  `SetAlpha` when a matte image is needed.
+- `CompositorNodeSeparateColor` outputs `Red`, `Green`, `Blue`, `Alpha`.
+
+### Light wrap mask
+- With an opaque world, `Render Layers.Alpha` is **1 across the whole frame**, so
+  an alpha-derived silhouette is empty. The Z pass separates geometry from world:
+  background depth is effectively huge (Map Range 0..100 clamps it to 1.0 while a
+  4 m cube maps to 0.035).
+- Silhouette mask used by the add-on: `Depth < 1e6` multiplied by `Alpha`.
+  An inner rim band is `mask - blur(mask)` with `SetAlpha` on a white RGB image.
+- Blur the foreground image with `Extend Bounds` on, replace its alpha with the rim
+  band, then `AlphaOver` it at the chosen strength.
+
+### World gradient
+- `Texture Coordinate.Generated` works in world shaders and gives the view
+  direction; `Separate XYZ.Z` runs -1..1.
+- A ColorRamp has static element colors: setting the *group input node* defaults
+  does not drive ramp stops. Build the sky/horizon/ground blend with `ShaderNodeMix`
+  (RGBA) plus Map Range weights so palette colors are socket-driven.
+- Horizon warp: map Z to 0..1, then remap `horizon - softness/2 .. horizon +
+  softness/2` to 0..1, then blend ground→horizon (0..0.5) and horizon→sky (0.5..1).
+
+### Shadow tint
+- `ShaderNodeAmbientOcclusion` works in **EEVEE Next and Cycles** on 5.1.2. A
+  sphere-on-plane emission test (AO → Emission) produced min 0.4627 in EEVEE and
+  0.3922 in Cycles, so the node returns real occlusion in both engines.
+- Group: `factor = (1 - AO) * strength`, then Mix Base Color toward the palette
+  shadow color. Distance and strength are group inputs.
+- Insertion is reversible: remember whether Base Color was linked and, when not,
+  store its default color in an ID property (`ald_st_color`). Removal restores the
+  upstream link or the stored value.
+- Insert only into materials with a Principled BSDF; skip linked-library materials.
+
+### Testing notes
+- Blender may return different Python wrappers for the same node after an operator
+  call; `link.from_node is node` can be False. Compare `as_pointer()`.
+- The MCP/Blender window screenshot returns a black image when the window is
+  positioned off-screen (e.g. x=1912 on a 1920-wide desktop). Move the window
+  on-screen before capturing; `render_viewport_to_path` still works.
+- The panel is taller than the Scene tab; `bl_order = -10` puts it above the
+  default Scene panels. Keep the toggle rows at two buttons to avoid clipped labels.
