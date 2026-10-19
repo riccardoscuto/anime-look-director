@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.3.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.3.2** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -19,14 +19,17 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
    morbidezza dell'orizzonte.
 3. **Auto Sun** — se la scena non ha una SUN, ne viene creata una (`ALD | Sun`)
    e tinta dalla palette.
-4. **Shadow tint** — un node group reversibile mescola la Base Color dei materiali
-   verso il colore d'ombra della palette nelle zone occluse (maschera AO).
+4. **Shadow tint** — un node group reversibile e **moltiplicativo**: nelle zone
+   in ombra tinge la Base Color con il colore della palette preservando il
+   dettaglio delle texture.
 5. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
    → Kuwahara (mix per profondità) → Light Wrap → Lens Distortion → Output`.
 6. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette, con
    maschera da profondità e discontinuità di profondità.
 7. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
-   forza e dimensione regolabili; si aggiorna durante l'animazione.
+   forza e dimensione regolabili; si aggiorna durante l'animazione. Il nodo resta
+   presente anche con il sole dietro la camera (muto) e si riattiva quando il sole
+   entra in inquadratura.
 8. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
    inquadrature; il pulsante `Mark Shot` crea/aggiorna il marker.
 9. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
@@ -34,10 +37,13 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 10. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
 11. **Stack per scena** — ogni scena ha il proprio gruppo compositor, senza
     conflitti tra scene multiple.
+12. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
+    compositor senza staccare gli occhi dalla camera.
 
 ## Flusso di lavoro
 
-1. Seleziona il pannello **Scene Properties → Anime Look Director**.
+1. Seleziona il pannello **Scene Properties → Anime Look Director** oppure la
+   Sidebar N **View3D → Anime Look**.
 2. Scegli una **Atmosphere** e premi **Apply Palette**.
 3. Premi **Build / Update Stack** per creare o aggiornare il compositor.
 4. Regola le sezioni **World & Shadows** e **Compositor Stack** (sono
@@ -86,14 +92,16 @@ o il colore originale della Base Color.
 
 - Nessun salvataggio automatico del `.blend`.
 - Stack idempotente: rebuild non duplica gruppi o nodi.
-- Shadow tint: tint dei contatti/occlusione (AO), non ricolora le ombre proiettate.
+- Shadow tint: tint moltiplicativo delle zone in ombra che preserva le texture;
+  resta un proxy di contatto/occlusione, non ricolora le ombre proiettate.
 - Light Wrap: lavora sulle silhouette geometriche; oggetti trasparenti non
   generano il bordo.
 - God Rays: durante l'animazione segue sole e camera a ogni frame; se muovi
   sole/camera **senza cambiare frame**, serve **Build / Update Stack**.
 - Shot markers: override temporali, non per-camera.
 - Material presets: materiali semplici (Principled), non shader toon completi.
-- Rebuild dello stack: circa 5–8 ms sulla macchina di sviluppo.
+- Slider dei parametri: aggiornamento in-place (~0.34 ms); i toggle e la palette
+  ricostruiscono lo stack (~5.3 ms).
 
 ## Verifica e sviluppo
 
@@ -123,4 +131,5 @@ multi-scena, render EEVEE e coerenza versione `bl_info`/manifest.
 - **0.2** — world gradient, shadow tint, light wrap, gate a pixel, look-dev.
 - **0.2.1** — Auto Sun, stack per scena, fix manifest.
 - **0.3** — God Rays, shot markers, material presets, sotto-pannelli.
-- **0.3.1** — God Rays refresh/size, preset Emission, questo recap.
+- **0.3.1** — God Rays refresh/size, preset Emission, recap.
+- **0.3.2** — slider in-place, shadow tint moltiplicativo, pannello Sidebar N.

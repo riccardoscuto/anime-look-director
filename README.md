@@ -2,15 +2,16 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v0.3.1)
+## What it does (v0.3.2)
 - Four atmosphere presets (Shinkai Golden Hour, Ghibli Summer Noon, Rainy Tokyo,
   Cyberpunk Neon) driving world, sun, shadow tint and halation tint.
 - **Auto Sun**: applying a palette creates a sun light when the scene has none
   (can be disabled in the panel).
 - Palette-driven **world gradient** with separate sky, horizon and ground colors,
   plus horizon offset and softness.
-- **Shadow tint** on scene materials: a reversible node group mixes Base Color
-  toward the palette shadow color where ambient occlusion is low.
+- **Shadow tint** on scene materials: a reversible **multiplicative** node group
+  that preserves texture detail while shifting shadowed areas toward the palette
+  color.
 - **Light Wrap** around object silhouettes and environment edges, using a
   depth-derived mask plus depth-discontinuity edges.
 - **God Rays** (optional Sun Beams glare anchored to the sun's screen position,
@@ -21,6 +22,8 @@ Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.
 - A node-group compositor stack, **one per scene**:
   `Render Layers → Glare (Bloom) → Sun Beams → Kuwahara (depth-mixed) → Light Wrap → Lens Distortion → Group Output`.
 - One-click enable of the viewport compositor.
+- **Sidebar N panel** (`View3D > Anime Look`) for palette, world, shadow and
+  compositor controls without leaving the viewport.
 
 ## Install (development)
 The folder lives in `Blender/5.1/scripts/addons/anime_look_director`.
@@ -46,7 +49,8 @@ Expected output: `ALD GATE: PASS`.
 - v0.2 — world gradient, material shadow tint, light wrap
 - v0.2.1 — auto sun, per-scene stacks
 - v0.3 — God Rays, shot markers, material presets
-- v0.3.1 — God Rays refresh/size, Emission preset (current)
+- v0.3.1 — God Rays refresh/size, Emission preset
+- v0.3.2 — in-place sliders, multiplicative shadow tint, sidebar N panel (current)
 - v1.0 — store release (legacy ZIP + Extension), presets and docs
 
 ## Recap

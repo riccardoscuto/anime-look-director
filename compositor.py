@@ -5,6 +5,16 @@ import bpy
 GROUP_NAME = "ALD | Compositor Stack"
 SCENE_TAG = "ald_scene"
 
+NODE_HALATION = "ALD | Halation"
+NODE_KUWAHARA = "ALD | Kuwahara"
+NODE_DEPTH_RANGE = "ALD | Depth Range"
+NODE_LIGHT_WRAP_BLUR = "ALD | Light Wrap Blur"
+NODE_LIGHT_WRAP_MASK = "ALD | Light Wrap Mask"
+NODE_LIGHT_WRAP_EDGE = "ALD | Light Wrap Edge"
+NODE_LIGHT_WRAP_OVER = "ALD | Light Wrap Over"
+NODE_LENS = "ALD | Lens"
+NODE_GOD_RAYS = "ALD | God Rays"
+
 
 def _is_stack(ng):
     return (ng.bl_idname == "CompositorNodeTree"
@@ -143,6 +153,7 @@ def _depth_edges(nodes, links, render_layers, geometry, size):
 
     band = nodes.new("CompositorNodeBlur")
     band.location = (440, 740)
+    band.name = NODE_LIGHT_WRAP_EDGE
     band.inputs["Type"].default_value = "Gaussian"
     band.inputs["Size"].default_value = (size, size)
     links.new(result_sock, band.inputs["Image"])
@@ -168,6 +179,7 @@ def _light_wrap(nodes, links, image, render_layers, settings, clip_end):
 
     light = nodes.new("CompositorNodeBlur")
     light.location = (-500, -220)
+    light.name = NODE_LIGHT_WRAP_BLUR
     light.inputs["Type"].default_value = "Gaussian"
     light.inputs["Size"].default_value = (size, size)
     light.inputs["Extend Bounds"].default_value = True
@@ -186,6 +198,7 @@ def _light_wrap(nodes, links, image, render_layers, settings, clip_end):
 
     mask = nodes.new("CompositorNodeBlur")
     mask.location = (-650, 480)
+    mask.name = NODE_LIGHT_WRAP_MASK
     mask.inputs["Type"].default_value = "Gaussian"
     mask.inputs["Size"].default_value = (size, size)
     links.new(result_sock, mask.inputs["Image"])
@@ -229,6 +242,7 @@ def _light_wrap(nodes, links, image, render_layers, settings, clip_end):
 
     over = nodes.new("CompositorNodeAlphaOver")
     over.location = (160, 0)
+    over.name = NODE_LIGHT_WRAP_OVER
     over.inputs["Factor"].default_value = strength
     over.inputs["Straight Alpha"].default_value = True
     links.new(image, over.inputs["Background"])
@@ -276,6 +290,51 @@ def update_god_rays(scene):
         return
     beams.inputs["Sun Position"].default_value = position
     beams.inputs["Strength"].default_value = strength
+
+
+def update_params(scene):
+    """Update existing node values without rebuilding the stack."""
+    settings = getattr(scene, "ald", None)
+    ng = scene.compositing_node_group
+    if (settings is None or ng is None or not _is_stack(ng)
+            or ng.get(SCENE_TAG) != scene.name):
+        return
+    nodes = ng.nodes
+
+    node = nodes.get(NODE_HALATION)
+    if node is not None:
+        node.inputs["Strength"].default_value = settings.halation_strength
+
+    node = nodes.get(NODE_KUWAHARA)
+    if node is not None:
+        node.inputs["Size"].default_value = settings.kuwahara_size
+
+    node = nodes.get(NODE_DEPTH_RANGE)
+    if node is not None:
+        node.inputs["From Min"].default_value = settings.depth_near
+        node.inputs["From Max"].default_value = max(
+            settings.depth_far, settings.depth_near + 0.001)
+
+    node = nodes.get(NODE_LENS)
+    if node is not None and "Dispersion" in node.inputs:
+        node.inputs["Dispersion"].default_value = settings.dispersion_amount
+
+    size = (settings.light_wrap_size, settings.light_wrap_size)
+    for name in (NODE_LIGHT_WRAP_BLUR, NODE_LIGHT_WRAP_MASK,
+                 NODE_LIGHT_WRAP_EDGE):
+        node = nodes.get(name)
+        if node is not None:
+            node.inputs["Size"].default_value = size
+
+    node = nodes.get(NODE_LIGHT_WRAP_OVER)
+    if node is not None:
+        node.inputs["Factor"].default_value = settings.light_wrap_strength
+
+    node = nodes.get(NODE_GOD_RAYS)
+    if node is not None:
+        node.inputs["Size"].default_value = settings.god_rays_size
+        node.inputs["Strength"].default_value = settings.god_rays_strength
+        update_god_rays(scene)
 
 
 def _on_frame_change(scene, *_args):
@@ -333,6 +392,7 @@ def build(scene):
     if settings.halation:
         glare = nodes.new("CompositorNodeGlare")
         glare.location = (-1250, 0)
+        glare.name = NODE_HALATION
         glare.inputs["Type"].default_value = "Bloom"
         glare.inputs["Threshold"].default_value = 0.9
         glare.inputs["Strength"].default_value = settings.halation_strength
@@ -348,27 +408,30 @@ def build(scene):
 
     if settings.god_rays:
         position = _sun_screen_position(scene)
-        if position is not None:
-            beams = nodes.new("CompositorNodeGlare")
-            beams.location = (-1150, 220)
-            beams.inputs["Type"].default_value = "Sun Beams"
-            beams.inputs["Threshold"].default_value = 0.9
-            beams.inputs["Strength"].default_value = settings.god_rays_strength
-            beams.inputs["Size"].default_value = settings.god_rays_size
-            beams.inputs["Iterations"].default_value = 6
-            beams.inputs["Fade"].default_value = 0.95
-            beams.inputs["Color Modulation"].default_value = 0.15
-            beams.inputs["Saturation"].default_value = 1.0
-            if "Tint" in beams.inputs:
-                beams.inputs["Tint"].default_value = palette_module.glare_tint(
-                    settings.palette)
-            beams.inputs["Sun Position"].default_value = position
-            links.new(current, beams.inputs["Image"])
-            current = beams.outputs["Image"]
+        beams = nodes.new("CompositorNodeGlare")
+        beams.location = (-1150, 220)
+        beams.name = NODE_GOD_RAYS
+        beams.inputs["Type"].default_value = "Sun Beams"
+        beams.inputs["Threshold"].default_value = 0.9
+        beams.inputs["Strength"].default_value = (
+            settings.god_rays_strength if position is not None else 0.0)
+        beams.inputs["Size"].default_value = settings.god_rays_size
+        beams.inputs["Iterations"].default_value = 6
+        beams.inputs["Fade"].default_value = 0.95
+        beams.inputs["Color Modulation"].default_value = 0.15
+        beams.inputs["Saturation"].default_value = 1.0
+        if "Tint" in beams.inputs:
+            beams.inputs["Tint"].default_value = palette_module.glare_tint(
+                settings.palette)
+        beams.inputs["Sun Position"].default_value = (
+            position if position is not None else (0.5, 0.5))
+        links.new(current, beams.inputs["Image"])
+        current = beams.outputs["Image"]
 
     if settings.painterly:
         kuwahara = nodes.new("CompositorNodeKuwahara")
         kuwahara.location = (-1000, -220)
+        kuwahara.name = NODE_KUWAHARA
         kuwahara.inputs["Type"].default_value = "Anisotropic"
         kuwahara.inputs["Size"].default_value = settings.kuwahara_size
         if "Sharpness" in kuwahara.inputs:
@@ -387,6 +450,7 @@ def build(scene):
         if depth is not None:
             depth_range = nodes.new("ShaderNodeMapRange")
             depth_range.location = (-1000, -500)
+            depth_range.name = NODE_DEPTH_RANGE
             depth_range.clamp = True
             depth_range.inputs["From Min"].default_value = settings.depth_near
             depth_range.inputs["From Max"].default_value = max(
@@ -405,6 +469,7 @@ def build(scene):
     if settings.dispersion:
         lens = nodes.new("CompositorNodeLensdist")
         lens.location = (420, 0)
+        lens.name = NODE_LENS
         if "Dispersion" in lens.inputs:
             lens.inputs["Dispersion"].default_value = settings.dispersion_amount
         links.new(current, lens.inputs["Image"])

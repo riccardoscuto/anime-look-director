@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.3.1**).
+  (currently **0.3.2**).
 
 ## Verify (run after every change)
 ```powershell
@@ -20,7 +20,8 @@ If window screenshots are black, the Blender window may be off-screen (see
 TECH_NOTES); move it on-screen before capturing.
 
 ## Architecture
-- `properties.py` — `Scene.ald` settings (palette, toggles, sliders, update hooks).
+- `properties.py` — `Scene.ald` settings (palette, toggles, sliders, update hooks;
+  floats update in place, toggles rebuild the stack).
 - `palette.py` — atmospheric presets, world gradient group, world + sun apply.
 - `compositor.py` — builds/removes one `ALD | Compositor Stack` per scene
   (Render Layers → Glare → Sun Beams (optional) → Kuwahara (depth-mixed) →
@@ -29,7 +30,7 @@ TECH_NOTES); move it on-screen before capturing.
 - `shots.py` — timeline marker palette overrides and the frame-change handler.
 - `operators.py` — `ald.build`, `ald.remove`, `ald.apply_palette`,
   `ald.clear_shadow_tint`, `ald.viewport_compositor`.
-- `panels.py` — Scene properties panel.
+- `panels.py` — Scene properties panel plus the View3D sidebar panel.
 - `preset_dev/verify.py` — headless gate.
 - `preset_dev/lookdev.py` — renders all palettes on a fixed scene + contact sheet.
 - `RECAP.md` — Italian end-to-end overview for the user.
@@ -80,8 +81,19 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - God Rays are refreshed on `frame_change_pre` by `update_god_rays` without
   rebuilding: it rewrites `Sun Position` and mutes `Strength` to 0 when the sun is
   behind the camera. `Size`, `Iterations` (6) and `Fade` (0.95) are set at build.
+  The Sun Beams node is **always created** when `god_rays` is on; with the sun
+  behind, it starts at `(0.5, 0.5)` and strength 0 so the handler can find it.
+- Float sliders use `compositor.update_params(scene)`, which finds nodes by fixed
+  names (`ALD | Halation`, `ALD | Kuwahara`, `ALD | Depth Range`,
+  `ALD | Light Wrap Blur/Mask/Edge/Over`, `ALD | Lens`, `ALD | God Rays`) and
+  rewrites sockets. Measured 0.34 ms vs 5.3 ms for a full rebuild.
+- Shadow tint uses a `MULTIPLY` Mix on Base Color; palette `shadow_tint` colors are
+  normalized (max component 1) so textures keep their detail in shadows.
 - Material presets include `EMISSION`; set `Emission Color` / `Emission Strength`,
   and reset emission strength to 0 for non-emissive presets.
+- Sidebar N panel: `bl_space_type="VIEW_3D"`, `bl_region_type="UI"`,
+  `bl_category="Anime Look"`. In tests set
+  `region.active_panel_category = "Anime Look"` to select it.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
@@ -94,6 +106,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Shadow tint is opt-in and must stay reversible: clearing it restores the original
   Base Color link or value. Do not touch linked-library materials.
 - Test GUI panels with a screenshot before claiming UI works.
+- Float sliders must use `compositor.update_params`, never rebuild the stack;
+  rebuild only for topology, palette or toggle changes.
 - Keep the stack idempotent: rebuilding must not duplicate groups, nodes or scenes'
   stacks.
 - Auto-Sun may create a light; tag it `ald_auto_sun` and never remove user lights.

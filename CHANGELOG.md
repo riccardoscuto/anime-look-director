@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.2 — 2026-10-19
+### Added
+- **Sidebar N panel** (`VIEW_3D > Anime Look`) with palette, world, shadow tint,
+  compositor toggles/sliders, build/remove and viewport compositor.
+- Gate checks for in-place parameter updates, God Rays node creation with the sun
+  behind the camera, and the multiplicative shadow tint.
+
+### Changed
+- **Slider performance**: float properties now call `compositor.update_params()`
+  and rewrite only node sockets. Booleans still rebuild the topology. Kuwahara,
+  halation, dispersion, light wrap, God Rays and depth range update in place.
+- **Shadow tint is multiplicative**: `MULTIPLY` preserves texture detail in
+  shadowed areas; palette shadow colors are normalized multiplier hues.
+- **God Rays node is always created** when enabled; if the sun is behind the
+  camera at build it starts at `(0.5, 0.5)` with strength 0 so the frame handler
+  can bring it in later.
+- Halation strength range corrected to 0–1 to match the Glare socket.
+
 ## 0.3.1 — 2026-10-19
 ### Added
 - God Rays **Size** control.

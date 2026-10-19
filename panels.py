@@ -122,7 +122,76 @@ class ALD_PT_compositor(bpy.types.Panel):
         col.prop(s, "depth_far")
 
 
-_classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor)
+class ALD_PT_view3d(bpy.types.Panel):
+    bl_label = "Anime Look"
+    bl_idname = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        s = scene.ald
+
+        col = layout.column(align=True)
+        col.prop(s, "palette", text="")
+        col.operator("ald.apply_palette", icon="FILE_REFRESH")
+        if scene.compositing_node_group is None:
+            col.label(text="Stack not assigned", icon="INFO")
+        else:
+            col.label(text="Stack ready", icon="CHECKMARK")
+
+        box = layout.box()
+        box.label(text="World", icon="WORLD")
+        row = box.row(align=True)
+        row.prop(s, "world_gradient", toggle=True)
+        row.prop(s, "auto_sun", toggle=True)
+        if s.world_gradient:
+            col = box.column(align=True)
+            col.prop(s, "horizon_offset")
+            col.prop(s, "horizon_softness")
+
+        box = layout.box()
+        row = box.row(align=True)
+        row.prop(s, "shadow_tint", toggle=True)
+        count = scene.get("ald_shadow_materials", 0)
+        row.label(text="%d mats" % count, icon="MATERIAL")
+        if s.shadow_tint:
+            col = box.column(align=True)
+            col.prop(s, "shadow_tint_strength")
+
+        box = layout.box()
+        box.label(text="Compositor", icon="NODETREE")
+        row = box.row(align=True)
+        row.prop(s, "halation", toggle=True)
+        row.prop(s, "painterly", toggle=True)
+        row = box.row(align=True)
+        row.prop(s, "light_wrap", toggle=True)
+        row.prop(s, "dispersion", toggle=True)
+        row = box.row(align=True)
+        row.prop(s, "god_rays", toggle=True)
+        if s.god_rays:
+            row.prop(s, "god_rays_strength", text="Strength")
+
+        col = box.column(align=True)
+        if s.halation:
+            col.prop(s, "halation_strength")
+        if s.painterly:
+            col.prop(s, "kuwahara_size")
+        if s.light_wrap:
+            col.prop(s, "light_wrap_strength")
+            col.prop(s, "light_wrap_size")
+        if s.god_rays:
+            col.prop(s, "god_rays_size")
+
+        row = layout.row(align=True)
+        row.operator("ald.build", icon="PLAY")
+        row.operator("ald.remove", icon="TRASH")
+        layout.operator("ald.viewport_compositor", icon="RESTRICT_VIEW_OFF")
+
+
+_classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor, ALD_PT_view3d)
 
 
 def register():

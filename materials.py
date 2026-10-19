@@ -111,7 +111,7 @@ def _build_group(ng):
     mix = nodes.new("ShaderNodeMix")
     mix.location = (180, 0)
     mix.data_type = "RGBA"
-    mix.blend_type = "MIX"
+    mix.blend_type = "MULTIPLY"
     a_sock, b_sock, result_sock = _rgba_sockets(mix)
     if a_sock is None or b_sock is None or result_sock is None:
         raise RuntimeError("Could not resolve ShaderNodeMix RGBA sockets")

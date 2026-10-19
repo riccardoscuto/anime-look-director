@@ -70,6 +70,16 @@ def _on_stack(self, context):
         pass
 
 
+def _on_params(self, context):
+    try:
+        from . import compositor
+        scene = context.scene
+        if scene is not None and scene.compositing_node_group:
+            compositor.update_params(scene)
+    except Exception:
+        pass
+
+
 def _on_shots(self, context):
     try:
         from . import shots
@@ -142,7 +152,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         default=0.35,
         min=0.0,
         max=1.0,
-        description="How strongly occluded areas take the palette shadow color",
+        description="How strongly shadowed areas take the palette tint",
         update=_on_shadow,
     )
     shadow_tint_distance: FloatProperty(
@@ -172,25 +182,25 @@ class ALD_Settings(bpy.types.PropertyGroup):
                            description="Sun beams from the sun's screen position",
                            update=_on_stack)
     halation_strength: FloatProperty(name="Halation Strength", default=0.6,
-                                     min=0.0, max=5.0, update=_on_stack)
+                                     min=0.0, max=1.0, update=_on_params)
     kuwahara_size: FloatProperty(name="Kuwahara Size", default=6.0,
-                                 min=1.0, max=32.0, update=_on_stack)
+                                 min=1.0, max=32.0, update=_on_params)
     dispersion_amount: FloatProperty(name="Dispersion", default=0.01,
-                                     min=0.0, max=1.0, update=_on_stack)
+                                     min=0.0, max=1.0, update=_on_params)
     light_wrap_strength: FloatProperty(name="Light Wrap Strength", default=0.4,
-                                       min=0.0, max=1.0, update=_on_stack)
+                                       min=0.0, max=1.0, update=_on_params)
     light_wrap_size: FloatProperty(name="Light Wrap Size", default=24.0,
-                                   min=1.0, max=256.0, update=_on_stack)
+                                   min=1.0, max=256.0, update=_on_params)
     god_rays_strength: FloatProperty(name="God Rays Strength", default=0.35,
-                                     min=0.0, max=1.0, update=_on_stack)
+                                     min=0.0, max=1.0, update=_on_params)
     god_rays_size: FloatProperty(name="God Rays Size", default=0.5,
-                                 min=0.0, max=1.0, update=_on_stack)
+                                 min=0.0, max=1.0, update=_on_params)
     depth_near: FloatProperty(name="Depth Near", default=4.0, min=0.0,
                               max=1000.0, subtype="DISTANCE",
-                              update=_on_stack)
+                              update=_on_params)
     depth_far: FloatProperty(name="Depth Far", default=35.0, min=0.0,
                              max=10000.0, subtype="DISTANCE",
-                             update=_on_stack)
+                             update=_on_params)
 
 
 _classes = (ALD_Settings,)

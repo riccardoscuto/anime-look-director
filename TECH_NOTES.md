@@ -175,3 +175,26 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   reused preset material cannot keep a stale glow.
 - Gate additions: God Rays mute/restore after rotating the sun behind/in front of
   the camera, and the Emission preset must have a positive Emission Strength.
+
+### v0.3.2 notes (Step 1)
+- **In-place slider updates**: `compositor.update_params(scene)` finds nodes by
+  fixed names (`ALD | Halation`, `ALD | Kuwahara`, `ALD | Depth Range`,
+  `ALD | Light Wrap Blur/Mask/Edge/Over`, `ALD | Lens`, `ALD | God Rays`) and
+  rewrites only their sockets. Measured on the live scene: **0.34 ms average**
+  (max 0.53 ms) vs **5.28 ms average** (max 6.72 ms) for a full rebuild. The
+  compositor shader is not recompiled on slider drags.
+- Float properties call `_on_params`; booleans and the palette still call
+  `_on_stack` / rebuild because the node topology or tints change.
+- **God Rays fallback**: when enabled with the sun behind the camera, the Sun
+  Beams node is still created at `(0.5, 0.5)` with strength 0. The frame handler
+  can then find it and bring it in when the sun enters the frame.
+- **Shadow tint MULTIPLY**: the Mix node now uses `MULTIPLY`, and palette
+  `shadow_tint` values are normalized multiplier hues (max component 1), so a
+  texture connected to Base Color keeps its pattern in shadowed areas instead of
+  being replaced by a flat color. The gate checks the blend type.
+- **Sidebar N panel**: `ALD_PT_view3d` in `VIEW_3D > UI > Anime Look`; in tests,
+  `region.active_panel_category = "Anime Look"` selects the tab (there is no
+  `SpaceView3D` category property).
+- Gate additions: in-place parameter updates keep the node count constant and
+  update Kuwahara/Halation/Light Wrap/Depth/Lens values; God Rays build with the
+  sun behind; shadow tint is multiplicative.

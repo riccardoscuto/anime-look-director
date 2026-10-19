@@ -15,7 +15,7 @@ PRESETS = {
         "sun_color": (1.0, 0.65, 0.35),
         "sun_energy": 4.0,
         "glare_tint": (1.0, 0.62, 0.38, 1.0),
-        "shadow_tint": (0.30, 0.36, 0.68),
+        "shadow_tint": (0.44, 0.53, 1.0),
     },
     "SUMMER_NOON": {
         "world_color": (0.45, 0.65, 1.0),
@@ -26,7 +26,7 @@ PRESETS = {
         "sun_color": (1.0, 0.95, 0.85),
         "sun_energy": 4.5,
         "glare_tint": (1.0, 0.96, 0.85, 1.0),
-        "shadow_tint": (0.35, 0.48, 0.80),
+        "shadow_tint": (0.44, 0.60, 1.0),
     },
     "RAINY_TOKYO": {
         "world_color": (0.20, 0.30, 0.45),
@@ -37,7 +37,7 @@ PRESETS = {
         "sun_color": (0.60, 0.75, 1.0),
         "sun_energy": 1.0,
         "glare_tint": (0.60, 0.80, 1.0, 1.0),
-        "shadow_tint": (0.20, 0.30, 0.52),
+        "shadow_tint": (0.38, 0.57, 1.0),
     },
     "NEON_NIGHT": {
         "world_color": (0.25, 0.05, 0.35),
@@ -48,7 +48,7 @@ PRESETS = {
         "sun_color": (1.0, 0.20, 0.60),
         "sun_energy": 2.0,
         "glare_tint": (1.0, 0.20, 0.60, 1.0),
-        "shadow_tint": (0.45, 0.12, 0.62),
+        "shadow_tint": (0.72, 0.19, 1.0),
     },
 }
 

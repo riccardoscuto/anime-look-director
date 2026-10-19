@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 3, 1)
+EXPECTED_VERSION = (0, 3, 2)
 TOLERANCE = 1e-4
 
 
@@ -206,7 +206,7 @@ def check_god_rays(scene, settings):
     cam.location = (0.0, -6.0, 0.0)
     cam.rotation_euler = (math.pi / 2.0, 0.0, 0.0)
     scene.camera = cam
-    sun.rotation_euler = (-math.pi / 2.0, 0.0, 0.0)
+    sun.rotation_euler = (0.9, 0.15, -0.6)
     bpy.context.view_layer.update()
 
     try:
@@ -217,24 +217,31 @@ def check_god_rays(scene, settings):
         beams = [n for n in ng.nodes
                  if n.bl_idname == "CompositorNodeGlare"
                  and n.inputs["Type"].default_value == "Sun Beams"]
-        check(len(beams) == 1, "god rays node missing")
+        check(len(beams) == 1, "god rays node not created with sun behind")
+        position = beams[0].inputs["Sun Position"].default_value
+        check(abs(position[0] - 0.5) < 0.01
+              and abs(position[1] - 0.5) < 0.01,
+              "god rays fallback position wrong")
+        check(beams[0].inputs["Strength"].default_value <= TOLERANCE,
+              "god rays not muted at build with sun behind")
+
+        from anime_look_director import compositor
+        sun.rotation_euler = (-math.pi / 2.0, 0.0, 0.0)
+        bpy.context.view_layer.update()
+        compositor.update_god_rays(scene)
         position = beams[0].inputs["Sun Position"].default_value
         check(abs(position[0] - 0.5) < 0.01
               and abs(position[1] - 0.5) < 0.01,
               "god rays sun position not projected")
+        check(abs(beams[0].inputs["Strength"].default_value
+                  - settings.god_rays_strength) <= TOLERANCE,
+              "god rays not restored when the sun comes back")
 
-        from anime_look_director import compositor
-        sun.rotation_euler = (math.pi / 2.0, 0.0, 0.0)
+        sun.rotation_euler = (0.9, 0.15, -0.6)
         bpy.context.view_layer.update()
         compositor.update_god_rays(scene)
         check(beams[0].inputs["Strength"].default_value <= TOLERANCE,
               "god rays not muted with the sun behind the camera")
-        sun.rotation_euler = (-math.pi / 2.0, 0.0, 0.0)
-        bpy.context.view_layer.update()
-        compositor.update_god_rays(scene)
-        check(abs(beams[0].inputs["Strength"].default_value
-                  - settings.god_rays_strength) <= TOLERANCE,
-              "god rays not restored when the sun comes back")
     finally:
         settings.god_rays = old_god
         sun.rotation_euler = old_rotation
@@ -256,6 +263,10 @@ def check_shadow_tint(scene, settings, data):
 
     node = tint_node(checked)
     check(node is not None, "shadow tint not inserted in plain material")
+    group = bpy.data.node_groups.get("ALD | Shadow Tint")
+    mix = next((n for n in group.nodes if n.bl_idname == "ShaderNodeMix"), None)
+    check(mix is not None and mix.blend_type == "MULTIPLY",
+          "shadow tint is not multiplicative")
     check(data["plain_base"].is_linked
           and same(data["plain_base"].links[0].from_node, node),
           "shadow tint not driving Base Color")
@@ -459,6 +470,57 @@ def check_idempotent_build(scene):
     check(len(groups) == 1, "compositor group duplicated")
 
 
+def check_param_updates(scene, settings):
+    ng = scene.compositing_node_group
+    check(ng is not None, "stack missing for parameter update test")
+    count = len(ng.nodes)
+
+    settings.kuwahara_size = 9.0
+    node = ng.nodes.get("ALD | Kuwahara")
+    check(node is not None, "Kuwahara node name missing")
+    check(abs(node.inputs["Size"].default_value - 9.0) <= TOLERANCE,
+          "Kuwahara size not updated in place")
+    check(len(ng.nodes) == count, "Kuwahara slider rebuilt the stack")
+
+    settings.halation_strength = 0.4
+    node = ng.nodes.get("ALD | Halation")
+    check(node is not None, "Halation node name missing")
+    check(abs(node.inputs["Strength"].default_value - 0.4) <= TOLERANCE,
+          "Halation strength not updated in place")
+
+    settings.light_wrap_size = 30.0
+    node = ng.nodes.get("ALD | Light Wrap Blur")
+    check(node is not None, "Light Wrap blur missing")
+    check(abs(node.inputs["Size"].default_value[0] - 30.0) <= TOLERANCE,
+          "Light wrap size not updated in place")
+
+    settings.light_wrap_strength = 0.8
+    node = ng.nodes.get("ALD | Light Wrap Over")
+    check(node is not None, "Light Wrap Alpha Over missing")
+    check(abs(node.inputs["Factor"].default_value - 0.8) <= TOLERANCE,
+          "Light wrap strength not updated in place")
+
+    settings.depth_near = 3.0
+    node = ng.nodes.get("ALD | Depth Range")
+    check(node is not None, "Depth range missing")
+    check(abs(node.inputs["From Min"].default_value - 3.0) <= TOLERANCE,
+          "Depth near not updated in place")
+
+    settings.dispersion_amount = 0.02
+    node = ng.nodes.get("ALD | Lens")
+    check(node is not None, "Lens node missing")
+    check(abs(node.inputs["Dispersion"].default_value - 0.02) <= TOLERANCE,
+          "Dispersion not updated in place")
+    check(len(ng.nodes) == count, "a slider rebuilt the stack")
+
+    settings.halation_strength = 0.6
+    settings.kuwahara_size = 6.0
+    settings.light_wrap_size = 24.0
+    settings.light_wrap_strength = 0.4
+    settings.depth_near = 4.0
+    settings.dispersion_amount = 0.01
+
+
 def check_shot_markers(scene, settings):
     from anime_look_director import shots
     from anime_look_director import palette as palette_module
@@ -628,6 +690,7 @@ def main():
         check_god_rays(scene, settings)
         check_shadow_tint(scene, settings, data)
         check_light_wrap(scene, settings)
+        check_param_updates(scene, settings)
         check_shot_markers(scene, settings)
         check_material_presets(scene, settings, data)
 
