@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+*.blend1
+_launch/
+output/
+.pytest_cache/
