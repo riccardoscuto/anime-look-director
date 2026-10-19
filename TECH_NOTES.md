@@ -255,3 +255,27 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   spheres while keeping soft Ghibli-style light.
 - The shadow-tint pixel test disables toon/rim so the AO comparison stays isolated;
   separate toon and rim renders validate the new stages.
+
+### v0.6.0 notes (per-camera overrides)
+- **Effective palette** precedence: camera override > `ALD:` marker > scene base.
+  `look.py` owns resolution/apply; `look.apply_world` only touches world/sun for
+  horizon/cloud controls, while `look.apply` also syncs materials and rebuilds the
+  stack when needed.
+- **Base palette invariant**: markers and camera overrides no longer write
+  `Scene.ald.palette`. `look.apply` stores `ald_effective_palette` and
+  `ald_effective_source`; `shadow_tint_for` and compositor glare tints read the
+  effective key. `Mark Shot` still uses the base dropdown, so the artist sets the
+  palette to be marked explicitly.
+- **Camera data property**: `Camera.ald` holds `override` and `palette`. The camera
+  switch handler caches `(camera_name, override_key)`; if both the previous and
+  current cameras have no override it returns without rebuilding, so temporary test
+  cameras do not trigger palette resets.
+- **Registration trap**: `bpy.data` is `_RestrictData` during add-on registration.
+  Building the camera cache from `bpy.data.scenes` at register time raises; the
+  cache is now initialized lazily and the handler tolerates a missing previous
+  state.
+- Gate: camera B with Rainy override, switch to Sakura, back to A restores the base
+  palette; the base palette value is never mutated. Marker test now checks
+  `ald_effective_palette`/`source` and base invariance instead of `settings.palette`.
+- UI: Camera Override box in Scene > World & Shadows and Sidebar N; effective look
+  label in the main panel.

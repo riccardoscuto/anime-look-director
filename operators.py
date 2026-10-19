@@ -1,6 +1,6 @@
 import bpy
 
-from . import compositor, materials, palette, shots
+from . import compositor, look, materials, palette, shots
 
 
 def _sync_shadow(scene):
@@ -55,12 +55,9 @@ class ALD_OT_apply_palette(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        palette.apply_palette(scene, scene.ald.palette)
-        count = _sync_shadow(scene)
-        if scene.compositing_node_group is not None:
-            compositor.build(scene)
+        key = look.apply(scene, force=True)
         self.report({"INFO"},
-                    "Anime Look Director: palette applied, %d materials tinted" % count)
+                    "Anime Look Director: palette applied (%s)" % key)
         return {"FINISHED"}
 
 

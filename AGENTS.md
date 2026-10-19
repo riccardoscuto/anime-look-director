@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.5.0**).
+  (currently **0.6.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -24,6 +24,8 @@ TECH_NOTES); move it on-screen before capturing.
   floats update in place, toggles rebuild the stack).
 - `palette.py` — atmospheric presets, world gradient (sun disk + clouds), custom
   color overrides, world + sun apply.
+- `look.py` — effective palette resolution and apply (camera > marker > base).
+- `cameras.py` — per-camera palette overrides and camera-switch handler.
 - `compositor.py` — builds/removes one `ALD | Compositor Stack` per scene
   (Render Layers → Glare → Sun Beams (optional) → Kuwahara (depth-mixed) →
   Light Wrap → Ink Lines (optional) → Lensdist → Group Output); also refreshes
@@ -127,6 +129,19 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - HAIR preset rim boost: `+0.3` strength and width capped at 0.35, applied by
   material name in `_set_look`.
 - Gate toon/rim pixel ratios at 128×128: terminator ~1.3 %, rim ~6.5 % (edge-local).
+- Effective palette precedence: **camera override > `ALD:` marker > `Scene.ald.palette`**.
+  `look.effective_palette` resolves it, `look.apply` applies palette + materials +
+  stack, `look.apply_world` updates only world/sun for horizon/cloud controls.
+- `Camera.ald` is a PointerProperty on **camera data**; the active camera is
+  `scene.camera`. The camera handler caches `(camera_name, override_key)` and skips
+  when both previous and current cameras have no override, so temporary test
+  cameras do not trigger rebuilds.
+- Markers must **not** write `Scene.ald.palette`: the base palette stays intact.
+  `look.apply` stores `ald_effective_palette`, `ald_effective_source` and
+  `ald_active_shot`. `palette.shadow_tint_for` and the compositor glare tints use
+  the effective key.
+- Do not touch `bpy.data` during add-on registration (it is `_RestrictData`);
+  initialize handler caches lazily instead.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
@@ -159,6 +174,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Layer Weight Facing.
 - `sync_scene`/`sync_material` must pass the `_look` dict so toon/rim values stay
   in sync; never rebuild materials from the frame handler.
+- Palette changes and shots go through `look.apply`/`look.apply_world`, never a
+  direct `settings.palette = key` for temporary overrides.
 - `bl_info`, `blender_manifest.toml`, `README.md`, `CHANGELOG.md` versions stay aligned.
 
 See `TECH_NOTES.md` for the full spike results.

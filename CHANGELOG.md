@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.0 — 2026-10-19
+### Added
+- **Per-camera palette overrides**: each Camera data-block can enable its own
+  palette; switching the active camera applies it automatically.
+- **Effective look coordinator** (`look.py`): precedence
+  **camera > shot marker > scene base palette**.
+- Effective look label in the Scene panel: `Look: <PALETTE> (camera|marker)`.
+- Camera Override box in the Scene World & Shadows section and Sidebar N.
+- Gate coverage for camera overrides and base-palette invariance.
+
+### Changed
+- Shot markers no longer overwrite `Scene.ald.palette`; they set the effective
+  palette only. The base palette is preserved for non-marker shots.
+- Palette changes, world controls and `Apply Palette` all resolve the effective
+  palette instead of assuming the base.
+- `compositor` glare tints and `shadow_tint_for` use the effective palette key.
+- Version 0.6.0.
+
 ## 0.5.0 — 2026-10-19
 ### Added
 - **Cel terminator** in the Shadow Tint group: `N·L` against the palette sun,

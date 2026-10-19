@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.5.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.6.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -41,11 +41,13 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
     forza e dimensione regolabili; si aggiorna durante l'animazione.
 14. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
     inquadrature; il pulsante `Mark Shot` crea/aggiorna il marker.
-15. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
+15. **Per-camera override** — ogni camera può avere la propria palette; cambiando
+    camera il look si aggiorna. Precedenza: camera > marker > palette di scena.
+16. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
     oggetti selezionati.
-16. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
-17. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
-18. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
+17. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
+18. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
+19. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
     compositor senza staccare gli occhi dalla camera.
 
 ## Flusso di lavoro
@@ -58,7 +60,8 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
    sotto-pannelli richiudibili): qui trovi Sun Disk, Anime Clouds, Ink Lines e
    **Custom Colors**.
 5. Per un cambio palette su un taglio: scegli la palette, vai al frame, premi
-   **Mark Shot** e attiva **Shot Markers**.
+   **Mark Shot** e attiva **Shot Markers**. Per un override per-camera: seleziona
+   la camera, apri **Camera Override** e scegli la palette.
 6. Per i materiali: seleziona gli oggetti, scegli un preset e premi **Apply**.
 7. **Enable Viewport Compositor** per vedere il risultato nel viewport.
 
@@ -80,6 +83,7 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 - **Shadow Tint** + forza, distanza, numero materiali, `Clear Shadow Tint`
 - **Cel Shading** + Cel Shadow e Terminator Sharpness
 - **Rim Light** + forza e larghezza
+- **Camera Override** (palette specifica della camera attiva)
 - **Halation** (Glare Bloom) e forza
 - **Painterly (Kuwahara)** e dimensione
 - **Chromatic dispersion**
@@ -114,7 +118,9 @@ o il colore originale della Base Color.
   generano il bordo.
 - God Rays: durante l'animazione segue sole e camera a ogni frame; se muovi
   sole/camera **senza cambiare frame**, serve **Build / Update Stack**.
-- Shot markers: override temporali, non per-camera.
+- Shot markers: override temporali, non per-camera; la palette base non viene
+  sovrascritta. Gli override camera hanno precedenza sui marker.
+- Camera override: vive sulla camera data, quindi è condiviso da camera linkate.
 - Material presets: materiali semplici (Principled), non shader toon completi.
 - Nuvole: procedurali stilizzate, non simulazione volumetrica; quantità e scala
   regolabili.
@@ -156,3 +162,4 @@ multi-scena, render EEVEE e coerenza versione `bl_info`/manifest.
 - **0.3.2** — slider in-place, shadow tint moltiplicativo, pannello Sidebar N.
 - **0.4.0** — Sun Disk, Anime Clouds, Ink Lines, Sakura/Twilight, Custom Colors.
 - **0.5.0** — Cel terminator, rim light direzionale, angel ring HAIR.
+- **0.6.0** — override palette per-camera, coordinatore effective look.

@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 5, 0)
+EXPECTED_VERSION = (0, 6, 0)
 TOLERANCE = 1e-4
 
 
@@ -543,11 +543,11 @@ def check_pixels(scene, settings):
         settings.shadow_tint_strength = 0.35
         settings.shadow_tint_distance = 0.6
         settings.toon_shading = True
-        settings.toon_strength = 0.6
-        settings.toon_sharpness = 0.08
+        settings.toon_strength = 0.75
+        settings.toon_sharpness = 0.035
         settings.rim_light = True
-        settings.rim_strength = 0.3
-        settings.rim_width = 0.5
+        settings.rim_strength = 0.45
+        settings.rim_width = 0.4
         scene.render.engine = old_engine
         scene.render.resolution_x, scene.render.resolution_y = old_size
         scene.eevee.taa_render_samples = old_samples
@@ -659,19 +659,28 @@ def check_shot_markers(scene, settings):
     marker_b = scene.timeline_markers.new(
         shots.marker_name("NEON_NIGHT"), frame=20)
     marker_c = None
+    base = settings.palette
     try:
         settings.use_shot_markers = True
         scene.frame_set(10)
         shots.apply_for_frame(scene, force=True)
-        check(settings.palette == "GOLDEN_HOUR",
-              "shot marker A did not apply its palette")
+        check(settings.palette == base,
+              "shot marker changed the base palette")
+        check(scene.get("ald_effective_palette") == "GOLDEN_HOUR",
+              "shot marker A did not set the effective palette")
+        check(scene.get("ald_effective_source") == "marker",
+              "shot marker A source wrong")
         check(shots.active_marker(scene) == "GOLDEN_HOUR",
               "active shot marker A wrong")
 
         scene.frame_set(20)
         shots.apply_for_frame(scene, force=True)
-        check(settings.palette == "NEON_NIGHT",
-              "shot marker B did not apply its palette")
+        check(settings.palette == base,
+              "shot marker B changed the base palette")
+        check(scene.get("ald_effective_palette") == "NEON_NIGHT",
+              "shot marker B did not set the effective palette")
+        check(scene.get("ald_effective_source") == "marker",
+              "shot marker B source wrong")
         expected = palette_module.preset("NEON_NIGHT")
         node = gradient_node(scene)
         check(node is not None
@@ -681,6 +690,7 @@ def check_shot_markers(scene, settings):
         check(scene.get("ald_active_shot") == "NEON_NIGHT",
               "active shot not tracked")
 
+        settings.palette = "NEON_NIGHT"
         scene.frame_set(30)
         result = bpy.ops.ald.mark_shot()
         check("FINISHED" in result, "mark shot operator failed")
@@ -689,6 +699,8 @@ def check_shot_markers(scene, settings):
         check(marker_c is not None
               and marker_c.name == shots.marker_name("NEON_NIGHT"),
               "mark shot did not create the marker")
+        check(scene.get("ald_effective_palette") == "NEON_NIGHT",
+              "mark shot did not apply its palette")
     finally:
         for marker in (marker_a, marker_b, marker_c):
             if marker is not None:
@@ -698,6 +710,58 @@ def check_shot_markers(scene, settings):
             del scene["ald_active_shot"]
         scene.frame_set(1)
         settings.palette = "GOLDEN_HOUR"
+
+
+def check_camera_override(scene, settings):
+    from anime_look_director import look
+    from anime_look_director import palette as palette_module
+
+    camera_a = scene.camera
+    check(camera_a is not None and hasattr(camera_a.data, "ald"),
+          "camera override settings missing")
+    old_override = camera_a.data.ald.override
+    old_palette = camera_a.data.ald.palette
+    base = settings.palette
+
+    cam_data = bpy.data.cameras.new("ALD_GATE_CAM_B")
+    cam_b = bpy.data.objects.new("ALD_GATE_CAM_B", cam_data)
+    scene.collection.objects.link(cam_b)
+    try:
+        cam_b.data.ald.override = True
+        cam_b.data.ald.palette = "RAINY_TOKYO"
+        scene.camera = cam_b
+        look.apply(scene, force=True)
+        check(scene.get("ald_effective_palette") == "RAINY_TOKYO",
+              "camera override did not set the effective palette")
+        check(scene.get("ald_effective_source") == "camera",
+              "camera override source wrong")
+        check(settings.palette == base,
+              "camera override changed the base palette")
+        expected = palette_module.preset("RAINY_TOKYO")
+        node = gradient_node(scene)
+        check(node is not None
+              and close(node.inputs["Horizon Color"].default_value,
+                        expected["horizon_color"]),
+              "camera override did not update the world")
+
+        cam_b.data.ald.palette = "SAKURA_SPRING"
+        look.apply(scene, force=True)
+        check(scene.get("ald_effective_palette") == "SAKURA_SPRING",
+              "camera override palette change not applied")
+
+        scene.camera = camera_a
+        look.apply(scene, force=True)
+        check(scene.get("ald_effective_palette") == base,
+              "base palette not restored after the camera override")
+        check(scene.get("ald_effective_source") == "scene",
+              "camera override source not cleared")
+    finally:
+        scene.camera = camera_a
+        camera_a.data.ald.override = old_override
+        camera_a.data.ald.palette = old_palette
+        bpy.data.objects.remove(cam_b, do_unlink=True)
+        bpy.data.cameras.remove(cam_data)
+        look.apply(scene, force=True)
 
 
 def check_material_presets(scene, settings, data):
@@ -871,6 +935,7 @@ def main():
         check_shot_markers(scene, settings)
         check_material_presets(scene, settings, data)
         check_custom_colors(scene, settings, data)
+        check_camera_override(scene, settings)
 
         ng = scene.compositing_node_group
         check(ng is not None and ng.name == "ALD | Compositor Stack",

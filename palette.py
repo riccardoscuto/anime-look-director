@@ -105,7 +105,8 @@ def shadow_tint_for(scene):
     settings = getattr(scene, "ald", None)
     if settings is None:
         return shadow_tint("GOLDEN_HOUR")
-    return effective(scene, settings.palette)["shadow_tint"]
+    key = scene.get("ald_effective_palette", settings.palette)
+    return effective(scene, key)["shadow_tint"]
 
 
 def _rgba(color):
@@ -620,6 +621,7 @@ def apply_palette(scene, key):
     _apply_gradient(scene, settings, nt, background, p)
     background.inputs["Strength"].default_value = p["world_strength"]
     scene["ald_last_palette"] = key
+    scene["ald_effective_palette"] = key
     return p
 
 

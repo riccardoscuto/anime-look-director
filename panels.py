@@ -42,6 +42,11 @@ class ALD_PT_scene(bpy.types.Panel):
         else:
             layout.label(text="Stack: " + scene.compositing_node_group.name,
                          icon="CHECKMARK")
+        effective = scene.get("ald_effective_palette", s.palette)
+        source = scene.get("ald_effective_source", "scene")
+        if source != "scene" or effective != s.palette:
+            layout.label(text="Look: %s (%s)" % (effective, source),
+                         icon="INFO")
 
 
 class ALD_PT_world(bpy.types.Panel):
@@ -111,6 +116,15 @@ class ALD_PT_world(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "rim_strength")
             col.prop(s, "rim_width")
+
+        cam = scene.camera
+        if (cam is not None and cam.data is not None
+                and hasattr(cam.data, "ald")):
+            box = layout.box()
+            box.label(text="Camera Override", icon="CAMERA")
+            box.prop(cam.data.ald, "override", toggle=True)
+            if cam.data.ald.override:
+                box.prop(cam.data.ald, "palette", text="")
 
 
 class ALD_PT_compositor(bpy.types.Panel):
@@ -220,6 +234,15 @@ class ALD_PT_view3d(bpy.types.Panel):
         if s.rim_light:
             col = box.column(align=True)
             col.prop(s, "rim_strength")
+
+        cam = scene.camera
+        if (cam is not None and cam.data is not None
+                and hasattr(cam.data, "ald")):
+            box = layout.box()
+            box.label(text="Camera Override", icon="CAMERA")
+            box.prop(cam.data.ald, "override", toggle=True)
+            if cam.data.ald.override:
+                box.prop(cam.data.ald, "palette", text="")
 
         box = layout.box()
         box.label(text="Compositor", icon="NODETREE")

@@ -34,35 +34,13 @@ def active_marker(scene):
     return best_key
 
 
-def _apply(scene, key):
-    from . import palette, materials, compositor
-
-    settings = scene.ald
-    if settings.palette != key:
-        settings.palette = key
-        return
-    palette.apply_palette(scene, key)
-    if settings.shadow_tint:
-        materials.sync_scene(scene, palette.shadow_tint_for(scene),
-                             settings.shadow_tint_strength,
-                             settings.shadow_tint_distance)
-    if scene.compositing_node_group:
-        compositor.build(scene)
-
-
 def apply_for_frame(scene, force=False):
-    """Apply the active marker palette; returns the key when it changed."""
+    """Apply the effective palette resolved from camera/marker/base."""
     settings = getattr(scene, "ald", None)
     if settings is None or not settings.use_shot_markers:
         return None
-    key = active_marker(scene)
-    if key is None:
-        return None
-    if not force and scene.get("ald_active_shot") == key:
-        return None
-    scene["ald_active_shot"] = key
-    _apply(scene, key)
-    return key
+    from . import look
+    return look.apply(scene, force=force)
 
 
 def _on_frame_change(scene, *_args):

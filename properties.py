@@ -22,27 +22,20 @@ MATERIALS = [
 
 def _on_palette(self, context):
     try:
-        from . import palette, materials, compositor
+        from . import look
         scene = context.scene
-        if scene is None:
-            return
-        palette.apply_palette(scene, self.palette)
-        if self.shadow_tint:
-            materials.sync_scene(scene, palette.shadow_tint_for(scene),
-                                 self.shadow_tint_strength,
-                                 self.shadow_tint_distance)
-        if scene.compositing_node_group:
-            compositor.build(scene)
+        if scene is not None:
+            look.apply(scene, force=True)
     except Exception:
         pass
 
 
 def _on_world(self, context):
     try:
-        from . import palette
+        from . import look
         scene = context.scene
         if scene is not None:
-            palette.apply_palette(scene, self.palette)
+            look.apply_world(scene)
     except Exception:
         pass
 
@@ -56,7 +49,20 @@ def _on_custom(self, context):
             self.custom_horizon = p["horizon_color"]
             self.custom_sun = p["sun_color"]
             self.custom_shadow = p["shadow_tint"]
-        _on_world(self, context)
+        _on_custom_color(self, context)
+    except Exception:
+        pass
+
+
+def _on_custom_color(self, context):
+    _on_world(self, context)
+    try:
+        from . import materials, palette
+        scene = context.scene
+        if scene is not None and self.shadow_tint:
+            materials.sync_scene(scene, palette.shadow_tint_for(scene),
+                                 self.shadow_tint_strength,
+                                 self.shadow_tint_distance)
     except Exception:
         pass
 
@@ -153,7 +159,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         min=0.0,
         max=1.0,
         default=(0.22, 0.30, 0.62),
-        update=_on_world,
+        update=_on_custom_color,
     )
     custom_horizon: FloatVectorProperty(
         name="Horizon",
@@ -162,7 +168,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         min=0.0,
         max=1.0,
         default=(1.0, 0.55, 0.28),
-        update=_on_world,
+        update=_on_custom_color,
     )
     custom_sun: FloatVectorProperty(
         name="Sun",
@@ -171,7 +177,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         min=0.0,
         max=1.0,
         default=(1.0, 0.65, 0.35),
-        update=_on_world,
+        update=_on_custom_color,
     )
     custom_shadow: FloatVectorProperty(
         name="Shadow",
@@ -180,7 +186,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         min=0.0,
         max=1.0,
         default=(0.44, 0.53, 1.0),
-        update=_on_world,
+        update=_on_custom_color,
     )
     horizon_offset: FloatProperty(
         name="Horizon",

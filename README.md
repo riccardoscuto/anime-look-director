@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v0.5.0)
+## What it does (v0.6.0)
 - Six atmosphere presets (Shinkai Golden Hour, Ghibli Summer Noon, Rainy Tokyo,
   Cyberpunk Neon, Sakura Spring, Twilight Dusk) driving world, sun, shadow tint
   and halation tint.
@@ -27,6 +27,8 @@ Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.
   refreshed on frame change).
 - **Shot markers**: palettes driven by `ALD:<PALETTE>` timeline markers, with a
   `Mark Shot` button.
+- **Per-camera palette overrides**: each camera can carry its own atmosphere;
+  switching cameras applies it. Precedence: camera > marker > scene palette.
 - **Material presets** (Skin, Hair, Fabric, Metal, Emission) for selected objects.
 - A node-group compositor stack, **one per scene**:
   `Render Layers → Glare (Bloom) → Sun Beams → Kuwahara (depth-mixed) → Light Wrap → Ink Lines → Lens Distortion → Group Output`.
@@ -61,7 +63,8 @@ Expected output: `ALD GATE: PASS`.
 - v0.3.1 — God Rays refresh/size, Emission preset
 - v0.3.2 — in-place sliders, multiplicative shadow tint, sidebar N panel
 - v0.4.0 — sun disk, anime clouds, ink lines, Sakura/Twilight, custom colors
-- v0.5.0 — cel terminator, directional rim light, hair angel ring (current)
+- v0.5.0 — cel terminator, directional rim light, hair angel ring
+- v0.6.0 — per-camera palette overrides, effective look coordinator (current)
 - v1.0 — store release (legacy ZIP + Extension), presets and docs
 
 ## Recap

@@ -441,6 +441,7 @@ def build(scene):
     depth = rl.outputs.get("Depth")
 
     from . import palette as palette_module
+    palette_key = scene.get("ald_effective_palette", settings.palette)
 
     if settings.halation:
         glare = nodes.new("CompositorNodeGlare")
@@ -455,7 +456,7 @@ def build(scene):
             glare.inputs["Saturation"].default_value = 1.1
         if "Tint" in glare.inputs:
             glare.inputs["Tint"].default_value = palette_module.glare_tint(
-                settings.palette)
+                palette_key)
         links.new(current, glare.inputs["Image"])
         current = glare.outputs["Image"]
 
@@ -475,7 +476,7 @@ def build(scene):
         beams.inputs["Saturation"].default_value = 1.0
         if "Tint" in beams.inputs:
             beams.inputs["Tint"].default_value = palette_module.glare_tint(
-                settings.palette)
+                palette_key)
         beams.inputs["Sun Position"].default_value = (
             position if position is not None else (0.5, 0.5))
         links.new(current, beams.inputs["Image"])
