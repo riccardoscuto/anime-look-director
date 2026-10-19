@@ -103,6 +103,7 @@ class ALD_PT_world(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "shadow_tint_strength")
             col.prop(s, "shadow_tint_distance")
+            col.prop(s, "shadow_hue_lift")
 
         box.separator()
         row = box.row(align=True)
@@ -227,6 +228,7 @@ class ALD_PT_view3d(bpy.types.Panel):
         if s.shadow_tint:
             col = box.column(align=True)
             col.prop(s, "shadow_tint_strength")
+            col.prop(s, "shadow_hue_lift")
         row = box.row(align=True)
         row.prop(s, "toon_shading", toggle=True)
         row.prop(s, "rim_light", toggle=True)

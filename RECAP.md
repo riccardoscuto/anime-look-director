@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.6.2** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.7.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -15,42 +15,46 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 
 1. **Palette atmosferiche** — sei preset che governano world, sole, tint del
    glare e colore delle ombre.
-2. **World gradient** — cielo, orizzonte e terreno separati, con offset e
-   morbidezza dell'orizzonte.
+2. **World gradient** — cielo a 4 zone: terreno, orizzonte, mid-sky bridge e
+   zenit, con offset e morbidezza dell'orizzonte. Il bridge evita la fascia
+   grigia nei cieli al tramonto.
 3. **Auto Sun** — se la scena non ha una SUN, ne viene creata una (`ALD | Sun`)
-   e tinta dalla palette.
+   e tinta dalla palette, con rotazione solare dedicata.
 4. **Sun disk** — disco solare nel cielo, allineato alla direzione reale del
    sole, con dimensione e intensità.
-5. **Anime clouds** — nuvole procedurali a due layer di rumore, colorate con
-   shadow/horizon/sun della palette, con quantità e scala.
-6. **Custom palette colors** — override di cielo, orizzonte, sole e ombra per
-   scena.
-7. **Shadow tint** — node group reversibile e **moltiplicativo**: nelle zone in
-   ombra tinge la Base Color con il colore della palette preservando il dettaglio
-   delle texture.
-8. **Cel terminator** — stacco direzionale `N·L` sincronizzato col sole, con
+5. **Anime clouds** — nuvole procedurali a due layer, con triade shadow/mid/light
+   e illuminazione direzionale rispetto al sole, con quantità e scala.
+6. **Visible sky / ambient split** — la forza del world regola la luce ambientale,
+   mentre il cielo visto dalla camera resta vivido.
+7. **Custom palette colors** — override di cielo, orizzonte, sole e ombra per
+   scena; cambiando preset con override attivo i colori si riallineano al nuovo
+   preset.
+8. **Shadow tint** — node group reversibile e **moltiplicativo**, con **Hue Lift**
+   additivo: le texture restano leggibili e anche i materiali caldi prendono la
+   velatura blu/viola delle ombre.
+9. **Cel terminator** — stacco direzionale `N·L` sincronizzato col sole, con
    Cel Shadow e Terminator Sharpness.
-9. **Rim light direzionale** — Fresnel sul lato sole, colorato con `sun_color`;
-   il preset HAIR riceve un boost “angel ring”.
-10. **Rim emission** — il rim e una frazione dello shadow tint alimentano
+10. **Rim light direzionale** — Fresnel sul lato sole, colorato con `sun_color`;
+    il preset HAIR riceve un boost “angel ring”.
+11. **Rim emission** — il rim e una frazione dello shadow tint alimentano
     l’Emission Color del Principled, così il bordo resta visibile in controluce.
-11. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
+12. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
     → Kuwahara (mix per profondità) → Light Wrap → Ink Lines (opzionale) → Lens
     Distortion → Output`.
-12. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette.
-13. **Anime Ink Lines** — contorni sottili da profondità, tinti con lo shadow tint,
+13. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette.
+14. **Anime Ink Lines** — contorni sottili da profondità, tinti con lo shadow tint,
     con gain dedicato ai bordi interni.
-14. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
+15. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
     forza e dimensione regolabili; si aggiorna durante l’animazione.
-15. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
+16. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
     inquadrature; il pulsante `Mark Shot` crea/aggiorna il marker.
-16. **Per-camera override** — ogni camera può avere la propria palette; cambiando
+17. **Per-camera override** — ogni camera può avere la propria palette; cambiando
     camera il look si aggiorna. Precedenza: camera > marker > palette di scena.
-17. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
+18. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
     oggetti selezionati.
-18. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
-19. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
-20. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
+19. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
+20. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
+21. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
     compositor senza staccare gli occhi dalla camera.
 
 ## Flusso di lavoro
@@ -83,7 +87,7 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 
 - **World Gradient / Horizon / Horizon Softness**
 - **Auto Sun** (creazione automatica della SUN)
-- **Shadow Tint** + forza, distanza, numero materiali, `Clear Shadow Tint`
+- **Shadow Tint** + forza, distanza, Hue Lift, numero materiali, `Clear Shadow Tint`
 - **Cel Shading** + Cel Shadow e Terminator Sharpness
 - **Rim Light** + forza, larghezza ed emissione
 - **Camera Override** (palette specifica della camera attiva)
@@ -112,9 +116,14 @@ o il colore originale della Base Color.
 
 - Nessun salvataggio automatico del `.blend`.
 - Stack idempotente: rebuild non duplica gruppi o nodi.
-- Shadow tint: tint moltiplicativo delle zone in ombra che preserva le texture;
-  il cel terminator è un tint direzionale, non una vera rimappatura della luce.
+- Shadow tint: tint moltiplicativo delle zone in ombra che preserva le texture,
+  più Hue Lift additivo per i materiali caldi; il cel terminator è un tint
+  direzionale, non una vera rimappatura della luce.
   Resta un proxy di contatto/occlusione, non ricolora le ombre proiettate.
+- Colori palette in Scene-Linear Rec.709, non sRGB: i valori HDR (orizzonte, sole,
+  nuvole) possono superare 1.0 e vengono compressi da AgX.
+- La `sun_rotation` dei preset viene applicata solo alla Sun automatica, non alle
+  luci sole create dall’utente.
 - Rim light: approssimazione Fresnel mascherata dal sole; non è un vero rim
   lighting fisico. L'angel ring HAIR è un boost del rim. L'emission rim viene
   saltata sui materiali che hanno già emission.
@@ -171,3 +180,4 @@ multi-scena, render EEVEE e coerenza versione `bl_info`/manifest.
 - **0.6.0** — override palette per-camera, coordinatore effective look.
 - **0.6.1** — normalizzazione sun disk, update realtime, ink gain, rim emission.
 - **0.6.2** — fix icona pannello Camera Override.
+- **0.7.0** — color script Linear Rec.709, mid-sky bridge, nuvole direzionali, hue lift.

@@ -322,3 +322,38 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   `bpy.types.UILayout.bl_rna.functions["label"].parameters["icon"].enum_items`.
   The headless gate does not execute panel draws, so GUI changes still need the
   screenshot check.
+
+### v0.7.0 notes (color-science pass)
+- **Presets** are now authored in Scene-Linear Rec.709 for AgX, with HDR horizon
+  values (up to 1.25) and a dedicated `mid_sky_color` bridge. The six palettes are
+  GOLDEN_HOUR, SUMMER_NOON, RAINY_TOKYO, NEON_NIGHT, SAKURA_SPRING and
+  TWILIGHT_DUSK. Look-dev luma/saturation changed visibly (Golden saturation
+  0.14 → 0.27; Twilight 0.20 → 0.31).
+- **Four-zone sky**: the old ground→horizon→sky mix was replaced by
+  ground→horizon (0..0.5), horizon→mid (0.5..0.74), mid→zenith (0.70..1.0). This
+  avoids the gray/brown midpoint when blue and orange complementaries mix.
+- **Visible sky vs ambient**: `World Strength` was moved into the group. The world
+  output mixes `gradient * World Strength` for non-camera rays with the full
+  gradient for camera rays (`ShaderNodeLightPath > Is Camera Ray`). Background
+  Strength is 1.0 while the gradient is active; flat worlds use the preset strength.
+  This keeps the sky vivid without washing out cel shadows.
+- **Directional clouds**: `sun_bias` maps `N·L` (-0.5..0.9) to (-0.06..0.08) and is
+  added to the density before the 0.50–0.53 / 0.56–0.59 tone bands. Coverage is
+  0.49–0.55. The bullseye/fried-egg look from using density alone for all three
+  colors is gone; look-dev shows sun-side highlights and deeper cloud bases.
+- **Shadow Hue Lift**: after the MULTIPLY shadow tint, an additive
+  `Tint * combined * 0.18` veil is applied. Pure multiply on warm/yellow materials
+  cannot produce a blue shadow (low blue channel times blue = low blue); the lift
+  gives the Iro-Shitei hue veil while keeping texture detail. Exposed as `Hue Lift`.
+- **Custom Colors palette switch**: `_on_palette` now refreshes custom
+  sky/horizon/sun/shadow from the new preset before `look.apply`, so switching from
+  Golden to Neon with Custom Colors on no longer keeps the old Golden overrides.
+- **Sun rotation**: each preset supplies `sun_rotation`; it is applied only to
+  auto-tagged `ALD | Sun`, not user suns. `sun_toward` uses `rotation_euler` for an
+  unparented auto sun (avoids stale matrices) and `ensure_sun` no longer forces a
+  view-layer update (depsgraph re-entrancy).
+- Gate now checks `Mid Sky Color`, `World Strength`, background strength, `Hue Lift`
+  and custom-color refresh on palette switch. Pixel ratios: shadow 2.1 %, wrap
+  15.8 %, ink 2.6 %, toon 1.6 %, rim 7.2 %; `ALD GATE: PASS`.
+- The new colors are intentionally more saturated; AgX still compresses highlights,
+  and HDR values above 1.0 are expected for horizon/sun/cloud light colors.

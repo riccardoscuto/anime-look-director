@@ -9,70 +9,100 @@ AUTO_SUN_TAG = "ald_auto_sun"
 
 PRESETS = {
     "GOLDEN_HOUR": {
-        "world_color": (1.0, 0.55, 0.25),
-        "world_strength": 0.8,
-        "sky_color": (0.22, 0.30, 0.62),
-        "horizon_color": (1.0, 0.55, 0.28),
-        "ground_color": (0.30, 0.18, 0.12),
-        "sun_color": (1.0, 0.65, 0.35),
-        "sun_energy": 4.0,
-        "glare_tint": (1.0, 0.62, 0.38, 1.0),
-        "shadow_tint": (0.44, 0.53, 1.0),
+        "world_color": (0.85, 0.38, 0.14),
+        "world_strength": 0.9,
+        "sky_color": (0.015, 0.042, 0.28),
+        "mid_sky_color": (0.28, 0.09, 0.24),
+        "horizon_color": (1.15, 0.32, 0.06),
+        "ground_color": (0.12, 0.06, 0.05),
+        "cloud_shadow": (0.07, 0.05, 0.16),
+        "cloud_mid": (0.62, 0.18, 0.16),
+        "cloud_light": (1.25, 0.55, 0.16),
+        "sun_color": (1.0, 0.48, 0.18),
+        "sun_energy": 4.2,
+        "sun_rotation": (1.22, 0.12, -0.55),
+        "glare_tint": (1.0, 0.52, 0.22, 1.0),
+        "shadow_tint": (0.26, 0.34, 0.92),
     },
     "SUMMER_NOON": {
-        "world_color": (0.45, 0.65, 1.0),
-        "world_strength": 0.85,
-        "sky_color": (0.12, 0.36, 0.95),
-        "horizon_color": (0.62, 0.80, 1.0),
-        "ground_color": (0.52, 0.47, 0.34),
-        "sun_color": (1.0, 0.95, 0.85),
-        "sun_energy": 4.5,
-        "glare_tint": (1.0, 0.96, 0.85, 1.0),
-        "shadow_tint": (0.44, 0.60, 1.0),
+        "world_color": (0.32, 0.55, 0.95),
+        "world_strength": 0.95,
+        "sky_color": (0.018, 0.12, 0.65),
+        "mid_sky_color": (0.11, 0.36, 0.85),
+        "horizon_color": (0.52, 0.78, 0.98),
+        "ground_color": (0.28, 0.25, 0.18),
+        "cloud_shadow": (0.20, 0.28, 0.52),
+        "cloud_mid": (0.74, 0.80, 0.90),
+        "cloud_light": (1.20, 1.15, 1.02),
+        "sun_color": (1.0, 0.93, 0.80),
+        "sun_energy": 4.8,
+        "sun_rotation": (0.68, 0.15, -0.65),
+        "glare_tint": (1.0, 0.95, 0.82, 1.0),
+        "shadow_tint": (0.28, 0.48, 0.90),
     },
     "RAINY_TOKYO": {
-        "world_color": (0.20, 0.30, 0.45),
-        "world_strength": 0.6,
-        "sky_color": (0.06, 0.10, 0.20),
-        "horizon_color": (0.32, 0.42, 0.58),
-        "ground_color": (0.07, 0.09, 0.13),
-        "sun_color": (0.60, 0.75, 1.0),
-        "sun_energy": 1.0,
-        "glare_tint": (0.60, 0.80, 1.0, 1.0),
-        "shadow_tint": (0.38, 0.57, 1.0),
+        "world_color": (0.12, 0.20, 0.30),
+        "world_strength": 0.75,
+        "sky_color": (0.022, 0.052, 0.105),
+        "mid_sky_color": (0.075, 0.145, 0.22),
+        "horizon_color": (0.22, 0.33, 0.42),
+        "ground_color": (0.035, 0.05, 0.075),
+        "cloud_shadow": (0.035, 0.06, 0.10),
+        "cloud_mid": (0.14, 0.21, 0.28),
+        "cloud_light": (0.34, 0.46, 0.56),
+        "sun_color": (0.58, 0.76, 0.95),
+        "sun_energy": 1.4,
+        "sun_rotation": (0.85, 0.20, -0.45),
+        "glare_tint": (0.55, 0.80, 1.0, 1.0),
+        "shadow_tint": (0.20, 0.40, 0.75),
     },
     "NEON_NIGHT": {
-        "world_color": (0.25, 0.05, 0.35),
-        "world_strength": 0.5,
-        "sky_color": (0.03, 0.08, 0.26),
-        "horizon_color": (0.85, 0.10, 0.55),
-        "ground_color": (0.04, 0.02, 0.07),
-        "sun_color": (1.0, 0.20, 0.60),
-        "sun_energy": 2.0,
-        "glare_tint": (1.0, 0.20, 0.60, 1.0),
-        "shadow_tint": (0.72, 0.19, 1.0),
+        "world_color": (0.18, 0.03, 0.28),
+        "world_strength": 0.7,
+        "sky_color": (0.008, 0.012, 0.065),
+        "mid_sky_color": (0.16, 0.02, 0.28),
+        "horizon_color": (0.82, 0.06, 0.44),
+        "ground_color": (0.02, 0.01, 0.045),
+        "cloud_shadow": (0.02, 0.015, 0.07),
+        "cloud_mid": (0.48, 0.05, 0.32),
+        "cloud_light": (0.18, 0.78, 0.98),
+        "sun_color": (1.0, 0.16, 0.52),
+        "sun_energy": 2.4,
+        "sun_rotation": (1.05, -0.18, -0.75),
+        "glare_tint": (1.0, 0.18, 0.58, 1.0),
+        "shadow_tint": (0.42, 0.14, 0.92),
     },
     "SAKURA_SPRING": {
-        "world_color": (0.85, 0.65, 0.75),
-        "world_strength": 0.75,
-        "sky_color": (0.28, 0.42, 0.85),
-        "horizon_color": (1.0, 0.60, 0.70),
-        "ground_color": (0.43, 0.34, 0.32),
-        "sun_color": (1.0, 0.82, 0.76),
+        "world_color": (0.72, 0.48, 0.58),
+        "world_strength": 0.9,
+        "sky_color": (0.055, 0.16, 0.62),
+        "mid_sky_color": (0.38, 0.28, 0.58),
+        "horizon_color": (0.98, 0.50, 0.56),
+        "ground_color": (0.24, 0.16, 0.18),
+        "cloud_shadow": (0.26, 0.20, 0.40),
+        "cloud_mid": (0.78, 0.54, 0.62),
+        "cloud_light": (1.15, 0.90, 0.84),
+        "sun_color": (1.0, 0.78, 0.72),
         "sun_energy": 4.0,
-        "glare_tint": (1.0, 0.78, 0.84, 1.0),
-        "shadow_tint": (0.62, 0.46, 1.0),
+        "sun_rotation": (0.88, 0.14, -0.52),
+        "glare_tint": (1.0, 0.72, 0.80, 1.0),
+        "shadow_tint": (0.52, 0.36, 0.88),
     },
     "TWILIGHT_DUSK": {
-        "world_color": (0.55, 0.25, 0.35),
-        "world_strength": 0.65,
-        "sky_color": (0.08, 0.10, 0.35),
-        "horizon_color": (0.95, 0.42, 0.25),
-        "ground_color": (0.10, 0.08, 0.12),
-        "sun_color": (1.0, 0.55, 0.30),
-        "sun_energy": 3.0,
-        "glare_tint": (1.0, 0.55, 0.35, 1.0),
-        "shadow_tint": (0.50, 0.38, 1.0),
+        "world_color": (0.42, 0.14, 0.24),
+        "world_strength": 0.8,
+        "sky_color": (0.009, 0.016, 0.12),
+        "mid_sky_color": (0.20, 0.05, 0.25),
+        "horizon_color": (0.98, 0.20, 0.06),
+        "ground_color": (0.05, 0.03, 0.06),
+        "cloud_shadow": (0.03, 0.025, 0.09),
+        "cloud_mid": (0.38, 0.07, 0.16),
+        "cloud_light": (1.12, 0.30, 0.08),
+        "sun_color": (1.0, 0.38, 0.15),
+        "sun_energy": 3.2,
+        "sun_rotation": (1.30, 0.10, -0.60),
+        "glare_tint": (1.0, 0.42, 0.20, 1.0),
+        "shadow_tint": (0.25, 0.30, 0.88),
     },
 }
 
@@ -89,15 +119,32 @@ def shadow_tint(key):
     return preset(key)["shadow_tint"]
 
 
+def _mid_bridge(sky, horizon):
+    """Compute a non-muddy chromatic bridge when custom colors are active."""
+    return (
+        min(1.0, (sky[0] * 0.35 + horizon[0] * 0.65) * 1.1),
+        (sky[1] * 0.5 + horizon[1] * 0.5) * 0.75,
+        min(1.0, (sky[2] * 0.65 + horizon[2] * 0.35) * 1.15),
+    )
+
+
 def effective(scene, key):
     """Preset values with the scene's custom color overrides applied."""
     p = dict(preset(key))
     settings = getattr(scene, "ald", None)
     if settings is not None and settings.custom_colors:
-        p["sky_color"] = tuple(settings.custom_sky)
-        p["horizon_color"] = tuple(settings.custom_horizon)
-        p["sun_color"] = tuple(settings.custom_sun)
-        p["shadow_tint"] = tuple(settings.custom_shadow)
+        sky = tuple(settings.custom_sky)
+        horizon = tuple(settings.custom_horizon)
+        sun = tuple(settings.custom_sun)
+        shadow = tuple(settings.custom_shadow)
+        p["sky_color"] = sky
+        p["mid_sky_color"] = _mid_bridge(sky, horizon)
+        p["horizon_color"] = horizon
+        p["sun_color"] = sun
+        p["shadow_tint"] = shadow
+        p["cloud_shadow"] = tuple(c * 0.35 for c in shadow)
+        p["cloud_mid"] = horizon
+        p["cloud_light"] = sun
     return p
 
 
@@ -140,24 +187,24 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 4):
+                           or ng.get("ald_build") != 6):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 4
+        ng["ald_build"] = 6
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
     types = {node.bl_idname for node in ng.nodes}
-    if (not {"Sky Color", "Horizon Color", "Ground Color",
-             "Horizon Offset", "Softness", "Sun Direction",
+    if (not {"Sky Color", "Mid Sky Color", "Horizon Color", "Ground Color",
+             "Horizon Offset", "Softness", "Sun Direction", "World Strength",
              "Cloud Amount"} <= names
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 4
+        ng["ald_build"] = 6
     return ng
 
 
@@ -167,6 +214,8 @@ def _build_gradient_group(ng):
         ng.interface.clear()
 
     ng.interface.new_socket(name="Sky Color", in_out="INPUT",
+                            socket_type="NodeSocketColor")
+    ng.interface.new_socket(name="Mid Sky Color", in_out="INPUT",
                             socket_type="NodeSocketColor")
     ng.interface.new_socket(name="Horizon Color", in_out="INPUT",
                             socket_type="NodeSocketColor")
@@ -182,6 +231,11 @@ def _build_gradient_group(ng):
     softness.min_value = 0.02
     softness.max_value = 1.0
     softness.default_value = 0.5
+    world_strength = ng.interface.new_socket(name="World Strength", in_out="INPUT",
+                                             socket_type="NodeSocketFloat")
+    world_strength.min_value = 0.0
+    world_strength.max_value = 2.0
+    world_strength.default_value = 1.0
 
     sun_dir = ng.interface.new_socket(name="Sun Direction", in_out="INPUT",
                                       socket_type="NodeSocketVector")
@@ -229,17 +283,27 @@ def _build_gradient_group(ng):
     group_in = nodes.new("NodeGroupInput")
     group_in.location = (-1200, 0)
     group_out = nodes.new("NodeGroupOutput")
-    group_out.location = (700, 0)
+    group_out.location = (2500, 0)
 
     texcoord = nodes.new("ShaderNodeTexCoord")
     texcoord.location = (-1200, 320)
-    separate = nodes.new("ShaderNodeSeparateXYZ")
-    separate.location = (-1000, 360)
-    links.new(texcoord.outputs["Generated"], separate.inputs["Vector"])
 
-    # Z direction (-1..1) -> 0..1, then warp around the horizon.
+    view_norm = nodes.new("ShaderNodeVectorMath")
+    view_norm.location = (-1020, 440)
+    view_norm.operation = "NORMALIZE"
+    links.new(texcoord.outputs["Generated"], view_norm.inputs[0])
+
+    sun_norm = nodes.new("ShaderNodeVectorMath")
+    sun_norm.location = (-1020, 600)
+    sun_norm.operation = "NORMALIZE"
+    links.new(group_in.outputs["Sun Direction"], sun_norm.inputs[0])
+
+    separate = nodes.new("ShaderNodeSeparateXYZ")
+    separate.location = (-1000, 280)
+    links.new(view_norm.outputs["Vector"], separate.inputs["Vector"])
+
     to_unit = nodes.new("ShaderNodeMapRange")
-    to_unit.location = (-1000, 180)
+    to_unit.location = (-820, 180)
     to_unit.clamp = True
     to_unit.inputs["From Min"].default_value = -1.0
     to_unit.inputs["From Max"].default_value = 1.0
@@ -248,31 +312,31 @@ def _build_gradient_group(ng):
     links.new(separate.outputs["Z"], to_unit.inputs["Value"])
 
     half = nodes.new("ShaderNodeMath")
-    half.location = (-780, 120)
+    half.location = (-640, 120)
     half.operation = "MULTIPLY"
-    half.inputs[1].default_value = 0.25
+    half.inputs[1].default_value = 0.32
     links.new(group_in.outputs["Softness"], half.inputs[0])
 
     center = nodes.new("ShaderNodeMath")
-    center.location = (-780, 320)
+    center.location = (-640, 320)
     center.operation = "ADD"
     center.inputs[1].default_value = 0.5
     links.new(group_in.outputs["Horizon Offset"], center.inputs[0])
 
     below = nodes.new("ShaderNodeMath")
-    below.location = (-580, 380)
+    below.location = (-460, 380)
     below.operation = "SUBTRACT"
     links.new(center.outputs[0], below.inputs[0])
     links.new(half.outputs[0], below.inputs[1])
 
     above = nodes.new("ShaderNodeMath")
-    above.location = (-580, 200)
+    above.location = (-460, 200)
     above.operation = "ADD"
     links.new(center.outputs[0], above.inputs[0])
     links.new(half.outputs[0], above.inputs[1])
 
     warp = nodes.new("ShaderNodeMapRange")
-    warp.location = (-360, 120)
+    warp.location = (-280, 120)
     warp.clamp = True
     warp.inputs["To Min"].default_value = 0.0
     warp.inputs["To Max"].default_value = 1.0
@@ -280,33 +344,32 @@ def _build_gradient_group(ng):
     links.new(below.outputs[0], warp.inputs["From Min"])
     links.new(above.outputs[0], warp.inputs["From Max"])
 
-    # 0 = ground, 0.5 = horizon, 1 = sky, blended with socket-driven colors.
     low = nodes.new("ShaderNodeMapRange")
-    low.location = (-130, 260)
+    low.location = (-80, 260)
     low.clamp = True
-    if "SMOOTHSTEP" in [item.identifier for item in
-                        low.bl_rna.properties["interpolation_type"].enum_items]:
-        low.interpolation_type = "SMOOTHSTEP"
+    _smooth(low)
     low.inputs["From Min"].default_value = 0.0
     low.inputs["From Max"].default_value = 0.5
-    low.inputs["To Min"].default_value = 0.0
-    low.inputs["To Max"].default_value = 1.0
     links.new(warp.outputs["Result"], low.inputs["Value"])
 
+    mid = nodes.new("ShaderNodeMapRange")
+    mid.location = (-80, 60)
+    mid.clamp = True
+    _smooth(mid)
+    mid.inputs["From Min"].default_value = 0.5
+    mid.inputs["From Max"].default_value = 0.74
+    links.new(warp.outputs["Result"], mid.inputs["Value"])
+
     high = nodes.new("ShaderNodeMapRange")
-    high.location = (-130, 20)
+    high.location = (-80, -140)
     high.clamp = True
-    if "SMOOTHSTEP" in [item.identifier for item in
-                        high.bl_rna.properties["interpolation_type"].enum_items]:
-        high.interpolation_type = "SMOOTHSTEP"
-    high.inputs["From Min"].default_value = 0.5
+    _smooth(high)
+    high.inputs["From Min"].default_value = 0.70
     high.inputs["From Max"].default_value = 1.0
-    high.inputs["To Min"].default_value = 0.0
-    high.inputs["To Max"].default_value = 1.0
     links.new(warp.outputs["Result"], high.inputs["Value"])
 
     mix_ground = nodes.new("ShaderNodeMix")
-    mix_ground.location = (110, 160)
+    mix_ground.location = (120, 200)
     mix_ground.data_type = "RGBA"
     mix_ground.blend_type = "MIX"
     a_sock, b_sock, result_sock = _rgba_sockets(mix_ground)
@@ -314,52 +377,48 @@ def _build_gradient_group(ng):
     links.new(group_in.outputs["Horizon Color"], b_sock)
     links.new(low.outputs["Result"], mix_ground.inputs["Factor"])
 
+    mix_mid = nodes.new("ShaderNodeMix")
+    mix_mid.location = (300, 120)
+    mix_mid.data_type = "RGBA"
+    mix_mid.blend_type = "MIX"
+    a_sock, b_sock, result_sock = _rgba_sockets(mix_mid)
+    links.new(mix_ground.outputs["Result"], a_sock)
+    links.new(group_in.outputs["Mid Sky Color"], b_sock)
+    links.new(mid.outputs["Result"], mix_mid.inputs["Factor"])
+
     mix_sky = nodes.new("ShaderNodeMix")
-    mix_sky.location = (370, 100)
+    mix_sky.location = (480, 60)
     mix_sky.data_type = "RGBA"
     mix_sky.blend_type = "MIX"
     a_sock, b_sock, result_sock = _rgba_sockets(mix_sky)
-    links.new(mix_ground.outputs["Result"], a_sock)
+    links.new(mix_mid.outputs["Result"], a_sock)
     links.new(group_in.outputs["Sky Color"], b_sock)
     links.new(high.outputs["Result"], mix_sky.inputs["Factor"])
 
     sky_color = mix_sky.outputs["Result"]
 
     dot = nodes.new("ShaderNodeVectorMath")
-    dot.location = (520, 320)
+    dot.location = (520, 360)
     dot.operation = "DOT_PRODUCT"
-
-    view_norm = nodes.new("ShaderNodeVectorMath")
-    view_norm.location = (320, 440)
-    view_norm.operation = "NORMALIZE"
-    links.new(texcoord.outputs["Generated"], view_norm.inputs[0])
-
-    sun_norm = nodes.new("ShaderNodeVectorMath")
-    sun_norm.location = (320, 600)
-    sun_norm.operation = "NORMALIZE"
-    links.new(group_in.outputs["Sun Direction"], sun_norm.inputs[0])
-
     links.new(view_norm.outputs["Vector"], dot.inputs[0])
     links.new(sun_norm.outputs["Vector"], dot.inputs[1])
 
     disk = nodes.new("ShaderNodeMapRange")
-    disk.location = (700, 320)
+    disk.location = (700, 360)
     disk.clamp = True
     _smooth(disk)
     links.new(dot.outputs["Value"], disk.inputs["Value"])
     links.new(group_in.outputs["Sun Outer"], disk.inputs["From Min"])
     links.new(group_in.outputs["Sun Inner"], disk.inputs["From Max"])
-    disk.inputs["To Min"].default_value = 0.0
-    disk.inputs["To Max"].default_value = 1.0
 
     disk_scale = nodes.new("ShaderNodeMath")
-    disk_scale.location = (880, 320)
+    disk_scale.location = (880, 360)
     disk_scale.operation = "MULTIPLY"
     links.new(disk.outputs["Result"], disk_scale.inputs[0])
     links.new(group_in.outputs["Sun Strength"], disk_scale.inputs[1])
 
     disk_color = nodes.new("ShaderNodeVectorMath")
-    disk_color.location = (1060, 320)
+    disk_color.location = (1060, 360)
     disk_color.operation = "SCALE"
     links.new(group_in.outputs["Sun Color"], disk_color.inputs["Vector"])
     links.new(disk_scale.outputs[0], disk_color.inputs["Scale"])
@@ -375,102 +434,109 @@ def _build_gradient_group(ng):
     sky_color = result_sock
 
     noise = nodes.new("ShaderNodeTexNoise")
-    noise.location = (1440, -120)
-    noise.inputs["Detail"].default_value = 5.0
-    noise.inputs["Roughness"].default_value = 0.55
-    noise.inputs["Distortion"].default_value = 0.35
-    links.new(texcoord.outputs["Generated"], noise.inputs["Vector"])
+    noise.location = (1240, -120)
+    noise.inputs["Detail"].default_value = 6.0
+    noise.inputs["Roughness"].default_value = 0.58
+    noise.inputs["Distortion"].default_value = 0.25
+    links.new(view_norm.outputs["Vector"], noise.inputs["Vector"])
     links.new(group_in.outputs["Cloud Scale"], noise.inputs["Scale"])
 
     detail_scale = nodes.new("ShaderNodeMath")
-    detail_scale.location = (1260, -420)
+    detail_scale.location = (1060, -420)
     detail_scale.operation = "MULTIPLY"
-    detail_scale.inputs[1].default_value = 2.5
+    detail_scale.inputs[1].default_value = 2.6
     links.new(group_in.outputs["Cloud Scale"], detail_scale.inputs[0])
 
     detail = nodes.new("ShaderNodeTexNoise")
-    detail.location = (1440, -420)
-    detail.inputs["Detail"].default_value = 2.0
-    detail.inputs["Roughness"].default_value = 0.5
+    detail.location = (1240, -420)
+    detail.inputs["Detail"].default_value = 3.0
+    detail.inputs["Roughness"].default_value = 0.52
     detail.inputs["Distortion"].default_value = 0.1
-    links.new(texcoord.outputs["Generated"], detail.inputs["Vector"])
+    links.new(view_norm.outputs["Vector"], detail.inputs["Vector"])
     links.new(detail_scale.outputs[0], detail.inputs["Scale"])
 
     base_weight = nodes.new("ShaderNodeMath")
-    base_weight.location = (1440, -160)
+    base_weight.location = (1420, -160)
     base_weight.operation = "MULTIPLY"
-    base_weight.inputs[1].default_value = 0.75
+    base_weight.inputs[1].default_value = 0.76
     links.new(noise.outputs["Fac"], base_weight.inputs[0])
 
     detail_weight = nodes.new("ShaderNodeMath")
-    detail_weight.location = (1440, -320)
+    detail_weight.location = (1420, -320)
     detail_weight.operation = "MULTIPLY"
-    detail_weight.inputs[1].default_value = 0.25
+    detail_weight.inputs[1].default_value = 0.24
     links.new(detail.outputs["Fac"], detail_weight.inputs[0])
 
     combined = nodes.new("ShaderNodeMath")
-    combined.location = (1620, -240)
+    combined.location = (1600, -240)
     combined.operation = "ADD"
     combined.use_clamp = True
     links.new(base_weight.outputs[0], combined.inputs[0])
     links.new(detail_weight.outputs[0], combined.inputs[1])
 
     coverage = nodes.new("ShaderNodeMapRange")
-    coverage.location = (1440, -520)
+    coverage.location = (1420, -520)
     coverage.clamp = True
     _smooth(coverage)
-    coverage.inputs["From Min"].default_value = 0.48
-    coverage.inputs["From Max"].default_value = 0.56
-    coverage.inputs["To Min"].default_value = 0.0
-    coverage.inputs["To Max"].default_value = 1.0
+    coverage.inputs["From Min"].default_value = 0.49
+    coverage.inputs["From Max"].default_value = 0.55
     links.new(combined.outputs[0], coverage.inputs["Value"])
 
+    sun_bias = nodes.new("ShaderNodeMapRange")
+    sun_bias.location = (1240, -680)
+    sun_bias.clamp = True
+    sun_bias.inputs["From Min"].default_value = -0.5
+    sun_bias.inputs["From Max"].default_value = 0.9
+    sun_bias.inputs["To Min"].default_value = -0.06
+    sun_bias.inputs["To Max"].default_value = 0.08
+    links.new(dot.outputs["Value"], sun_bias.inputs["Value"])
+
+    lit_signal = nodes.new("ShaderNodeMath")
+    lit_signal.location = (1420, -680)
+    lit_signal.operation = "ADD"
+    links.new(combined.outputs[0], lit_signal.inputs[0])
+    links.new(sun_bias.outputs["Result"], lit_signal.inputs[1])
+
     step_mid = nodes.new("ShaderNodeMapRange")
-    step_mid.location = (1440, -680)
+    step_mid.location = (1600, -640)
     step_mid.clamp = True
     _smooth(step_mid)
-    step_mid.inputs["From Min"].default_value = 0.46
-    step_mid.inputs["From Max"].default_value = 0.48
-    step_mid.inputs["To Min"].default_value = 0.0
-    step_mid.inputs["To Max"].default_value = 1.0
-    links.new(combined.outputs[0], step_mid.inputs["Value"])
+    step_mid.inputs["From Min"].default_value = 0.50
+    step_mid.inputs["From Max"].default_value = 0.53
+    links.new(lit_signal.outputs[0], step_mid.inputs["Value"])
 
     step_light = nodes.new("ShaderNodeMapRange")
-    step_light.location = (1440, -840)
+    step_light.location = (1600, -820)
     step_light.clamp = True
     _smooth(step_light)
-    step_light.inputs["From Min"].default_value = 0.57
+    step_light.inputs["From Min"].default_value = 0.56
     step_light.inputs["From Max"].default_value = 0.59
-    step_light.inputs["To Min"].default_value = 0.0
-    step_light.inputs["To Max"].default_value = 1.0
-    links.new(combined.outputs[0], step_light.inputs["Value"])
+    links.new(lit_signal.outputs[0], step_light.inputs["Value"])
 
     mix_shadow = nodes.new("ShaderNodeMix")
-    mix_shadow.location = (1620, -620)
+    mix_shadow.location = (1780, -620)
     mix_shadow.data_type = "RGBA"
     mix_shadow.blend_type = "MIX"
     a_sock, b_sock, result_sock = _rgba_sockets(mix_shadow)
     links.new(group_in.outputs["Cloud Shadow"], a_sock)
     links.new(group_in.outputs["Cloud Mid"], b_sock)
-    links.new(step_mid.outputs[0], mix_shadow.inputs["Factor"])
+    links.new(step_mid.outputs["Result"], mix_shadow.inputs["Factor"])
 
     mix_light = nodes.new("ShaderNodeMix")
-    mix_light.location = (1820, -580)
+    mix_light.location = (1960, -580)
     mix_light.data_type = "RGBA"
     mix_light.blend_type = "MIX"
     a_sock, b_sock, result_sock = _rgba_sockets(mix_light)
     links.new(mix_shadow.outputs["Result"], a_sock)
     links.new(group_in.outputs["Cloud Light"], b_sock)
-    links.new(step_light.outputs[0], mix_light.inputs["Factor"])
+    links.new(step_light.outputs["Result"], mix_light.inputs["Factor"])
 
     horizon = nodes.new("ShaderNodeMapRange")
     horizon.location = (1440, 700)
     horizon.clamp = True
     _smooth(horizon)
-    horizon.inputs["From Min"].default_value = 0.02
-    horizon.inputs["From Max"].default_value = 0.25
-    horizon.inputs["To Min"].default_value = 0.0
-    horizon.inputs["To Max"].default_value = 1.0
+    horizon.inputs["From Min"].default_value = 0.03
+    horizon.inputs["From Max"].default_value = 0.24
     links.new(separate.outputs["Z"], horizon.inputs["Value"])
 
     cloud_mask = nodes.new("ShaderNodeMath")
@@ -488,13 +554,31 @@ def _build_gradient_group(ng):
     links.new(group_in.outputs["Cloud Amount"], cloud_amount_node.inputs[1])
 
     cloud_mix = nodes.new("ShaderNodeMix")
-    cloud_mix.location = (2020, 0)
+    cloud_mix.location = (2040, 0)
     cloud_mix.data_type = "RGBA"
     cloud_mix.blend_type = "MIX"
     a_sock, b_sock, result_sock = _rgba_sockets(cloud_mix)
     links.new(sky_color, a_sock)
     links.new(mix_light.outputs["Result"], b_sock)
     links.new(cloud_amount_node.outputs[0], cloud_mix.inputs["Factor"])
+
+    # Visible sky stays vivid; ambient light is scaled by World Strength.
+    light_path = nodes.new("ShaderNodeLightPath")
+    light_path.location = (2040, 420)
+    ambient = nodes.new("ShaderNodeVectorMath")
+    ambient.location = (2220, 220)
+    ambient.operation = "SCALE"
+    links.new(cloud_mix.outputs["Result"], ambient.inputs["Vector"])
+    links.new(group_in.outputs["World Strength"], ambient.inputs["Scale"])
+
+    visible = nodes.new("ShaderNodeMix")
+    visible.location = (2320, 0)
+    visible.data_type = "RGBA"
+    visible.blend_type = "MIX"
+    a_sock, b_sock, result_sock = _rgba_sockets(visible)
+    links.new(ambient.outputs["Vector"], a_sock)
+    links.new(cloud_mix.outputs["Result"], b_sock)
+    links.new(light_path.outputs["Is Camera Ray"], visible.inputs["Factor"])
     links.new(result_sock, group_out.inputs["Color"])
 
 
@@ -535,7 +619,11 @@ def sun_toward(scene):
     if sun is None:
         return None
     from mathutils import Vector
-    direction = sun.matrix_world.to_quaternion() @ Vector((0.0, 0.0, -1.0))
+    if sun.get(AUTO_SUN_TAG) and sun.parent is None:
+        quaternion = sun.rotation_euler.to_quaternion()
+    else:
+        quaternion = sun.matrix_world.to_quaternion()
+    direction = quaternion @ Vector((0.0, 0.0, -1.0))
     return (-direction.x, -direction.y, -direction.z)
 
 
@@ -549,6 +637,7 @@ def _apply_gradient(scene, settings, nt, background, p):
         for link in list(background.inputs["Color"].links):
             nt.links.remove(link)
         background.inputs["Color"].default_value = _rgba(p["world_color"])
+        background.inputs["Strength"].default_value = p["world_strength"]
         return
 
     group = _gradient_group()
@@ -561,17 +650,26 @@ def _apply_gradient(scene, settings, nt, background, p):
         node.name = "ALD | World Gradient"
         node.location = (-600, 300)
 
+    mid_sky = p.get("mid_sky_color") or _mid_bridge(
+        p["sky_color"], p["horizon_color"])
+    cloud_sh = p.get("cloud_shadow") or tuple(
+        c * 0.45 for c in p["shadow_tint"])
+    cloud_md = p.get("cloud_mid") or p["horizon_color"]
+    cloud_lt = p.get("cloud_light") or p["sun_color"]
+
     node.inputs["Sky Color"].default_value = _rgba(p["sky_color"])
+    node.inputs["Mid Sky Color"].default_value = _rgba(mid_sky)
     node.inputs["Horizon Color"].default_value = _rgba(p["horizon_color"])
     node.inputs["Ground Color"].default_value = _rgba(p["ground_color"])
     node.inputs["Sun Color"].default_value = _rgba(p["sun_color"])
-    node.inputs["Cloud Shadow"].default_value = _rgba(
-        tuple(component * 0.45 for component in p["shadow_tint"]))
-    node.inputs["Cloud Mid"].default_value = _rgba(p["horizon_color"])
-    node.inputs["Cloud Light"].default_value = _rgba(p["sun_color"])
+    node.inputs["Cloud Shadow"].default_value = _rgba(cloud_sh)
+    node.inputs["Cloud Mid"].default_value = _rgba(cloud_md)
+    node.inputs["Cloud Light"].default_value = _rgba(cloud_lt)
     if settings is not None:
         node.inputs["Horizon Offset"].default_value = settings.horizon_offset
         node.inputs["Softness"].default_value = settings.horizon_softness
+    node.inputs["World Strength"].default_value = p["world_strength"]
+    background.inputs["Strength"].default_value = 1.0
 
     direction = sun_toward(scene)
     if direction is not None:
@@ -606,12 +704,13 @@ def ensure_sun(scene, p):
                 if o.type == "LIGHT" and o.data is not None
                 and o.data.type == "SUN"), None)
     created = False
+    rotation = p.get("sun_rotation", (0.9, 0.15, -0.6))
     if sun is None and (settings is None or settings.auto_sun):
         data = bpy.data.lights.new("ALD | Sun", "SUN")
         data.angle = 0.05
         sun = bpy.data.objects.new("ALD | Sun", data)
         sun[AUTO_SUN_TAG] = True
-        sun.rotation_euler = (0.9, 0.15, -0.6)
+        sun.rotation_euler = rotation
         scene.collection.objects.link(sun)
         created = True
 
@@ -619,6 +718,8 @@ def ensure_sun(scene, p):
         if sun.library is None and sun.data.library is None:
             sun.data.color = p["sun_color"]
             sun.data.energy = p["sun_energy"]
+            if sun.get(AUTO_SUN_TAG):
+                sun.rotation_euler = rotation
     return sun, created
 
 
@@ -630,7 +731,6 @@ def apply_palette(scene, key):
     ensure_sun(scene, p)
     nt, background = _world_nodes(world)
     _apply_gradient(scene, settings, nt, background, p)
-    background.inputs["Strength"].default_value = p["world_strength"]
     scene["ald_last_palette"] = key
     scene["ald_effective_palette"] = key
     return p
@@ -655,7 +755,6 @@ def update_sun_controls(scene):
                 and o.data.type == "SUN"), None)
     if sun is not None and sun.data is not None:
         node.inputs["Sun Color"].default_value = _rgba(sun.data.color)
-        node.inputs["Cloud Light"].default_value = _rgba(sun.data.color)
     if settings is not None and settings.sun_disk:
         node.inputs["Sun Strength"].default_value = settings.sun_disk_strength
     else:

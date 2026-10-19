@@ -114,6 +114,8 @@ def _build_group(ng):
                    0.0, 0.0, 1.0)
     _ensure_socket(ng, "Rim Width", "INPUT", "NodeSocketFloat",
                    0.5, 0.0, 1.0)
+    _ensure_socket(ng, "Hue Lift", "INPUT", "NodeSocketFloat",
+                   0.18, 0.0, 0.5)
     _ensure_socket(ng, "Color", "OUTPUT", "NodeSocketColor")
     _ensure_socket(ng, "Emission", "OUTPUT", "NodeSocketColor")
 
@@ -195,6 +197,30 @@ def _build_group(ng):
     links.new(group_in.outputs["Tint"], b_sock)
     links.new(combined.outputs[0], mix.inputs["Factor"])
 
+    # Keep texture detail from the multiply, then add a small shadow hue lift so
+    # warm/dark materials can still take the blue/violet atmosphere.
+    lift_amount = nodes.new("ShaderNodeMath")
+    lift_amount.location = (220, -360)
+    lift_amount.operation = "MULTIPLY"
+    lift_amount.use_clamp = True
+    links.new(combined.outputs[0], lift_amount.inputs[0])
+    links.new(group_in.outputs["Hue Lift"], lift_amount.inputs[1])
+
+    lift_color = nodes.new("ShaderNodeVectorMath")
+    lift_color.location = (420, -360)
+    lift_color.operation = "SCALE"
+    links.new(group_in.outputs["Tint"], lift_color.inputs["Vector"])
+    links.new(lift_amount.outputs[0], lift_color.inputs["Scale"])
+
+    lift_add = nodes.new("ShaderNodeMix")
+    lift_add.location = (620, -200)
+    lift_add.data_type = "RGBA"
+    lift_add.blend_type = "ADD"
+    a_sock, b_sock, result_sock = _rgba_sockets(lift_add)
+    links.new(mix.outputs["Result"], a_sock)
+    links.new(lift_color.outputs["Vector"], b_sock)
+    lift_add.inputs["Factor"].default_value = 1.0
+
     # Fresnel rim on the sun-facing side, tinted by the sun color.
     layer = nodes.new("ShaderNodeLayerWeight")
     layer.location = (-200, 720)
@@ -247,7 +273,7 @@ def _build_group(ng):
     rim_add.data_type = "RGBA"
     rim_add.blend_type = "ADD"
     a_sock, b_sock, result_sock = _rgba_sockets(rim_add)
-    links.new(mix.outputs["Result"], a_sock)
+    links.new(lift_add.outputs["Result"], a_sock)
     links.new(rim_color.outputs["Vector"], b_sock)
     rim_add.inputs["Factor"].default_value = 1.0
     links.new(result_sock, group_out.inputs["Color"])
@@ -292,7 +318,8 @@ def _group():
                if getattr(item, "in_out", "") == "OUTPUT"}
     required = {"Color", "Tint", "Strength", "Distance",
                 "Sun Direction", "Sun Color", "Toon Strength",
-                "Terminator Sharpness", "Rim Strength", "Rim Width"}
+                "Terminator Sharpness", "Rim Strength", "Rim Width",
+                "Hue Lift"}
     if not required <= names or not {"Color", "Emission"} <= outputs:
         _build_group(ng)
     return ng
@@ -358,6 +385,8 @@ def _look(scene, settings):
         "emission": (settings.rim_emission
                      if settings is not None and has_sun
                      and (rim_on or toon_on) else 0.0),
+        "hue_lift": (settings.shadow_hue_lift
+                     if settings is not None else 0.18),
     }
 
 
@@ -375,6 +404,7 @@ def _set_look(node, mat, look):
         rim_width = min(rim_width, 0.35)
     node.inputs["Rim Strength"].default_value = rim_strength
     node.inputs["Rim Width"].default_value = rim_width
+    node.inputs["Hue Lift"].default_value = look.get("hue_lift", 0.18)
 
 
 def _wire_emission(mat, node, look):

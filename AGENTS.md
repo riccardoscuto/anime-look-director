@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.6.2**).
+  (currently **0.7.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -145,6 +145,25 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Sun disk vectors must be **normalized** before `DOT_PRODUCT` (`Vector Math →
   Normalize` on `Generated` and `Sun Direction`); near-1 cosine thresholds are
   unstable otherwise.
+- World group marker is **6**. Inputs include `Mid Sky Color` and `World Strength`.
+  The sky uses a 4-zone mix (ground → horizon → mid → zenith); presets are
+  Scene-Linear Rec.709 and may exceed 1.0 (HDR), never sRGB.
+- Visible sky vs ambient: `Light Path → Is Camera Ray` mixes
+  `gradient * World Strength` (ambient) with the full gradient (camera rays).
+  Background Strength is 1.0 when the gradient is active; flat worlds keep the
+  preset strength.
+- Cloud shading is directional: `sun_bias` maps `N·L` (-0.5..0.9) to
+  (-0.06..0.08), added to the density before the 0.50–0.53 / 0.56–0.59 tone
+  MapRanges. Coverage is 0.49–0.55.
+- Preset `sun_rotation` is applied only to auto-tagged suns; user suns keep their
+  rotation. `sun_toward` reads `rotation_euler` for an unparented auto sun to avoid
+  stale matrices; `ensure_sun` no longer calls `view_layer.update()` (depsgraph
+  re-entrancy).
+- Shadow Hue Lift (group input, default 0.18) adds `Tint * combined * lift` after
+  the MULTIPLY tint, so warm materials take the cool shadow hue without losing
+  texture.
+- Changing the palette while `custom_colors` is active refreshes the custom
+  sky/horizon/sun/shadow values from the newly selected preset.
 - `cameras._on_depsgraph` also calls `update_transforms(scene)`, caching
   `(sun Z, sun color, camera Z/location/lens/shift/sensor)` and pushing updates to
   `palette.update_sun_controls`, `materials.update_sun`,
@@ -157,7 +176,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   tint × combined). `_wire_emission` links it to Principled Emission Color, stores
   `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
   restores on clear.
-- Gate pixel ratios after the ink gain: ink ~2.8 %, rim ~8.1 % (edge-local).
+- Gate pixel ratios after the ink gain: ink ~2.6 %, rim ~7.2 % (edge-local);
+  shadow ~2.1 %, toon ~1.6 %.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.

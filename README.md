@@ -2,10 +2,18 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v0.6.2)
+## What it does (v0.7.0)
 - Six atmosphere presets (Shinkai Golden Hour, Ghibli Summer Noon, Rainy Tokyo,
-  Cyberpunk Neon, Sakura Spring, Twilight Dusk) driving world, sun, shadow tint
-  and halation tint.
+  Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a Scene-Linear Rec.709 color
+  script calibrated for AgX.
+- **Four-zone sky**: ground → horizon → mid-sky bridge → zenith, with a dedicated
+  mid color that avoids muddy sunset midpoints.
+- **Directional anime clouds** with dedicated shadow/mid/light triads and
+  sun-alignment shading.
+- **Visible-sky / ambient split**: `World Strength` controls ambient light while
+  the camera-visible sky stays vivid (Light Path `Is Camera Ray`).
+- **Shadow Hue Lift**: a small additive tint veil so warm materials take the cool
+  palette shadow instead of turning muddy olive.
 - **Auto Sun**: applying a palette creates a sun light when the scene has none
   (can be disabled in the panel).
 - Palette-driven **world gradient** with separate sky, horizon and ground colors,
@@ -70,7 +78,8 @@ Expected output: `ALD GATE: PASS`.
 - v0.5.0 — cel terminator, directional rim light, hair angel ring
 - v0.6.0 — per-camera palette overrides, effective look coordinator
 - v0.6.1 — normalized sun disk, live transforms, ink gain, rim emission
-- v0.6.2 — Camera Override panel icon fix (current)
+- v0.6.2 — Camera Override panel icon fix
+- v0.7.0 — Linear Rec.709 color script, mid-sky bridge, directional clouds, hue lift (current)
 - v1.0 — store release (legacy ZIP + Extension), presets and docs
 
 ## Recap

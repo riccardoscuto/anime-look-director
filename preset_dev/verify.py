@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 6, 2)
+EXPECTED_VERSION = (0, 7, 0)
 TOLERANCE = 1e-4
 
 
@@ -168,6 +168,14 @@ def check_world_gradient(scene, settings):
     check(close(node.inputs["Ground Color"].default_value,
                 expected["ground_color"]),
           "ground color not synced to palette")
+    check(close(node.inputs["Mid Sky Color"].default_value,
+                expected["mid_sky_color"]),
+          "mid sky color not synced to palette")
+    check(abs(node.inputs["World Strength"].default_value
+              - expected["world_strength"]) <= TOLERANCE,
+          "world strength not synced to the gradient")
+    check(abs(background.inputs["Strength"].default_value - 1.0) <= TOLERANCE,
+          "background strength should be 1.0 when the gradient is active")
 
     for name in ("Sun Direction", "Sun Strength", "Cloud Amount", "Cloud Scale"):
         check(node.inputs.get(name) is not None, "world input missing: " + name)
@@ -221,9 +229,14 @@ def check_world_gradient(scene, settings):
     check(close(background.inputs["Color"].default_value,
                 expected["world_color"] + (1.0,)),
           "flat world color not restored")
+    check(abs(background.inputs["Strength"].default_value
+              - expected["world_strength"]) <= TOLERANCE,
+          "flat world strength not restored")
 
     settings.world_gradient = True
     check(gradient_node(scene) is not None, "gradient not restored when enabled")
+    check(abs(background.inputs["Strength"].default_value - 1.0) <= TOLERANCE,
+          "background strength not restored with the gradient")
 
     # Auto sun: disabled must not create one, enabled must recreate it.
     sun = find_sun(scene)
@@ -353,7 +366,8 @@ def check_shadow_tint(scene, settings, data):
     check(abs(node.inputs["Distance"].default_value - 0.75) <= TOLERANCE,
           "shadow tint distance not synced")
     for name in ("Sun Direction", "Sun Color", "Toon Strength",
-                 "Terminator Sharpness", "Rim Strength", "Rim Width"):
+                 "Terminator Sharpness", "Rim Strength", "Rim Width",
+                 "Hue Lift"):
         check(name in node.inputs, "shadow tint input missing: " + name)
     expected_dir = palette_module.sun_toward(scene)
     check(expected_dir is not None, "shadow tint has no sun direction")
@@ -366,6 +380,9 @@ def check_shadow_tint(scene, settings, data):
     check(abs(node.inputs["Rim Strength"].default_value
               - settings.rim_strength) <= TOLERANCE,
           "rim strength not synced to materials")
+    check(abs(node.inputs["Hue Lift"].default_value
+              - settings.shadow_hue_lift) <= TOLERANCE,
+          "shadow hue lift not synced to materials")
     emission_color = data["plain_bsdf"].inputs["Emission Color"]
     emission_strength = data["plain_bsdf"].inputs["Emission Strength"]
     check(emission_color.is_linked
@@ -919,6 +936,17 @@ def check_custom_colors(scene, settings, data):
           "custom shadow color not synced to ink")
     settings.ink_lines = False
     bpy.ops.ald.build()
+
+    settings.palette = "NEON_NIGHT"
+    neon = palette_module.preset("NEON_NIGHT")
+    check(close(settings.custom_sky, neon["sky_color"]),
+          "custom colors not refreshed on palette switch")
+    check(close(settings.custom_horizon, neon["horizon_color"]),
+          "custom horizon not refreshed on palette switch")
+    settings.palette = "GOLDEN_HOUR"
+    golden = palette_module.preset("GOLDEN_HOUR")
+    check(close(settings.custom_sky, golden["sky_color"]),
+          "custom colors not refreshed back to Golden")
 
     settings.custom_colors = False
     bpy.ops.ald.apply_palette()

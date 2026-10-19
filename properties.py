@@ -22,10 +22,17 @@ MATERIALS = [
 
 def _on_palette(self, context):
     try:
-        from . import look
+        from . import look, palette
         scene = context.scene
-        if scene is not None:
-            look.apply(scene, force=True)
+        if scene is None:
+            return
+        if self.custom_colors:
+            p = palette.preset(self.palette)
+            self.custom_sky = p["sky_color"]
+            self.custom_horizon = p["horizon_color"]
+            self.custom_sun = p["sun_color"]
+            self.custom_shadow = p["shadow_tint"]
+        look.apply(scene, force=True)
     except Exception:
         pass
 
@@ -260,6 +267,10 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Ambient-occlusion distance used by the shadow tint",
         update=_on_shadow,
     )
+    shadow_hue_lift: FloatProperty(
+        name="Hue Lift", default=0.18, min=0.0, max=0.5,
+        description="Additive tint veil so warm materials can take cool shadows",
+        update=_on_shadow)
     toon_shading: BoolProperty(
         name="Cel Shading",
         default=True,

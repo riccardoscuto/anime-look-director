@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.7.0 — 2026-10-19
+### Added
+- **Scientific 6-preset color script** calibrated in Scene-Linear Rec.709 for AgX,
+  with a dedicated `mid_sky_color` bridge, cloud triads and `sun_rotation` per
+  atmosphere.
+- **Four-zone sky gradient**: ground → horizon → mid sky → zenith, removing the
+  muddy blue/orange midpoint in sunset palettes.
+- **Directional anime clouds**: the cloud color signal combines noise density with
+  the sun dot product (`sun_bias`), so the sun side reads brighter and the target /
+  fried-egg artifact is removed.
+- **Visible sky vs ambient split**: `World Strength` now scales only non-camera
+  rays inside the world group (`Light Path > Is Camera Ray`), keeping the visible
+  sky vivid while controlling ambient light. Background strength is 1.0 when the
+  gradient is active.
+- **Shadow Hue Lift** (default 0.18): after the MULTIPLY tint, a small additive
+  tint veil lets warm/dark materials take the blue/violet shadow atmosphere while
+  preserving texture detail.
+- Auto sun applies the preset `sun_rotation`; user suns keep their rotation.
+
+### Fixed
+- Changing palette while `Custom Colors` was active now refreshes the custom
+  sky/horizon/sun/shadow colors to the newly selected preset.
+
+### Gate
+- Checks mid-sky, `World Strength`, background strength, hue lift, and custom
+  color refresh on palette switch.
+
 ## 0.6.2 — 2026-10-19
 ### Fixed
 - Camera Override panels used the invalid icon name `CAMERA`; Blender 5.1 accepts
