@@ -10,6 +10,33 @@ GROUP_NAME = "ALD | Shadow Tint"
 NODE_TAG = "ald_shadow_tint"
 COLOR_KEY = "ald_st_color"
 
+PRESET_DATA = {
+    "SKIN": {
+        "name": "ALD | Skin",
+        "color": (0.86, 0.68, 0.58),
+        "roughness": 0.55,
+        "metallic": 0.0,
+    },
+    "HAIR": {
+        "name": "ALD | Hair",
+        "color": (0.09, 0.06, 0.05),
+        "roughness": 0.35,
+        "metallic": 0.0,
+    },
+    "FABRIC": {
+        "name": "ALD | Fabric",
+        "color": (0.32, 0.42, 0.60),
+        "roughness": 0.9,
+        "metallic": 0.0,
+    },
+    "METAL": {
+        "name": "ALD | Metal",
+        "color": (0.72, 0.73, 0.76),
+        "roughness": 0.25,
+        "metallic": 1.0,
+    },
+}
+
 
 def _rgba_sockets(mix):
     a = b = result = None
@@ -229,3 +256,64 @@ def clear_scene(scene):
 
 def count_scene(scene):
     return sum(1 for mat in scene_materials(scene) if _tint_node(mat) is not None)
+
+
+def _preset_material(key):
+    info = PRESET_DATA[key]
+    mat = bpy.data.materials.get(info["name"])
+    if mat is None:
+        mat = bpy.data.materials.new(info["name"])
+    if mat.node_tree is None:
+        mat.use_nodes = True
+    nt = mat.node_tree
+    bsdf = next((n for n in nt.nodes
+                 if n.bl_idname == "ShaderNodeBsdfPrincipled"), None)
+    if bsdf is None:
+        nt.nodes.clear()
+        output = nt.nodes.new("ShaderNodeOutputMaterial")
+        bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
+        nt.links.new(bsdf.outputs["BSDF"], output.inputs["Surface"])
+    bsdf.inputs["Base Color"].default_value = (*info["color"], 1.0)
+    bsdf.inputs["Roughness"].default_value = info["roughness"]
+    bsdf.inputs["Metallic"].default_value = info["metallic"]
+    node = _tint_node(mat)
+    if node is not None and not node.inputs["Color"].is_linked:
+        node.inputs["Color"].default_value = (*info["color"], 1.0)
+        mat[COLOR_KEY] = [float(v) for v in (*info["color"], 1.0)]
+    mat.use_fake_user = True
+    return mat
+
+
+def apply_preset_to_selected(scene, key):
+    """Assign a material preset to selected objects. Returns (count, material)."""
+    info = PRESET_DATA.get(key)
+    if info is None:
+        return 0, None
+
+    objects = []
+    for obj in bpy.context.selected_objects:
+        data = getattr(obj, "data", None)
+        if (obj.library is not None or data is None
+                or getattr(data, "library", None) is not None
+                or not hasattr(data, "materials")
+                or not hasattr(obj, "active_material_index")):
+            continue
+        objects.append(obj)
+    if not objects:
+        return 0, None
+
+    mat = _preset_material(key)
+    for obj in objects:
+        slots = obj.data.materials
+        if not any(slot == mat for slot in slots):
+            slots.append(mat)
+        obj.active_material_index = next(
+            index for index, slot in enumerate(slots) if slot == mat)
+
+    settings = getattr(scene, "ald", None)
+    if settings is not None and settings.shadow_tint:
+        from . import palette
+        sync_material(mat, palette.shadow_tint(settings.palette),
+                      settings.shadow_tint_strength,
+                      settings.shadow_tint_distance)
+    return len(objects), mat

@@ -8,13 +8,14 @@ import os
 import sys
 import tempfile
 import tomllib
+import math
 
 import bpy
 import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 2, 1)
+EXPECTED_VERSION = (0, 3, 0)
 TOLERANCE = 1e-4
 
 
@@ -190,6 +191,45 @@ def check_world_gradient(scene, settings):
     check(find_sun(scene) is None, "auto sun created while disabled")
     settings.auto_sun = True
     check(find_sun(scene) is not None, "auto sun not recreated when enabled")
+
+
+def check_god_rays(scene, settings):
+    sun = find_sun(scene)
+    check(sun is not None, "god rays need a sun")
+    old_rotation = tuple(sun.rotation_euler)
+    old_camera = scene.camera
+    old_god = settings.god_rays
+
+    cam_data = bpy.data.cameras.new("ALD_GATE_GOD_CAM")
+    cam = bpy.data.objects.new("ALD_GATE_GOD_CAM", cam_data)
+    scene.collection.objects.link(cam)
+    cam.location = (0.0, -6.0, 0.0)
+    cam.rotation_euler = (math.pi / 2.0, 0.0, 0.0)
+    scene.camera = cam
+    sun.rotation_euler = (-math.pi / 2.0, 0.0, 0.0)
+    bpy.context.view_layer.update()
+
+    try:
+        settings.god_rays = True
+        bpy.context.view_layer.update()
+        bpy.ops.ald.build()
+        ng = scene.compositing_node_group
+        beams = [n for n in ng.nodes
+                 if n.bl_idname == "CompositorNodeGlare"
+                 and n.inputs["Type"].default_value == "Sun Beams"]
+        check(len(beams) == 1, "god rays node missing")
+        position = beams[0].inputs["Sun Position"].default_value
+        check(abs(position[0] - 0.5) < 0.01
+              and abs(position[1] - 0.5) < 0.01,
+              "god rays sun position not projected")
+    finally:
+        settings.god_rays = old_god
+        sun.rotation_euler = old_rotation
+        scene.camera = old_camera
+        bpy.data.objects.remove(cam, do_unlink=True)
+        bpy.data.cameras.remove(cam_data)
+        bpy.context.view_layer.update()
+        bpy.ops.ald.build()
 
 
 def check_shadow_tint(scene, settings, data):
@@ -406,6 +446,102 @@ def check_idempotent_build(scene):
     check(len(groups) == 1, "compositor group duplicated")
 
 
+def check_shot_markers(scene, settings):
+    from anime_look_director import shots
+    from anime_look_director import palette as palette_module
+
+    marker_a = scene.timeline_markers.new(
+        shots.marker_name("GOLDEN_HOUR"), frame=10)
+    marker_b = scene.timeline_markers.new(
+        shots.marker_name("NEON_NIGHT"), frame=20)
+    marker_c = None
+    try:
+        settings.use_shot_markers = True
+        scene.frame_set(10)
+        shots.apply_for_frame(scene, force=True)
+        check(settings.palette == "GOLDEN_HOUR",
+              "shot marker A did not apply its palette")
+        check(shots.active_marker(scene) == "GOLDEN_HOUR",
+              "active shot marker A wrong")
+
+        scene.frame_set(20)
+        shots.apply_for_frame(scene, force=True)
+        check(settings.palette == "NEON_NIGHT",
+              "shot marker B did not apply its palette")
+        expected = palette_module.preset("NEON_NIGHT")
+        node = gradient_node(scene)
+        check(node is not None
+              and close(node.inputs["Horizon Color"].default_value,
+                        expected["horizon_color"]),
+              "shot palette did not update the world")
+        check(scene.get("ald_active_shot") == "NEON_NIGHT",
+              "active shot not tracked")
+
+        scene.frame_set(30)
+        result = bpy.ops.ald.mark_shot()
+        check("FINISHED" in result, "mark shot operator failed")
+        marker_c = next((m for m in scene.timeline_markers
+                         if m.frame == 30), None)
+        check(marker_c is not None
+              and marker_c.name == shots.marker_name("NEON_NIGHT"),
+              "mark shot did not create the marker")
+    finally:
+        for marker in (marker_a, marker_b, marker_c):
+            if marker is not None:
+                scene.timeline_markers.remove(marker)
+        settings.use_shot_markers = False
+        if "ald_active_shot" in scene:
+            del scene["ald_active_shot"]
+        scene.frame_set(1)
+        settings.palette = "GOLDEN_HOUR"
+
+
+def check_material_presets(scene, settings, data):
+    obj = data["object"]
+    for selected in list(bpy.context.selected_objects):
+        selected.select_set(False)
+    settings.shadow_tint = True
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    settings.material_preset = "METAL"
+    result = bpy.ops.ald.apply_material_preset()
+    check("FINISHED" in result, "material preset operator failed")
+
+    metal = bpy.data.materials.get("ALD | Metal")
+    check(metal is not None, "metal preset material missing")
+    bsdf = principled(metal)
+    check(bsdf is not None, "metal preset has no Principled BSDF")
+    check(close(bsdf.inputs["Base Color"].default_value,
+                (0.72, 0.73, 0.76, 1.0)),
+          "metal preset base color wrong")
+    check(abs(bsdf.inputs["Metallic"].default_value - 1.0) <= TOLERANCE,
+          "metal preset is not metallic")
+    check(any(slot == metal for slot in obj.data.materials),
+          "preset material not assigned to the object")
+    check(tint_node(metal) is not None,
+          "preset material missing the shadow tint")
+    slots = len(obj.data.materials)
+    bpy.ops.ald.apply_material_preset()
+    check(len(obj.data.materials) == slots,
+          "material preset duplicated the slot")
+
+    settings.material_preset = "SKIN"
+    bpy.ops.ald.apply_material_preset()
+    skin = bpy.data.materials.get("ALD | Skin")
+    check(skin is not None, "skin preset material missing")
+    check(close(principled(skin).inputs["Base Color"].default_value,
+                (0.86, 0.68, 0.58, 1.0)),
+          "skin preset base color wrong")
+
+    for index in range(len(obj.data.materials) - 1, -1, -1):
+        slot = obj.data.materials[index]
+        if slot == metal or slot == skin:
+            obj.data.materials.pop(index=index)
+    bpy.data.materials.remove(metal)
+    bpy.data.materials.remove(skin)
+    obj.select_set(False)
+
+
 def check_multiscene(scene):
     from anime_look_director import compositor
 
@@ -468,8 +604,11 @@ def main():
 
     try:
         check_world_gradient(scene, settings)
+        check_god_rays(scene, settings)
         check_shadow_tint(scene, settings, data)
         check_light_wrap(scene, settings)
+        check_shot_markers(scene, settings)
+        check_material_presets(scene, settings, data)
 
         ng = scene.compositing_node_group
         check(ng is not None and ng.name == "ALD | Compositor Stack",

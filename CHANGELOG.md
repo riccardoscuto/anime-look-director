@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0 — 2026-10-19
+### Added
+- **God Rays**: optional Sun Beams glare placed at the sun's projected screen
+  position, with a strength control. The node is skipped when the sun is behind
+  the camera.
+- **Shot markers**: opt-in per-shot palette changes from timeline markers named
+  `ALD:<PALETTE>`; the `Mark Shot` operator writes/updates the marker at the
+  current frame.
+- **Material presets**: Skin, Hair, Fabric and Metal, assigned to selected
+  objects and integrated with the shadow tint.
+- Sub-panels for World & Shadows and Compositor Stack; the main panel keeps
+  Atmosphere, Material Presets, build/remove and stack status visible.
+- Gate coverage for the Sun Beams node and projected sun position, shot markers
+  and material presets.
+
+### Changed
+- Version bump to 0.3.0; README, AGENTS.md and TECH_NOTES.md updated.
+
 ## 0.2.1 — 2026-10-19
 ### Added
 - Auto Sun: applying a palette creates a tagged sun light when the scene has

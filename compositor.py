@@ -236,6 +236,26 @@ def _light_wrap(nodes, links, image, render_layers, settings, clip_end):
     return over.outputs["Image"]
 
 
+def _sun_screen_position(scene):
+    """Project the sun direction to normalized screen coordinates (0..1)."""
+    camera = scene.camera
+    sun = next((o for o in scene.objects
+                if o.type == "LIGHT" and o.data is not None
+                and o.data.type == "SUN"), None)
+    if camera is None or sun is None:
+        return None
+
+    from mathutils import Vector
+    from bpy_extras.object_utils import world_to_camera_view
+
+    direction = sun.matrix_world.to_quaternion() @ Vector((0.0, 0.0, -1.0))
+    point = camera.matrix_world.translation - direction * 1000.0
+    co = world_to_camera_view(scene, camera, point)
+    if co.z <= 0.0:
+        return None
+    return (max(0.0, min(1.0, co.x)), max(0.0, min(1.0, co.y)))
+
+
 def build(scene):
     """Create or refresh the stack and assign it to the scene."""
     settings = getattr(scene, "ald", None)
@@ -269,8 +289,9 @@ def build(scene):
     current = rl.outputs["Image"]
     depth = rl.outputs.get("Depth")
 
+    from . import palette as palette_module
+
     if settings.halation:
-        from . import palette as palette_module
         glare = nodes.new("CompositorNodeGlare")
         glare.location = (-1250, 0)
         glare.inputs["Type"].default_value = "Bloom"
@@ -285,6 +306,26 @@ def build(scene):
                 settings.palette)
         links.new(current, glare.inputs["Image"])
         current = glare.outputs["Image"]
+
+    if settings.god_rays:
+        position = _sun_screen_position(scene)
+        if position is not None:
+            beams = nodes.new("CompositorNodeGlare")
+            beams.location = (-1150, 220)
+            beams.inputs["Type"].default_value = "Sun Beams"
+            beams.inputs["Threshold"].default_value = 0.9
+            beams.inputs["Strength"].default_value = settings.god_rays_strength
+            beams.inputs["Size"].default_value = 0.5
+            beams.inputs["Iterations"].default_value = 5
+            beams.inputs["Fade"].default_value = 0.9
+            beams.inputs["Color Modulation"].default_value = 0.15
+            beams.inputs["Saturation"].default_value = 1.0
+            if "Tint" in beams.inputs:
+                beams.inputs["Tint"].default_value = palette_module.glare_tint(
+                    settings.palette)
+            beams.inputs["Sun Position"].default_value = position
+            links.new(current, beams.inputs["Image"])
+            current = beams.outputs["Image"]
 
     if settings.painterly:
         kuwahara = nodes.new("CompositorNodeKuwahara")

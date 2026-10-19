@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.2.1**).
+  (currently **0.3.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -23,8 +23,10 @@ TECH_NOTES); move it on-screen before capturing.
 - `properties.py` — `Scene.ald` settings (palette, toggles, sliders, update hooks).
 - `palette.py` — atmospheric presets, world gradient group, world + sun apply.
 - `compositor.py` — builds/removes one `ALD | Compositor Stack` per scene
-  (Render Layers → Glare → Kuwahara (depth-mixed) → Light Wrap → Lensdist → Group Output).
-- `materials.py` — shared `ALD | Shadow Tint` group, reversible Base Color insertion.
+  (Render Layers → Glare → Sun Beams (optional) → Kuwahara (depth-mixed) →
+  Light Wrap → Lensdist → Group Output).
+- `materials.py` — shared `ALD | Shadow Tint` group plus material presets.
+- `shots.py` — timeline marker palette overrides and the frame-change handler.
 - `operators.py` — `ald.build`, `ald.remove`, `ald.apply_palette`,
   `ald.clear_shadow_tint`, `ald.viewport_compositor`.
 - `panels.py` — Scene properties panel.
@@ -66,6 +68,15 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   no SUN light. Never delete or retint a user sun that is linked from a library.
 - A full stack rebuild costs ~5–8 ms on the target machine, so slider updates can
   rebuild synchronously; no debounce is needed.
+- Glare `Sun Position` is normalized screen space (0..1, **y up**). Project the
+  sun with `world_to_camera_view(camera.translation - light_direction * 1000)`;
+  skip the node when `co.z <= 0` (sun behind the camera). The position is baked at
+  build time.
+- Shot markers use `frame_change_pre`, `ALD:<PALETTE>` names and the
+  `ald_active_shot` scene property to avoid applying the same palette every frame.
+- Material presets are shared fake-user materials named `ALD | <Preset>`; skip
+  linked objects and linked data.
+- UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
 - The AO node does produce occlusion in both EEVEE and Cycles in 5.1 (see TECH_NOTES).
@@ -82,6 +93,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Auto-Sun may create a light; tag it `ald_auto_sun` and never remove user lights.
 - Rebuild the stack after changing the render camera's clip end: the light-wrap
   depth threshold is baked at build time.
+- Rebuild after moving the sun or camera when God Rays are on: the Sun Position is
+  baked at build time.
+- Shot markers are opt-in and must never apply a palette on every frame; respect
+  `ald_active_shot`.
+- Material presets only touch selected, non-library objects.
 - `bl_info`, `blender_manifest.toml`, `README.md`, `CHANGELOG.md` versions stay aligned.
 
 See `TECH_NOTES.md` for the full spike results.

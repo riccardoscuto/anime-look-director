@@ -16,15 +16,50 @@ class ALD_PT_scene(bpy.types.Panel):
             layout.label(text="Settings not registered", icon="ERROR")
             return
         s = scene.ald
-        count = scene.get("ald_shadow_materials", 0)
 
         box = layout.box()
         box.label(text="Atmosphere", icon="WORLD")
         box.prop(s, "palette", text="")
         box.operator("ald.apply_palette", icon="FILE_REFRESH")
+        row = box.row(align=True)
+        row.prop(s, "use_shot_markers", toggle=True)
+        row.operator("ald.mark_shot", text="Mark Shot", icon="MARKER")
 
         box = layout.box()
-        box.label(text="World & Shadows", icon="LIGHT_SUN")
+        box.label(text="Material Presets", icon="MATERIAL")
+        row = box.row(align=True)
+        row.prop(s, "material_preset", text="")
+        row.operator("ald.apply_material_preset", text="Apply",
+                     icon="CHECKMARK")
+
+        row = layout.row(align=True)
+        row.operator("ald.build", icon="PLAY")
+        row.operator("ald.remove", icon="TRASH")
+        layout.operator("ald.viewport_compositor", icon="RESTRICT_VIEW_OFF")
+
+        if scene.compositing_node_group is None:
+            layout.label(text="Stack not assigned", icon="INFO")
+        else:
+            layout.label(text="Stack: " + scene.compositing_node_group.name,
+                         icon="CHECKMARK")
+
+
+class ALD_PT_world(bpy.types.Panel):
+    bl_label = "World & Shadows"
+    bl_idname = "ALD_PT_world"
+    bl_parent_id = "ALD_PT_scene"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
+    bl_order = -20
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        s = scene.ald
+        count = scene.get("ald_shadow_materials", 0)
+
+        box = layout.box()
         row = box.row(align=True)
         row.prop(s, "world_gradient", toggle=True)
         row.prop(s, "auto_sun", toggle=True)
@@ -43,19 +78,31 @@ class ALD_PT_scene(bpy.types.Panel):
             col.prop(s, "shadow_tint_strength")
             col.prop(s, "shadow_tint_distance")
 
+
+class ALD_PT_compositor(bpy.types.Panel):
+    bl_label = "Compositor Stack"
+    bl_idname = "ALD_PT_compositor"
+    bl_parent_id = "ALD_PT_scene"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
+    bl_order = -10
+
+    def draw(self, context):
+        layout = self.layout
+        s = context.scene.ald
+
         box = layout.box()
-        row = box.row()
-        row.label(text="Compositor Stack", icon="NODETREE")
-        if scene.compositing_node_group is None:
-            row.label(text="Not assigned", icon="INFO")
-        else:
-            row.label(text="Assigned", icon="CHECKMARK")
         row = box.row(align=True)
         row.prop(s, "halation", toggle=True)
         row.prop(s, "painterly", toggle=True)
         row = box.row(align=True)
         row.prop(s, "dispersion", toggle=True)
         row.prop(s, "light_wrap", toggle=True)
+        row = box.row(align=True)
+        row.prop(s, "god_rays", toggle=True)
+        if s.god_rays:
+            row.prop(s, "god_rays_strength", text="Strength")
 
         col = box.column(align=True)
         if s.halation:
@@ -69,17 +116,11 @@ class ALD_PT_scene(bpy.types.Panel):
             col.prop(s, "light_wrap_size")
 
         col.separator()
-        col.label(text="Kuwahara depth range")
         col.prop(s, "depth_near")
         col.prop(s, "depth_far")
 
-        row = layout.row(align=True)
-        row.operator("ald.build", icon="PLAY")
-        row.operator("ald.remove", icon="TRASH")
-        layout.operator("ald.viewport_compositor", icon="RESTRICT_VIEW_OFF")
 
-
-_classes = (ALD_PT_scene,)
+_classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor)
 
 
 def register():

@@ -132,3 +132,31 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The gate now creates a second scene and checks that both stacks exist, that each
   Render Layers node points at its own scene, and that removing one leaves the
   other intact.
+
+### v0.3 notes
+- **Glare Sun Beams**: `Sun Position` is a 2-component vector in normalized screen
+  space, **0..1 with y up**. A 256×256 test with the bright source at screen
+  center rendered a radial glow at `(0.5, 0.5)`, a cone at `(0.2, 0.5)` and a
+  vertical beam at `(0.5, 0.8)`, confirming the convention.
+- **Sun projection**: take the sun light's forward direction
+  (`matrix_world.to_quaternion() @ (0, 0, -1)`), place a point 1000 m along the
+  opposite direction from the camera and project it with
+  `bpy_extras.object_utils.world_to_camera_view`. If `co.z <= 0` the sun is behind
+  the camera and the God Rays node is skipped. The position is baked at build time.
+- **Shot markers**: a `frame_change_pre` handler reads the last
+  `ALD:<PALETTE>` marker at or before the current frame. `ald_active_shot` prevents
+  re-applying the same palette every frame; `Mark Shot` creates/updates a marker at
+  the current frame and enables the opt-in toggle. Changing `settings.palette`
+  reuses the existing `_on_palette` path.
+- **Material presets**: `ALD | Skin/Hair/Fabric/Metal` are shared fake-user
+  materials with Base Color/Roughness/Metallic. Applying to selected objects
+  appends the slot only once and runs the shadow-tint sync; linked objects/data are
+  skipped. Re-applying updates the tint node's stored Color so the preset stays
+  correct.
+- **UI**: World & Shadows and Compositor Stack are sub-panels (`bl_parent_id`);
+  the parent keeps Atmosphere, Material Presets, Build/Remove, viewport and stack
+  status. Children can be collapsed when the panel is too tall.
+- **Gate**: verifies the Sun Beams node exists and its projected position is
+  ~`(0.5, 0.5)` for a sun placed in front of a test camera, applies shot markers A
+  and B and checks the world changed, and applies the Metal/Skin presets including
+  shadow tint and slot idempotency.

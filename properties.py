@@ -8,6 +8,13 @@ PALETTES = [
     ("NEON_NIGHT", "Cyberpunk Neon", "Magenta and cyan artificial light"),
 ]
 
+MATERIALS = [
+    ("SKIN", "Skin", "Warm neutral skin base"),
+    ("HAIR", "Hair", "Dark hair base"),
+    ("FABRIC", "Fabric", "Matte cloth"),
+    ("METAL", "Metal", "Polished metal"),
+]
+
 
 def _on_palette(self, context):
     try:
@@ -62,6 +69,15 @@ def _on_stack(self, context):
         pass
 
 
+def _on_shots(self, context):
+    try:
+        from . import shots
+        if self.use_shot_markers and context.scene is not None:
+            shots.apply_for_frame(context.scene, force=True)
+    except Exception:
+        pass
+
+
 class ALD_Settings(bpy.types.PropertyGroup):
     palette: EnumProperty(
         name="Atmosphere",
@@ -69,6 +85,18 @@ class ALD_Settings(bpy.types.PropertyGroup):
         items=PALETTES,
         default="GOLDEN_HOUR",
         update=_on_palette,
+    )
+    use_shot_markers: BoolProperty(
+        name="Shot Markers",
+        default=False,
+        description="Apply the palette from markers named ALD:<PALETTE>",
+        update=_on_shots,
+    )
+    material_preset: EnumProperty(
+        name="Material",
+        description="Material preset assigned to selected objects",
+        items=MATERIALS,
+        default="SKIN",
     )
 
     # --- World gradient -------------------------------------------------
@@ -139,6 +167,9 @@ class ALD_Settings(bpy.types.PropertyGroup):
     light_wrap: BoolProperty(name="Light Wrap", default=True,
                              description="Bleed background light around silhouettes",
                              update=_on_stack)
+    god_rays: BoolProperty(name="God Rays", default=False,
+                           description="Sun beams from the sun's screen position",
+                           update=_on_stack)
     halation_strength: FloatProperty(name="Halation Strength", default=0.6,
                                      min=0.0, max=5.0, update=_on_stack)
     kuwahara_size: FloatProperty(name="Kuwahara Size", default=6.0,
@@ -149,6 +180,8 @@ class ALD_Settings(bpy.types.PropertyGroup):
                                        min=0.0, max=1.0, update=_on_stack)
     light_wrap_size: FloatProperty(name="Light Wrap Size", default=24.0,
                                    min=1.0, max=256.0, update=_on_stack)
+    god_rays_strength: FloatProperty(name="God Rays Strength", default=0.35,
+                                     min=0.0, max=1.0, update=_on_stack)
     depth_near: FloatProperty(name="Depth Near", default=4.0, min=0.0,
                               max=1000.0, subtype="DISTANCE",
                               update=_on_stack)
