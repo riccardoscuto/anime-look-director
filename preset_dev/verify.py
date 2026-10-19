@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 6, 0)
+EXPECTED_VERSION = (0, 6, 1)
 TOLERANCE = 1e-4
 
 
@@ -122,6 +122,7 @@ def build_test_materials(scene):
         "object": obj,
         "mesh": mesh,
         "plain": plain,
+        "plain_bsdf": plain_bsdf,
         "plain_base": plain_base,
         "plain_nodes": plain_nodes,
         "linked": linked,
@@ -140,6 +141,10 @@ def check_world_gradient(scene, settings):
     check(node is not None, "world gradient node missing")
     check(node.node_tree.name == "ALD | World Gradient",
           "world gradient group not reused")
+    normalize = [n for n in node.node_tree.nodes
+                 if n.bl_idname == "ShaderNodeVectorMath"
+                 and n.operation == "NORMALIZE"]
+    check(len(normalize) >= 2, "sun disk vectors are not normalized")
     background = background_node(scene)
     check(background is not None, "world background missing")
     expected = palette_module.preset(settings.palette)
@@ -230,6 +235,37 @@ def check_world_gradient(scene, settings):
     check(find_sun(scene) is None, "auto sun created while disabled")
     settings.auto_sun = True
     check(find_sun(scene) is not None, "auto sun not recreated when enabled")
+
+
+def check_live_transforms(scene, data):
+    from anime_look_director import cameras
+    from anime_look_director import palette as palette_module
+
+    sun = find_sun(scene)
+    check(sun is not None, "live transform test needs a sun")
+    old_rotation = tuple(sun.rotation_euler)
+    try:
+        sun.rotation_euler = (-math.pi / 2.0, 0.0, 0.0)
+        bpy.context.view_layer.update()
+        changed = cameras.update_transforms(scene, force=True)
+        check(changed, "transform update did not run")
+        expected = palette_module.sun_toward(scene)
+        check(expected is not None, "transform test has no sun direction")
+        node = gradient_node(scene)
+        dot = sum(float(a) * float(b) for a, b in
+                  zip(node.inputs["Sun Direction"].default_value, expected))
+        check(dot > 0.99, "world sun not updated by the transform handler")
+        tint = tint_node(data["plain"])
+        check(tint is not None, "no tint node for the transform test")
+        dot = sum(float(a) * float(b) for a, b in
+                  zip(tint.inputs["Sun Direction"].default_value, expected))
+        check(dot > 0.99, "material sun not updated by the transform handler")
+        check(not cameras.update_transforms(scene),
+              "transform cache did not skip an unchanged state")
+    finally:
+        sun.rotation_euler = old_rotation
+        bpy.context.view_layer.update()
+        cameras.update_transforms(scene, force=True)
 
 
 def check_god_rays(scene, settings):
@@ -330,6 +366,14 @@ def check_shadow_tint(scene, settings, data):
     check(abs(node.inputs["Rim Strength"].default_value
               - settings.rim_strength) <= TOLERANCE,
           "rim strength not synced to materials")
+    emission_color = data["plain_bsdf"].inputs["Emission Color"]
+    emission_strength = data["plain_bsdf"].inputs["Emission Strength"]
+    check(emission_color.is_linked
+          and same(emission_color.links[0].from_node, node),
+          "rim emission not wired to the material")
+    check(abs(emission_strength.default_value
+              - settings.rim_emission) <= TOLERANCE,
+          "rim emission strength not synced")
     check(len(checked.node_tree.nodes) == data["plain_nodes"] + 1,
           "shadow tint added unexpected nodes")
 
@@ -362,6 +406,10 @@ def check_shadow_tint(scene, settings, data):
           "Base Color link not removed after clearing tint")
     check(close(data["plain_base"].default_value, (0.8, 0.2, 0.2, 1.0)),
           "original Base Color not restored")
+    check(not emission_color.is_linked,
+          "emission link not restored after clearing tint")
+    check(abs(emission_strength.default_value) <= TOLERANCE,
+          "original emission strength not restored")
     check(tint_node(data["linked"]) is None,
           "shadow tint not removed from linked material")
     check(data["linked_base"].is_linked
@@ -629,6 +677,10 @@ def check_ink(scene, settings):
     mix = ng.nodes.get("ALD | Ink Lines")
     check(mix is not None, "ink lines node missing")
     check(mix.blend_type == "MULTIPLY", "ink lines are not multiplicative")
+    gain = ng.nodes.get("ALD | Ink Gain")
+    check(gain is not None
+          and abs(gain.inputs[1].default_value - 8.0) <= TOLERANCE,
+          "ink edge gain missing")
     count = len(ng.nodes)
 
     settings.ink_strength = 0.8
@@ -854,6 +906,19 @@ def check_custom_colors(scene, settings, data):
     check(tint is not None
           and close(tint.inputs["Tint"].default_value, (0.3, 0.6, 0.9)),
           "custom shadow color not synced to materials")
+    ng = scene.compositing_node_group
+    halation = ng.nodes.get("ALD | Halation") if ng is not None else None
+    check(halation is not None
+          and close(halation.inputs["Tint"].default_value, (0.2, 0.1, 0.9, 1.0)),
+          "custom sun color not synced to halation")
+    settings.ink_lines = True
+    bpy.ops.ald.build()
+    ink = ng.nodes.get("ALD | Ink Color")
+    check(ink is not None
+          and close(ink.outputs[0].default_value, (0.075, 0.15, 0.225, 1.0)),
+          "custom shadow color not synced to ink")
+    settings.ink_lines = False
+    bpy.ops.ald.build()
 
     settings.custom_colors = False
     bpy.ops.ald.apply_palette()
@@ -863,6 +928,11 @@ def check_custom_colors(scene, settings, data):
           "preset sky color not restored")
     check(close(sun.data.color, expected["sun_color"]),
           "preset sun color not restored")
+    halation = ng.nodes.get("ALD | Halation") if ng is not None else None
+    check(halation is not None
+          and close(halation.inputs["Tint"].default_value,
+                    palette_module.glare_tint(settings.palette)),
+          "preset halation tint not restored")
 
 
 def check_multiscene(scene):
@@ -929,6 +999,7 @@ def main():
         check_world_gradient(scene, settings)
         check_god_rays(scene, settings)
         check_shadow_tint(scene, settings, data)
+        check_live_transforms(scene, data)
         check_light_wrap(scene, settings)
         check_param_updates(scene, settings)
         check_ink(scene, settings)

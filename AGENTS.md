@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.6.0**).
+  (currently **0.6.1**).
 
 ## Verify (run after every change)
 ```powershell
@@ -142,6 +142,22 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   the effective key.
 - Do not touch `bpy.data` during add-on registration (it is `_RestrictData`);
   initialize handler caches lazily instead.
+- Sun disk vectors must be **normalized** before `DOT_PRODUCT` (`Vector Math →
+  Normalize` on `Generated` and `Sun Direction`); near-1 cosine thresholds are
+  unstable otherwise.
+- `cameras._on_depsgraph` also calls `update_transforms(scene)`, caching
+  `(sun Z, sun color, camera Z/location/lens/shift/sensor)` and pushing updates to
+  `palette.update_sun_controls`, `materials.update_sun`,
+  `compositor.update_god_rays` without rebuilding. Unchanged states skip.
+- Ink internal edges: when `band_size == 0`, multiply the 0.05 m threshold by 8
+  (clamped) so 15–20 cm depth steps read as solid lines.
+- Custom colors: `compositor.update_params` refreshes `ALD | Ink Color` and the
+  halation/god-ray `Tint` via `_glare_color`, which uses `custom_sun` when active.
+- Rim emission: Shadow Tint has a second `Emission` output (rim + 0.12 × shadow
+  tint × combined). `_wire_emission` links it to Principled Emission Color, stores
+  `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
+  restores on clear.
+- Gate pixel ratios after the ink gain: ink ~2.8 %, rim ~8.1 % (edge-local).
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
@@ -176,6 +192,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   in sync; never rebuild materials from the frame handler.
 - Palette changes and shots go through `look.apply`/`look.apply_world`, never a
   direct `settings.palette = key` for temporary overrides.
+- Never overwrite existing emission on materials; the rim emission wiring must
+  stay reversible and skip emissive presets.
+- Keep the depsgraph transform handler socket-only; never rebuild nodes from it.
 - `bl_info`, `blender_manifest.toml`, `README.md`, `CHANGELOG.md` versions stay aligned.
 
 See `TECH_NOTES.md` for the full spike results.

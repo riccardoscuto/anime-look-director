@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v0.6.0)
+## What it does (v0.6.1)
 - Six atmosphere presets (Shinkai Golden Hour, Ghibli Summer Noon, Rainy Tokyo,
   Cyberpunk Neon, Sakura Spring, Twilight Dusk) driving world, sun, shadow tint
   and halation tint.
@@ -21,6 +21,10 @@ Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.
   and Terminator sharpness; combined with AO for contact shadows.
 - **Directional rim light** on the sun-facing edge, tinted by the sun color;
   the HAIR preset gets a stronger angel-ring rim.
+- **Rim emission** wired into Principled Emission Color (reversible), so rims read
+  in backlight without being flattened by diffuse shading.
+- **Real-time viewport updates**: moving the sun or camera updates the sky disk,
+  God Rays and cel shading without a rebuild.
 - **Light Wrap** around object silhouettes and environment edges.
 - **Anime Ink Lines**: thin depth-based outlines tinted by the palette shadow.
 - **God Rays** (optional Sun Beams glare anchored to the sun's screen position,
@@ -64,7 +68,8 @@ Expected output: `ALD GATE: PASS`.
 - v0.3.2 — in-place sliders, multiplicative shadow tint, sidebar N panel
 - v0.4.0 — sun disk, anime clouds, ink lines, Sakura/Twilight, custom colors
 - v0.5.0 — cel terminator, directional rim light, hair angel ring
-- v0.6.0 — per-camera palette overrides, effective look coordinator (current)
+- v0.6.0 — per-camera palette overrides, effective look coordinator
+- v0.6.1 — normalized sun disk, live transforms, ink gain, rim emission (current)
 - v1.0 — store release (legacy ZIP + Extension), presets and docs
 
 ## Recap

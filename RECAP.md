@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.6.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.6.1** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -32,22 +32,25 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
    Cel Shadow e Terminator Sharpness.
 9. **Rim light direzionale** — Fresnel sul lato sole, colorato con `sun_color`;
    il preset HAIR riceve un boost “angel ring”.
-10. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
-   → Kuwahara (mix per profondità) → Light Wrap → Ink Lines (opzionale) → Lens
-   Distortion → Output`.
-11. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette.
-12. **Anime Ink Lines** — contorni sottili da profondità, tinti con lo shadow tint.
-13. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
-    forza e dimensione regolabili; si aggiorna durante l'animazione.
-14. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
+10. **Rim emission** — il rim e una frazione dello shadow tint alimentano
+    l’Emission Color del Principled, così il bordo resta visibile in controluce.
+11. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
+    → Kuwahara (mix per profondità) → Light Wrap → Ink Lines (opzionale) → Lens
+    Distortion → Output`.
+12. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette.
+13. **Anime Ink Lines** — contorni sottili da profondità, tinti con lo shadow tint,
+    con gain dedicato ai bordi interni.
+14. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
+    forza e dimensione regolabili; si aggiorna durante l’animazione.
+15. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
     inquadrature; il pulsante `Mark Shot` crea/aggiorna il marker.
-15. **Per-camera override** — ogni camera può avere la propria palette; cambiando
+16. **Per-camera override** — ogni camera può avere la propria palette; cambiando
     camera il look si aggiorna. Precedenza: camera > marker > palette di scena.
-16. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
+17. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
     oggetti selezionati.
-17. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
-18. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
-19. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
+18. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
+19. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
+20. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
     compositor senza staccare gli occhi dalla camera.
 
 ## Flusso di lavoro
@@ -82,7 +85,7 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 - **Auto Sun** (creazione automatica della SUN)
 - **Shadow Tint** + forza, distanza, numero materiali, `Clear Shadow Tint`
 - **Cel Shading** + Cel Shadow e Terminator Sharpness
-- **Rim Light** + forza e larghezza
+- **Rim Light** + forza, larghezza ed emissione
 - **Camera Override** (palette specifica della camera attiva)
 - **Halation** (Glare Bloom) e forza
 - **Painterly (Kuwahara)** e dimensione
@@ -113,7 +116,10 @@ o il colore originale della Base Color.
   il cel terminator è un tint direzionale, non una vera rimappatura della luce.
   Resta un proxy di contatto/occlusione, non ricolora le ombre proiettate.
 - Rim light: approssimazione Fresnel mascherata dal sole; non è un vero rim
-  lighting fisico. L'angel ring HAIR è un boost del rim.
+  lighting fisico. L'angel ring HAIR è un boost del rim. L'emission rim viene
+  saltata sui materiali che hanno già emission.
+- Sun disk, God Rays e cel shading si aggiornano in tempo reale muovendo sole o
+  camera; i Custom Colors aggiornano anche bloom, raggi e ink.
 - Light Wrap: lavora sulle silhouette geometriche; oggetti trasparenti non
   generano il bordo.
 - God Rays: durante l'animazione segue sole e camera a ogni frame; se muovi
@@ -163,3 +169,4 @@ multi-scena, render EEVEE e coerenza versione `bl_info`/manifest.
 - **0.4.0** — Sun Disk, Anime Clouds, Ink Lines, Sakura/Twilight, Custom Colors.
 - **0.5.0** — Cel terminator, rim light direzionale, angel ring HAIR.
 - **0.6.0** — override palette per-camera, coordinatore effective look.
+- **0.6.1** — normalizzazione sun disk, update realtime, ink gain, rim emission.

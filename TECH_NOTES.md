@@ -279,3 +279,34 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   `ald_effective_palette`/`source` and base invariance instead of `settings.palette`.
 - UI: Camera Override box in Scene > World & Shadows and Sidebar N; effective look
   label in the main panel.
+
+### v0.6.1 notes
+- **Normalized sun disk**: `Generated` (view direction) and `Sun Direction` now
+  pass through `Vector Math → Normalize` before `DOT_PRODUCT`. The sun threshold is
+  `cos(radius)` ~0.9997; without unit vectors the disk could disappear or deform.
+  World group marker bumped to `ald_build = 4`.
+- **Real-time viewport**: `cameras._on_depsgraph` now also calls
+  `update_transforms(scene)`, which caches the sun Z axis/color and the camera
+  Z/location/lens/shift/sensor. On a change it calls `palette.update_sun_controls`,
+  `materials.update_sun` and `compositor.update_god_rays`, all socket-only. Rotating
+  the sun with R or moving the camera updates sky disk, God Rays and cel shading
+  without Apply Palette or a frame change.
+- **Ink gain**: for `band_size == 0` (ink), the 0.05 m threshold is multiplied by
+  8 and clamped. Outer silhouettes were already 1.0; internal 15–20 cm steps were
+  ~0.1 and nearly invisible. Gate ink ratio moved from 2.46 % to 2.76 %.
+- **Custom color sync**: `compositor.update_params` now updates the halation and
+  god-ray `Tint` (via `_glare_color`, using `custom_sun` when custom colors are on)
+  and `ALD | Ink Color` (shadow tint × 0.25). `_on_custom_color` calls it, so the
+  color pickers update bloom, rays and ink live.
+- **Rim emission**: Shadow Tint has a second output `Emission` = rim color +
+  0.12 × shadow tint × combined factor. `_wire_emission` connects it to Principled
+  `Emission Color`, sets `Emission Strength` to `rim_emission` (default 0.5), and
+  stores the original color/strength in `ald_em_color`/`ald_em_strength`. Materials
+  with emission strength >0.05 or a different emission link are skipped; clearing
+  shadow tint removes the link and restores the originals. This keeps the rim
+  visible in backlight (emission bypasses diffuse attenuation).
+- Gate: normalized nodes present; `cameras.update_transforms` updates world and
+  material sun directions and then skips an unchanged state; ink gain node = 8;
+  custom sun/shadow reach halation/ink; emission is wired and restored.
+- Gate pixel ratios: ink 2.76 %, rim 8.09 %, toon 1.31 %; look-dev six-palette sheet
+  shows brighter rims and preserved terminator shading.

@@ -140,13 +140,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 3):
+                           or ng.get("ald_build") != 4):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 3
+        ng["ald_build"] = 4
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -157,7 +157,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 3
+        ng["ald_build"] = 4
     return ng
 
 
@@ -328,8 +328,19 @@ def _build_gradient_group(ng):
     dot = nodes.new("ShaderNodeVectorMath")
     dot.location = (520, 320)
     dot.operation = "DOT_PRODUCT"
-    links.new(texcoord.outputs["Generated"], dot.inputs[0])
-    links.new(group_in.outputs["Sun Direction"], dot.inputs[1])
+
+    view_norm = nodes.new("ShaderNodeVectorMath")
+    view_norm.location = (320, 440)
+    view_norm.operation = "NORMALIZE"
+    links.new(texcoord.outputs["Generated"], view_norm.inputs[0])
+
+    sun_norm = nodes.new("ShaderNodeVectorMath")
+    sun_norm.location = (320, 600)
+    sun_norm.operation = "NORMALIZE"
+    links.new(group_in.outputs["Sun Direction"], sun_norm.inputs[0])
+
+    links.new(view_norm.outputs["Vector"], dot.inputs[0])
+    links.new(sun_norm.outputs["Vector"], dot.inputs[1])
 
     disk = nodes.new("ShaderNodeMapRange")
     disk.location = (700, 320)

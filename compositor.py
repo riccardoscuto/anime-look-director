@@ -18,6 +18,7 @@ NODE_INK_EDGE = "ALD | Ink Edge"
 NODE_INK_FACTOR = "ALD | Ink Factor"
 NODE_INK_LINES = "ALD | Ink Lines"
 NODE_INK_COLOR = "ALD | Ink Color"
+NODE_INK_GAIN = "ALD | Ink Gain"
 
 
 def _is_stack(ng):
@@ -171,7 +172,14 @@ def _depth_edges(nodes, links, render_layers, geometry, band_size,
         links.new(band.outputs["Image"], band_separate.inputs["Image"])
         edge_value = band_separate.outputs["Red"]
     else:
-        edge_value = threshold.outputs[0]
+        gain = nodes.new("ShaderNodeMath")
+        gain.location = (250, 740)
+        gain.name = NODE_INK_GAIN
+        gain.operation = "MULTIPLY"
+        gain.use_clamp = True
+        gain.inputs[1].default_value = 8.0
+        links.new(threshold.outputs[0], gain.inputs[0])
+        edge_value = gain.outputs[0]
 
     clipped = nodes.new("ShaderNodeMath")
     clipped.location = (820, 780)
@@ -347,6 +355,21 @@ def update_params(scene):
         node.inputs["Strength"].default_value = settings.god_rays_strength
         update_god_rays(scene)
 
+    from . import palette as palette_module
+    palette_key = scene.get("ald_effective_palette", settings.palette)
+    tint = _glare_color(scene, settings, palette_module, palette_key)
+    node = nodes.get(NODE_HALATION)
+    if node is not None and "Tint" in node.inputs:
+        node.inputs["Tint"].default_value = tint
+    node = nodes.get(NODE_GOD_RAYS)
+    if node is not None and "Tint" in node.inputs:
+        node.inputs["Tint"].default_value = tint
+    node = nodes.get(NODE_INK_COLOR)
+    if node is not None:
+        ink = tuple(component * 0.25 for component in
+                    palette_module.shadow_tint_for(scene))
+        node.outputs[0].default_value = (*ink, 1.0)
+
     node = nodes.get(NODE_INK_EDGE)
     if node is not None:
         node.inputs["Size"].default_value = (settings.ink_size,
@@ -407,6 +430,12 @@ def _ink_lines(nodes, links, image, render_layers, settings, clip_end,
     return result_sock
 
 
+def _glare_color(scene, settings, palette_module, key):
+    if settings is not None and settings.custom_colors:
+        return (*settings.custom_sun, 1.0)
+    return palette_module.glare_tint(key)
+
+
 def build(scene):
     """Create or refresh the stack and assign it to the scene."""
     settings = getattr(scene, "ald", None)
@@ -455,8 +484,8 @@ def build(scene):
         if "Saturation" in glare.inputs:
             glare.inputs["Saturation"].default_value = 1.1
         if "Tint" in glare.inputs:
-            glare.inputs["Tint"].default_value = palette_module.glare_tint(
-                palette_key)
+            glare.inputs["Tint"].default_value = _glare_color(
+                scene, settings, palette_module, palette_key)
         links.new(current, glare.inputs["Image"])
         current = glare.outputs["Image"]
 
@@ -475,8 +504,8 @@ def build(scene):
         beams.inputs["Color Modulation"].default_value = 0.15
         beams.inputs["Saturation"].default_value = 1.0
         if "Tint" in beams.inputs:
-            beams.inputs["Tint"].default_value = palette_module.glare_tint(
-                palette_key)
+            beams.inputs["Tint"].default_value = _glare_color(
+                scene, settings, palette_module, palette_key)
         beams.inputs["Sun Position"].default_value = (
             position if position is not None else (0.5, 0.5))
         links.new(current, beams.inputs["Image"])

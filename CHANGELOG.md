@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.6.1 — 2026-10-19
+### Fixed
+- Sun disk: `Generated` view direction and `Sun Direction` are normalized before
+  the dot product, so the cosine thresholds are stable and the angular radius is
+  exact.
+- Internal ink edges: `band_size == 0` now applies an 8× clamped gain, so 15–20 cm
+  internal depth steps read as solid lines like the outer silhouette.
+- Custom Colors now update halation/god-ray tints and the ink color immediately
+  in the compositor, not only world/materials.
+
+### Added
+- **Real-time viewport updates**: a depsgraph transform cache pushes sun/camera
+  changes into the world sun disk, material terminators/rim and God Rays without
+  rebuilding nodes (no frame change required).
+- **Rim emission**: the Shadow Tint group has an `Emission` output wired to
+  Principled `Emission Color`, with a `Rim Emission` control. Wiring is reversible,
+  skips materials with existing emission, and restores the original values.
+- Gate: normalized sun vectors, depsgraph transform updates, ink gain, custom
+  color tint sync, emission wiring/restoration.
+
 ## 0.6.0 — 2026-10-19
 ### Added
 - **Per-camera palette overrides**: each Camera data-block can enable its own

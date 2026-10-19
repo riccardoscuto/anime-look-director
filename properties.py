@@ -65,6 +65,12 @@ def _on_custom_color(self, context):
                                  self.shadow_tint_distance)
     except Exception:
         pass
+    try:
+        from . import compositor
+        if context.scene is not None:
+            compositor.update_params(context.scene)
+    except Exception:
+        pass
 
 
 def _on_shadow(self, context):
@@ -279,6 +285,10 @@ class ALD_Settings(bpy.types.PropertyGroup):
         update=_on_shadow)
     rim_width: FloatProperty(
         name="Rim Width", default=0.4, min=0.0, max=1.0,
+        update=_on_shadow)
+    rim_emission: FloatProperty(
+        name="Rim Emission", default=0.5, min=0.0, max=2.0,
+        description="Emission strength for rim light and shadow color",
         update=_on_shadow)
 
     # --- Compositor stack ----------------------------------------------

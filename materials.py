@@ -9,6 +9,8 @@ import bpy
 GROUP_NAME = "ALD | Shadow Tint"
 NODE_TAG = "ald_shadow_tint"
 COLOR_KEY = "ald_st_color"
+EM_COLOR_KEY = "ald_em_color"
+EM_STRENGTH_KEY = "ald_em_strength"
 
 PRESET_DATA = {
     "SKIN": {
@@ -113,6 +115,7 @@ def _build_group(ng):
     _ensure_socket(ng, "Rim Width", "INPUT", "NodeSocketFloat",
                    0.5, 0.0, 1.0)
     _ensure_socket(ng, "Color", "OUTPUT", "NodeSocketColor")
+    _ensure_socket(ng, "Emission", "OUTPUT", "NodeSocketColor")
 
     nodes = ng.nodes
     links = ng.links
@@ -249,6 +252,29 @@ def _build_group(ng):
     rim_add.inputs["Factor"].default_value = 1.0
     links.new(result_sock, group_out.inputs["Color"])
 
+    shadow_amount = nodes.new("ShaderNodeMath")
+    shadow_amount.location = (520, 880)
+    shadow_amount.operation = "MULTIPLY"
+    shadow_amount.use_clamp = True
+    shadow_amount.inputs[1].default_value = 0.12
+    links.new(combined.outputs[0], shadow_amount.inputs[0])
+
+    shadow_emit = nodes.new("ShaderNodeVectorMath")
+    shadow_emit.location = (720, 880)
+    shadow_emit.operation = "SCALE"
+    links.new(group_in.outputs["Tint"], shadow_emit.inputs["Vector"])
+    links.new(shadow_amount.outputs[0], shadow_emit.inputs["Scale"])
+
+    emit_add = nodes.new("ShaderNodeMix")
+    emit_add.location = (920, 720)
+    emit_add.data_type = "RGBA"
+    emit_add.blend_type = "ADD"
+    a_sock, b_sock, result_sock = _rgba_sockets(emit_add)
+    links.new(rim_color.outputs["Vector"], a_sock)
+    links.new(shadow_emit.outputs["Vector"], b_sock)
+    emit_add.inputs["Factor"].default_value = 1.0
+    links.new(result_sock, group_out.inputs["Emission"])
+
 
 def _group():
     """Return the shared shadow-tint group, building it on first use."""
@@ -262,10 +288,12 @@ def _group():
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
+    outputs = {item.name for item in ng.interface.items_tree
+               if getattr(item, "in_out", "") == "OUTPUT"}
     required = {"Color", "Tint", "Strength", "Distance",
                 "Sun Direction", "Sun Color", "Toon Strength",
                 "Terminator Sharpness", "Rim Strength", "Rim Width"}
-    if not required <= names:
+    if not required <= names or not {"Color", "Emission"} <= outputs:
         _build_group(ng)
     return ng
 
@@ -327,6 +355,9 @@ def _look(scene, settings):
         "sharpness": settings.toon_sharpness if settings is not None else 0.08,
         "rim_strength": (settings.rim_strength if rim_on else 0.0),
         "rim_width": settings.rim_width if settings is not None else 0.5,
+        "emission": (settings.rim_emission
+                     if settings is not None and has_sun
+                     and (rim_on or toon_on) else 0.0),
     }
 
 
@@ -344,6 +375,46 @@ def _set_look(node, mat, look):
         rim_width = min(rim_width, 0.35)
     node.inputs["Rim Strength"].default_value = rim_strength
     node.inputs["Rim Width"].default_value = rim_width
+
+
+def _wire_emission(mat, node, look):
+    """Route the group Emission output into Principled, reversibly."""
+    bsdf = _principled(mat)
+    if bsdf is None:
+        return
+    color = bsdf.inputs.get("Emission Color")
+    strength = bsdf.inputs.get("Emission Strength")
+    if color is None or strength is None:
+        return
+    output = node.outputs.get("Emission")
+    if output is None:
+        return
+
+    linked = color.is_linked and color.links[0].from_node == node
+    if color.is_linked and not linked:
+        return
+
+    target = float(look.get("emission", 0.0))
+    if target <= 0.0:
+        if linked:
+            for link in list(color.links):
+                mat.node_tree.links.remove(link)
+            if EM_COLOR_KEY in mat:
+                color.default_value = mat[EM_COLOR_KEY]
+            if EM_STRENGTH_KEY in mat:
+                strength.default_value = mat[EM_STRENGTH_KEY]
+            for key in (EM_COLOR_KEY, EM_STRENGTH_KEY):
+                if key in mat:
+                    del mat[key]
+        return
+
+    if not linked:
+        if strength.default_value > 0.05:
+            return
+        mat[EM_COLOR_KEY] = [float(v) for v in color.default_value]
+        mat[EM_STRENGTH_KEY] = float(strength.default_value)
+        mat.node_tree.links.new(output, color)
+    strength.default_value = target
 
 
 def sync_material(mat, tint, strength, distance, look=None):
@@ -385,6 +456,7 @@ def sync_material(mat, tint, strength, distance, look=None):
     node.inputs["Distance"].default_value = distance
     if look is not None:
         _set_look(node, mat, look)
+        _wire_emission(mat, node, look)
     return True
 
 
@@ -410,6 +482,22 @@ def remove_material(mat):
             target.default_value = mat[COLOR_KEY]
         else:
             target.default_value = node.inputs["Color"].default_value
+
+    bsdf = _principled(mat)
+    if bsdf is not None:
+        emission = bsdf.inputs.get("Emission Color")
+        strength = bsdf.inputs.get("Emission Strength")
+        if (emission is not None and emission.is_linked
+                and emission.links[0].from_node == node):
+            for link in list(emission.links):
+                nt.links.remove(link)
+            if EM_COLOR_KEY in mat:
+                emission.default_value = mat[EM_COLOR_KEY]
+            if EM_STRENGTH_KEY in mat and strength is not None:
+                strength.default_value = mat[EM_STRENGTH_KEY]
+        for key in (EM_COLOR_KEY, EM_STRENGTH_KEY):
+            if key in mat:
+                del mat[key]
 
     nt.nodes.remove(node)
     if COLOR_KEY in mat:
@@ -521,6 +609,7 @@ def update_sun(scene):
         node = _tint_node(mat)
         if node is not None:
             _set_look(node, mat, look)
+            _wire_emission(mat, node, look)
 
 
 def _on_frame_change(scene, *_args):

@@ -116,6 +116,8 @@ class ALD_PT_world(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "rim_strength")
             col.prop(s, "rim_width")
+        if s.toon_shading or s.rim_light:
+            box.prop(s, "rim_emission")
 
         cam = scene.camera
         if (cam is not None and cam.data is not None
@@ -234,6 +236,8 @@ class ALD_PT_view3d(bpy.types.Panel):
         if s.rim_light:
             col = box.column(align=True)
             col.prop(s, "rim_strength")
+        if s.toon_shading or s.rim_light:
+            box.prop(s, "rim_emission")
 
         cam = scene.camera
         if (cam is not None and cam.data is not None
