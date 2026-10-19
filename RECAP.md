@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.6.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.6.2** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -170,3 +170,4 @@ multi-scena, render EEVEE e coerenza versione `bl_info`/manifest.
 - **0.5.0** — Cel terminator, rim light direzionale, angel ring HAIR.
 - **0.6.0** — override palette per-camera, coordinatore effective look.
 - **0.6.1** — normalizzazione sun disk, update realtime, ink gain, rim emission.
+- **0.6.2** — fix icona pannello Camera Override.

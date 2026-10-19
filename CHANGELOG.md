@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.2 — 2026-10-19
+### Fixed
+- Camera Override panels used the invalid icon name `CAMERA`; Blender 5.1 accepts
+  `CAMERA_DATA`. The invalid enum raised on every panel draw, which is why the
+  traceback appeared after Remove Stack / Clear Shadow Tint triggered a redraw.
+  Both the Scene and Sidebar N panels are fixed; the operations themselves were
+  unaffected.
+
 ## 0.6.1 — 2026-10-19
 ### Fixed
 - Sun disk: `Generated` view direction and `Sun Direction` are normalized before

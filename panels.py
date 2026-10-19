@@ -123,7 +123,7 @@ class ALD_PT_world(bpy.types.Panel):
         if (cam is not None and cam.data is not None
                 and hasattr(cam.data, "ald")):
             box = layout.box()
-            box.label(text="Camera Override", icon="CAMERA")
+            box.label(text="Camera Override", icon="CAMERA_DATA")
             box.prop(cam.data.ald, "override", toggle=True)
             if cam.data.ald.override:
                 box.prop(cam.data.ald, "palette", text="")
@@ -243,7 +243,7 @@ class ALD_PT_view3d(bpy.types.Panel):
         if (cam is not None and cam.data is not None
                 and hasattr(cam.data, "ald")):
             box = layout.box()
-            box.label(text="Camera Override", icon="CAMERA")
+            box.label(text="Camera Override", icon="CAMERA_DATA")
             box.prop(cam.data.ald, "override", toggle=True)
             if cam.data.ald.override:
                 box.prop(cam.data.ald, "palette", text="")

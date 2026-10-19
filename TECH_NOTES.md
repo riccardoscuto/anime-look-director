@@ -310,3 +310,15 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   custom sun/shadow reach halation/ink; emission is wired and restored.
 - Gate pixel ratios: ink 2.76 %, rim 8.09 %, toon 1.31 %; look-dev six-palette sheet
   shows brighter rims and preserved terminator shading.
+
+### v0.6.2 notes
+- `UILayout.label(icon="CAMERA")` raises: Blender 5.1's icon enum has
+  `CAMERA_DATA`, not `CAMERA`. The invalid enum aborted every panel draw, so the
+  traceback surfaced after Remove Stack / Clear Shadow Tint forced a redraw; the
+  operators themselves were fine.
+- Both Camera Override labels (Scene panel and Sidebar N) now use `CAMERA_DATA`.
+  Panel draw verified with a screenshot after the fix.
+- Valid icon identifiers can be checked at runtime with
+  `bpy.types.UILayout.bl_rna.functions["label"].parameters["icon"].enum_items`.
+  The headless gate does not execute panel draws, so GUI changes still need the
+  screenshot check.
