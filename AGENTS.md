@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.4.0**).
+  (currently **0.5.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -28,7 +28,8 @@ TECH_NOTES); move it on-screen before capturing.
   (Render Layers → Glare → Sun Beams (optional) → Kuwahara (depth-mixed) →
   Light Wrap → Ink Lines (optional) → Lensdist → Group Output); also refreshes
   God Rays and the world sun on frame changes.
-- `materials.py` — shared `ALD | Shadow Tint` group plus material presets.
+- `materials.py` — Shadow Tint group (AO + directional terminator + rim),
+  material presets, and the per-frame sun sync.
 - `shots.py` — timeline marker palette overrides and the frame-change handler.
 - `operators.py` — `ald.build`, `ald.remove`, `ald.apply_palette`,
   `ald.clear_shadow_tint`, `ald.viewport_compositor`.
@@ -111,6 +112,21 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   the image by a dark `shadow_tint * 0.25` color; the gate pixel ratio is ~2.5 %.
 - Custom colors: `palette.effective(scene, key)` applies overrides and
   `palette.shadow_tint_for(scene)` must be used by every material sync path.
+- Shadow Tint v2 inputs: `Color`, `Tint`, `Strength`, `Distance`, `Sun Direction`,
+  `Sun Color`, `Toon Strength`, `Terminator Sharpness`, `Rim Strength`,
+  `Rim Width`. Terminator = MapRange(`N·L`, -sharpness..sharpness → 1..0),
+  combined with AO via `MAXIMUM`, then a `MULTIPLY` mix on Base Color.
+- Rim = `Layer Weight.Facing` through a MapRange `1 - Rim Width .. 1` (narrow
+  Fresnel band), multiplied by `max(N·L, 0)` and `Rim Strength`, then `Sun Color`
+  scaled and added to the shaded color. A broad Layer Weight rim covered 68 % of
+  the gate frame; the threshold curve brought it to ~6.5 %.
+- `Geometry.Normal` is world space; `Sun Direction` is **toward** the sun. The sun
+  direction/color are refreshed by `materials.update_sun` on `frame_change_post`.
+- Shadow Tint interface upgrades must **not** clear the interface: `_ensure_socket`
+  adds the new sockets so external texture links to the group node survive.
+- HAIR preset rim boost: `+0.3` strength and width capped at 0.35, applied by
+  material name in `_set_look`.
+- Gate toon/rim pixel ratios at 128×128: terminator ~1.3 %, rim ~6.5 % (edge-local).
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
@@ -139,6 +155,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   are synced, so custom palette colors are respected.
 - Sun disk/cloud controls call `apply_palette` (world inputs), not a compositor
   rebuild.
+- Keep the rim edge-local: use the `1 - Rim Width` Fresnel threshold, not raw
+  Layer Weight Facing.
+- `sync_scene`/`sync_material` must pass the `_look` dict so toon/rim values stay
+  in sync; never rebuild materials from the frame handler.
 - `bl_info`, `blender_manifest.toml`, `README.md`, `CHANGELOG.md` versions stay aligned.
 
 See `TECH_NOTES.md` for the full spike results.

@@ -248,6 +248,32 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Ambient-occlusion distance used by the shadow tint",
         update=_on_shadow,
     )
+    toon_shading: BoolProperty(
+        name="Cel Shading",
+        default=True,
+        description="Directional toon terminator driven by the sun",
+        update=_on_shadow,
+    )
+    toon_strength: FloatProperty(
+        name="Cel Shadow", default=0.75, min=0.0, max=1.0,
+        description="Strength of the directional shadow tint",
+        update=_on_shadow)
+    toon_sharpness: FloatProperty(
+        name="Terminator", default=0.035, min=0.005, max=0.5,
+        description="Width of the terminator (smaller = harder cel edge)",
+        update=_on_shadow)
+    rim_light: BoolProperty(
+        name="Rim Light",
+        default=True,
+        description="Fresnel rim on the sun-facing side",
+        update=_on_shadow,
+    )
+    rim_strength: FloatProperty(
+        name="Rim Strength", default=0.45, min=0.0, max=1.0,
+        update=_on_shadow)
+    rim_width: FloatProperty(
+        name="Rim Width", default=0.4, min=0.0, max=1.0,
+        update=_on_shadow)
 
     # --- Compositor stack ----------------------------------------------
     halation: BoolProperty(name="Halation", default=True,

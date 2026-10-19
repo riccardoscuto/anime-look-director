@@ -59,57 +59,130 @@ def _rgba_sockets(mix):
     return a, b, result
 
 
+def _ensure_socket(ng, name, in_out, socket_type, default=None,
+                   min_value=None, max_value=None):
+    for item in ng.interface.items_tree:
+        if getattr(item, "in_out", "") == in_out and item.name == name:
+            return item
+    sock = ng.interface.new_socket(name=name, in_out=in_out,
+                                   socket_type=socket_type)
+    if default is not None:
+        try:
+            sock.default_value = default
+        except Exception:
+            pass
+    if min_value is not None:
+        try:
+            sock.min_value = min_value
+        except Exception:
+            pass
+    if max_value is not None:
+        try:
+            sock.max_value = max_value
+        except Exception:
+            pass
+    return sock
+
+
+def _smooth(node):
+    try:
+        items = [item.identifier for item in
+                 node.bl_rna.properties["interpolation_type"].enum_items]
+        if "SMOOTHSTEP" in items:
+            node.interpolation_type = "SMOOTHSTEP"
+    except Exception:
+        pass
+
+
 def _build_group(ng):
     ng.nodes.clear()
-    if hasattr(ng.interface, "clear"):
-        ng.interface.clear()
-
-    ng.interface.new_socket(name="Color", in_out="INPUT",
-                            socket_type="NodeSocketColor")
-    ng.interface.new_socket(name="Tint", in_out="INPUT",
-                            socket_type="NodeSocketColor")
-    strength = ng.interface.new_socket(name="Strength", in_out="INPUT",
-                                       socket_type="NodeSocketFloat")
-    strength.min_value = 0.0
-    strength.max_value = 1.0
-    strength.default_value = 0.35
-    distance = ng.interface.new_socket(name="Distance", in_out="INPUT",
-                                       socket_type="NodeSocketFloat")
-    distance.min_value = 0.0
-    distance.max_value = 100.0
-    distance.default_value = 0.6
-    ng.interface.new_socket(name="Color", in_out="OUTPUT",
-                            socket_type="NodeSocketColor")
+    _ensure_socket(ng, "Color", "INPUT", "NodeSocketColor")
+    _ensure_socket(ng, "Tint", "INPUT", "NodeSocketColor")
+    _ensure_socket(ng, "Strength", "INPUT", "NodeSocketFloat", 0.35, 0.0, 1.0)
+    _ensure_socket(ng, "Distance", "INPUT", "NodeSocketFloat", 0.6, 0.0, 100.0)
+    _ensure_socket(ng, "Sun Direction", "INPUT", "NodeSocketVector",
+                   (0.0, 0.0, 1.0))
+    _ensure_socket(ng, "Sun Color", "INPUT", "NodeSocketColor",
+                   (1.0, 1.0, 1.0, 1.0))
+    _ensure_socket(ng, "Toon Strength", "INPUT", "NodeSocketFloat",
+                   0.0, 0.0, 1.0)
+    _ensure_socket(ng, "Terminator Sharpness", "INPUT", "NodeSocketFloat",
+                   0.08, 0.005, 0.5)
+    _ensure_socket(ng, "Rim Strength", "INPUT", "NodeSocketFloat",
+                   0.0, 0.0, 1.0)
+    _ensure_socket(ng, "Rim Width", "INPUT", "NodeSocketFloat",
+                   0.5, 0.0, 1.0)
+    _ensure_socket(ng, "Color", "OUTPUT", "NodeSocketColor")
 
     nodes = ng.nodes
     links = ng.links
 
     group_in = nodes.new("NodeGroupInput")
-    group_in.location = (-760, 0)
+    group_in.location = (-820, 0)
     group_out = nodes.new("NodeGroupOutput")
-    group_out.location = (520, 0)
+    group_out.location = (760, 0)
 
     ao = nodes.new("ShaderNodeAmbientOcclusion")
-    ao.location = (-520, -220)
+    ao.location = (-620, -260)
     ao.samples = 16
     links.new(group_in.outputs["Distance"], ao.inputs["Distance"])
 
     # AO is 1 when open and 0 when fully occluded: invert and scale.
     invert = nodes.new("ShaderNodeMath")
-    invert.location = (-300, -220)
+    invert.location = (-400, -260)
     invert.operation = "SUBTRACT"
     invert.inputs[0].default_value = 1.0
     links.new(ao.outputs["AO"], invert.inputs[1])
 
     scale = nodes.new("ShaderNodeMath")
-    scale.location = (-100, -220)
+    scale.location = (-200, -260)
     scale.operation = "MULTIPLY"
     scale.use_clamp = True
     links.new(invert.outputs[0], scale.inputs[0])
     links.new(group_in.outputs["Strength"], scale.inputs[1])
 
+    # Directional terminator: N dot L against the palette sun.
+    geometry = nodes.new("ShaderNodeNewGeometry")
+    geometry.location = (-820, 380)
+    dot = nodes.new("ShaderNodeVectorMath")
+    dot.location = (-620, 380)
+    dot.operation = "DOT_PRODUCT"
+    links.new(geometry.outputs["Normal"], dot.inputs[0])
+    links.new(group_in.outputs["Sun Direction"], dot.inputs[1])
+
+    negative = nodes.new("ShaderNodeMath")
+    negative.location = (-620, 560)
+    negative.operation = "MULTIPLY"
+    negative.inputs[1].default_value = -1.0
+    links.new(group_in.outputs["Terminator Sharpness"], negative.inputs[0])
+
+    terminator = nodes.new("ShaderNodeMapRange")
+    terminator.location = (-420, 460)
+    terminator.clamp = True
+    _smooth(terminator)
+    links.new(dot.outputs["Value"], terminator.inputs["Value"])
+    links.new(negative.outputs[0], terminator.inputs["From Min"])
+    links.new(group_in.outputs["Terminator Sharpness"],
+              terminator.inputs["From Max"])
+    terminator.inputs["To Min"].default_value = 1.0
+    terminator.inputs["To Max"].default_value = 0.0
+
+    toon = nodes.new("ShaderNodeMath")
+    toon.location = (-200, 460)
+    toon.operation = "MULTIPLY"
+    toon.use_clamp = True
+    links.new(terminator.outputs["Result"], toon.inputs[0])
+    links.new(group_in.outputs["Toon Strength"], toon.inputs[1])
+
+    combined = nodes.new("ShaderNodeMath")
+    combined.location = (0, -180)
+    combined.operation = "MAXIMUM"
+    combined.use_clamp = True
+    links.new(scale.outputs[0], combined.inputs[0])
+    links.new(toon.outputs[0], combined.inputs[1])
+
     mix = nodes.new("ShaderNodeMix")
-    mix.location = (180, 0)
+    mix.location = (220, 0)
     mix.data_type = "RGBA"
     mix.blend_type = "MULTIPLY"
     a_sock, b_sock, result_sock = _rgba_sockets(mix)
@@ -117,7 +190,63 @@ def _build_group(ng):
         raise RuntimeError("Could not resolve ShaderNodeMix RGBA sockets")
     links.new(group_in.outputs["Color"], a_sock)
     links.new(group_in.outputs["Tint"], b_sock)
-    links.new(scale.outputs[0], mix.inputs["Factor"])
+    links.new(combined.outputs[0], mix.inputs["Factor"])
+
+    # Fresnel rim on the sun-facing side, tinted by the sun color.
+    layer = nodes.new("ShaderNodeLayerWeight")
+    layer.location = (-200, 720)
+    layer.inputs["Blend"].default_value = 0.5
+
+    rim_edge = nodes.new("ShaderNodeMath")
+    rim_edge.location = (-200, 880)
+    rim_edge.operation = "SUBTRACT"
+    rim_edge.inputs[0].default_value = 1.0
+    links.new(group_in.outputs["Rim Width"], rim_edge.inputs[1])
+
+    rim_curve = nodes.new("ShaderNodeMapRange")
+    rim_curve.location = (0, 820)
+    rim_curve.clamp = True
+    _smooth(rim_curve)
+    links.new(layer.outputs["Facing"], rim_curve.inputs["Value"])
+    links.new(rim_edge.outputs[0], rim_curve.inputs["From Min"])
+    rim_curve.inputs["From Max"].default_value = 1.0
+    rim_curve.inputs["To Min"].default_value = 0.0
+    rim_curve.inputs["To Max"].default_value = 1.0
+
+    facing = nodes.new("ShaderNodeMath")
+    facing.location = (200, 720)
+    facing.operation = "MAXIMUM"
+    facing.use_clamp = True
+    links.new(dot.outputs["Value"], facing.inputs[0])
+    facing.inputs[1].default_value = 0.0
+
+    rim_mask = nodes.new("ShaderNodeMath")
+    rim_mask.location = (400, 720)
+    rim_mask.operation = "MULTIPLY"
+    links.new(rim_curve.outputs["Result"], rim_mask.inputs[0])
+    links.new(facing.outputs[0], rim_mask.inputs[1])
+
+    rim_scale = nodes.new("ShaderNodeMath")
+    rim_scale.location = (600, 720)
+    rim_scale.operation = "MULTIPLY"
+    rim_scale.use_clamp = True
+    links.new(rim_mask.outputs[0], rim_scale.inputs[0])
+    links.new(group_in.outputs["Rim Strength"], rim_scale.inputs[1])
+
+    rim_color = nodes.new("ShaderNodeVectorMath")
+    rim_color.location = (800, 720)
+    rim_color.operation = "SCALE"
+    links.new(group_in.outputs["Sun Color"], rim_color.inputs["Vector"])
+    links.new(rim_scale.outputs[0], rim_color.inputs["Scale"])
+
+    rim_add = nodes.new("ShaderNodeMix")
+    rim_add.location = (720, 0)
+    rim_add.data_type = "RGBA"
+    rim_add.blend_type = "ADD"
+    a_sock, b_sock, result_sock = _rgba_sockets(rim_add)
+    links.new(mix.outputs["Result"], a_sock)
+    links.new(rim_color.outputs["Vector"], b_sock)
+    rim_add.inputs["Factor"].default_value = 1.0
     links.new(result_sock, group_out.inputs["Color"])
 
 
@@ -133,7 +262,10 @@ def _group():
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
-    if not {"Color", "Tint", "Strength", "Distance"} <= names:
+    required = {"Color", "Tint", "Strength", "Distance",
+                "Sun Direction", "Sun Color", "Toon Strength",
+                "Terminator Sharpness", "Rim Strength", "Rim Width"}
+    if not required <= names:
         _build_group(ng)
     return ng
 
@@ -175,7 +307,46 @@ def scene_materials(scene):
     return result
 
 
-def sync_material(mat, tint, strength, distance):
+def _look(scene, settings):
+    from . import palette
+
+    sun = next((o for o in scene.objects
+                if o.type == "LIGHT" and o.data is not None
+                and o.data.type == "SUN"), None)
+    direction = palette.sun_toward(scene)
+    has_sun = direction is not None and sun is not None
+    sun_color = (tuple(sun.data.color)
+                 if sun is not None and sun.data is not None
+                 else (1.0, 1.0, 1.0))
+    toon_on = bool(settings is not None and settings.toon_shading and has_sun)
+    rim_on = bool(settings is not None and settings.rim_light and has_sun)
+    return {
+        "sun_dir": direction if direction is not None else (0.0, 0.0, 1.0),
+        "sun_color": sun_color,
+        "toon_strength": (settings.toon_strength if toon_on else 0.0),
+        "sharpness": settings.toon_sharpness if settings is not None else 0.08,
+        "rim_strength": (settings.rim_strength if rim_on else 0.0),
+        "rim_width": settings.rim_width if settings is not None else 0.5,
+    }
+
+
+def _set_look(node, mat, look):
+    if "Sun Direction" not in node.inputs:
+        return
+    node.inputs["Sun Direction"].default_value = look["sun_dir"]
+    node.inputs["Sun Color"].default_value = (*look["sun_color"], 1.0)
+    node.inputs["Toon Strength"].default_value = look["toon_strength"]
+    node.inputs["Terminator Sharpness"].default_value = look["sharpness"]
+    rim_strength = look["rim_strength"]
+    rim_width = look["rim_width"]
+    if mat.name == "ALD | Hair":
+        rim_strength = min(1.0, rim_strength + 0.3)
+        rim_width = min(rim_width, 0.35)
+    node.inputs["Rim Strength"].default_value = rim_strength
+    node.inputs["Rim Width"].default_value = rim_width
+
+
+def sync_material(mat, tint, strength, distance, look=None):
     """Insert or refresh the tint node in a material. Returns True if used."""
     if mat.library is not None or mat.node_tree is None:
         return False
@@ -212,6 +383,8 @@ def sync_material(mat, tint, strength, distance):
     node.inputs["Tint"].default_value = (*tint, 1.0)
     node.inputs["Strength"].default_value = strength
     node.inputs["Distance"].default_value = distance
+    if look is not None:
+        _set_look(node, mat, look)
     return True
 
 
@@ -245,9 +418,11 @@ def remove_material(mat):
 
 
 def sync_scene(scene, tint, strength, distance):
+    settings = getattr(scene, "ald", None)
+    look = _look(scene, settings)
     count = 0
     for mat in scene_materials(scene):
-        if sync_material(mat, tint, strength, distance):
+        if sync_material(mat, tint, strength, distance, look):
             count += 1
     scene["ald_shadow_materials"] = count
     return count
@@ -331,5 +506,35 @@ def apply_preset_to_selected(scene, key):
         from . import palette
         sync_material(mat, palette.shadow_tint_for(scene),
                       settings.shadow_tint_strength,
-                      settings.shadow_tint_distance)
+                      settings.shadow_tint_distance,
+                      _look(scene, settings))
     return len(objects), mat
+
+
+def update_sun(scene):
+    """Refresh sun direction/color in every tinted material, per frame."""
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return
+    look = _look(scene, settings)
+    for mat in scene_materials(scene):
+        node = _tint_node(mat)
+        if node is not None:
+            _set_look(node, mat, look)
+
+
+def _on_frame_change(scene, *_args):
+    try:
+        update_sun(scene)
+    except Exception:
+        pass
+
+
+def register():
+    if _on_frame_change not in bpy.app.handlers.frame_change_post:
+        bpy.app.handlers.frame_change_post.append(_on_frame_change)
+
+
+def unregister():
+    if _on_frame_change in bpy.app.handlers.frame_change_post:
+        bpy.app.handlers.frame_change_post.remove(_on_frame_change)

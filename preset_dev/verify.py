@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 4, 0)
+EXPECTED_VERSION = (0, 5, 0)
 TOLERANCE = 1e-4
 
 
@@ -316,6 +316,20 @@ def check_shadow_tint(scene, settings, data):
           "shadow tint strength not synced")
     check(abs(node.inputs["Distance"].default_value - 0.75) <= TOLERANCE,
           "shadow tint distance not synced")
+    for name in ("Sun Direction", "Sun Color", "Toon Strength",
+                 "Terminator Sharpness", "Rim Strength", "Rim Width"):
+        check(name in node.inputs, "shadow tint input missing: " + name)
+    expected_dir = palette_module.sun_toward(scene)
+    check(expected_dir is not None, "shadow tint has no sun direction")
+    dot = sum(float(a) * float(b) for a, b in
+              zip(node.inputs["Sun Direction"].default_value, expected_dir))
+    check(dot > 0.99, "shadow tint sun direction not synced")
+    check(abs(node.inputs["Toon Strength"].default_value
+              - settings.toon_strength) <= TOLERANCE,
+          "toon strength not synced to materials")
+    check(abs(node.inputs["Rim Strength"].default_value
+              - settings.rim_strength) <= TOLERANCE,
+          "rim strength not synced to materials")
     check(len(checked.node_tree.nodes) == data["plain_nodes"] + 1,
           "shadow tint added unexpected nodes")
 
@@ -456,6 +470,8 @@ def check_pixels(scene, settings):
         settings.light_wrap_strength = 0.9
         settings.light_wrap_size = 32.0
         settings.light_wrap = False
+        settings.toon_shading = False
+        settings.rim_light = False
         settings.shadow_tint = False
 
         base = render_pixels(
@@ -472,22 +488,51 @@ def check_pixels(scene, settings):
         bpy.ops.ald.build()
         inked = render_pixels(
             scene, os.path.join(tempfile.gettempdir(), "ald_gate_ink.png"))
+        settings.ink_lines = False
+        settings.light_wrap = False
+        settings.shadow_tint = True
+        settings.shadow_tint_strength = 0.0
+        settings.toon_shading = True
+        settings.toon_strength = 0.0
+        settings.rim_light = False
+        bpy.ops.ald.build()
+        toon_off = render_pixels(
+            scene, os.path.join(tempfile.gettempdir(), "ald_gate_toon_off.png"))
+        settings.toon_strength = 0.8
+        toon_on = render_pixels(
+            scene, os.path.join(tempfile.gettempdir(), "ald_gate_toon_on.png"))
+        settings.toon_strength = 0.0
+        settings.rim_light = True
+        settings.rim_strength = 0.8
+        settings.rim_width = 0.35
+        rim_on = render_pixels(
+            scene, os.path.join(tempfile.gettempdir(), "ald_gate_rim_on.png"))
 
         tint_max, tint_mean, tint_ratio = diff_stats(base, tinted)
         wrap_max, wrap_mean, wrap_ratio = diff_stats(base, wrapped)
         ink_max, ink_mean, ink_ratio = diff_stats(base, inked)
+        toon_max, toon_mean, toon_ratio = diff_stats(toon_off, toon_on)
+        rim_max, rim_mean, rim_ratio = diff_stats(toon_off, rim_on)
         print("ALD GATE pixels: shadow max=%.4f mean=%.5f ratio=%.4f; "
               "wrap max=%.4f mean=%.5f ratio=%.4f; "
-              "ink max=%.4f mean=%.5f ratio=%.4f"
+              "ink max=%.4f mean=%.5f ratio=%.4f; "
+              "toon max=%.4f mean=%.5f ratio=%.4f; "
+              "rim max=%.4f mean=%.5f ratio=%.4f"
               % (tint_max, tint_mean, tint_ratio,
                  wrap_max, wrap_mean, wrap_ratio,
-                 ink_max, ink_mean, ink_ratio))
+                 ink_max, ink_mean, ink_ratio,
+                 toon_max, toon_mean, toon_ratio,
+                 rim_max, rim_mean, rim_ratio))
         check(tint_max > 0.01 and tint_ratio > 0.001,
               "shadow tint does not affect the render")
         check(wrap_max > 0.01 and 0.001 < wrap_ratio < 0.8,
               "light wrap does not affect the edges only")
         check(ink_max > 0.01 and 0.0005 < ink_ratio < 0.5,
               "ink lines do not affect the edges only")
+        check(toon_max > 0.01 and toon_ratio > 0.002,
+              "toon terminator does not affect the render")
+        check(rim_max > 0.01 and 0.0005 < rim_ratio < 0.5,
+              "rim light does not affect the edges only")
     finally:
         scene.camera = old_camera
         settings.ink_lines = False
@@ -497,6 +542,12 @@ def check_pixels(scene, settings):
         settings.shadow_tint = True
         settings.shadow_tint_strength = 0.35
         settings.shadow_tint_distance = 0.6
+        settings.toon_shading = True
+        settings.toon_strength = 0.6
+        settings.toon_sharpness = 0.08
+        settings.rim_light = True
+        settings.rim_strength = 0.3
+        settings.rim_width = 0.5
         scene.render.engine = old_engine
         scene.render.resolution_x, scene.render.resolution_y = old_size
         scene.eevee.taa_render_samples = old_samples
@@ -693,13 +744,24 @@ def check_material_presets(scene, settings, data):
     check(principled(emission).inputs["Emission Strength"].default_value > 0.5,
           "emission preset has no emission")
 
+    settings.material_preset = "HAIR"
+    bpy.ops.ald.apply_material_preset()
+    hair = bpy.data.materials.get("ALD | Hair")
+    check(hair is not None, "hair preset material missing")
+    hair_node = tint_node(hair)
+    check(hair_node is not None
+          and hair_node.inputs["Rim Strength"].default_value
+          > settings.rim_strength + 0.1,
+          "hair preset has no angel-ring rim boost")
+
     for index in range(len(obj.data.materials) - 1, -1, -1):
         slot = obj.data.materials[index]
-        if slot == metal or slot == skin or slot == emission:
+        if slot in (metal, skin, emission, hair):
             obj.data.materials.pop(index=index)
     bpy.data.materials.remove(metal)
     bpy.data.materials.remove(skin)
     bpy.data.materials.remove(emission)
+    bpy.data.materials.remove(hair)
     obj.select_set(False)
 
 

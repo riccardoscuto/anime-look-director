@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.4.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.5.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -28,20 +28,24 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 7. **Shadow tint** — node group reversibile e **moltiplicativo**: nelle zone in
    ombra tinge la Base Color con il colore della palette preservando il dettaglio
    delle texture.
-8. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
+8. **Cel terminator** — stacco direzionale `N·L` sincronizzato col sole, con
+   Cel Shadow e Terminator Sharpness.
+9. **Rim light direzionale** — Fresnel sul lato sole, colorato con `sun_color`;
+   il preset HAIR riceve un boost “angel ring”.
+10. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
    → Kuwahara (mix per profondità) → Light Wrap → Ink Lines (opzionale) → Lens
    Distortion → Output`.
-9. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette.
-10. **Anime Ink Lines** — contorni sottili da profondità, tinti con lo shadow tint.
-11. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
+11. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette.
+12. **Anime Ink Lines** — contorni sottili da profondità, tinti con lo shadow tint.
+13. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
     forza e dimensione regolabili; si aggiorna durante l'animazione.
-12. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
+14. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
     inquadrature; il pulsante `Mark Shot` crea/aggiorna il marker.
-13. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
+15. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
     oggetti selezionati.
-14. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
-15. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
-16. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
+16. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
+17. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
+18. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
     compositor senza staccare gli occhi dalla camera.
 
 ## Flusso di lavoro
@@ -74,6 +78,8 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 - **World Gradient / Horizon / Horizon Softness**
 - **Auto Sun** (creazione automatica della SUN)
 - **Shadow Tint** + forza, distanza, numero materiali, `Clear Shadow Tint`
+- **Cel Shading** + Cel Shadow e Terminator Sharpness
+- **Rim Light** + forza e larghezza
 - **Halation** (Glare Bloom) e forza
 - **Painterly (Kuwahara)** e dimensione
 - **Chromatic dispersion**
@@ -100,7 +106,10 @@ o il colore originale della Base Color.
 - Nessun salvataggio automatico del `.blend`.
 - Stack idempotente: rebuild non duplica gruppi o nodi.
 - Shadow tint: tint moltiplicativo delle zone in ombra che preserva le texture;
-  resta un proxy di contatto/occlusione, non ricolora le ombre proiettate.
+  il cel terminator è un tint direzionale, non una vera rimappatura della luce.
+  Resta un proxy di contatto/occlusione, non ricolora le ombre proiettate.
+- Rim light: approssimazione Fresnel mascherata dal sole; non è un vero rim
+  lighting fisico. L'angel ring HAIR è un boost del rim.
 - Light Wrap: lavora sulle silhouette geometriche; oggetti trasparenti non
   generano il bordo.
 - God Rays: durante l'animazione segue sole e camera a ogni frame; se muovi
@@ -146,3 +155,4 @@ multi-scena, render EEVEE e coerenza versione `bl_info`/manifest.
 - **0.3.1** — God Rays refresh/size, preset Emission, recap.
 - **0.3.2** — slider in-place, shadow tint moltiplicativo, pannello Sidebar N.
 - **0.4.0** — Sun Disk, Anime Clouds, Ink Lines, Sakura/Twilight, Custom Colors.
+- **0.5.0** — Cel terminator, rim light direzionale, angel ring HAIR.

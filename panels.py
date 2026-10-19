@@ -99,6 +99,19 @@ class ALD_PT_world(bpy.types.Panel):
             col.prop(s, "shadow_tint_strength")
             col.prop(s, "shadow_tint_distance")
 
+        box.separator()
+        row = box.row(align=True)
+        row.prop(s, "toon_shading", toggle=True)
+        row.prop(s, "rim_light", toggle=True)
+        if s.toon_shading:
+            col = box.column(align=True)
+            col.prop(s, "toon_strength")
+            col.prop(s, "toon_sharpness")
+        if s.rim_light:
+            col = box.column(align=True)
+            col.prop(s, "rim_strength")
+            col.prop(s, "rim_width")
+
 
 class ALD_PT_compositor(bpy.types.Panel):
     bl_label = "Compositor Stack"
@@ -198,6 +211,15 @@ class ALD_PT_view3d(bpy.types.Panel):
         if s.shadow_tint:
             col = box.column(align=True)
             col.prop(s, "shadow_tint_strength")
+        row = box.row(align=True)
+        row.prop(s, "toon_shading", toggle=True)
+        row.prop(s, "rim_light", toggle=True)
+        if s.toon_shading:
+            col = box.column(align=True)
+            col.prop(s, "toon_strength")
+        if s.rim_light:
+            col = box.column(align=True)
+            col.prop(s, "rim_strength")
 
         box = layout.box()
         box.label(text="Compositor", icon="NODETREE")

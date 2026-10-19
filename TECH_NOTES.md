@@ -229,3 +229,29 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   palettes in a 3×2 sheet.
 - Gate: world sun direction/strength, sun-disk toggle, clouds toggle, ink node and
   pixel test, custom colors and preset restore.
+
+### v0.5.0 notes (Step 3)
+- **Directional terminator**: `Geometry.Normal` is world space; `Sun Direction` is
+  `-light_direction` (toward the sun). `N·L` feeds a MapRange from
+  `-sharpness..sharpness` to `1..0`, multiplied by Cel Shadow strength and
+  combined with the AO factor via `MAXIMUM`. The mix remains a `MULTIPLY` tint, so
+  textures keep their detail.
+- **Rim light**: the first implementation fed raw `Layer Weight.Facing` into the
+  rim mask; with strength 0.8 it changed **68 %** of the 128×128 gate frame
+  (broad haze over the ground). The fix routes Facing through a MapRange
+  `1 - Rim Width .. 1` before multiplying by `max(N·L, 0)`, `Rim Strength` and
+  `Sun Color`. Gate ratio is now **6.5 %**, edge-local. Terminator ratio is ~1.3 %.
+- **Sun sync**: `materials._look(scene)` builds the sun direction/color and
+  toon/rim values; `sync_material` writes them to the group node. `update_sun`
+  refreshes every tinted material on `frame_change_post`, no rebuild. The sun must
+  exist before the first palette apply (already fixed in 0.4.0).
+- **Upgrade safety**: the Shadow Tint interface is extended with `_ensure_socket`
+  and is **not cleared**, so a texture link into the group node's `Color` input
+  survives a v0.4 → v0.5 group rebuild.
+- **Hair angel ring**: `ALD | Hair` gets `+0.3` rim strength and `Rim Width` capped
+  at 0.35 in `_set_look`; the gate checks the boost.
+- Defaults tuned by look-dev: Cel Shadow 0.75, Terminator 0.035, Rim Strength
+  0.45, Rim Width 0.4. The six-palette sheet shows a readable terminator on the
+  spheres while keeping soft Ghibli-style light.
+- The shadow-tint pixel test disables toon/rim so the AO comparison stays isolated;
+  separate toon and rim renders validate the new stages.

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.0 — 2026-10-19
+### Added
+- **Cel terminator** in the Shadow Tint group: `N·L` against the palette sun,
+  combined with AO, with Cel Shadow strength and Terminator sharpness controls.
+- **Directional rim light** on the sun-facing Fresnel edge, tinted by the sun
+  color; Rim Strength and Rim Width controls. The HAIR preset gets an automatic
+  angel-ring boost.
+- Sun direction/color are pushed into every tinted material and refreshed on
+  `frame_change_post`, without rebuilding materials.
+- Gate render checks for the toon terminator and rim light, plus sun direction and
+  hair rim boost.
+
+### Changed
+- Shadow Tint group upgraded with `Sun Direction`, `Sun Color`, `Toon Strength`,
+  `Terminator Sharpness`, `Rim Strength` and `Rim Width`; the interface is
+  extended without clearing, so existing texture links survive upgrades.
+- Defaults: Cel Shadow 0.75, Terminator 0.035, Rim Strength 0.45, Rim Width 0.4.
+- `materials.py` now registers a frame handler for the sun direction.
+
 ## 0.4.0 — 2026-10-19
 ### Added
 - **Sun disk** in the world gradient, aligned with the sun direction; size and
