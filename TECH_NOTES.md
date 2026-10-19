@@ -61,13 +61,24 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 
 ### Light wrap mask
 - With an opaque world, `Render Layers.Alpha` is **1 across the whole frame**, so
-  an alpha-derived silhouette is empty. The Z pass separates geometry from world:
-  background depth is effectively huge (Map Range 0..100 clamps it to 1.0 while a
-  4 m cube maps to 0.035).
-- Silhouette mask used by the add-on: `Depth < 1e6` multiplied by `Alpha`.
-  An inner rim band is `mask - blur(mask)` with `SetAlpha` on a white RGB image.
-- Blur the foreground image with `Extend Bounds` on, replace its alpha with the rim
-  band, then `AlphaOver` it at the chosen strength.
+  an alpha-derived silhouette is empty.
+- Raw Depth pass values measured with the default camera: **EEVEE = 1000.55**
+  (camera `clip_end` 1000 + 0.55), **Cycles = 1e10**. A fixed 1e6 threshold therefore
+  fails on EEVEE; use the camera clip end read at build time.
+- Outer silhouette mask: `Depth < clip_end` multiplied by `Alpha`, then
+  `mask - blur(mask)` for the inner band.
+- Object-on-object silhouettes are found with a depth-discontinuity mask:
+  normalize depth by 100 m, blur 4 px, `abs(depth - blurred) * 100`, subtract a
+  0.05 m threshold, blur by the wrap size, multiply by the geometry mask. The
+  result is combined with the outer band via `MAXIMUM`.
+- **Premultiplication matters**: the render is premultiplied. `SetAlpha` replaces
+  alpha but leaves RGB full, so a premultiplied `AlphaOver` leaks the blurred RGB
+  over the whole frame. Set `AlphaOver.Straight Alpha = True` (or premultiply RGB
+  explicitly). This was the cause of a global haze in the first look-dev pass.
+- Blur the foreground image with `Extend Bounds` on, replace its alpha with the
+  combined edge mask, then `AlphaOver` at the chosen strength.
+- Gate pixel evidence at 128×128: shadow tint changes 1.8 % of pixels; light wrap
+  changes 15.4 % of pixels and stays below the 80 % global-blur guard.
 
 ### World gradient
 - `Texture Coordinate.Generated` works in world shaders and gives the view
@@ -92,8 +103,14 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 ### Testing notes
 - Blender may return different Python wrappers for the same node after an operator
   call; `link.from_node is node` can be False. Compare `as_pointer()`.
+- The gate now includes render-level checks: three 128×128 EEVEE renders (base,
+  shadow tint, light wrap) with NumPy pixel diffs. Structural checks alone missed a
+  light-wrap bug that blurred the whole image.
 - The MCP/Blender window screenshot returns a black image when the window is
   positioned off-screen (e.g. x=1912 on a 1920-wide desktop). Move the window
   on-screen before capturing; `render_viewport_to_path` still works.
 - The panel is taller than the Scene tab; `bl_order = -10` puts it above the
   default Scene panels. Keep the toggle rows at two buttons to avoid clipped labels.
+- `preset_dev/lookdev.py` builds a 2×2 contact sheet by loading the rendered PNGs
+  into NumPy and writing a new image; its pixels are linear, so the sheet saves
+  with the expected sRGB transform.

@@ -10,6 +10,7 @@ import tempfile
 import tomllib
 
 import bpy
+import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -238,16 +239,17 @@ def check_light_wrap(scene, settings):
     check(ng is not None, "compositor group not assigned")
     types = [n.bl_idname for n in ng.nodes]
     check("CompositorNodeAlphaOver" in types, "light wrap missing Alpha Over")
-    check(types.count("CompositorNodeBlur") == 2,
+    check(types.count("CompositorNodeBlur") == 4,
           "light wrap blur nodes missing")
-    check(types.count("CompositorNodeSetAlpha") == 2,
+    check(types.count("CompositorNodeSetAlpha") == 1,
           "light wrap alpha nodes missing")
-    check("CompositorNodeSeparateColor" in types,
+    check(types.count("CompositorNodeSeparateColor") == 3,
           "light wrap mask extraction missing")
-    check("CompositorNodeRGB" in types, "light wrap white matte missing")
     operations = [n.operation for n in ng.nodes if n.bl_idname == "ShaderNodeMath"]
     check("LESS_THAN" in operations,
           "light wrap silhouette mask is not depth-based")
+    check("ABSOLUTE" in operations and "MAXIMUM" in operations,
+          "light wrap depth-edge mask missing")
 
     settings.light_wrap = False
     types = [n.bl_idname for n in scene.compositing_node_group.nodes]
@@ -257,6 +259,116 @@ def check_light_wrap(scene, settings):
     types = [n.bl_idname for n in scene.compositing_node_group.nodes]
     check("CompositorNodeAlphaOver" in types,
           "light wrap not restored when enabled")
+
+
+def diff_stats(a, b):
+    delta = np.abs(a - b)
+    return (float(delta.max()), float(delta.mean()),
+            float((delta.max(axis=1) > 0.01).mean()))
+
+
+def render_pixels(scene, path):
+    scene.render.filepath = path
+    bpy.ops.render.render(write_still=True)
+    image = bpy.data.images.load(path)
+    pixels = np.array(image.pixels[:], dtype=np.float32).reshape(-1, 4)[:, :3]
+    bpy.data.images.remove(image)
+    return pixels
+
+
+def check_pixels(scene, settings):
+    """Render-level proof that shadow tint and light wrap change pixels."""
+    old_camera = scene.camera
+    old_engine = scene.render.engine
+    old_size = (scene.render.resolution_x, scene.render.resolution_y)
+    old_samples = scene.eevee.taa_render_samples
+
+    bpy.ops.mesh.primitive_plane_add(size=14, location=(20, 0, 0))
+    plane = bpy.context.object
+    plane.name = "ALD_GATE_LOOK_PLANE"
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.9, location=(20, 0, 0.9),
+                                         segments=32, ring_count=16)
+    sphere = bpy.context.object
+    sphere.name = "ALD_GATE_LOOK_SPHERE"
+    plane_mesh, sphere_mesh = plane.data, sphere.data
+
+    mat = bpy.data.materials.new("ALD_GATE_LOOK")
+    if mat.node_tree is None:
+        mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = (0.62, 0.52, 0.42, 1.0)
+    bsdf.inputs["Roughness"].default_value = 0.7
+    plane.data.materials.append(mat)
+    sphere.data.materials.append(mat)
+
+    cam_data = bpy.data.cameras.new("ALD_GATE_LOOK_CAM")
+    cam_data.lens = 50
+    cam = bpy.data.objects.new("ALD_GATE_LOOK_CAM", cam_data)
+    scene.collection.objects.link(cam)
+    cam.location = (24.5, -7.5, 4.0)
+    target = bpy.data.objects.new("ALD_GATE_LOOK_TARGET", None)
+    target.location = (20, 0, 0.9)
+    scene.collection.objects.link(target)
+    track = cam.constraints.new("TRACK_TO")
+    track.target = target
+    track.track_axis = "TRACK_NEGATIVE_Z"
+    track.up_axis = "UP_Y"
+    scene.camera = cam
+    scene.render.engine = "BLENDER_EEVEE"
+    scene.eevee.taa_render_samples = 16
+    scene.render.resolution_x = 128
+    scene.render.resolution_y = 128
+    scene.render.resolution_percentage = 100
+    bpy.context.view_layer.update()
+
+    try:
+        bpy.ops.ald.build()
+        settings.shadow_tint_strength = 0.9
+        settings.shadow_tint_distance = 1.0
+        settings.light_wrap_strength = 0.9
+        settings.light_wrap_size = 32.0
+        settings.light_wrap = False
+        settings.shadow_tint = False
+
+        base = render_pixels(
+            scene, os.path.join(tempfile.gettempdir(), "ald_gate_base.png"))
+        settings.shadow_tint = True
+        tinted = render_pixels(
+            scene, os.path.join(tempfile.gettempdir(), "ald_gate_tint.png"))
+        settings.shadow_tint = False
+        settings.light_wrap = True
+        wrapped = render_pixels(
+            scene, os.path.join(tempfile.gettempdir(), "ald_gate_wrap.png"))
+
+        tint_max, tint_mean, tint_ratio = diff_stats(base, tinted)
+        wrap_max, wrap_mean, wrap_ratio = diff_stats(base, wrapped)
+        print("ALD GATE pixels: shadow max=%.4f mean=%.5f ratio=%.4f; "
+              "wrap max=%.4f mean=%.5f ratio=%.4f"
+              % (tint_max, tint_mean, tint_ratio,
+                 wrap_max, wrap_mean, wrap_ratio))
+        check(tint_max > 0.01 and tint_ratio > 0.001,
+              "shadow tint does not affect the render")
+        check(wrap_max > 0.01 and 0.001 < wrap_ratio < 0.8,
+              "light wrap does not affect the edges only")
+    finally:
+        scene.camera = old_camera
+        settings.light_wrap = True
+        settings.light_wrap_strength = 0.4
+        settings.light_wrap_size = 24.0
+        settings.shadow_tint = True
+        settings.shadow_tint_strength = 0.35
+        settings.shadow_tint_distance = 0.6
+        scene.render.engine = old_engine
+        scene.render.resolution_x, scene.render.resolution_y = old_size
+        scene.eevee.taa_render_samples = old_samples
+        bpy.data.objects.remove(cam, do_unlink=True)
+        bpy.data.objects.remove(target, do_unlink=True)
+        bpy.data.objects.remove(plane, do_unlink=True)
+        bpy.data.objects.remove(sphere, do_unlink=True)
+        bpy.data.cameras.remove(cam_data)
+        bpy.data.materials.remove(mat)
+        bpy.data.meshes.remove(plane_mesh)
+        bpy.data.meshes.remove(sphere_mesh)
 
 
 def check_idempotent_build(scene):
@@ -309,6 +421,7 @@ def main():
         check(scene.view_layers[0].use_pass_z, "depth pass not enabled")
 
         check_idempotent_build(scene)
+        check_pixels(scene, settings)
         check_render(scene)
 
         bpy.ops.ald.remove()

@@ -29,6 +29,14 @@ TECH_NOTES); move it on-screen before capturing.
   `ald.clear_shadow_tint`, `ald.viewport_compositor`.
 - `panels.py` — Scene properties panel.
 - `preset_dev/verify.py` — headless gate.
+- `preset_dev/lookdev.py` — renders all palettes on a fixed scene + contact sheet.
+
+## Look-dev
+```powershell
+$blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
+& $blender -b --factory-startup --python preset_dev\lookdev.py -- --out "$env:TEMP\ald_lookdev"
+```
+Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 
 ## Hard-won API facts (Blender 5.1.2) — do not regress
 - Compositor is a **node group**: `scene.compositing_node_group`. `scene.node_tree` is gone; there is no `CompositorNodeComposite`, use `NodeGroupOutput`.
@@ -42,7 +50,14 @@ TECH_NOTES); move it on-screen before capturing.
   `Quadratic`, `Cubic`, `Gaussian`, `Fast Gaussian`, `Catrom`, `Mitch`.
 - `CompositorNodeSetAlpha` `Type` = `Apply Mask` / `Replace Alpha`.
 - Render Layers **Alpha is 1 everywhere when the world is opaque**: never use it as
-  a silhouette mask. Use `Depth < 1e6` (world depth is ~1e10).
+  a silhouette mask. EEVEE writes world depth = `camera.clip_end + 0.55`; Cycles
+  writes ~1e10. Threshold the Depth pass with the clip end read at build time.
+- `CompositorNodeAlphaOver` needs `Straight Alpha = True` when the foreground alpha
+  was replaced (SetAlpha) on a premultiplied render, otherwise the full blurred RGB
+  leaks across the frame.
+- Light Wrap mask = outer silhouette band + depth-discontinuity band (normalize
+  depth by 100 m, blur 4 px, abs diff ×100, threshold 0.05 m, blur by wrap size,
+  multiply by the geometry mask).
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
 - The AO node does produce occlusion in both EEVEE and Cycles in 5.1 (see TECH_NOTES).
@@ -55,6 +70,8 @@ TECH_NOTES); move it on-screen before capturing.
   Base Color link or value. Do not touch linked-library materials.
 - Test GUI panels with a screenshot before claiming UI works.
 - Keep the stack idempotent: rebuilding must not duplicate groups or nodes.
+- Rebuild the stack after changing the render camera's clip end: the light-wrap
+  depth threshold is baked at build time.
 - `bl_info`, `blender_manifest.toml`, `README.md`, `CHANGELOG.md` versions stay aligned.
 
 See `TECH_NOTES.md` for the full spike results.

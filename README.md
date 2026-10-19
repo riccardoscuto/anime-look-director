@@ -9,6 +9,8 @@ Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.
   plus horizon offset and softness.
 - **Shadow tint** on scene materials: a reversible node group mixes Base Color
   toward the palette shadow color where ambient occlusion is low.
+- **Light Wrap** around object silhouettes and environment edges, using a
+  depth-derived mask plus depth-discontinuity edges.
 - A node-group compositor stack:
   `Render Layers → Glare (Bloom) → Kuwahara (depth-mixed) → Light Wrap → Lens Distortion → Group Output`.
 - One-click enable of the viewport compositor.
@@ -16,6 +18,14 @@ Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.
 ## Install (development)
 The folder lives in `Blender/5.1/scripts/addons/anime_look_director`.
 Enable it in Preferences → Add-ons (or keep it enabled in this profile).
+
+## Look-dev
+```powershell
+& "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup `
+  --python preset_dev\lookdev.py -- --out "C:\Temp\ald_lookdev"
+```
+Renders the four palettes on a fixed scene, writes a 2×2 contact sheet and prints
+luminance, contrast and saturation per palette. It never saves a `.blend`.
 
 ## Verification
 ```powershell

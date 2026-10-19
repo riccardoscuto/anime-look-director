@@ -18,12 +18,12 @@ PRESETS = {
     },
     "SUMMER_NOON": {
         "world_color": (0.45, 0.65, 1.0),
-        "world_strength": 1.0,
+        "world_strength": 0.85,
         "sky_color": (0.12, 0.36, 0.95),
-        "horizon_color": (0.72, 0.86, 1.0),
-        "ground_color": (0.45, 0.42, 0.30),
+        "horizon_color": (0.62, 0.80, 1.0),
+        "ground_color": (0.52, 0.47, 0.34),
         "sun_color": (1.0, 0.95, 0.85),
-        "sun_energy": 5.0,
+        "sun_energy": 4.5,
         "glare_tint": (1.0, 0.96, 0.85, 1.0),
         "shadow_tint": (0.35, 0.48, 0.80),
     },
@@ -41,7 +41,7 @@ PRESETS = {
     "NEON_NIGHT": {
         "world_color": (0.25, 0.05, 0.35),
         "world_strength": 0.5,
-        "sky_color": (0.08, 0.02, 0.20),
+        "sky_color": (0.03, 0.08, 0.26),
         "horizon_color": (0.85, 0.10, 0.55),
         "ground_color": (0.04, 0.02, 0.07),
         "sun_color": (1.0, 0.20, 0.60),
@@ -84,12 +84,14 @@ def _rgba_sockets(mix):
 def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
-    if ng is not None and ng.bl_idname != "ShaderNodeTree":
+    if ng is not None and (ng.bl_idname != "ShaderNodeTree"
+                           or ng.get("ald_build") != 2):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
+        ng["ald_build"] = 2
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -99,6 +101,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
+        ng["ald_build"] = 2
     return ng
 
 
@@ -153,7 +156,7 @@ def _build_gradient_group(ng):
     half = nodes.new("ShaderNodeMath")
     half.location = (-780, 120)
     half.operation = "MULTIPLY"
-    half.inputs[1].default_value = 0.5
+    half.inputs[1].default_value = 0.25
     links.new(group_in.outputs["Softness"], half.inputs[0])
 
     center = nodes.new("ShaderNodeMath")
