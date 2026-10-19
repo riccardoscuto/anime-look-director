@@ -14,6 +14,10 @@ NODE_LIGHT_WRAP_EDGE = "ALD | Light Wrap Edge"
 NODE_LIGHT_WRAP_OVER = "ALD | Light Wrap Over"
 NODE_LENS = "ALD | Lens"
 NODE_GOD_RAYS = "ALD | God Rays"
+NODE_INK_EDGE = "ALD | Ink Edge"
+NODE_INK_FACTOR = "ALD | Ink Factor"
+NODE_INK_LINES = "ALD | Ink Lines"
+NODE_INK_COLOR = "ALD | Ink Color"
 
 
 def _is_stack(ng):
@@ -86,8 +90,9 @@ def _silhouette_mask(nodes, links, render_layers, clip_end):
     return combine.outputs[0]
 
 
-def _depth_edges(nodes, links, render_layers, geometry, size):
-    """Band around depth discontinuities, clipped to rendered geometry."""
+def _depth_edges(nodes, links, render_layers, geometry, band_size,
+                 edge_size=4.0, blur_name=None):
+    """Depth-discontinuity mask, optionally widened into an edge band."""
     depth = render_layers.outputs.get("Depth")
     if depth is None:
         return None
@@ -110,8 +115,10 @@ def _depth_edges(nodes, links, render_layers, geometry, size):
 
     blur = nodes.new("CompositorNodeBlur")
     blur.location = (-840, 700)
+    if blur_name is not None:
+        blur.name = blur_name
     blur.inputs["Type"].default_value = "Gaussian"
-    blur.inputs["Size"].default_value = (4.0, 4.0)
+    blur.inputs["Size"].default_value = (edge_size, edge_size)
     links.new(result_sock, blur.inputs["Image"])
 
     separate = nodes.new("CompositorNodeSeparateColor")
@@ -142,31 +149,35 @@ def _depth_edges(nodes, links, render_layers, geometry, size):
     threshold.inputs[1].default_value = 0.05
     links.new(meters.outputs[0], threshold.inputs[0])
 
-    edge_image = nodes.new("ShaderNodeMix")
-    edge_image.location = (250, 740)
-    edge_image.data_type = "RGBA"
-    edge_image.blend_type = "MIX"
-    a_sock, b_sock, result_sock = _mix_sockets(edge_image)
-    a_sock.default_value = (0.0, 0.0, 0.0, 1.0)
-    b_sock.default_value = (1.0, 1.0, 1.0, 1.0)
-    links.new(threshold.outputs[0], edge_image.inputs["Factor"])
+    if band_size > 0.0:
+        edge_image = nodes.new("ShaderNodeMix")
+        edge_image.location = (250, 740)
+        edge_image.data_type = "RGBA"
+        edge_image.blend_type = "MIX"
+        a_sock, b_sock, result_sock = _mix_sockets(edge_image)
+        a_sock.default_value = (0.0, 0.0, 0.0, 1.0)
+        b_sock.default_value = (1.0, 1.0, 1.0, 1.0)
+        links.new(threshold.outputs[0], edge_image.inputs["Factor"])
 
-    band = nodes.new("CompositorNodeBlur")
-    band.location = (440, 740)
-    band.name = NODE_LIGHT_WRAP_EDGE
-    band.inputs["Type"].default_value = "Gaussian"
-    band.inputs["Size"].default_value = (size, size)
-    links.new(result_sock, band.inputs["Image"])
+        band = nodes.new("CompositorNodeBlur")
+        band.location = (440, 740)
+        band.name = NODE_LIGHT_WRAP_EDGE
+        band.inputs["Type"].default_value = "Gaussian"
+        band.inputs["Size"].default_value = (band_size, band_size)
+        links.new(result_sock, band.inputs["Image"])
 
-    band_separate = nodes.new("CompositorNodeSeparateColor")
-    band_separate.location = (630, 780)
-    links.new(band.outputs["Image"], band_separate.inputs["Image"])
+        band_separate = nodes.new("CompositorNodeSeparateColor")
+        band_separate.location = (630, 780)
+        links.new(band.outputs["Image"], band_separate.inputs["Image"])
+        edge_value = band_separate.outputs["Red"]
+    else:
+        edge_value = threshold.outputs[0]
 
     clipped = nodes.new("ShaderNodeMath")
     clipped.location = (820, 780)
     clipped.operation = "MULTIPLY"
     clipped.use_clamp = True
-    links.new(band_separate.outputs["Red"], clipped.inputs[0])
+    links.new(edge_value, clipped.inputs[0])
     links.new(geometry, clipped.inputs[1])
     return clipped.outputs[0]
 
@@ -336,6 +347,14 @@ def update_params(scene):
         node.inputs["Strength"].default_value = settings.god_rays_strength
         update_god_rays(scene)
 
+    node = nodes.get(NODE_INK_EDGE)
+    if node is not None:
+        node.inputs["Size"].default_value = (settings.ink_size,
+                                             settings.ink_size)
+    node = nodes.get(NODE_INK_FACTOR)
+    if node is not None:
+        node.inputs[1].default_value = settings.ink_strength
+
 
 def _on_frame_change(scene, *_args):
     try:
@@ -345,13 +364,47 @@ def _on_frame_change(scene, *_args):
 
 
 def register():
-    if _on_frame_change not in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.append(_on_frame_change)
+    if _on_frame_change not in bpy.app.handlers.frame_change_post:
+        bpy.app.handlers.frame_change_post.append(_on_frame_change)
 
 
 def unregister():
-    if _on_frame_change in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.remove(_on_frame_change)
+    if _on_frame_change in bpy.app.handlers.frame_change_post:
+        bpy.app.handlers.frame_change_post.remove(_on_frame_change)
+
+
+def _ink_lines(nodes, links, image, render_layers, settings, clip_end,
+               ink_color):
+    """Thin dark depth edges over the composited image."""
+    geometry = _silhouette_mask(nodes, links, render_layers, clip_end)
+    edge = _depth_edges(nodes, links, render_layers, geometry, 0.0,
+                        settings.ink_size, NODE_INK_EDGE)
+    if edge is None:
+        return image
+
+    factor = nodes.new("ShaderNodeMath")
+    factor.location = (-260, -1040)
+    factor.name = NODE_INK_FACTOR
+    factor.operation = "MULTIPLY"
+    factor.use_clamp = True
+    links.new(edge, factor.inputs[0])
+    factor.inputs[1].default_value = settings.ink_strength
+
+    color = nodes.new("CompositorNodeRGB")
+    color.location = (-260, -1200)
+    color.name = NODE_INK_COLOR
+    color.outputs[0].default_value = (*ink_color, 1.0)
+
+    mix = nodes.new("ShaderNodeMix")
+    mix.location = (0, -1040)
+    mix.name = NODE_INK_LINES
+    mix.data_type = "RGBA"
+    mix.blend_type = "MULTIPLY"
+    a_sock, b_sock, result_sock = _mix_sockets(mix)
+    links.new(image, a_sock)
+    links.new(color.outputs[0], b_sock)
+    links.new(factor.outputs[0], mix.inputs["Factor"])
+    return result_sock
 
 
 def build(scene):
@@ -465,6 +518,12 @@ def build(scene):
 
     if settings.light_wrap:
         current = _light_wrap(nodes, links, current, rl, settings, clip_end)
+
+    if settings.ink_lines:
+        ink_color = tuple(component * 0.25 for component in
+                          palette_module.shadow_tint_for(scene))
+        current = _ink_lines(nodes, links, current, rl, settings, clip_end,
+                             ink_color)
 
     if settings.dispersion:
         lens = nodes.new("CompositorNodeLensdist")

@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 3, 2)
+EXPECTED_VERSION = (0, 4, 0)
 TOLERANCE = 1e-4
 
 
@@ -163,6 +163,45 @@ def check_world_gradient(scene, settings):
     check(close(node.inputs["Ground Color"].default_value,
                 expected["ground_color"]),
           "ground color not synced to palette")
+
+    for name in ("Sun Direction", "Sun Strength", "Cloud Amount", "Cloud Scale"):
+        check(node.inputs.get(name) is not None, "world input missing: " + name)
+    check(abs(node.inputs["Cloud Amount"].default_value
+              - settings.cloud_amount) <= TOLERANCE,
+          "cloud amount not synced")
+    check(abs(node.inputs["Cloud Scale"].default_value
+              - settings.cloud_scale) <= TOLERANCE,
+          "cloud scale not synced")
+
+    bpy.context.view_layer.update()
+    bpy.ops.ald.apply_palette()
+    node = gradient_node(scene)
+    direction = node.inputs["Sun Direction"].default_value
+    from mathutils import Vector
+    light_dir = sun.matrix_world.to_quaternion() @ Vector((0.0, 0.0, -1.0))
+    expected_dir = (-light_dir.x, -light_dir.y, -light_dir.z)
+    dot = sum(float(a) * float(b) for a, b in zip(direction, expected_dir))
+    check(dot > 0.99, "sun direction not synced to the world gradient")
+    check(node.inputs["Sun Strength"].default_value > 0.0,
+          "sun disk strength missing")
+
+    settings.sun_disk = False
+    node = gradient_node(scene)
+    check(node.inputs["Sun Strength"].default_value <= TOLERANCE,
+          "sun disk not disabled")
+    settings.sun_disk = True
+    node = gradient_node(scene)
+    check(node.inputs["Sun Strength"].default_value > 0.0,
+          "sun disk not restored")
+
+    settings.clouds = False
+    node = gradient_node(scene)
+    check(node.inputs["Cloud Amount"].default_value <= TOLERANCE,
+          "clouds not disabled")
+    settings.clouds = True
+    node = gradient_node(scene)
+    check(node.inputs["Cloud Amount"].default_value > 0.0,
+          "clouds not restored")
 
     bpy.ops.ald.apply_palette()
     nodes = [n for n in scene.world.node_tree.nodes if n.get("ald_world_gradient")]
@@ -428,19 +467,30 @@ def check_pixels(scene, settings):
         settings.light_wrap = True
         wrapped = render_pixels(
             scene, os.path.join(tempfile.gettempdir(), "ald_gate_wrap.png"))
+        settings.light_wrap = False
+        settings.ink_lines = True
+        bpy.ops.ald.build()
+        inked = render_pixels(
+            scene, os.path.join(tempfile.gettempdir(), "ald_gate_ink.png"))
 
         tint_max, tint_mean, tint_ratio = diff_stats(base, tinted)
         wrap_max, wrap_mean, wrap_ratio = diff_stats(base, wrapped)
+        ink_max, ink_mean, ink_ratio = diff_stats(base, inked)
         print("ALD GATE pixels: shadow max=%.4f mean=%.5f ratio=%.4f; "
-              "wrap max=%.4f mean=%.5f ratio=%.4f"
+              "wrap max=%.4f mean=%.5f ratio=%.4f; "
+              "ink max=%.4f mean=%.5f ratio=%.4f"
               % (tint_max, tint_mean, tint_ratio,
-                 wrap_max, wrap_mean, wrap_ratio))
+                 wrap_max, wrap_mean, wrap_ratio,
+                 ink_max, ink_mean, ink_ratio))
         check(tint_max > 0.01 and tint_ratio > 0.001,
               "shadow tint does not affect the render")
         check(wrap_max > 0.01 and 0.001 < wrap_ratio < 0.8,
               "light wrap does not affect the edges only")
+        check(ink_max > 0.01 and 0.0005 < ink_ratio < 0.5,
+              "ink lines do not affect the edges only")
     finally:
         scene.camera = old_camera
+        settings.ink_lines = False
         settings.light_wrap = True
         settings.light_wrap_strength = 0.4
         settings.light_wrap_size = 24.0
@@ -519,6 +569,34 @@ def check_param_updates(scene, settings):
     settings.light_wrap_strength = 0.4
     settings.depth_near = 4.0
     settings.dispersion_amount = 0.01
+
+
+def check_ink(scene, settings):
+    settings.ink_lines = True
+    bpy.ops.ald.build()
+    ng = scene.compositing_node_group
+    mix = ng.nodes.get("ALD | Ink Lines")
+    check(mix is not None, "ink lines node missing")
+    check(mix.blend_type == "MULTIPLY", "ink lines are not multiplicative")
+    count = len(ng.nodes)
+
+    settings.ink_strength = 0.8
+    factor = ng.nodes.get("ALD | Ink Factor")
+    check(factor is not None
+          and abs(factor.inputs[1].default_value - 0.8) <= TOLERANCE,
+          "ink strength not updated in place")
+    settings.ink_size = 2.5
+    edge = ng.nodes.get("ALD | Ink Edge")
+    check(edge is not None
+          and abs(edge.inputs["Size"].default_value[0] - 2.5) <= TOLERANCE,
+          "ink size not updated in place")
+    check(len(ng.nodes) == count, "ink sliders rebuilt the stack")
+
+    settings.ink_lines = False
+    bpy.ops.ald.build()
+    check(ng.nodes.get("ALD | Ink Lines") is None, "ink lines not removed")
+    settings.ink_strength = 0.6
+    settings.ink_size = 1.5
 
 
 def check_shot_markers(scene, settings):
@@ -625,6 +703,42 @@ def check_material_presets(scene, settings, data):
     obj.select_set(False)
 
 
+def check_custom_colors(scene, settings, data):
+    from anime_look_director import palette as palette_module
+
+    settings.custom_colors = True
+    settings.custom_sky = (0.9, 0.1, 0.2)
+    settings.custom_horizon = (0.1, 0.9, 0.2)
+    settings.custom_sun = (0.2, 0.1, 0.9)
+    settings.custom_shadow = (0.3, 0.6, 0.9)
+    bpy.ops.ald.apply_palette()
+
+    node = gradient_node(scene)
+    check(node is not None
+          and close(node.inputs["Sky Color"].default_value, (0.9, 0.1, 0.2)),
+          "custom sky color not applied")
+    check(close(node.inputs["Horizon Color"].default_value, (0.1, 0.9, 0.2)),
+          "custom horizon color not applied")
+    sun = find_sun(scene)
+    check(sun is not None and close(sun.data.color, (0.2, 0.1, 0.9)),
+          "custom sun color not applied")
+    check(close(palette_module.shadow_tint_for(scene), (0.3, 0.6, 0.9)),
+          "custom shadow color not applied")
+    tint = tint_node(data["plain"])
+    check(tint is not None
+          and close(tint.inputs["Tint"].default_value, (0.3, 0.6, 0.9)),
+          "custom shadow color not synced to materials")
+
+    settings.custom_colors = False
+    bpy.ops.ald.apply_palette()
+    expected = palette_module.preset(settings.palette)
+    node = gradient_node(scene)
+    check(close(node.inputs["Sky Color"].default_value, expected["sky_color"]),
+          "preset sky color not restored")
+    check(close(sun.data.color, expected["sun_color"]),
+          "preset sun color not restored")
+
+
 def check_multiscene(scene):
     from anime_look_director import compositor
 
@@ -691,8 +805,10 @@ def main():
         check_shadow_tint(scene, settings, data)
         check_light_wrap(scene, settings)
         check_param_updates(scene, settings)
+        check_ink(scene, settings)
         check_shot_markers(scene, settings)
         check_material_presets(scene, settings, data)
+        check_custom_colors(scene, settings, data)
 
         ng = scene.compositing_node_group
         check(ng is not None and ng.name == "ALD | Compositor Stack",

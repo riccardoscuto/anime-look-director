@@ -43,7 +43,7 @@ def _apply(scene, key):
         return
     palette.apply_palette(scene, key)
     if settings.shadow_tint:
-        materials.sync_scene(scene, palette.shadow_tint(key),
+        materials.sync_scene(scene, palette.shadow_tint_for(scene),
                              settings.shadow_tint_strength,
                              settings.shadow_tint_distance)
     if scene.compositing_node_group:

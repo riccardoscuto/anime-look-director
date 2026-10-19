@@ -8,7 +8,7 @@ def _sync_shadow(scene):
     if settings.shadow_tint:
         return materials.sync_scene(
             scene,
-            palette.shadow_tint(settings.palette),
+            palette.shadow_tint_for(scene),
             settings.shadow_tint_strength,
             settings.shadow_tint_distance,
         )

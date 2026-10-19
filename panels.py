@@ -68,6 +68,27 @@ class ALD_PT_world(bpy.types.Panel):
             col.prop(s, "horizon_offset")
             col.prop(s, "horizon_softness")
 
+        row = box.row(align=True)
+        row.prop(s, "sun_disk", toggle=True)
+        row.prop(s, "clouds", toggle=True)
+        if s.sun_disk:
+            col = box.column(align=True)
+            col.prop(s, "sun_disk_size")
+            col.prop(s, "sun_disk_strength")
+        if s.clouds:
+            col = box.column(align=True)
+            col.prop(s, "cloud_amount")
+            col.prop(s, "cloud_scale")
+
+        row = box.row()
+        row.prop(s, "custom_colors", toggle=True)
+        if s.custom_colors:
+            col = box.column(align=True)
+            col.prop(s, "custom_sky")
+            col.prop(s, "custom_horizon")
+            col.prop(s, "custom_sun")
+            col.prop(s, "custom_shadow")
+
         box.separator()
         row = box.row(align=True)
         row.prop(s, "shadow_tint", toggle=True)
@@ -103,6 +124,10 @@ class ALD_PT_compositor(bpy.types.Panel):
         row.prop(s, "god_rays", toggle=True)
         if s.god_rays:
             row.prop(s, "god_rays_strength", text="Strength")
+        row = box.row(align=True)
+        row.prop(s, "ink_lines", toggle=True)
+        if s.ink_lines:
+            row.prop(s, "ink_strength", text="Strength")
 
         col = box.column(align=True)
         if s.halation:
@@ -116,6 +141,8 @@ class ALD_PT_compositor(bpy.types.Panel):
             col.prop(s, "light_wrap_size")
         if s.god_rays:
             col.prop(s, "god_rays_size")
+        if s.ink_lines:
+            col.prop(s, "ink_size")
 
         col.separator()
         col.prop(s, "depth_near")
@@ -151,6 +178,17 @@ class ALD_PT_view3d(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "horizon_offset")
             col.prop(s, "horizon_softness")
+        row = box.row(align=True)
+        row.prop(s, "sun_disk", toggle=True)
+        row.prop(s, "clouds", toggle=True)
+        row = box.row()
+        row.prop(s, "custom_colors", toggle=True)
+        if s.custom_colors:
+            col = box.column(align=True)
+            col.prop(s, "custom_sky")
+            col.prop(s, "custom_horizon")
+            col.prop(s, "custom_sun")
+            col.prop(s, "custom_shadow")
 
         box = layout.box()
         row = box.row(align=True)
@@ -173,6 +211,10 @@ class ALD_PT_view3d(bpy.types.Panel):
         row.prop(s, "god_rays", toggle=True)
         if s.god_rays:
             row.prop(s, "god_rays_strength", text="Strength")
+        row = box.row(align=True)
+        row.prop(s, "ink_lines", toggle=True)
+        if s.ink_lines:
+            row.prop(s, "ink_strength", text="Strength")
 
         col = box.column(align=True)
         if s.halation:
@@ -184,6 +226,8 @@ class ALD_PT_view3d(bpy.types.Panel):
             col.prop(s, "light_wrap_size")
         if s.god_rays:
             col.prop(s, "god_rays_size")
+        if s.ink_lines:
+            col.prop(s, "ink_size")
 
         row = layout.row(align=True)
         row.operator("ald.build", icon="PLAY")

@@ -16,7 +16,8 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PALETTES = ("GOLDEN_HOUR", "SUMMER_NOON", "RAINY_TOKYO", "NEON_NIGHT")
+PALETTES = ("GOLDEN_HOUR", "SUMMER_NOON", "RAINY_TOKYO", "NEON_NIGHT",
+            "SAKURA_SPRING", "TWILIGHT_DUSK")
 
 
 def parse_args():
@@ -138,16 +139,18 @@ def load_rgba(path):
 
 def make_sheet(paths, out_path):
     width, height = 800, 450
-    sheet = np.zeros((height * 2, width * 2, 4), dtype=np.float32)
+    columns = 3
+    rows = 2
+    sheet = np.zeros((height * rows, width * columns, 4), dtype=np.float32)
     for index, path in enumerate(paths):
         pixels = load_rgba(path).reshape(height, width, 4)
-        # Blender image rows start at the bottom: 0/1 top row, 2/3 bottom row.
-        row = 1 if index < 2 else 0
-        col = index % 2
+        # Blender image rows start at the bottom: first row on top.
+        row = rows - 1 - index // columns
+        col = index % columns
         sheet[row * height:(row + 1) * height,
               col * width:(col + 1) * width] = pixels
-    image = bpy.data.images.new("ALD Lookdev Sheet", width * 2, height * 2,
-                                alpha=True, float_buffer=False)
+    image = bpy.data.images.new("ALD Lookdev Sheet", width * columns,
+                                height * rows, alpha=True, float_buffer=False)
     image.pixels.foreach_set(sheet.ravel())
     image.filepath_raw = out_path
     image.file_format = "PNG"
@@ -170,6 +173,9 @@ def main():
     settings.light_wrap_size = 24.0
     settings.shadow_tint_strength = 0.45
     settings.shadow_tint_distance = 0.6
+    settings.ink_lines = True
+    settings.ink_strength = 0.6
+    settings.ink_size = 1.5
     settings.depth_near = 4.0
     settings.depth_far = 35.0
 

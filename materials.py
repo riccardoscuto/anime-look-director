@@ -329,7 +329,7 @@ def apply_preset_to_selected(scene, key):
     settings = getattr(scene, "ald", None)
     if settings is not None and settings.shadow_tint:
         from . import palette
-        sync_material(mat, palette.shadow_tint(settings.palette),
+        sync_material(mat, palette.shadow_tint_for(scene),
                       settings.shadow_tint_strength,
                       settings.shadow_tint_distance)
     return len(objects), mat

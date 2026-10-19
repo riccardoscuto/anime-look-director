@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.3.2**).
+  (currently **0.4.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -22,10 +22,12 @@ TECH_NOTES); move it on-screen before capturing.
 ## Architecture
 - `properties.py` — `Scene.ald` settings (palette, toggles, sliders, update hooks;
   floats update in place, toggles rebuild the stack).
-- `palette.py` — atmospheric presets, world gradient group, world + sun apply.
+- `palette.py` — atmospheric presets, world gradient (sun disk + clouds), custom
+  color overrides, world + sun apply.
 - `compositor.py` — builds/removes one `ALD | Compositor Stack` per scene
   (Render Layers → Glare → Sun Beams (optional) → Kuwahara (depth-mixed) →
-  Light Wrap → Lensdist → Group Output); also refreshes God Rays on frame change.
+  Light Wrap → Ink Lines (optional) → Lensdist → Group Output); also refreshes
+  God Rays and the world sun on frame changes.
 - `materials.py` — shared `ALD | Shadow Tint` group plus material presets.
 - `shots.py` — timeline marker palette overrides and the frame-change handler.
 - `operators.py` — `ald.build`, `ald.remove`, `ald.apply_palette`,
@@ -94,6 +96,21 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Sidebar N panel: `bl_space_type="VIEW_3D"`, `bl_region_type="UI"`,
   `bl_category="Anime Look"`. In tests set
   `region.active_panel_category = "Anime Look"` to select it.
+- World gradient (`ald_build = 3`) also hosts the sun disk and clouds. Inputs:
+  `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
+  (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,
+  `Cloud Amount/Scale`. Palette colors are wired through these sockets, never
+  baked into ColorRamp stops.
+- Create/tint the sun **before** applying the world gradient, otherwise the first
+  apply sees no sun and writes a zero sun direction. Sun/cloud frame updates run
+  on `frame_change_post` so matrices are evaluated.
+- Anime clouds: two 3D Noise layers on `Generated` (weights 0.75/0.25), coverage
+  0.48–0.56, three tone bands via MapRange 0.46–0.48 and 0.57–0.59. A plane
+  projection (`x/z`, `y/z`) produced rows/camo on the sky dome; keep 3D noise.
+- Ink lines reuse `_depth_edges(..., band_size=0, edge_size=ink_size)`, multiply
+  the image by a dark `shadow_tint * 0.25` color; the gate pixel ratio is ~2.5 %.
+- Custom colors: `palette.effective(scene, key)` applies overrides and
+  `palette.shadow_tint_for(scene)` must be used by every material sync path.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
@@ -118,6 +135,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Shot markers are opt-in and must never apply a palette on every frame; respect
   `ald_active_shot`.
 - Material presets only touch selected, non-library objects.
+- Use `palette.shadow_tint_for(scene)` (not `shadow_tint(key)`) wherever materials
+  are synced, so custom palette colors are respected.
+- Sun disk/cloud controls call `apply_palette` (world inputs), not a compositor
+  rebuild.
 - `bl_info`, `blender_manifest.toml`, `README.md`, `CHANGELOG.md` versions stay aligned.
 
 See `TECH_NOTES.md` for the full spike results.

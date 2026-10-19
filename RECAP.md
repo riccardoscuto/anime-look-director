@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.3.2** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.4.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -13,31 +13,35 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 
 ## Cosa fa
 
-1. **Palette atmosferiche** — quattro preset che governano world, sole, tint del
+1. **Palette atmosferiche** — sei preset che governano world, sole, tint del
    glare e colore delle ombre.
 2. **World gradient** — cielo, orizzonte e terreno separati, con offset e
    morbidezza dell'orizzonte.
 3. **Auto Sun** — se la scena non ha una SUN, ne viene creata una (`ALD | Sun`)
    e tinta dalla palette.
-4. **Shadow tint** — un node group reversibile e **moltiplicativo**: nelle zone
-   in ombra tinge la Base Color con il colore della palette preservando il
-   dettaglio delle texture.
-5. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
-   → Kuwahara (mix per profondità) → Light Wrap → Lens Distortion → Output`.
-6. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette, con
-   maschera da profondità e discontinuità di profondità.
-7. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
-   forza e dimensione regolabili; si aggiorna durante l'animazione. Il nodo resta
-   presente anche con il sole dietro la camera (muto) e si riattiva quando il sole
-   entra in inquadratura.
-8. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
-   inquadrature; il pulsante `Mark Shot` crea/aggiorna il marker.
-9. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
-   oggetti selezionati.
-10. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
-11. **Stack per scena** — ogni scena ha il proprio gruppo compositor, senza
-    conflitti tra scene multiple.
-12. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
+4. **Sun disk** — disco solare nel cielo, allineato alla direzione reale del
+   sole, con dimensione e intensità.
+5. **Anime clouds** — nuvole procedurali a due layer di rumore, colorate con
+   shadow/horizon/sun della palette, con quantità e scala.
+6. **Custom palette colors** — override di cielo, orizzonte, sole e ombra per
+   scena.
+7. **Shadow tint** — node group reversibile e **moltiplicativo**: nelle zone in
+   ombra tinge la Base Color con il colore della palette preservando il dettaglio
+   delle texture.
+8. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
+   → Kuwahara (mix per profondità) → Light Wrap → Ink Lines (opzionale) → Lens
+   Distortion → Output`.
+9. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette.
+10. **Anime Ink Lines** — contorni sottili da profondità, tinti con lo shadow tint.
+11. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
+    forza e dimensione regolabili; si aggiorna durante l'animazione.
+12. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
+    inquadrature; il pulsante `Mark Shot` crea/aggiorna il marker.
+13. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
+    oggetti selezionati.
+14. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
+15. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
+16. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
     compositor senza staccare gli occhi dalla camera.
 
 ## Flusso di lavoro
@@ -47,7 +51,8 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 2. Scegli una **Atmosphere** e premi **Apply Palette**.
 3. Premi **Build / Update Stack** per creare o aggiornare il compositor.
 4. Regola le sezioni **World & Shadows** e **Compositor Stack** (sono
-   sotto-pannelli richiudibili).
+   sotto-pannelli richiudibili): qui trovi Sun Disk, Anime Clouds, Ink Lines e
+   **Custom Colors**.
 5. Per un cambio palette su un taglio: scegli la palette, vai al frame, premi
    **Mark Shot** e attiva **Shot Markers**.
 6. Per i materiali: seleziona gli oggetti, scegli un preset e premi **Apply**.
@@ -61,6 +66,8 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 | Ghibli Summer Noon | luce alta e pulita, cielo azzurro, ombre fresche |
 | Rainy Tokyo Night | notte piovosa, blu freddo, contrasto medio |
 | Cyberpunk Neon | magenta/ciano, zenit blu-viola, ombre colorate |
+| Sakura Spring | cielo azzurro, orizzonte rosa, luce calda e morbida |
+| Twilight Dusk | cielo indaco, orizzonte arancio, sole basso |
 
 ## Impostazioni principali
 
@@ -77,7 +84,7 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 
 ## Cosa crea nel file
 
-- `ALD | World Gradient` — gruppo shader del gradiente.
+- `ALD | World Gradient` — gruppo shader del gradiente, con disco solare e nuvole.
 - `ALD | Shadow Tint` — gruppo shader del tint ombre.
 - `ALD | Compositor Stack` — gruppo compositor (suffissato per le scene
   successive alla prima).
@@ -100,6 +107,11 @@ o il colore originale della Base Color.
   sole/camera **senza cambiare frame**, serve **Build / Update Stack**.
 - Shot markers: override temporali, non per-camera.
 - Material presets: materiali semplici (Principled), non shader toon completi.
+- Nuvole: procedurali stilizzate, non simulazione volumetrica; quantità e scala
+  regolabili.
+- Sun disk e nuvole seguono il sole a ogni frame; se muovi sole/camera senza
+  cambiare frame, riapplica la palette o cambia frame.
+- Custom Colors: override per scena, non salvati come nuovo preset nel file.
 - Slider dei parametri: aggiornamento in-place (~0.34 ms); i toggle e la palette
   ricostruiscono lo stack (~5.3 ms).
 
@@ -114,7 +126,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 
 Output atteso: `ALD GATE: PASS`.
 
-Look-dev (quattro palette + contact sheet):
+Look-dev (sei palette + contact sheet 3×2):
 
 ```powershell
 & $blender -b --factory-startup --python preset_dev\lookdev.py -- --out "$env:TEMP\ald_lookdev"
@@ -133,3 +145,4 @@ multi-scena, render EEVEE e coerenza versione `bl_info`/manifest.
 - **0.3** — God Rays, shot markers, material presets, sotto-pannelli.
 - **0.3.1** — God Rays refresh/size, preset Emission, recap.
 - **0.3.2** — slider in-place, shadow tint moltiplicativo, pannello Sidebar N.
+- **0.4.0** — Sun Disk, Anime Clouds, Ink Lines, Sakura/Twilight, Custom Colors.

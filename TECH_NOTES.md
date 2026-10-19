@@ -198,3 +198,34 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - Gate additions: in-place parameter updates keep the node count constant and
   update Kuwahara/Halation/Light Wrap/Depth/Lens values; God Rays build with the
   sun behind; shadow tint is multiplicative.
+
+### v0.4.0 notes (Step 2)
+- **Sun disk**: the world shader compares `Generated` (view direction) with
+  `Sun Direction = -light_direction`. The disk uses `cos(radius)` thresholds:
+  `Sun Inner = cos(radius)`, `Sun Outer = cos(radius + 0.25*radius)` and a
+  smoothstep MapRange. A 2.5° disk at strength 12 rendered white through AgX; at
+  1.5°/6.0 it keeps a warm core and a soft halo. The disk is behind clouds (cloud
+  mix overlays it).
+- **First-apply order matters**: `ensure_sun` must run before `_apply_gradient`,
+  otherwise a freshly created scene writes no sun direction/strength on the first
+  palette apply. The frame handler runs on `frame_change_post` so sun matrices are
+  evaluated before projection.
+- **Clouds**: the first version used 3D noise + a static 3-tone ramp and looked
+  like smoke. A plane projection (`x/z`, `y/z`) gave repeating rows/camo, even
+  with clamped coordinates. The final version uses two 3D Noise layers on
+  `Generated`, weights 0.75/0.25, coverage 0.48–0.56 and narrow tone MapRanges
+  0.46–0.48 / 0.57–0.59; clouds read as soft stylized masses without projection
+  artifacts. Palette colors are group sockets (Cloud Shadow/Mid/Light).
+- **Ink lines**: `_depth_edges` was generalized to accept `band_size` and
+  `edge_size`; light wrap uses a wide band, ink uses `band_size=0` plus a 1.5–2 px
+  depth blur. The line is a `MULTIPLY` mix with `shadow_tint * 0.25`. Gate pixel
+  evidence: ink changes ~2.5 % of the 128×128 frame, edge-local.
+- **Custom colors**: `effective(scene, key)` merges overrides into the preset dict;
+  `shadow_tint_for(scene)` is the single source for material tint sync. The gate
+  toggles custom colors and verifies world, sun and material tint, then restores
+  the preset.
+- **New presets**: SAKURA_SPRING (soft pink horizon, blue sky, warm light) and
+  TWILIGHT_DUSK (deep blue/indigo sky, orange horizon). Look-dev now renders six
+  palettes in a 3×2 sheet.
+- Gate: world sun direction/strength, sun-disk toggle, clouds toggle, ink node and
+  pixel test, custom colors and preset restore.

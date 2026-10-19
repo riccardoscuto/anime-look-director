@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.0 — 2026-10-19
+### Added
+- **Sun disk** in the world gradient, aligned with the sun direction; size and
+  strength controls.
+- **Anime clouds**: two-layer procedural noise, projected sky colors (shadow /
+  horizon / sun), horizon fade and amount/scale controls.
+- **Anime Ink Lines**: thin depth-discontinuity outlines composited with a dark
+  shadow-tint color; strength and size.
+- **Sakura Spring** and **Twilight Dusk** atmosphere presets.
+- **Custom palette colors**: sky, horizon, sun and shadow overrides per scene,
+  exposed in the Scene and Sidebar N panels.
+- Gate coverage: sun direction/disk strength, cloud toggle, ink node + pixel test,
+  custom colors and preset restore.
+
+### Changed
+- World gradient group upgraded (sun disk + clouds) with `ald_build = 3`.
+- Sun/cloud frame updates run on `frame_change_post` so animated transforms are
+  evaluated before reading sun matrices.
+- Shadow tint colors for the new presets are normalized multiplier hues.
+- Look-dev renders all six palettes in a 3×2 sheet.
+
 ## 0.3.2 — 2026-10-19
 ### Added
 - **Sidebar N panel** (`VIEW_3D > Anime Look`) with palette, world, shadow tint,
