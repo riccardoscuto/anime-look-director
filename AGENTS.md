@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.9.8**).
+  (currently **0.9.9**).
 
 ## Verify (run after every change)
 ```powershell
@@ -101,7 +101,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Normal pass by 1.5 px, subtracts, takes vector length, curves 0.01..0.14 and
   multiplies by the normal sensitivity and geometry mask. Combine with the depth
   edge via `MAXIMUM`.
-- World gradient group marker is **12**. Inputs include `Star Amount`, `Star
+- World gradient group marker is **13**. Inputs include `Star Amount`, `Star
   Density` (Voronoi scale, default 180), `Cloud Flatness` and `Cloud Offset`
   (vector). Exact shell point is `(Vx*t, Vy*t, Vz)` with
   `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
@@ -134,9 +134,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - `Cloud Delta Gain` and `Cloud Rim Boost` are explicit group inputs
   (default 1.0), not hidden multipliers. Low clouds mix toward Horizon Color by
   `(1-horizon)*0.65`.
-- Contrails are planar straight filaments: `u=0.82X+0.57Y+0.06*noise`,
-  `v=-0.57X+0.82Y`, `abs(u-0.15)` 0..0.012, length fade and altitude
-  0.08..0.45. Do not use spherical level sets.
+- Contrails use gnomonic `X/Z`, `Y/Z` coordinates (not the curved shell
+  `planar_uv`): `u=0.82X+0.57Y+0.06*noise`, `v=-0.57X+0.82Y`,
+  `abs(u-0.15)` 0..0.012, length fade and altitude 0.08..0.45. Do not use
+  spherical level sets or the curved projection, both produce arcs.
   `Sky Accent`/`Sky Accent Amount` add an optional band within 0.07 of the
   mid-sky stop.
 - `ensure_sun` only reapplies the preset `sun_rotation` when
@@ -163,7 +164,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Panel code must read the module version from `sys.modules[__package__]`;
   `bpy.context.preferences.addons[...].module` is a **path string** in 5.1,
   and accessing `.bl_info` on it kills the whole panel draw.
-- World gradient (`ald_build = 12`) also hosts the sun disk, stars and clouds. Inputs:
+- World gradient (`ald_build = 13`) also hosts the sun disk, stars and clouds. Inputs:
   `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
   (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,
   `Cloud Amount/Scale`. Palette colors are wired through these sockets, never

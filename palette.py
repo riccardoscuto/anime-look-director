@@ -239,13 +239,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 12):
+                           or ng.get("ald_build") != 13):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 12
+        ng["ald_build"] = 13
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -259,7 +259,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 12
+        ng["ald_build"] = 13
     return ng
 
 
@@ -834,8 +834,26 @@ def _build_gradient_group(ng):
     links.new(cloud_mapping.outputs["Vector"], warped_pos.inputs[0])
     links.new(warp_scale_vec.outputs["Vector"], warped_pos.inputs[1])
 
-    # Optional contrails: straight planar filaments, not level sets of a 3D
-    # sphere. u is the cross-trail coordinate, v runs along the trail.
+    # Optional contrails: straight gnomonic-plane filaments. Use X/Z and Y/Z
+    # (not the curved shell projection) so a constant-u line stays straight.
+    trail_z = nodes.new("ShaderNodeMath")
+    trail_z.location = (2260, 1080)
+    trail_z.operation = "MAXIMUM"
+    trail_z.inputs[1].default_value = 0.05
+    links.new(separate.outputs["Z"], trail_z.inputs[0])
+
+    trail_x = nodes.new("ShaderNodeMath")
+    trail_x.location = (2440, 1080)
+    trail_x.operation = "DIVIDE"
+    links.new(separate.outputs["X"], trail_x.inputs[0])
+    links.new(trail_z.outputs[0], trail_x.inputs[1])
+
+    trail_y = nodes.new("ShaderNodeMath")
+    trail_y.location = (2440, 1180)
+    trail_y.operation = "DIVIDE"
+    links.new(separate.outputs["Y"], trail_y.inputs[0])
+    links.new(trail_z.outputs[0], trail_y.inputs[1])
+
     contrail_noise = nodes.new("ShaderNodeTexNoise")
     contrail_noise.location = (2260, 900)
     contrail_noise.inputs["Scale"].default_value = 4.0
@@ -848,13 +866,13 @@ def _build_gradient_group(ng):
     trail_u_x.location = (2440, 960)
     trail_u_x.operation = "MULTIPLY"
     trail_u_x.inputs[1].default_value = 0.82
-    links.new(planar_sep.outputs["X"], trail_u_x.inputs[0])
+    links.new(trail_x.outputs[0], trail_u_x.inputs[0])
 
     trail_u_y = nodes.new("ShaderNodeMath")
-    trail_u_y.location = (2440, 1080)
+    trail_u_y.location = (2620, 1080)
     trail_u_y.operation = "MULTIPLY"
     trail_u_y.inputs[1].default_value = 0.57
-    links.new(planar_sep.outputs["Y"], trail_u_y.inputs[0])
+    links.new(trail_y.outputs[0], trail_u_y.inputs[0])
 
     trail_u_sum = nodes.new("ShaderNodeMath")
     trail_u_sum.location = (2620, 1020)
@@ -899,13 +917,13 @@ def _build_gradient_group(ng):
     trail_v_x.location = (2440, 1160)
     trail_v_x.operation = "MULTIPLY"
     trail_v_x.inputs[1].default_value = -0.57
-    links.new(planar_sep.outputs["X"], trail_v_x.inputs[0])
+    links.new(trail_x.outputs[0], trail_v_x.inputs[0])
 
     trail_v_y = nodes.new("ShaderNodeMath")
-    trail_v_y.location = (2440, 1280)
+    trail_v_y.location = (2620, 1280)
     trail_v_y.operation = "MULTIPLY"
     trail_v_y.inputs[1].default_value = 0.82
-    links.new(planar_sep.outputs["Y"], trail_v_y.inputs[0])
+    links.new(trail_y.outputs[0], trail_v_y.inputs[0])
 
     trail_v = nodes.new("ShaderNodeMath")
     trail_v.location = (2620, 1220)

@@ -474,8 +474,9 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   the core legible at 1080p; star color is (12.0, 12.5, 15.0), zenith
   0.06..0.28, sun hide 0.96..0.995, and clouds hide the field with
   `1 - cloud_amount`.
-- **Contrails**: planar, not spherical. `u=0.82X+0.57Y + 0.06*noise`,
-  `v=-0.57X+0.82Y`; `abs(u-0.15)` mapped 0..0.012 -> 1..0; length fade
+- **Contrails**: gnomonic `X/Z`, `Y/Z` (not the curved shell, which bends
+  lines into arcs). `u=0.82X+0.57Y + 0.06*noise`, `v=-0.57X+0.82Y`;
+  `abs(u-0.15)` mapped 0..0.012 -> 1..0; length fade
   `smoothstep(-1.2,0.2,v)*smoothstep(1.8,0.4,v)`; altitude 0.08..0.45;
   factor 0.18; off by default.
 - **Gate**: palette registry, AFTER_SCHOOL and the new Sun Glow / Sky Accent /

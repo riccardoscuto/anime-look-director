@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.9.8** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.9.9** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -263,3 +263,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
   contrails come isolinea sottile.
 - **0.9.8** - Domain warping, macro-banco, silhouette separata, luce per
   singola nuvola e contrails rettilinei in prospettiva.
+- **0.9.9** - Contrails in coordinate gnomonico `X/Z`, `Y/Z` per evitare archi;
+  marker World Group 13.

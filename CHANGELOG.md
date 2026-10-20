@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.9 - 2026-10-20
+### Fixed
+- Contrails now use gnomonic `X/Z`, `Y/Z` coordinates instead of the curved
+  shell `planar_uv`; a constant-u filament stays straight in the sky rather
+  than bending into arcs. World group marker 12 -> 13.
+
 ## 0.9.8 - 2026-10-20
 ### Changed
 - Cloud overhaul: domain-warped coordinates (`warp_noise` at 0.55*Cloud Scale,
