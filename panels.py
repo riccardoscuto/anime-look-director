@@ -249,6 +249,8 @@ class ALD_PT_view3d(bpy.types.Panel):
         row.prop(s, "clouds", toggle=True)
         if s.clouds:
             col = box.column(align=True)
+            col.prop(s, "cloud_amount")
+            col.prop(s, "cloud_scale")
             col.prop(s, "cloud_flatness")
             col.prop(s, "cloud_wind")
             col.prop(s, "contrails")

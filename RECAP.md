@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.9.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.9.2** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -251,3 +251,4 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
   backlit con silver lining, micro starfield, nuovo sky mapping.
 - **0.9.1** - stile nuvola per-preset calibrato sulle reference (After School
   a bande, Summer Noon a cumuli) e blend sfera/guscio per Cloud Flatness.
+- **0.9.2** - Cloud Amount e Cloud Scale visibili anche nella Sidebar N.

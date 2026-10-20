@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.2 - 2026-10-20
+### Fixed
+- Sidebar N panel now exposes **Cloud Amount** and **Cloud Scale** alongside
+  Cloud Flatness, so the cloud controls match the Scene panel.
+
 ## 0.9.1 - 2026-10-20
 ### Added
 - **Per-preset cloud style**: `cloud_flatness`, `cloud_scale`,
