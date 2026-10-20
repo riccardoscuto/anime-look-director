@@ -1,3 +1,5 @@
+import sys
+
 import bpy
 
 
@@ -226,10 +228,10 @@ class ALD_PT_view3d(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
         s = scene.ald
-        addon = bpy.context.preferences.addons.get(__package__)
-        if addon is not None:
-            layout.label(text="v%d.%d.%d" % tuple(addon.module.bl_info["version"]),
-                         icon="INFO")
+        module = sys.modules.get(__package__)
+        version = getattr(module, "bl_info", {}).get("version")
+        if version:
+            layout.label(text="v%d.%d.%d" % tuple(version), icon="INFO")
 
         col = layout.column(align=True)
         col.prop(s, "palette", text="")

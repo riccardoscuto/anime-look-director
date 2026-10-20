@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.9.5**).
+  (currently **0.9.6**).
 
 ## Verify (run after every change)
 ```powershell
@@ -149,6 +149,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Sidebar N panel: `bl_space_type="VIEW_3D"`, `bl_region_type="UI"`,
   `bl_category="Anime Look"`. In tests set
   `region.active_panel_category = "Anime Look"` to select it.
+- Panel code must read the module version from `sys.modules[__package__]`;
+  `bpy.context.preferences.addons[...].module` is a **path string** in 5.1,
+  and accessing `.bl_info` on it kills the whole panel draw.
 - World gradient (`ald_build = 10`) also hosts the sun disk, stars and clouds. Inputs:
   `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
   (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,

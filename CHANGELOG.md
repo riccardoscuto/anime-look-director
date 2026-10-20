@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.6 - 2026-10-20
+### Fixed
+- The Sidebar version label used `bpy.context.preferences.addons[...].module`,
+  which is a path string in Blender 5.1, so `addon.module.bl_info` raised on
+  every panel draw and made the N panel disappear. It now reads
+  `sys.modules[__package__].bl_info`.
+- Version 0.9.6.
+
 ## 0.9.5 - 2026-10-20
 ### Fixed
 - Bumped the world-gradient group marker from 9 to 10. The 0.9.4 shader change
