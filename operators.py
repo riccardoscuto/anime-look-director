@@ -60,6 +60,8 @@ class ALD_OT_apply_palette(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
+        key, _source = look.effective_palette(scene)
+        palette.apply_preset_style(scene, palette.effective(scene, key))
         key = look.apply(scene, force=True)
         self.report({"INFO"},
                     "Anime Look Director: palette applied (%s)" % key)

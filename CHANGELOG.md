@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.1 - 2026-10-20
+### Fixed
+- `_sample_cloud_density` now returns `(rho_shape, rho_smooth, warped_pos)`.
+  Macro Detail dropped to 1.8 / Roughness 0.42, high-frequency Perlin removed
+  from the silhouette; two Voronoi dome octaves are masked by the macro bank.
+  This removes torn-paper edges and isolated Voronoi cells.
+- Solar derivative uses the smooth density and a 0.08 rad view-ray step, so
+  high-frequency octaves no longer fragment the internal shadow.
+- Cloud shading uses two steps with a 0.55 half-shadow plateau, then a
+  0.022..0.042 crown, for four discrete gouache bands.
+- SUMMER_NOON recalibrated: flatness 0.18, scale 2.4, amount 0.65, lavender
+  shadows and bright cumulus colors.
+- Apply Palette now resets `cloud_delta_gain`, `sun_glow` and
+  `sky_accent_amount` as well as the per-preset cloud style.
+- World gradient marker 15.
+
 ## 1.0.0 - 2026-10-20
 ### Added
 - `_sample_cloud_density()` helper: projects any sky-dome ray through the

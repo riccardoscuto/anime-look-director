@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 0, 0)
+EXPECTED_VERSION = (1, 0, 1)
 TOLERANCE = 1e-4
 
 
@@ -299,6 +299,17 @@ def check_world_gradient(scene, settings):
           "after school rim boost not applied")
     check(abs(settings.cloud_amount - after["cloud_amount"]) <= TOLERANCE,
           "after school cloud amount not applied")
+
+    settings.cloud_delta_gain = 3.46
+    settings.sun_glow = 0.0
+    settings.sky_accent_amount = 1.0
+    bpy.ops.ald.apply_palette()
+    check(abs(settings.cloud_delta_gain - 1.0) <= TOLERANCE,
+          "apply palette did not reset delta gain")
+    check(abs(settings.sun_glow - 0.45) <= TOLERANCE,
+          "apply palette did not reset sun glow")
+    check(abs(settings.sky_accent_amount) <= TOLERANCE,
+          "apply palette did not reset accent amount")
     settings.palette = "GOLDEN_HOUR"
     bpy.ops.ald.apply_palette()
 

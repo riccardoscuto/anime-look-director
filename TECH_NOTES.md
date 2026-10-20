@@ -525,3 +525,22 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   curved-shell projections produce arcs.
 - Marker is 14. Gate ratios: shadow 2.62 %, wrap 14.68 %, ink 3.56 %,
   haze 63.00 %, toon 1.60 %, rim 6.67 %. Look-dev: all seven palettes.
+
+### v1.0.1 notes (cauliflower domes, four bands, reset)
+- `_sample_cloud_density()` now returns `(rho_shape, rho_smooth, warped_pos)`.
+  Macro Detail 1.8 / Roughness 0.42 at 0.38*Scale; warp 0.45*Scale at 0.22.
+  Two Voronoi domes (0.95*Scale and 2.05*Scale) are masked by the macro bank.
+  Shape = 0.52 macro + 0.34 masked puffs + 0.14 billow. Smooth = 0.72 macro +
+  0.28 primary-puff*mask.
+- Solar derivative uses rho_smooth and a 0.08 rad view-ray step. High-frequency
+  detail is excluded from the silhouette and only perturbs contour (0.010) and
+  body (0.012).
+- Gouache four bands: two MapRange steps with a 0.55 plateau at
+  -0.012..0.002, then the 0.022..0.042 crown at 0.90, combined with the rim by
+  MAXIMUM.
+- SUMMER_NOON: flatness 0.18, scale 2.4, amount 0.65, lavender shadow
+  (0.42,0.56,0.86), bright cumulus.
+- Apply Palette resets delta gain, sun glow and accent amount in addition to
+  per-preset cloud style; same-key Apply is handled in the operator.
+- Marker 15. Gate ratios: shadow 2.62 %, wrap 15.39 %, ink 3.57 %,
+  haze 63.01 %, toon 1.59 %, rim 6.84 %.

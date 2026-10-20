@@ -57,13 +57,13 @@ PRESETS = {
         "mid_sky_color": (0.09, 0.38, 0.88),
         "horizon_color": (0.48, 0.78, 0.98),
         "ground_color": (0.14, 0.22, 0.32),
-        "cloud_shadow": (0.28, 0.40, 0.68),
-        "cloud_mid": (0.90, 0.93, 0.96),
-        "cloud_light": (1.20, 1.16, 1.05),
-        "cloud_flatness": 0.25,
-        "cloud_scale": 4.0,
+        "cloud_shadow": (0.42, 0.56, 0.86),
+        "cloud_mid": (0.94, 0.96, 0.98),
+        "cloud_light": (1.22, 1.18, 1.06),
+        "cloud_flatness": 0.18,
+        "cloud_scale": 2.4,
         "cloud_rim_boost": 1.0,
-        "cloud_amount": 0.75,
+        "cloud_amount": 0.65,
         "star_amount": 0.0,
         "sun_color": (1.0, 0.93, 0.80),
         "sun_energy": 4.8,
@@ -239,13 +239,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 14):
+                           or ng.get("ald_build") != 15):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 14
+        ng["ald_build"] = 15
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -259,17 +259,17 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 14
+        ng["ald_build"] = 15
     return ng
 
 
 def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
                           flat_inv, y_offset=0.0):
-    """Build one cloud-density sample for a sky-dome ray.
+    """Sample cloud density for a sky-dome ray.
 
-    Returns (rho_socket, warped_position_socket). The same function is used
-    for the view ray and for the ray displaced toward sun+zenith, so the
-    finite difference stays on the cloud dome.
+    Returns (rho_shape, rho_smooth, warped_pos). rho_shape is the cauliflower
+    silhouette; rho_smooth is the low-frequency volume used by the solar
+    derivative so the shadow does not fragment on high-frequency octaves.
     """
     def node(idname, x, y):
         item = nodes.new(idname)
@@ -329,12 +329,12 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
 
     warp_scale = node("ShaderNodeMath", 440, 200)
     warp_scale.operation = "MULTIPLY"
-    warp_scale.inputs[1].default_value = 0.85
+    warp_scale.inputs[1].default_value = 0.45
     links.new(group_in.outputs["Cloud Scale"], warp_scale.inputs[0])
 
     warp_noise = node("ShaderNodeTexNoise", 620, 200)
-    warp_noise.inputs["Detail"].default_value = 4.0
-    warp_noise.inputs["Roughness"].default_value = 0.55
+    warp_noise.inputs["Detail"].default_value = 2.0
+    warp_noise.inputs["Roughness"].default_value = 0.45
     links.new(mapping.outputs["Vector"], warp_noise.inputs["Vector"])
     links.new(warp_scale.outputs[0], warp_noise.inputs["Scale"])
 
@@ -346,7 +346,7 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     warp_vec = node("ShaderNodeVectorMath", 980, 200)
     warp_vec.operation = "SCALE"
     links.new(warp_center.outputs["Vector"], warp_vec.inputs["Vector"])
-    warp_vec.inputs["Scale"].default_value = 0.28
+    warp_vec.inputs["Scale"].default_value = 0.22
 
     warped_pos = node("ShaderNodeVectorMath", 1160, 120)
     warped_pos.operation = "ADD"
@@ -355,74 +355,151 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
 
     macro_scale = node("ShaderNodeMath", 620, 420)
     macro_scale.operation = "MULTIPLY"
-    macro_scale.inputs[1].default_value = 0.55
+    macro_scale.inputs[1].default_value = 0.38
     links.new(group_in.outputs["Cloud Scale"], macro_scale.inputs[0])
 
     macro_noise = node("ShaderNodeTexNoise", 800, 420)
-    macro_noise.inputs["Detail"].default_value = 6.0
-    macro_noise.inputs["Roughness"].default_value = 0.58
-    macro_noise.inputs["Distortion"].default_value = 0.18
+    macro_noise.inputs["Detail"].default_value = 1.8
+    macro_noise.inputs["Roughness"].default_value = 0.42
+    macro_noise.inputs["Distortion"].default_value = 0.10
     links.new(warped_pos.outputs["Vector"], macro_noise.inputs["Vector"])
     links.new(macro_scale.outputs[0], macro_noise.inputs["Scale"])
 
-    macro_weight = node("ShaderNodeMath", 980, 420)
-    macro_weight.operation = "MULTIPLY"
-    macro_weight.inputs[1].default_value = 0.66
-    links.new(macro_noise.outputs["Fac"], macro_weight.inputs[0])
+    macro_mask = node("ShaderNodeMapRange", 980, 420)
+    macro_mask.clamp = True
+    _smooth(macro_mask)
+    macro_mask.inputs["From Min"].default_value = 0.28
+    macro_mask.inputs["From Max"].default_value = 0.72
+    macro_mask.inputs["To Min"].default_value = 0.0
+    macro_mask.inputs["To Max"].default_value = 1.0
+    links.new(macro_noise.outputs["Fac"], macro_mask.inputs["Value"])
 
-    billow_scale = node("ShaderNodeMath", 620, 600)
+    puff1_scale = node("ShaderNodeMath", 620, 600)
+    puff1_scale.operation = "MULTIPLY"
+    puff1_scale.inputs[1].default_value = 0.95
+    links.new(group_in.outputs["Cloud Scale"], puff1_scale.inputs[0])
+
+    puff1 = node("ShaderNodeTexVoronoi", 800, 600)
+    links.new(warped_pos.outputs["Vector"], puff1.inputs["Vector"])
+    links.new(puff1_scale.outputs[0], puff1.inputs["Scale"])
+
+    puff1_range = node("ShaderNodeMapRange", 980, 600)
+    puff1_range.clamp = True
+    _smooth(puff1_range)
+    puff1_range.inputs["From Min"].default_value = 0.0
+    puff1_range.inputs["From Max"].default_value = 0.72
+    puff1_range.inputs["To Min"].default_value = 1.0
+    puff1_range.inputs["To Max"].default_value = 0.0
+    links.new(puff1.outputs["Distance"], puff1_range.inputs["Value"])
+
+    puff1_dome = node("ShaderNodeMath", 1160, 600)
+    puff1_dome.operation = "POWER"
+    puff1_dome.inputs[1].default_value = 1.5
+    links.new(puff1_range.outputs["Result"], puff1_dome.inputs[0])
+
+    puff2_scale = node("ShaderNodeMath", 620, 780)
+    puff2_scale.operation = "MULTIPLY"
+    puff2_scale.inputs[1].default_value = 2.05
+    links.new(group_in.outputs["Cloud Scale"], puff2_scale.inputs[0])
+
+    puff2 = node("ShaderNodeTexVoronoi", 800, 780)
+    links.new(warped_pos.outputs["Vector"], puff2.inputs["Vector"])
+    links.new(puff2_scale.outputs[0], puff2.inputs["Scale"])
+
+    puff2_range = node("ShaderNodeMapRange", 980, 780)
+    puff2_range.clamp = True
+    _smooth(puff2_range)
+    puff2_range.inputs["From Min"].default_value = 0.0
+    puff2_range.inputs["From Max"].default_value = 0.68
+    puff2_range.inputs["To Min"].default_value = 1.0
+    puff2_range.inputs["To Max"].default_value = 0.0
+    links.new(puff2.outputs["Distance"], puff2_range.inputs["Value"])
+
+    billow_scale = node("ShaderNodeMath", 620, 960)
     billow_scale.operation = "MULTIPLY"
-    billow_scale.inputs[1].default_value = 1.35
+    billow_scale.inputs[1].default_value = 0.85
     links.new(group_in.outputs["Cloud Scale"], billow_scale.inputs[0])
 
-    billow_noise = node("ShaderNodeTexNoise", 800, 600)
-    billow_noise.inputs["Detail"].default_value = 5.0
-    billow_noise.inputs["Roughness"].default_value = 0.54
-    billow_noise.inputs["Distortion"].default_value = 0.22
+    billow_noise = node("ShaderNodeTexNoise", 800, 960)
+    billow_noise.inputs["Detail"].default_value = 2.2
+    billow_noise.inputs["Roughness"].default_value = 0.45
+    billow_noise.inputs["Distortion"].default_value = 0.12
     links.new(warped_pos.outputs["Vector"], billow_noise.inputs["Vector"])
     links.new(billow_scale.outputs[0], billow_noise.inputs["Scale"])
 
-    billow_weight = node("ShaderNodeMath", 980, 600)
+    puff1_weight = node("ShaderNodeMath", 1160, 760)
+    puff1_weight.operation = "MULTIPLY"
+    puff1_weight.inputs[1].default_value = 0.65
+    links.new(puff1_dome.outputs[0], puff1_weight.inputs[0])
+
+    puff2_weight = node("ShaderNodeMath", 1160, 880)
+    puff2_weight.operation = "MULTIPLY"
+    puff2_weight.inputs[1].default_value = 0.35
+    links.new(puff2_range.outputs["Result"], puff2_weight.inputs[0])
+
+    puff_combined = node("ShaderNodeMath", 1340, 820)
+    puff_combined.operation = "ADD"
+    puff_combined.use_clamp = True
+    links.new(puff1_weight.outputs[0], puff_combined.inputs[0])
+    links.new(puff2_weight.outputs[0], puff_combined.inputs[1])
+
+    puff_masked = node("ShaderNodeMath", 1520, 820)
+    puff_masked.operation = "MULTIPLY"
+    puff_masked.use_clamp = True
+    links.new(puff_combined.outputs[0], puff_masked.inputs[0])
+    links.new(macro_mask.outputs["Result"], puff_masked.inputs[1])
+
+    macro_weight = node("ShaderNodeMath", 1520, 440)
+    macro_weight.operation = "MULTIPLY"
+    macro_weight.inputs[1].default_value = 0.52
+    links.new(macro_mask.outputs["Result"], macro_weight.inputs[0])
+
+    puff_weight = node("ShaderNodeMath", 1700, 760)
+    puff_weight.operation = "MULTIPLY"
+    puff_weight.inputs[1].default_value = 0.34
+    links.new(puff_masked.outputs[0], puff_weight.inputs[0])
+
+    billow_weight = node("ShaderNodeMath", 1700, 960)
     billow_weight.operation = "MULTIPLY"
-    billow_weight.inputs[1].default_value = 0.22
+    billow_weight.inputs[1].default_value = 0.14
     links.new(billow_noise.outputs["Fac"], billow_weight.inputs[0])
 
-    puff_scale = node("ShaderNodeMath", 620, 780)
-    puff_scale.operation = "MULTIPLY"
-    puff_scale.inputs[1].default_value = 1.60
-    links.new(group_in.outputs["Cloud Scale"], puff_scale.inputs[0])
+    macro_puff = node("ShaderNodeMath", 1880, 600)
+    macro_puff.operation = "ADD"
+    macro_puff.use_clamp = True
+    links.new(macro_weight.outputs[0], macro_puff.inputs[0])
+    links.new(puff_weight.outputs[0], macro_puff.inputs[1])
 
-    puff = node("ShaderNodeTexVoronoi", 800, 780)
-    links.new(warped_pos.outputs["Vector"], puff.inputs["Vector"])
-    links.new(puff_scale.outputs[0], puff.inputs["Scale"])
+    rho_shape = node("ShaderNodeMath", 2060, 720)
+    rho_shape.operation = "ADD"
+    rho_shape.use_clamp = True
+    links.new(macro_puff.outputs[0], rho_shape.inputs[0])
+    links.new(billow_weight.outputs[0], rho_shape.inputs[1])
 
-    puff_range = node("ShaderNodeMapRange", 980, 780)
-    puff_range.clamp = True
-    _smooth(puff_range)
-    puff_range.inputs["From Min"].default_value = 0.0
-    puff_range.inputs["From Max"].default_value = 0.65
-    puff_range.inputs["To Min"].default_value = 1.0
-    puff_range.inputs["To Max"].default_value = 0.0
-    links.new(puff.outputs["Distance"], puff_range.inputs["Value"])
+    smooth_macro = node("ShaderNodeMath", 1520, 300)
+    smooth_macro.operation = "MULTIPLY"
+    smooth_macro.inputs[1].default_value = 0.72
+    links.new(macro_mask.outputs["Result"], smooth_macro.inputs[0])
 
-    puff_weight = node("ShaderNodeMath", 1160, 780)
-    puff_weight.operation = "MULTIPLY"
-    puff_weight.inputs[1].default_value = 0.12
-    links.new(puff_range.outputs["Result"], puff_weight.inputs[0])
+    smooth_puff = node("ShaderNodeMath", 1700, 300)
+    smooth_puff.operation = "MULTIPLY"
+    smooth_puff.use_clamp = True
+    links.new(puff1_dome.outputs[0], smooth_puff.inputs[0])
+    links.new(macro_mask.outputs["Result"], smooth_puff.inputs[1])
 
-    macro_billow = node("ShaderNodeMath", 1160, 500)
-    macro_billow.operation = "ADD"
-    macro_billow.use_clamp = True
-    links.new(macro_weight.outputs[0], macro_billow.inputs[0])
-    links.new(billow_weight.outputs[0], macro_billow.inputs[1])
+    smooth_puff_weight = node("ShaderNodeMath", 1880, 300)
+    smooth_puff_weight.operation = "MULTIPLY"
+    smooth_puff_weight.inputs[1].default_value = 0.28
+    links.new(smooth_puff.outputs[0], smooth_puff_weight.inputs[0])
 
-    rho = node("ShaderNodeMath", 1340, 620)
-    rho.operation = "ADD"
-    rho.use_clamp = True
-    links.new(macro_billow.outputs[0], rho.inputs[0])
-    links.new(puff_weight.outputs[0], rho.inputs[1])
+    rho_smooth = node("ShaderNodeMath", 2060, 360)
+    rho_smooth.operation = "ADD"
+    rho_smooth.use_clamp = True
+    links.new(smooth_macro.outputs[0], rho_smooth.inputs[0])
+    links.new(smooth_puff_weight.outputs[0], rho_smooth.inputs[1])
 
-    return rho.outputs[0], warped_pos.outputs["Vector"]
+    return (rho_shape.outputs[0], rho_smooth.outputs[0],
+            warped_pos.outputs["Vector"])
 
 
 def _build_gradient_group(ng):
@@ -1114,7 +1191,7 @@ def _build_gradient_group(ng):
     links.new(contrail_factor.outputs[0], contrail_add.inputs["Factor"])
     sky_color = result_sock
 
-    rho_here, warped_pos = _sample_cloud_density(
+    rho_here, rho_smooth_here, warped_pos = _sample_cloud_density(
         nodes, links, view_norm.outputs["Vector"], group_in,
         flat_scale, flat_inv, y_offset=0.0)
 
@@ -1135,7 +1212,7 @@ def _build_gradient_group(ng):
     sun_ray_step.location = (1900, -720)
     sun_ray_step.operation = "SCALE"
     links.new(light_dir.outputs["Vector"], sun_ray_step.inputs["Vector"])
-    sun_ray_step.inputs["Scale"].default_value = 0.035
+    sun_ray_step.inputs["Scale"].default_value = 0.08
 
     view_sun_raw = nodes.new("ShaderNodeVectorMath")
     view_sun_raw.location = (2080, -720)
@@ -1148,15 +1225,15 @@ def _build_gradient_group(ng):
     view_sun_norm.operation = "NORMALIZE"
     links.new(view_sun_raw.outputs["Vector"], view_sun_norm.inputs[0])
 
-    rho_sun, _warped_sun = _sample_cloud_density(
+    rho_sun, rho_smooth_sun, _warped_sun = _sample_cloud_density(
         nodes, links, view_sun_norm.outputs["Vector"], group_in,
         flat_scale, flat_inv, y_offset=-1200.0)
 
     delta = nodes.new("ShaderNodeMath")
     delta.location = (2440, -900)
     delta.operation = "SUBTRACT"
-    links.new(rho_here, delta.inputs[0])
-    links.new(rho_sun, delta.inputs[1])
+    links.new(rho_smooth_here, delta.inputs[0])
+    links.new(rho_smooth_sun, delta.inputs[1])
 
     delta_used = nodes.new("ShaderNodeMath")
     delta_used.location = (2620, -900)
@@ -1167,13 +1244,13 @@ def _build_gradient_group(ng):
     detail_scale = nodes.new("ShaderNodeMath")
     detail_scale.location = (2440, -1140)
     detail_scale.operation = "MULTIPLY"
-    detail_scale.inputs[1].default_value = 3.0
+    detail_scale.inputs[1].default_value = 2.2
     links.new(group_in.outputs["Cloud Scale"], detail_scale.inputs[0])
 
     detail = nodes.new("ShaderNodeTexNoise")
     detail.location = (2620, -1140)
-    detail.inputs["Detail"].default_value = 5.0
-    detail.inputs["Roughness"].default_value = 0.60
+    detail.inputs["Detail"].default_value = 2.5
+    detail.inputs["Roughness"].default_value = 0.48
     links.new(warped_pos, detail.inputs["Vector"])
     links.new(detail_scale.outputs[0], detail.inputs["Scale"])
 
@@ -1186,13 +1263,13 @@ def _build_gradient_group(ng):
     detail_edge = nodes.new("ShaderNodeMath")
     detail_edge.location = (2980, -1140)
     detail_edge.operation = "MULTIPLY"
-    detail_edge.inputs[1].default_value = 0.018
+    detail_edge.inputs[1].default_value = 0.010
     links.new(detail_center.outputs[0], detail_edge.inputs[0])
 
     detail_body = nodes.new("ShaderNodeMath")
     detail_body.location = (2980, -1260)
     detail_body.operation = "MULTIPLY"
-    detail_body.inputs[1].default_value = 0.022
+    detail_body.inputs[1].default_value = 0.012
     links.new(detail_center.outputs[0], detail_body.inputs[0])
 
     rho_sculpted = nodes.new("ShaderNodeMath")
@@ -1214,15 +1291,15 @@ def _build_gradient_group(ng):
     coverage_center.clamp = True
     coverage_center.inputs["From Min"].default_value = 0.0
     coverage_center.inputs["From Max"].default_value = 1.0
-    coverage_center.inputs["To Min"].default_value = 0.58
-    coverage_center.inputs["To Max"].default_value = 0.40
+    coverage_center.inputs["To Min"].default_value = 0.56
+    coverage_center.inputs["To Max"].default_value = 0.34
     links.new(group_in.outputs["Cloud Amount"],
               coverage_center.inputs["Value"])
 
     coverage_top = nodes.new("ShaderNodeMath")
     coverage_top.location = (2620, -220)
     coverage_top.operation = "ADD"
-    coverage_top.inputs[1].default_value = 0.018
+    coverage_top.inputs[1].default_value = 0.022
     links.new(coverage_center.outputs["Result"], coverage_top.inputs[0])
 
     fringe_top = nodes.new("ShaderNodeMath")
@@ -1240,15 +1317,50 @@ def _build_gradient_group(ng):
     links.new(coverage_top.outputs[0], coverage.inputs["From Max"])
     links.new(rho_sculpted.outputs[0], coverage.inputs["Value"])
 
-    body_mix = nodes.new("ShaderNodeMapRange")
-    body_mix.location = (2620, -720)
-    body_mix.clamp = True
-    _smooth(body_mix)
-    body_mix.inputs["From Min"].default_value = -0.014
-    body_mix.inputs["From Max"].default_value = 0.002
-    body_mix.inputs["To Min"].default_value = 0.0
-    body_mix.inputs["To Max"].default_value = 1.0
-    links.new(body_signal.outputs[0], body_mix.inputs["Value"])
+    amount_gate = nodes.new("ShaderNodeMapRange")
+    amount_gate.location = (2440, -80)
+    amount_gate.clamp = True
+    _smooth(amount_gate)
+    amount_gate.inputs["From Min"].default_value = 0.0
+    amount_gate.inputs["From Max"].default_value = 0.03
+    amount_gate.inputs["To Min"].default_value = 0.0
+    amount_gate.inputs["To Max"].default_value = 1.0
+    links.new(group_in.outputs["Cloud Amount"],
+              amount_gate.inputs["Value"])
+
+    coverage_gate = nodes.new("ShaderNodeMath")
+    coverage_gate.location = (2980, -300)
+    coverage_gate.operation = "MULTIPLY"
+    coverage_gate.use_clamp = True
+    links.new(coverage.outputs["Result"], coverage_gate.inputs[0])
+    links.new(amount_gate.outputs["Result"], coverage_gate.inputs[1])
+
+    step_shadow_half = nodes.new("ShaderNodeMapRange")
+    step_shadow_half.location = (2620, -720)
+    step_shadow_half.clamp = True
+    _smooth(step_shadow_half)
+    step_shadow_half.inputs["From Min"].default_value = -0.030
+    step_shadow_half.inputs["From Max"].default_value = -0.012
+    step_shadow_half.inputs["To Min"].default_value = 0.0
+    step_shadow_half.inputs["To Max"].default_value = 0.55
+    links.new(body_signal.outputs[0], step_shadow_half.inputs["Value"])
+
+    step_half_mid = nodes.new("ShaderNodeMapRange")
+    step_half_mid.location = (2620, -600)
+    step_half_mid.clamp = True
+    _smooth(step_half_mid)
+    step_half_mid.inputs["From Min"].default_value = 0.002
+    step_half_mid.inputs["From Max"].default_value = 0.018
+    step_half_mid.inputs["To Min"].default_value = 0.0
+    step_half_mid.inputs["To Max"].default_value = 0.45
+    links.new(body_signal.outputs[0], step_half_mid.inputs["Value"])
+
+    body_mix = nodes.new("ShaderNodeMath")
+    body_mix.location = (2800, -660)
+    body_mix.operation = "ADD"
+    body_mix.use_clamp = True
+    links.new(step_shadow_half.outputs["Result"], body_mix.inputs[0])
+    links.new(step_half_mid.outputs["Result"], body_mix.inputs[1])
 
     fringe = nodes.new("ShaderNodeMapRange")
     fringe.location = (2440, -540)
@@ -1320,10 +1432,10 @@ def _build_gradient_group(ng):
     crown_curve.location = (3160, -1040)
     crown_curve.clamp = True
     _smooth(crown_curve)
-    crown_curve.inputs["From Min"].default_value = 0.014
-    crown_curve.inputs["From Max"].default_value = 0.028
+    crown_curve.inputs["From Min"].default_value = 0.022
+    crown_curve.inputs["From Max"].default_value = 0.042
     crown_curve.inputs["To Min"].default_value = 0.0
-    crown_curve.inputs["To Max"].default_value = 0.85
+    crown_curve.inputs["To Max"].default_value = 0.90
     links.new(body_signal.outputs[0], crown_curve.inputs["Value"])
 
     rim_total = nodes.new("ShaderNodeMath")
@@ -1347,7 +1459,7 @@ def _build_gradient_group(ng):
     a_sock, b_sock, result_sock = _rgba_sockets(mix_body)
     links.new(group_in.outputs["Cloud Shadow"], a_sock)
     links.new(group_in.outputs["Cloud Mid"], b_sock)
-    links.new(body_mix.outputs["Result"], mix_body.inputs["Factor"])
+    links.new(body_mix.outputs[0], mix_body.inputs["Factor"])
 
     mix_light = nodes.new("ShaderNodeMix")
     mix_light.location = (2980, -680)
@@ -1370,7 +1482,7 @@ def _build_gradient_group(ng):
     cloud_mask.location = (1640, 660)
     cloud_mask.operation = "MULTIPLY"
     cloud_mask.use_clamp = True
-    links.new(coverage.outputs["Result"], cloud_mask.inputs[0])
+    links.new(coverage_gate.outputs[0], cloud_mask.inputs[0])
     links.new(horizon.outputs["Result"], cloud_mask.inputs[1])
 
     cloud_amount_node = nodes.new("ShaderNodeMath")
@@ -1672,6 +1784,25 @@ def style_syncing():
     return _syncing_style
 
 
+def apply_preset_style(scene, p):
+    """Apply preset cloud/glow controls behind the style guard."""
+    global _syncing_style
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return
+    _syncing_style = True
+    try:
+        settings.cloud_flatness = p.get("cloud_flatness", 0.65)
+        settings.cloud_scale = p.get("cloud_scale", 3.0)
+        settings.cloud_rim_boost = p.get("cloud_rim_boost", 1.0)
+        settings.cloud_amount = p.get("cloud_amount", 0.6)
+        settings.cloud_delta_gain = p.get("cloud_delta_gain", 1.0)
+        settings.sun_glow = p.get("sun_glow", 0.45)
+        settings.sky_accent_amount = p.get("sky_accent_amount", 0.0)
+    finally:
+        _syncing_style = False
+
+
 def rotation_from_angles(elevation, azimuth):
     """Sun rotation for an elevation/azimuth in degrees."""
     return (math.radians(90.0 - elevation), 0.0,
@@ -1856,14 +1987,7 @@ def apply_palette(scene, key):
     key_changed = scene.get("ald_last_palette") != key
     ensure_sun(scene, p, reset_rotation=key_changed)
     if key_changed and settings is not None:
-        _syncing_style = True
-        try:
-            settings.cloud_flatness = p.get("cloud_flatness", 0.65)
-            settings.cloud_scale = p.get("cloud_scale", 3.0)
-            settings.cloud_rim_boost = p.get("cloud_rim_boost", 1.0)
-            settings.cloud_amount = p.get("cloud_amount", 0.6)
-        finally:
-            _syncing_style = False
+        apply_preset_style(scene, p)
     nt, background = _world_nodes(world)
     _apply_gradient(scene, settings, nt, background, p)
     scene["ald_last_palette"] = key
