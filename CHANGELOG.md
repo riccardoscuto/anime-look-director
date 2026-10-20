@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.7 - 2026-10-20
+### Fixed
+- **Cloud Amount is now coverage, not opacity.** It drives the density
+  threshold `tau0 = 0.68..0.42`, plus a tiny 0..0.03 gate. Low Amount leaves
+  fewer compact opaque clouds instead of transparent ghosts.
+- **Solar finite difference moved after Mapping** and scaled by
+  `0.12 / Cloud Scale`. Detail is shared between both samples, so the step no
+  longer spans a full noise period and no longer creates random light patches.
+- **Contrails are an isoline**: `abs(noise - 0.60)` mapped 0..0.008 -> 1..0,
+  instead of a monotonic MapRange that filled a third of the sky.
+- World gradient marker bumped 10 -> 11 to force existing scenes to rebuild.
+
 ## 0.9.6 - 2026-10-20
 ### Fixed
 - The Sidebar version label used `bpy.context.preferences.addons[...].module`,

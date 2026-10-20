@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.9.6** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.9.7** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -259,3 +259,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
   il grafo con il Cloud Light solo sul bordo.
 - **0.9.6** - fix label versione nella Sidebar: il pannello non spariva più
   per colpa di `addon.module` (stringa) usato come modulo.
+- **0.9.7** - Cloud Amount = copertura, delta solare dopo il Mapping e
+  contrails come isolinea sottile.

@@ -444,8 +444,14 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - **Perlin-Worley density**: inverted Voronoi F1 (0.38) + Perlin N1 0.44 +
   high-frequency erosion N2 0.18. N1 is Detail 5 / Roughness 0.55 / Distortion
   0.20; N2 uses scale*3, Detail 4. Coverage stays 0.50..0.535.
-- **Solar derivative / silver lining**: full density is resampled at
-  `p + 0.12L` (Worley + N1 + N2), so `delta = rho(p) - rho(p_sun)`.
+- **Cloud Amount = coverage**: `tau0 = 0.68 - 0.26*CloudAmount`; coverage uses
+  `tau0..tau0+0.035`, fringe uses `tau0..tau0+0.045`. A 0..0.03 gate makes
+  Amount 0 truly empty. Amount no longer multiplies the final cloud opacity,
+  so 0.2 gives few compact opaque clouds, not transparent ghosts.
+- **Solar derivative / silver lining**: the `0.12/Cloud Scale` step is added
+  after the cloud Mapping in noise space; detail is shared between both
+  samples, so `delta` captures the primary Worley/N1 shapes. This prevents a
+  step of several noise periods along the flatness-stretched Z axis.
   `Delta Gain` (default 1.0) is an explicit UI multiplier; no hidden 3x.
   `body_mix = smoothstep(-0.04, 0.04, delta + 0.15*(Vz - 0.3))` blends
   Shadow -> Mid. `fringe = smoothstep(0.545, 0.50, rho)`,
@@ -467,14 +473,14 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   the core legible at 1080p; star color is (12.0, 12.5, 15.0), zenith
   0.06..0.28, sun hide 0.96..0.995, and clouds hide the field with
   `1 - cloud_amount`.
-- **Contrails**: optional `Contrails` group input; a high-altitude view-vector
-  noise stretched by `(0.12, 5.0, 0.12)`, noise Scale 9, band 0.60..0.615,
-  altitude 0.08..0.30, and an ADD of (1.8, 1.9, 2.1) at 0.18 strength. Off by
-  default.
+- **Contrails**: optional `Contrails` group input; stretched view-vector noise
+  `(0.12, 5.0, 0.12)`, noise Scale 9, altitude 0.08..0.30. The band is the
+  isoline `abs(noise - 0.60)` mapped 0..0.008 -> 1..0, then scaled by 0.18 and
+  ADDed as (1.8, 1.9, 2.1). Off by default.
 - **Gate**: palette registry, AFTER_SCHOOL and the new Sun Glow / Sky Accent /
   Cloud Flatness / Delta Gain / Rim Boost / Contrails sockets are checked.
-  Gate pixel ratios are shadow 2.58 %, wrap 16.32 %, ink 3.47 %, haze 63.06 %,
-  toon 1.59 %, rim 7.09 %. Look-dev renders all seven palettes in a 4-column
+  Gate pixel ratios are shadow 2.61 %, wrap 16.25 %, ink 3.46 %, haze 63.09 %,
+  toon 1.61 %, rim 7.21 %. Look-dev renders all seven palettes in a 4-column
   sheet; the eighth cell stays empty (black).
 
 ### v0.9.0 reference study

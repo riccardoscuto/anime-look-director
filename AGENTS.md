@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.9.6**).
+  (currently **0.9.7**).
 
 ## Verify (run after every change)
 ```powershell
@@ -101,7 +101,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Normal pass by 1.5 px, subtracts, takes vector length, curves 0.01..0.14 and
   multiplies by the normal sensitivity and geometry mask. Combine with the depth
   edge via `MAXIMUM`.
-- World gradient group marker is **10**. Inputs include `Star Amount`, `Star
+- World gradient group marker is **11**. Inputs include `Star Amount`, `Star
   Density` (Voronoi scale, default 180), `Cloud Flatness` and `Cloud Offset`
   (vector). Exact shell point is `(Vx*t, Vy*t, Vz)` with
   `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
@@ -121,13 +121,21 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   (smoothstep -0.08..0.08), and wide
   `gamma+^3.5 * smoothstep(0.75,0,abs(Vz)) * 0.45`; sum scaled by
   `Sun Glow/0.45`, tinted by Sun Color, ADDed before clouds.
-- Solar delta uses the full rho resampled at `p+0.12L`; `Cloud Delta Gain` and
-  `Cloud Rim Boost` are explicit group inputs (default 1.0), not hidden
-  multipliers. Low clouds mix toward Horizon Color by `(1-horizon)*0.65`.
-- Optional contrails use a stretched view-vector noise (0.12,5.0,0.12),
-  noise Scale 9, band 0.60..0.615, altitude 0.08..0.30, group input
-  `Contrails`, default 0, factor 0.18. `Sky Accent`/`Sky Accent Amount` add an
-  optional band within 0.07 of the mid-sky stop.
+- Cloud Amount drives the density threshold, not opacity:
+  `tau0=0.68-0.26*Amount`; coverage `tau0..+0.035`, fringe `..+0.045`, with a
+  0..0.03 empty gate. Do not multiply the final cloud alpha by Cloud Amount.
+- Solar delta step must be applied **after** the cloud Mapping, as
+  `0.12 / Cloud Scale * L`; detail must be common to both samples. Before the
+  Mapping, flatness/scale turn the step into multiple noise periods.
+- `Cloud Delta Gain` and `Cloud Rim Boost` are explicit group inputs
+  (default 1.0), not hidden multipliers. Low clouds mix toward Horizon Color by
+  `(1-horizon)*0.65`.
+- Contrails are an isoline: `abs(noise-0.60)` mapped 0..0.008 -> 1..0. Never
+  use a monotonic 0.60..0.615 MapRange; that fills ~35% of the sky.
+- Contrails use stretched view-vector noise (0.12,5.0,0.12), noise Scale 9,
+  altitude 0.08..0.30, group input `Contrails` default 0, factor 0.18.
+  `Sky Accent`/`Sky Accent Amount` add an optional band within 0.07 of the
+  mid-sky stop.
 - `ensure_sun` only reapplies the preset `sun_rotation` when
   `ald_last_palette` changes. `sync_sun_angles` writes the elevation/azimuth UI
   fields behind `_syncing_angles`; `apply_sun_angles` moves the sun and calls
@@ -140,8 +148,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   respected by `sync_scene`, `sync_one` and material preset apply.
 - Rim Bias maps Sun=1, Contour=0, Backlight=-1. Terminator Warmth is an additive
   `Sun Color * smoothstep(0..0.12, abs(N.L))` band; Skin is boosted to 0.35.
-- Gate pixel ratios: shadow ~2.58 %, wrap ~16.32 %, ink ~3.47 %, haze ~63.06 %
-  (gate plane fills the frame), toon ~1.59 %, rim ~7.09 %.
+- Gate pixel ratios: shadow ~2.61 %, wrap ~16.25 %, ink ~3.46 %, haze ~63.09 %
+  (gate plane fills the frame), toon ~1.61 %, rim ~7.21 %.
 - Shadow tint uses a `MULTIPLY` Mix on Base Color; palette `shadow_tint` colors are
   normalized (max component 1) so textures keep their detail in shadows.
 - Material presets include `EMISSION`; set `Emission Color` / `Emission Strength`,
@@ -152,7 +160,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Panel code must read the module version from `sys.modules[__package__]`;
   `bpy.context.preferences.addons[...].module` is a **path string** in 5.1,
   and accessing `.bl_info` on it kills the whole panel draw.
-- World gradient (`ald_build = 10`) also hosts the sun disk, stars and clouds. Inputs:
+- World gradient (`ald_build = 11`) also hosts the sun disk, stars and clouds. Inputs:
   `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
   (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,
   `Cloud Amount/Scale`. Palette colors are wired through these sockets, never
@@ -235,8 +243,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   tint × combined). `_wire_emission` links it to Principled Emission Color, stores
   `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
   restores on clear.
-- Gate pixel ratios: ink ~3.47 %, rim ~7.09 % (edge-local);
-  shadow ~2.58 %, toon ~1.59 %.
+- Gate pixel ratios: ink ~3.46 %, rim ~7.21 % (edge-local);
+  shadow ~2.61 %, toon ~1.61 %.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
