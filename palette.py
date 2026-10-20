@@ -239,13 +239,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 13):
+                           or ng.get("ald_build") != 14):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 13
+        ng["ald_build"] = 14
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -259,8 +259,170 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 13
+        ng["ald_build"] = 14
     return ng
+
+
+def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
+                          flat_inv, y_offset=0.0):
+    """Build one cloud-density sample for a sky-dome ray.
+
+    Returns (rho_socket, warped_position_socket). The same function is used
+    for the view ray and for the ray displaced toward sun+zenith, so the
+    finite difference stays on the cloud dome.
+    """
+    def node(idname, x, y):
+        item = nodes.new(idname)
+        item.location = (x, y + y_offset)
+        return item
+
+    ray_sep = node("ShaderNodeSeparateXYZ", -1200, -200)
+    links.new(ray_socket, ray_sep.inputs["Vector"])
+
+    z_clamp = node("ShaderNodeMath", -1020, -200)
+    z_clamp.operation = "MAXIMUM"
+    z_clamp.inputs[1].default_value = 0.02
+    links.new(ray_sep.outputs["Z"], z_clamp.inputs[0])
+
+    z_denom = node("ShaderNodeMath", -840, -200)
+    z_denom.operation = "ADD"
+    z_denom.inputs[1].default_value = 0.18
+    links.new(z_clamp.outputs[0], z_denom.inputs[0])
+
+    inv_z = node("ShaderNodeMath", -660, -200)
+    inv_z.operation = "DIVIDE"
+    inv_z.inputs[0].default_value = 0.55
+    links.new(z_denom.outputs[0], inv_z.inputs[1])
+
+    planar_uv = node("ShaderNodeVectorMath", -480, -160)
+    planar_uv.operation = "SCALE"
+    links.new(ray_socket, planar_uv.inputs["Vector"])
+    links.new(inv_z.outputs[0], planar_uv.inputs["Scale"])
+
+    planar_sep = node("ShaderNodeSeparateXYZ", -300, -160)
+    links.new(planar_uv.outputs["Vector"], planar_sep.inputs["Vector"])
+
+    planar_shell = node("ShaderNodeCombineXYZ", -120, -220)
+    links.new(planar_sep.outputs["X"], planar_shell.inputs["X"])
+    links.new(planar_sep.outputs["Y"], planar_shell.inputs["Y"])
+    links.new(ray_sep.outputs["Z"], planar_shell.inputs["Z"])
+
+    view_base = node("ShaderNodeVectorMath", -120, -60)
+    view_base.operation = "SCALE"
+    links.new(ray_socket, view_base.inputs["Vector"])
+    links.new(flat_inv.outputs[0], view_base.inputs["Scale"])
+
+    planar_base = node("ShaderNodeVectorMath", -120, 80)
+    planar_base.operation = "SCALE"
+    links.new(planar_shell.outputs["Vector"], planar_base.inputs["Vector"])
+    links.new(group_in.outputs["Cloud Flatness"], planar_base.inputs["Scale"])
+
+    cloud_base = node("ShaderNodeVectorMath", 80, 0)
+    cloud_base.operation = "ADD"
+    links.new(view_base.outputs["Vector"], cloud_base.inputs[0])
+    links.new(planar_base.outputs["Vector"], cloud_base.inputs[1])
+
+    mapping = node("ShaderNodeMapping", 260, 0)
+    links.new(cloud_base.outputs["Vector"], mapping.inputs["Vector"])
+    links.new(flat_scale.outputs[0], mapping.inputs["Scale"])
+    links.new(group_in.outputs["Cloud Offset"], mapping.inputs["Location"])
+
+    warp_scale = node("ShaderNodeMath", 440, 200)
+    warp_scale.operation = "MULTIPLY"
+    warp_scale.inputs[1].default_value = 0.85
+    links.new(group_in.outputs["Cloud Scale"], warp_scale.inputs[0])
+
+    warp_noise = node("ShaderNodeTexNoise", 620, 200)
+    warp_noise.inputs["Detail"].default_value = 4.0
+    warp_noise.inputs["Roughness"].default_value = 0.55
+    links.new(mapping.outputs["Vector"], warp_noise.inputs["Vector"])
+    links.new(warp_scale.outputs[0], warp_noise.inputs["Scale"])
+
+    warp_center = node("ShaderNodeVectorMath", 800, 200)
+    warp_center.operation = "SUBTRACT"
+    warp_center.inputs[1].default_value = (0.5, 0.5, 0.5)
+    links.new(warp_noise.outputs["Color"], warp_center.inputs[0])
+
+    warp_vec = node("ShaderNodeVectorMath", 980, 200)
+    warp_vec.operation = "SCALE"
+    links.new(warp_center.outputs["Vector"], warp_vec.inputs["Vector"])
+    warp_vec.inputs["Scale"].default_value = 0.28
+
+    warped_pos = node("ShaderNodeVectorMath", 1160, 120)
+    warped_pos.operation = "ADD"
+    links.new(mapping.outputs["Vector"], warped_pos.inputs[0])
+    links.new(warp_vec.outputs["Vector"], warped_pos.inputs[1])
+
+    macro_scale = node("ShaderNodeMath", 620, 420)
+    macro_scale.operation = "MULTIPLY"
+    macro_scale.inputs[1].default_value = 0.55
+    links.new(group_in.outputs["Cloud Scale"], macro_scale.inputs[0])
+
+    macro_noise = node("ShaderNodeTexNoise", 800, 420)
+    macro_noise.inputs["Detail"].default_value = 6.0
+    macro_noise.inputs["Roughness"].default_value = 0.58
+    macro_noise.inputs["Distortion"].default_value = 0.18
+    links.new(warped_pos.outputs["Vector"], macro_noise.inputs["Vector"])
+    links.new(macro_scale.outputs[0], macro_noise.inputs["Scale"])
+
+    macro_weight = node("ShaderNodeMath", 980, 420)
+    macro_weight.operation = "MULTIPLY"
+    macro_weight.inputs[1].default_value = 0.66
+    links.new(macro_noise.outputs["Fac"], macro_weight.inputs[0])
+
+    billow_scale = node("ShaderNodeMath", 620, 600)
+    billow_scale.operation = "MULTIPLY"
+    billow_scale.inputs[1].default_value = 1.35
+    links.new(group_in.outputs["Cloud Scale"], billow_scale.inputs[0])
+
+    billow_noise = node("ShaderNodeTexNoise", 800, 600)
+    billow_noise.inputs["Detail"].default_value = 5.0
+    billow_noise.inputs["Roughness"].default_value = 0.54
+    billow_noise.inputs["Distortion"].default_value = 0.22
+    links.new(warped_pos.outputs["Vector"], billow_noise.inputs["Vector"])
+    links.new(billow_scale.outputs[0], billow_noise.inputs["Scale"])
+
+    billow_weight = node("ShaderNodeMath", 980, 600)
+    billow_weight.operation = "MULTIPLY"
+    billow_weight.inputs[1].default_value = 0.22
+    links.new(billow_noise.outputs["Fac"], billow_weight.inputs[0])
+
+    puff_scale = node("ShaderNodeMath", 620, 780)
+    puff_scale.operation = "MULTIPLY"
+    puff_scale.inputs[1].default_value = 1.60
+    links.new(group_in.outputs["Cloud Scale"], puff_scale.inputs[0])
+
+    puff = node("ShaderNodeTexVoronoi", 800, 780)
+    links.new(warped_pos.outputs["Vector"], puff.inputs["Vector"])
+    links.new(puff_scale.outputs[0], puff.inputs["Scale"])
+
+    puff_range = node("ShaderNodeMapRange", 980, 780)
+    puff_range.clamp = True
+    _smooth(puff_range)
+    puff_range.inputs["From Min"].default_value = 0.0
+    puff_range.inputs["From Max"].default_value = 0.65
+    puff_range.inputs["To Min"].default_value = 1.0
+    puff_range.inputs["To Max"].default_value = 0.0
+    links.new(puff.outputs["Distance"], puff_range.inputs["Value"])
+
+    puff_weight = node("ShaderNodeMath", 1160, 780)
+    puff_weight.operation = "MULTIPLY"
+    puff_weight.inputs[1].default_value = 0.12
+    links.new(puff_range.outputs["Result"], puff_weight.inputs[0])
+
+    macro_billow = node("ShaderNodeMath", 1160, 500)
+    macro_billow.operation = "ADD"
+    macro_billow.use_clamp = True
+    links.new(macro_weight.outputs[0], macro_billow.inputs[0])
+    links.new(billow_weight.outputs[0], macro_billow.inputs[1])
+
+    rho = node("ShaderNodeMath", 1340, 620)
+    rho.operation = "ADD"
+    rho.use_clamp = True
+    links.new(macro_billow.outputs[0], rho.inputs[0])
+    links.new(puff_weight.outputs[0], rho.inputs[1])
+
+    return rho.outputs[0], warped_pos.outputs["Vector"]
 
 
 def _build_gradient_group(ng):
@@ -776,64 +938,6 @@ def _build_gradient_group(ng):
     flat_inv.inputs[0].default_value = 1.0
     links.new(group_in.outputs["Cloud Flatness"], flat_inv.inputs[1])
 
-    view_base = nodes.new("ShaderNodeVectorMath")
-    view_base.location = (1720, -220)
-    view_base.operation = "SCALE"
-    links.new(view_norm.outputs["Vector"], view_base.inputs["Vector"])
-    links.new(flat_inv.outputs[0], view_base.inputs["Scale"])
-
-    planar_base = nodes.new("ShaderNodeVectorMath")
-    planar_base.location = (1720, -340)
-    planar_base.operation = "SCALE"
-    links.new(planar_shell.outputs["Vector"], planar_base.inputs["Vector"])
-    links.new(group_in.outputs["Cloud Flatness"],
-              planar_base.inputs["Scale"])
-
-    cloud_base = nodes.new("ShaderNodeVectorMath")
-    cloud_base.location = (1900, -280)
-    cloud_base.operation = "ADD"
-    links.new(view_base.outputs["Vector"], cloud_base.inputs[0])
-    links.new(planar_base.outputs["Vector"], cloud_base.inputs[1])
-
-    cloud_mapping = nodes.new("ShaderNodeMapping")
-    cloud_mapping.location = (2260, -100)
-    links.new(cloud_base.outputs["Vector"], cloud_mapping.inputs["Vector"])
-    links.new(flat_scale.outputs[0], cloud_mapping.inputs["Scale"])
-    links.new(group_in.outputs["Cloud Offset"],
-              cloud_mapping.inputs["Location"])
-
-    # Domain warp: break the Voronoi grid and give banks wind-blown tails.
-    warp_scale = nodes.new("ShaderNodeMath")
-    warp_scale.location = (2260, -200)
-    warp_scale.operation = "MULTIPLY"
-    warp_scale.inputs[1].default_value = 0.55
-    links.new(group_in.outputs["Cloud Scale"], warp_scale.inputs[0])
-
-    warp_noise = nodes.new("ShaderNodeTexNoise")
-    warp_noise.location = (2440, -200)
-    warp_noise.inputs["Detail"].default_value = 3.0
-    warp_noise.inputs["Roughness"].default_value = 0.50
-    links.new(cloud_mapping.outputs["Vector"], warp_noise.inputs["Vector"])
-    links.new(warp_scale.outputs[0], warp_noise.inputs["Scale"])
-
-    warp_center = nodes.new("ShaderNodeVectorMath")
-    warp_center.location = (2620, -200)
-    warp_center.operation = "SUBTRACT"
-    warp_center.inputs[1].default_value = (0.5, 0.5, 0.5)
-    links.new(warp_noise.outputs["Color"], warp_center.inputs[0])
-
-    warp_scale_vec = nodes.new("ShaderNodeVectorMath")
-    warp_scale_vec.location = (2800, -200)
-    warp_scale_vec.operation = "SCALE"
-    links.new(warp_center.outputs["Vector"], warp_scale_vec.inputs["Vector"])
-    warp_scale_vec.inputs["Scale"].default_value = 0.32
-
-    warped_pos = nodes.new("ShaderNodeVectorMath")
-    warped_pos.location = (2980, -120)
-    warped_pos.operation = "ADD"
-    links.new(cloud_mapping.outputs["Vector"], warped_pos.inputs[0])
-    links.new(warp_scale_vec.outputs["Vector"], warped_pos.inputs[1])
-
     # Optional contrails: straight gnomonic-plane filaments. Use X/Z and Y/Z
     # (not the curved shell projection) so a constant-u line stays straight.
     trail_z = nodes.new("ShaderNodeMath")
@@ -1010,199 +1114,99 @@ def _build_gradient_group(ng):
     links.new(contrail_factor.outputs[0], contrail_add.inputs["Factor"])
     sky_color = result_sock
 
-    macro_scale = nodes.new("ShaderNodeMath")
-    macro_scale.location = (3160, -120)
-    macro_scale.operation = "MULTIPLY"
-    macro_scale.inputs[1].default_value = 0.42
-    links.new(group_in.outputs["Cloud Scale"], macro_scale.inputs[0])
+    rho_here, warped_pos = _sample_cloud_density(
+        nodes, links, view_norm.outputs["Vector"], group_in,
+        flat_scale, flat_inv, y_offset=0.0)
 
-    macro_noise = nodes.new("ShaderNodeTexNoise")
-    macro_noise.location = (3340, -120)
-    macro_noise.inputs["Detail"].default_value = 3.0
-    macro_noise.inputs["Roughness"].default_value = 0.50
-    links.new(warped_pos.outputs["Vector"], macro_noise.inputs["Vector"])
-    links.new(macro_scale.outputs[0], macro_noise.inputs["Scale"])
-
-    macro_weight = nodes.new("ShaderNodeMath")
-    macro_weight.location = (3520, -120)
-    macro_weight.operation = "MULTIPLY"
-    macro_weight.inputs[1].default_value = 0.26
-    links.new(macro_noise.outputs["Fac"], macro_weight.inputs[0])
-
-    # Inverted Worley F1 gives compact, convex anime cloud lobes.
-    worley = nodes.new("ShaderNodeTexVoronoi")
-    worley.location = (1540, -560)
-    links.new(warped_pos.outputs["Vector"], worley.inputs["Vector"])
-    links.new(group_in.outputs["Cloud Scale"], worley.inputs["Scale"])
-
-    worley_range = nodes.new("ShaderNodeMapRange")
-    worley_range.location = (1720, -560)
-    worley_range.clamp = True
-    _smooth(worley_range)
-    worley_range.inputs["From Min"].default_value = 0.0
-    worley_range.inputs["From Max"].default_value = 0.75
-    worley_range.inputs["To Min"].default_value = 1.0
-    worley_range.inputs["To Max"].default_value = 0.0
-    links.new(worley.outputs["Distance"], worley_range.inputs["Value"])
-
-    worley_weight = nodes.new("ShaderNodeMath")
-    worley_weight.location = (1900, -560)
-    worley_weight.operation = "MULTIPLY"
-    worley_weight.inputs[1].default_value = 0.36
-    links.new(worley_range.outputs["Result"], worley_weight.inputs[0])
-
-    noise = nodes.new("ShaderNodeTexNoise")
-    noise.location = (1720, -120)
-    noise.inputs["Detail"].default_value = 5.0
-    noise.inputs["Roughness"].default_value = 0.55
-    noise.inputs["Distortion"].default_value = 0.20
-    links.new(warped_pos.outputs["Vector"], noise.inputs["Vector"])
-    links.new(group_in.outputs["Cloud Scale"], noise.inputs["Scale"])
-
-    detail_scale = nodes.new("ShaderNodeMath")
-    detail_scale.location = (1540, -420)
-    detail_scale.operation = "MULTIPLY"
-    detail_scale.inputs[1].default_value = 2.8
-    links.new(group_in.outputs["Cloud Scale"], detail_scale.inputs[0])
-
-    detail = nodes.new("ShaderNodeTexNoise")
-    detail.location = (1720, -420)
-    detail.inputs["Detail"].default_value = 4.0
-    detail.inputs["Roughness"].default_value = 0.54
-    detail.inputs["Distortion"].default_value = 0.08
-    links.new(warped_pos.outputs["Vector"], detail.inputs["Vector"])
-    links.new(detail_scale.outputs[0], detail.inputs["Scale"])
-
-    base_weight = nodes.new("ShaderNodeMath")
-    base_weight.location = (1900, -160)
-    base_weight.operation = "MULTIPLY"
-    base_weight.inputs[1].default_value = 0.38
-    links.new(noise.outputs["Fac"], base_weight.inputs[0])
-
-    detail_center = nodes.new("ShaderNodeMath")
-    detail_center.location = (1900, -320)
-    detail_center.operation = "SUBTRACT"
-    detail_center.inputs[1].default_value = 0.5
-    links.new(detail.outputs["Fac"], detail_center.inputs[0])
-
-    detail_gain = nodes.new("ShaderNodeMath")
-    detail_gain.location = (2080, -320)
-    detail_gain.operation = "MULTIPLY"
-    detail_gain.inputs[1].default_value = 0.06
-    links.new(detail_center.outputs[0], detail_gain.inputs[0])
-
-    combined_noise = nodes.new("ShaderNodeMath")
-    combined_noise.location = (2080, -240)
-    combined_noise.operation = "ADD"
-    combined_noise.use_clamp = True
-    links.new(base_weight.outputs[0], combined_noise.inputs[0])
-    links.new(macro_weight.outputs[0], combined_noise.inputs[1])
-
-    combined = nodes.new("ShaderNodeMath")
-    combined.location = (2260, -300)
-    combined.operation = "ADD"
-    combined.use_clamp = True
-    links.new(combined_noise.outputs[0], combined.inputs[0])
-    links.new(worley_weight.outputs[0], combined.inputs[1])
-
-    # Per-cloud self-shadow direction: sun + zenith, normalized. The finite
-    # difference is applied after Mapping and uses 0.38 / Cloud Scale.
+    # Displace the *view ray* by ~2 degrees on the sky dome, not the mapped
+    # cloud point. Sun+zenith defines the per-cloud light direction.
     light_up = nodes.new("ShaderNodeVectorMath")
-    light_up.location = (2260, -620)
+    light_up.location = (1540, -720)
     light_up.operation = "ADD"
     links.new(sun_norm.outputs["Vector"], light_up.inputs[0])
     light_up.inputs[1].default_value = (0.0, 0.0, 0.65)
 
     light_dir = nodes.new("ShaderNodeVectorMath")
-    light_dir.location = (2440, -620)
+    light_dir.location = (1720, -720)
     light_dir.operation = "NORMALIZE"
     links.new(light_up.outputs["Vector"], light_dir.inputs[0])
 
-    sun_mapped_step = nodes.new("ShaderNodeMath")
-    sun_mapped_step.location = (2260, -720)
-    sun_mapped_step.operation = "DIVIDE"
-    sun_mapped_step.inputs[0].default_value = 0.38
-    links.new(group_in.outputs["Cloud Scale"], sun_mapped_step.inputs[1])
+    sun_ray_step = nodes.new("ShaderNodeVectorMath")
+    sun_ray_step.location = (1900, -720)
+    sun_ray_step.operation = "SCALE"
+    links.new(light_dir.outputs["Vector"], sun_ray_step.inputs["Vector"])
+    sun_ray_step.inputs["Scale"].default_value = 0.035
 
-    sun_mapped_vec = nodes.new("ShaderNodeVectorMath")
-    sun_mapped_vec.location = (2440, -720)
-    sun_mapped_vec.operation = "SCALE"
-    links.new(light_dir.outputs["Vector"], sun_mapped_vec.inputs["Vector"])
-    links.new(sun_mapped_step.outputs[0], sun_mapped_vec.inputs["Scale"])
+    view_sun_raw = nodes.new("ShaderNodeVectorMath")
+    view_sun_raw.location = (2080, -720)
+    view_sun_raw.operation = "ADD"
+    links.new(view_norm.outputs["Vector"], view_sun_raw.inputs[0])
+    links.new(sun_ray_step.outputs["Vector"], view_sun_raw.inputs[1])
 
-    mapped_sun = nodes.new("ShaderNodeVectorMath")
-    mapped_sun.location = (2620, -720)
-    mapped_sun.operation = "ADD"
-    links.new(cloud_mapping.outputs["Vector"], mapped_sun.inputs[0])
-    links.new(sun_mapped_vec.outputs["Vector"], mapped_sun.inputs[1])
+    view_sun_norm = nodes.new("ShaderNodeVectorMath")
+    view_sun_norm.location = (2260, -720)
+    view_sun_norm.operation = "NORMALIZE"
+    links.new(view_sun_raw.outputs["Vector"], view_sun_norm.inputs[0])
 
-    mapped_sun_warp = nodes.new("ShaderNodeVectorMath")
-    mapped_sun_warp.location = (2800, -720)
-    mapped_sun_warp.operation = "ADD"
-    links.new(mapped_sun.outputs["Vector"], mapped_sun_warp.inputs[0])
-    links.new(warp_scale_vec.outputs["Vector"], mapped_sun_warp.inputs[1])
-
-    noise_sun = nodes.new("ShaderNodeTexNoise")
-    noise_sun.location = (2980, -760)
-    noise_sun.inputs["Detail"].default_value = 5.0
-    noise_sun.inputs["Roughness"].default_value = 0.55
-    noise_sun.inputs["Distortion"].default_value = 0.20
-    links.new(mapped_sun_warp.outputs["Vector"], noise_sun.inputs["Vector"])
-    links.new(group_in.outputs["Cloud Scale"], noise_sun.inputs["Scale"])
-
-    worley_sun = nodes.new("ShaderNodeTexVoronoi")
-    worley_sun.location = (2980, -1060)
-    links.new(mapped_sun_warp.outputs["Vector"], worley_sun.inputs["Vector"])
-    links.new(group_in.outputs["Cloud Scale"], worley_sun.inputs["Scale"])
-
-    worley_sun_range = nodes.new("ShaderNodeMapRange")
-    worley_sun_range.location = (3160, -1060)
-    worley_sun_range.clamp = True
-    _smooth(worley_sun_range)
-    worley_sun_range.inputs["From Min"].default_value = 0.0
-    worley_sun_range.inputs["From Max"].default_value = 0.75
-    worley_sun_range.inputs["To Min"].default_value = 1.0
-    worley_sun_range.inputs["To Max"].default_value = 0.0
-    links.new(worley_sun.outputs["Distance"], worley_sun_range.inputs["Value"])
-
-    worley_sun_weight = nodes.new("ShaderNodeMath")
-    worley_sun_weight.location = (3340, -1060)
-    worley_sun_weight.operation = "MULTIPLY"
-    worley_sun_weight.inputs[1].default_value = 0.36
-    links.new(worley_sun_range.outputs["Result"], worley_sun_weight.inputs[0])
-
-    base_sun_weight = nodes.new("ShaderNodeMath")
-    base_sun_weight.location = (3160, -820)
-    base_sun_weight.operation = "MULTIPLY"
-    base_sun_weight.inputs[1].default_value = 0.38
-    links.new(noise_sun.outputs["Fac"], base_sun_weight.inputs[0])
-
-    combined_sun_noise = nodes.new("ShaderNodeMath")
-    combined_sun_noise.location = (3340, -860)
-    combined_sun_noise.operation = "ADD"
-    combined_sun_noise.use_clamp = True
-    links.new(base_sun_weight.outputs[0], combined_sun_noise.inputs[0])
-    links.new(macro_weight.outputs[0], combined_sun_noise.inputs[1])
-
-    combined_sun = nodes.new("ShaderNodeMath")
-    combined_sun.location = (3520, -900)
-    combined_sun.operation = "ADD"
-    combined_sun.use_clamp = True
-    links.new(combined_sun_noise.outputs[0], combined_sun.inputs[0])
-    links.new(worley_sun_weight.outputs[0], combined_sun.inputs[1])
+    rho_sun, _warped_sun = _sample_cloud_density(
+        nodes, links, view_sun_norm.outputs["Vector"], group_in,
+        flat_scale, flat_inv, y_offset=-1200.0)
 
     delta = nodes.new("ShaderNodeMath")
-    delta.location = (2620, -900)
+    delta.location = (2440, -900)
     delta.operation = "SUBTRACT"
-    links.new(combined.outputs[0], delta.inputs[0])
-    links.new(combined_sun.outputs[0], delta.inputs[1])
+    links.new(rho_here, delta.inputs[0])
+    links.new(rho_sun, delta.inputs[1])
 
     delta_used = nodes.new("ShaderNodeMath")
-    delta_used.location = (2800, -900)
+    delta_used.location = (2620, -900)
     delta_used.operation = "MULTIPLY"
     links.new(delta.outputs[0], delta_used.inputs[0])
     links.new(group_in.outputs["Cloud Delta Gain"], delta_used.inputs[1])
 
+    detail_scale = nodes.new("ShaderNodeMath")
+    detail_scale.location = (2440, -1140)
+    detail_scale.operation = "MULTIPLY"
+    detail_scale.inputs[1].default_value = 3.0
+    links.new(group_in.outputs["Cloud Scale"], detail_scale.inputs[0])
+
+    detail = nodes.new("ShaderNodeTexNoise")
+    detail.location = (2620, -1140)
+    detail.inputs["Detail"].default_value = 5.0
+    detail.inputs["Roughness"].default_value = 0.60
+    links.new(warped_pos, detail.inputs["Vector"])
+    links.new(detail_scale.outputs[0], detail.inputs["Scale"])
+
+    detail_center = nodes.new("ShaderNodeMath")
+    detail_center.location = (2800, -1140)
+    detail_center.operation = "SUBTRACT"
+    detail_center.inputs[1].default_value = 0.5
+    links.new(detail.outputs["Fac"], detail_center.inputs[0])
+
+    detail_edge = nodes.new("ShaderNodeMath")
+    detail_edge.location = (2980, -1140)
+    detail_edge.operation = "MULTIPLY"
+    detail_edge.inputs[1].default_value = 0.018
+    links.new(detail_center.outputs[0], detail_edge.inputs[0])
+
+    detail_body = nodes.new("ShaderNodeMath")
+    detail_body.location = (2980, -1260)
+    detail_body.operation = "MULTIPLY"
+    detail_body.inputs[1].default_value = 0.022
+    links.new(detail_center.outputs[0], detail_body.inputs[0])
+
+    rho_sculpted = nodes.new("ShaderNodeMath")
+    rho_sculpted.location = (3160, -1080)
+    rho_sculpted.operation = "ADD"
+    rho_sculpted.use_clamp = True
+    links.new(rho_here, rho_sculpted.inputs[0])
+    links.new(detail_edge.outputs[0], rho_sculpted.inputs[1])
+
+    body_signal = nodes.new("ShaderNodeMath")
+    body_signal.location = (3160, -900)
+    body_signal.operation = "ADD"
+    links.new(delta_used.outputs[0], body_signal.inputs[0])
+    links.new(detail_body.outputs[0], body_signal.inputs[1])
     # Cloud Amount is coverage, not opacity: 0 -> few compact islands,
     # 1 -> sky-filling banks. tau0 maps 0.68..0.42.
     coverage_center = nodes.new("ShaderNodeMapRange")
@@ -1210,33 +1214,22 @@ def _build_gradient_group(ng):
     coverage_center.clamp = True
     coverage_center.inputs["From Min"].default_value = 0.0
     coverage_center.inputs["From Max"].default_value = 1.0
-    coverage_center.inputs["To Min"].default_value = 0.68
-    coverage_center.inputs["To Max"].default_value = 0.42
+    coverage_center.inputs["To Min"].default_value = 0.58
+    coverage_center.inputs["To Max"].default_value = 0.40
     links.new(group_in.outputs["Cloud Amount"],
               coverage_center.inputs["Value"])
 
     coverage_top = nodes.new("ShaderNodeMath")
     coverage_top.location = (2620, -220)
     coverage_top.operation = "ADD"
-    coverage_top.inputs[1].default_value = 0.055
+    coverage_top.inputs[1].default_value = 0.018
     links.new(coverage_center.outputs["Result"], coverage_top.inputs[0])
 
     fringe_top = nodes.new("ShaderNodeMath")
     fringe_top.location = (2620, -380)
     fringe_top.operation = "ADD"
-    fringe_top.inputs[1].default_value = 0.045
+    fringe_top.inputs[1].default_value = 0.035
     links.new(coverage_center.outputs["Result"], fringe_top.inputs[0])
-
-    amount_gate = nodes.new("ShaderNodeMapRange")
-    amount_gate.location = (2440, -80)
-    amount_gate.clamp = True
-    _smooth(amount_gate)
-    amount_gate.inputs["From Min"].default_value = 0.0
-    amount_gate.inputs["From Max"].default_value = 0.03
-    amount_gate.inputs["To Min"].default_value = 0.0
-    amount_gate.inputs["To Max"].default_value = 1.0
-    links.new(group_in.outputs["Cloud Amount"],
-              amount_gate.inputs["Value"])
 
     # Crisp anime silhouette + directional body / silver lining.
     coverage = nodes.new("ShaderNodeMapRange")
@@ -1245,27 +1238,14 @@ def _build_gradient_group(ng):
     _smooth(coverage)
     links.new(coverage_center.outputs["Result"], coverage.inputs["From Min"])
     links.new(coverage_top.outputs[0], coverage.inputs["From Max"])
-    links.new(combined.outputs[0], coverage.inputs["Value"])
-
-    coverage_gate = nodes.new("ShaderNodeMath")
-    coverage_gate.location = (2980, -300)
-    coverage_gate.operation = "MULTIPLY"
-    coverage_gate.use_clamp = True
-    links.new(coverage.outputs["Result"], coverage_gate.inputs[0])
-    links.new(amount_gate.outputs["Result"], coverage_gate.inputs[1])
-
-    body_signal = nodes.new("ShaderNodeMath")
-    body_signal.location = (2440, -720)
-    body_signal.operation = "ADD"
-    links.new(delta_used.outputs[0], body_signal.inputs[0])
-    links.new(detail_gain.outputs[0], body_signal.inputs[1])
+    links.new(rho_sculpted.outputs[0], coverage.inputs["Value"])
 
     body_mix = nodes.new("ShaderNodeMapRange")
     body_mix.location = (2620, -720)
     body_mix.clamp = True
     _smooth(body_mix)
-    body_mix.inputs["From Min"].default_value = -0.04
-    body_mix.inputs["From Max"].default_value = 0.04
+    body_mix.inputs["From Min"].default_value = -0.014
+    body_mix.inputs["From Max"].default_value = 0.002
     body_mix.inputs["To Min"].default_value = 0.0
     body_mix.inputs["To Max"].default_value = 1.0
     links.new(body_signal.outputs[0], body_mix.inputs["Value"])
@@ -1278,14 +1258,14 @@ def _build_gradient_group(ng):
     fringe.inputs["To Max"].default_value = 0.0
     links.new(coverage_center.outputs["Result"], fringe.inputs["From Min"])
     links.new(fringe_top.outputs[0], fringe.inputs["From Max"])
-    links.new(combined.outputs[0], fringe.inputs["Value"])
+    links.new(rho_sculpted.outputs[0], fringe.inputs["Value"])
 
     sun_edge = nodes.new("ShaderNodeMapRange")
     sun_edge.location = (2440, -900)
     sun_edge.clamp = True
     _smooth(sun_edge)
-    sun_edge.inputs["From Min"].default_value = -0.01
-    sun_edge.inputs["From Max"].default_value = 0.06
+    sun_edge.inputs["From Min"].default_value = -0.005
+    sun_edge.inputs["From Max"].default_value = 0.025
     sun_edge.inputs["To Min"].default_value = 0.0
     sun_edge.inputs["To Max"].default_value = 1.0
     links.new(delta_used.outputs[0], sun_edge.inputs["Value"])
@@ -1313,13 +1293,13 @@ def _build_gradient_group(ng):
     gamma_weight = nodes.new("ShaderNodeMath")
     gamma_weight.location = (2620, -1040)
     gamma_weight.operation = "MULTIPLY"
-    gamma_weight.inputs[1].default_value = 0.65
+    gamma_weight.inputs[1].default_value = 0.55
     links.new(gamma_sq.outputs[0], gamma_weight.inputs[0])
 
     gamma_add = nodes.new("ShaderNodeMath")
     gamma_add.location = (2800, -1040)
     gamma_add.operation = "ADD"
-    gamma_add.inputs[1].default_value = 0.35
+    gamma_add.inputs[1].default_value = 0.45
     links.new(gamma_weight.outputs[0], gamma_add.inputs[0])
 
     rim_edge = nodes.new("ShaderNodeMath")
@@ -1340,31 +1320,18 @@ def _build_gradient_group(ng):
     crown_curve.location = (3160, -1040)
     crown_curve.clamp = True
     _smooth(crown_curve)
-    crown_curve.inputs["From Min"].default_value = 0.03
-    crown_curve.inputs["From Max"].default_value = 0.11
+    crown_curve.inputs["From Min"].default_value = 0.014
+    crown_curve.inputs["From Max"].default_value = 0.028
     crown_curve.inputs["To Min"].default_value = 0.0
-    crown_curve.inputs["To Max"].default_value = 1.0
+    crown_curve.inputs["To Max"].default_value = 0.85
     links.new(body_signal.outputs[0], crown_curve.inputs["Value"])
-
-    crown_edge = nodes.new("ShaderNodeMath")
-    crown_edge.location = (3340, -1040)
-    crown_edge.operation = "MULTIPLY"
-    crown_edge.use_clamp = True
-    links.new(crown_curve.outputs["Result"], crown_edge.inputs[0])
-    links.new(sun_edge.outputs["Result"], crown_edge.inputs[1])
-
-    crown_amount = nodes.new("ShaderNodeMath")
-    crown_amount.location = (3520, -1040)
-    crown_amount.operation = "MULTIPLY"
-    crown_amount.inputs[1].default_value = 0.35
-    links.new(crown_edge.outputs[0], crown_amount.inputs[0])
 
     rim_total = nodes.new("ShaderNodeMath")
     rim_total.location = (3340, -900)
-    rim_total.operation = "ADD"
+    rim_total.operation = "MAXIMUM"
     rim_total.use_clamp = True
     links.new(rim_factor.outputs[0], rim_total.inputs[0])
-    links.new(crown_amount.outputs[0], rim_total.inputs[1])
+    links.new(crown_curve.outputs["Result"], rim_total.inputs[1])
 
     rim_boosted = nodes.new("ShaderNodeMath")
     rim_boosted.location = (3520, -900)
@@ -1403,7 +1370,7 @@ def _build_gradient_group(ng):
     cloud_mask.location = (1640, 660)
     cloud_mask.operation = "MULTIPLY"
     cloud_mask.use_clamp = True
-    links.new(coverage_gate.outputs[0], cloud_mask.inputs[0])
+    links.new(coverage.outputs["Result"], cloud_mask.inputs[0])
     links.new(horizon.outputs["Result"], cloud_mask.inputs[1])
 
     cloud_amount_node = nodes.new("ShaderNodeMath")

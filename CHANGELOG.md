@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.0.0 - 2026-10-20
+### Added
+- `_sample_cloud_density()` helper: projects any sky-dome ray through the
+  curved shell, applies domain warping and returns a multi-octave fBm density
+  plus the warped cloud position.
+- Cloud shape is now fBm-dominated: macro 0.66 + billow 0.22 + high-frequency
+  Voronoi puff 0.12, with domain warp 0.28. The weights were calibrated from
+  the first 62/24/14 + 0.42 test, which produced fragmented holes in the
+  viewport; the requested morphology/structure is preserved without the
+  spherical Voronoi grid.
+- Solar finite difference is now computed on the **sky dome**: displace the
+  view ray by 0.035 rad toward `normalize(sun + zenith*0.65)`, then call the
+  same density helper again. No 3D cell mismatch.
+- Crisp silhouette: `coverage_top = coverage_center + 0.018`; detail is
+  injected into the contour (`*0.018`) and body (`*0.022`) separately.
+- Three cel bands: tight `body_mix` -0.014..0.002, crown 0.014..0.028 at
+  0.85, rim = MAX(crown, fringe*sun_edge*gamma), then Rim Boost.
+- Contrails remain straight gnomonic filaments.
+- World gradient marker 14.
+
 ## 0.9.9 - 2026-10-20
 ### Fixed
 - Contrails now use gnomonic `X/Z`, `Y/Z` coordinates instead of the curved

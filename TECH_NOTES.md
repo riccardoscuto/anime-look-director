@@ -502,3 +502,26 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   double-tint aerial perspective. The implemented equivalents are the planar
   shell, three-tone cloud transfer, full-density solar derivative, Mie lobes,
   aerial cloud/horizon blend and contrail layer.
+
+### v1.0.0 notes (dome-sampled clouds, three cel bands)
+- `_sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
+  flat_inv, y_offset)` builds projection, flatness blend, Mapping, warp and
+  fBm for any sky ray. It returns `(rho, warped_pos)`.
+- Density is 0.66 macro (Detail 6, Roughness 0.58, Distortion 0.18) + 0.22
+  billow (Detail 5, Roughness 0.54, Distortion 0.22) + 0.12 high-frequency
+  Voronoi puff (0..0.65 inverted). Domain warp: 0.85*Cloud Scale, centered,
+  offset 0.28. This is a deliberate calibration from the first 62/24/14 +
+  0.42 test, which produced fragmented holes.
+- Solar derivative: `light_dir = normalize(sun + (0,0,0.65))`;
+  `view_sun_norm = normalize(view + 0.035*light_dir)`; both rays use the same
+  helper. The mapped point is never displaced into another Voronoi cell.
+- Coverage: `coverage_center = 0.58..0.40` over Cloud Amount, top +0.018.
+  Detail is split: contour `detail_edge=0.018`, body `detail_body=0.022`.
+  `body_mix` is the tight -0.014..0.002 step; crown is
+  `smoothstep(0.014,0.028,body_signal)` at 0.85. Rim is
+  `fringe*0.92*sun_edge*(0.45+0.55*gamma^2)`, combined with the crown via
+  `MAXIMUM`, then Rim Boost.
+- Contrails use gnomonic `X/Z,Y/Z` straight filaments; the old spherical and
+  curved-shell projections produce arcs.
+- Marker is 14. Gate ratios: shadow 2.62 %, wrap 14.68 %, ink 3.56 %,
+  haze 63.00 %, toon 1.60 %, rim 6.67 %. Look-dev: all seven palettes.

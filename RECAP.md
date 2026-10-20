@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.9.9** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 1.0.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -265,3 +265,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
   singola nuvola e contrails rettilinei in prospettiva.
 - **0.9.9** - Contrails in coordinate gnomonico `X/Z`, `Y/Z` per evitare archi;
   marker World Group 13.
+- **1.0.0** - Densità nuvole campionata sulla cupola con helper dedicato,
+  morfologia fBm, derivata solare 2D e 3 fasce cel-shaded nette.
