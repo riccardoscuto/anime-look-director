@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 9, 0)
+EXPECTED_VERSION = (0, 9, 1)
 TOLERANCE = 1e-4
 
 
@@ -290,6 +290,15 @@ def check_world_gradient(scene, settings):
     sun = find_sun(scene)
     check(sun is not None and close(sun.data.color, after["sun_color"]),
           "after school sun not synced")
+    check(abs(settings.cloud_flatness - after["cloud_flatness"]) <= TOLERANCE,
+          "after school cloud flatness not applied")
+    check(abs(settings.cloud_scale - after["cloud_scale"]) <= TOLERANCE,
+          "after school cloud scale not applied")
+    check(abs(settings.cloud_rim_boost
+              - after["cloud_rim_boost"]) <= TOLERANCE,
+          "after school rim boost not applied")
+    check(abs(settings.cloud_amount - after["cloud_amount"]) <= TOLERANCE,
+          "after school cloud amount not applied")
     settings.palette = "GOLDEN_HOUR"
     bpy.ops.ald.apply_palette()
 

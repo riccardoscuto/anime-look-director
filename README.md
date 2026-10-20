@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v0.9.0)
+## What it does (v0.9.1)
 - Seven atmosphere presets (Shinkai Golden Hour, **After School Sunset**, Ghibli
   Summer Noon, Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -106,7 +106,8 @@ Expected output: `ALD GATE: PASS`.
   normal ink, terminator warmth, rim modes, material exclusion
 - v0.8.1 - custom Sun no longer repaints the clouds
 - v0.9.0 - After School palette, planar cloud deck, backlit silver-lining
-  shading, micro starfield and new sky gradient mapping (current)
+  shading, micro starfield and new sky gradient mapping
+- v0.9.1 - per-preset cloud morphology/style calibration from reference images (current)
 - v1.0 - store release (legacy ZIP + Extension), presets and docs
 
 ## Recap

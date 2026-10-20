@@ -434,8 +434,13 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - **Planar clouds**: exact shell point
   `p=(Vx*t, Vy*t, Vz)` with `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
   `Scale=(0.75, 0.75, 1.25 + 3.0 * Cloud Flatness)`; flatness 0.65 gives 3.2.
-  Cloud Offset still drives the Mapping location. The sun-shell sample uses
-  `(Vx*t+0.12Lx, Vy*t+0.12Ly, Vz+0.12Lz)`.
+  Cloud Flatness also blends the raw spherical view (billowy) with the planar
+  shell: 0 = cumuli, 1 = strata. Cloud Offset still drives the Mapping location.
+  The sun-shell sample uses `(Vx*t+0.12Lx, Vy*t+0.12Ly, Vz+0.12Lz)`.
+- **Per-preset style**: each preset stores `cloud_flatness`, `cloud_scale`,
+  `cloud_rim_boost` and `cloud_amount`. `apply_palette()` applies them only on
+  a key change behind `palette.style_syncing()`; `_on_world` returns while the
+  guard is active. Manual overrides persist on world refreshes.
 - **Perlin-Worley density**: inverted Voronoi F1 (0.38) + Perlin N1 0.44 +
   high-frequency erosion N2 0.18. N1 is Detail 5 / Roughness 0.55 / Distortion
   0.20; N2 uses scale*3, Detail 4. Coverage stays 0.50..0.535.
@@ -467,8 +472,8 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   default.
 - **Gate**: palette registry, AFTER_SCHOOL and the new Sun Glow / Sky Accent /
   Cloud Flatness / Delta Gain / Rim Boost / Contrails sockets are checked.
-  Gate pixel ratios are shadow 2.60 %, wrap 16.06 %, ink 3.45 %, haze 63.04 %,
-  toon 1.59 %, rim 7.12 %. Look-dev renders all seven palettes in a 4-column
+  Gate pixel ratios are shadow 2.62 %, wrap 16.08 %, ink 3.46 %, haze 63.03 %,
+  toon 1.59 %, rim 7.08 %. Look-dev renders all seven palettes in a 4-column
   sheet; the eighth cell stays empty (black).
 
 ### v0.9.0 reference study

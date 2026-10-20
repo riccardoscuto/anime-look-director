@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.9.0**).
+  (currently **0.9.1**).
 
 ## Verify (run after every change)
 ```powershell
@@ -107,7 +107,12 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
   `Scale=(0.75, 0.75, 1.25 + 3.0 * Cloud Flatness)`; Cloud Offset feeds the
   Mapping location (`frame * cloud_wind * (0.02, 0.005, 0)`). Stars use the
-  unoffset view vector. `Cloud Flatness=0.65` reproduces Z=3.2.
+  unoffset view vector. `Cloud Flatness=0.65` reproduces Z=3.2 and also blends
+  raw spherical view (0 = billowy) with the planar shell (1 = strata).
+- Per-preset cloud style keys: `cloud_flatness`, `cloud_scale`,
+  `cloud_rim_boost`, `cloud_amount`. `apply_palette` syncs them only on key
+  change behind `palette.style_syncing()`; `_on_world` must return while that
+  guard is active. Manual sliders persist on same-palette refreshes.
 - Micro stars: Voronoi Scale = `Star Density * 2.5`; distance curve 0..0.040,
   POWER 2.5, multiplied by a 45-scale Noise -> MapRange 0.48..0.78 magnitude
   mask, plus a 0.24-wide halo at 0.22, then zenith 0.06..0.28, sun hide
@@ -135,8 +140,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   respected by `sync_scene`, `sync_one` and material preset apply.
 - Rim Bias maps Sun=1, Contour=0, Backlight=-1. Terminator Warmth is an additive
   `Sun Color * smoothstep(0..0.12, abs(N.L))` band; Skin is boosted to 0.35.
-- Gate pixel ratios: shadow ~2.60 %, wrap ~16.06 %, ink ~3.45 %, haze ~63.04 %
-  (gate plane fills the frame), toon ~1.59 %, rim ~7.12 %.
+- Gate pixel ratios: shadow ~2.62 %, wrap ~16.08 %, ink ~3.46 %, haze ~63.03 %
+  (gate plane fills the frame), toon ~1.59 %, rim ~7.08 %.
 - Shadow tint uses a `MULTIPLY` Mix on Base Color; palette `shadow_tint` colors are
   normalized (max component 1) so textures keep their detail in shadows.
 - Material presets include `EMISSION`; set `Emission Color` / `Emission Strength`,
@@ -226,8 +231,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   tint × combined). `_wire_emission` links it to Principled Emission Color, stores
   `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
   restores on clear.
-- Gate pixel ratios: ink ~3.45 %, rim ~7.12 % (edge-local);
-  shadow ~2.60 %, toon ~1.59 %.
+- Gate pixel ratios: ink ~3.46 %, rim ~7.08 % (edge-local);
+  shadow ~2.62 %, toon ~1.59 %.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.

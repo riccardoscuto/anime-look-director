@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.1 - 2026-10-20
+### Added
+- **Per-preset cloud style**: `cloud_flatness`, `cloud_scale`,
+  `cloud_rim_boost` and `cloud_amount` are stored in each preset and applied
+  only when the effective palette key changes. Manual slider changes survive
+  world/cloud refreshes on the same palette.
+- AFTER_SCHOOL now uses flatness 0.90, scale 4.0, rim 2.0 and amount 0.90 for
+  layered Persona-style bands; SUMMER_NOON uses flatness 0.25, scale 4.0 and
+  amount 0.75 for small cumuli.
+- Cloud Flatness now blends the raw spherical view (billowy) with the curved
+  planar shell (strata), so 0 and 1 are genuinely different morphology, not
+  just a Z stretch.
+- Reference QA: P3R After School bands, cyan/white cumulus reference and the
+  Oga/Persona artbooks were used to choose the per-preset values.
+
+### Changed
+- Palette changes sync style values behind a `style_syncing()` guard, so
+  property update callbacks cannot recurse.
+- Version 0.9.1.
+
+
 ## 0.9.0 - 2026-10-20
 ### Added
 - **AFTER_SCHOOL** ("After School Sunset") palette: salmon-pink horizon,

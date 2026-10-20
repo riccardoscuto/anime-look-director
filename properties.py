@@ -40,7 +40,9 @@ def _on_palette(self, context):
 
 def _on_world(self, context):
     try:
-        from . import look
+        from . import look, palette
+        if palette.style_syncing():
+            return
         scene = context.scene
         if scene is not None:
             look.apply_world(scene)

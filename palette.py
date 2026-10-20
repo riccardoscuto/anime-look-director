@@ -18,6 +18,10 @@ PRESETS = {
         "cloud_shadow": (0.09, 0.07, 0.22),
         "cloud_mid": (0.38, 0.15, 0.24),
         "cloud_light": (1.30, 0.58, 0.16),
+        "cloud_flatness": 0.55,
+        "cloud_scale": 3.0,
+        "cloud_rim_boost": 1.2,
+        "cloud_amount": 0.65,
         "star_amount": 0.25,
         "sun_color": (1.0, 0.48, 0.18),
         "sun_energy": 4.2,
@@ -35,6 +39,10 @@ PRESETS = {
         "cloud_shadow": (0.12, 0.09, 0.22),
         "cloud_mid": (0.30, 0.16, 0.28),
         "cloud_light": (1.15, 0.55, 0.38),
+        "cloud_flatness": 0.90,
+        "cloud_scale": 4.0,
+        "cloud_rim_boost": 2.0,
+        "cloud_amount": 0.90,
         "star_amount": 0.15,
         "sun_color": (1.0, 0.56, 0.38),
         "sun_energy": 3.8,
@@ -52,6 +60,10 @@ PRESETS = {
         "cloud_shadow": (0.28, 0.40, 0.68),
         "cloud_mid": (0.90, 0.93, 0.96),
         "cloud_light": (1.20, 1.16, 1.05),
+        "cloud_flatness": 0.25,
+        "cloud_scale": 4.0,
+        "cloud_rim_boost": 1.0,
+        "cloud_amount": 0.75,
         "star_amount": 0.0,
         "sun_color": (1.0, 0.93, 0.80),
         "sun_energy": 4.8,
@@ -69,6 +81,10 @@ PRESETS = {
         "cloud_shadow": (0.035, 0.06, 0.10),
         "cloud_mid": (0.14, 0.21, 0.28),
         "cloud_light": (0.34, 0.46, 0.56),
+        "cloud_flatness": 0.65,
+        "cloud_scale": 3.0,
+        "cloud_rim_boost": 1.0,
+        "cloud_amount": 0.60,
         "star_amount": 0.0,
         "sun_color": (0.58, 0.76, 0.95),
         "sun_energy": 1.4,
@@ -86,6 +102,10 @@ PRESETS = {
         "cloud_shadow": (0.018, 0.015, 0.065),
         "cloud_mid": (0.16, 0.03, 0.22),
         "cloud_light": (0.22, 0.78, 0.98),
+        "cloud_flatness": 0.75,
+        "cloud_scale": 3.5,
+        "cloud_rim_boost": 1.5,
+        "cloud_amount": 0.65,
         "star_amount": 0.85,
         "sun_color": (1.0, 0.16, 0.52),
         "sun_energy": 2.4,
@@ -103,6 +123,10 @@ PRESETS = {
         "cloud_shadow": (0.32, 0.26, 0.48),
         "cloud_mid": (0.86, 0.72, 0.78),
         "cloud_light": (1.15, 0.92, 0.88),
+        "cloud_flatness": 0.50,
+        "cloud_scale": 3.0,
+        "cloud_rim_boost": 1.0,
+        "cloud_amount": 0.55,
         "star_amount": 0.0,
         "sun_color": (1.0, 0.78, 0.72),
         "sun_energy": 4.0,
@@ -120,6 +144,10 @@ PRESETS = {
         "cloud_shadow": (0.035, 0.03, 0.10),
         "cloud_mid": (0.28, 0.07, 0.16),
         "cloud_light": (1.15, 0.34, 0.09),
+        "cloud_flatness": 0.75,
+        "cloud_scale": 3.5,
+        "cloud_rim_boost": 2.0,
+        "cloud_amount": 0.65,
         "star_amount": 0.75,
         "sun_color": (1.0, 0.38, 0.15),
         "sun_energy": 3.2,
@@ -846,9 +874,63 @@ def _build_gradient_group(ng):
     flat_scale.inputs["Y"].default_value = 0.75
     links.new(flat_z_add.outputs[0], flat_scale.inputs["Z"])
 
+    # Blend the raw spherical view (billowy cumuli) and the curved planar
+    # shell (horizontal strata) with the same Cloud Flatness control.
+    flat_inv = nodes.new("ShaderNodeMath")
+    flat_inv.location = (1540, -280)
+    flat_inv.operation = "SUBTRACT"
+    flat_inv.use_clamp = True
+    flat_inv.inputs[0].default_value = 1.0
+    links.new(group_in.outputs["Cloud Flatness"], flat_inv.inputs[1])
+
+    view_base = nodes.new("ShaderNodeVectorMath")
+    view_base.location = (1720, -220)
+    view_base.operation = "SCALE"
+    links.new(view_norm.outputs["Vector"], view_base.inputs["Vector"])
+    links.new(flat_inv.outputs[0], view_base.inputs["Scale"])
+
+    planar_base = nodes.new("ShaderNodeVectorMath")
+    planar_base.location = (1720, -340)
+    planar_base.operation = "SCALE"
+    links.new(planar_shell.outputs["Vector"], planar_base.inputs["Vector"])
+    links.new(group_in.outputs["Cloud Flatness"],
+              planar_base.inputs["Scale"])
+
+    cloud_base = nodes.new("ShaderNodeVectorMath")
+    cloud_base.location = (1900, -280)
+    cloud_base.operation = "ADD"
+    links.new(view_base.outputs["Vector"], cloud_base.inputs[0])
+    links.new(planar_base.outputs["Vector"], cloud_base.inputs[1])
+
+    view_sun_vec = nodes.new("ShaderNodeVectorMath")
+    view_sun_vec.location = (1720, -840)
+    view_sun_vec.operation = "ADD"
+    links.new(view_norm.outputs["Vector"], view_sun_vec.inputs[0])
+    links.new(sun_step_shell.outputs["Vector"], view_sun_vec.inputs[1])
+
+    view_sun_base = nodes.new("ShaderNodeVectorMath")
+    view_sun_base.location = (1900, -840)
+    view_sun_base.operation = "SCALE"
+    links.new(view_sun_vec.outputs["Vector"], view_sun_base.inputs["Vector"])
+    links.new(flat_inv.outputs[0], view_sun_base.inputs["Scale"])
+
+    planar_sun_base = nodes.new("ShaderNodeVectorMath")
+    planar_sun_base.location = (1900, -960)
+    planar_sun_base.operation = "SCALE"
+    links.new(planar_shell_sun.outputs["Vector"],
+              planar_sun_base.inputs["Vector"])
+    links.new(group_in.outputs["Cloud Flatness"],
+              planar_sun_base.inputs["Scale"])
+
+    cloud_base_sun = nodes.new("ShaderNodeVectorMath")
+    cloud_base_sun.location = (2080, -900)
+    cloud_base_sun.operation = "ADD"
+    links.new(view_sun_base.outputs["Vector"], cloud_base_sun.inputs[0])
+    links.new(planar_sun_base.outputs["Vector"], cloud_base_sun.inputs[1])
+
     cloud_mapping = nodes.new("ShaderNodeMapping")
-    cloud_mapping.location = (1900, -100)
-    links.new(planar_shell.outputs["Vector"], cloud_mapping.inputs["Vector"])
+    cloud_mapping.location = (2260, -100)
+    links.new(cloud_base.outputs["Vector"], cloud_mapping.inputs["Vector"])
     links.new(flat_scale.outputs[0], cloud_mapping.inputs["Scale"])
     links.new(group_in.outputs["Cloud Offset"],
               cloud_mapping.inputs["Location"])
@@ -925,8 +1007,8 @@ def _build_gradient_group(ng):
 
     # Finite difference toward the sun: sample N1 at p + 0.12 * L.
     cloud_mapping_sun = nodes.new("ShaderNodeMapping")
-    cloud_mapping_sun.location = (1900, -760)
-    links.new(planar_shell_sun.outputs["Vector"],
+    cloud_mapping_sun.location = (2260, -760)
+    links.new(cloud_base_sun.outputs["Vector"],
               cloud_mapping_sun.inputs["Vector"])
     links.new(flat_scale.outputs[0], cloud_mapping_sun.inputs["Scale"])
     links.new(group_in.outputs["Cloud Offset"],
@@ -1436,10 +1518,15 @@ def sun_toward(scene):
 
 
 _syncing_angles = False
+_syncing_style = False
 
 
 def angles_syncing():
     return _syncing_angles
+
+
+def style_syncing():
+    return _syncing_style
 
 
 def rotation_from_angles(elevation, azimuth):
@@ -1619,11 +1706,21 @@ def ensure_sun(scene, p, reset_rotation=True):
 
 def apply_palette(scene, key):
     """Apply world gradient + sun values for a palette. Returns the preset."""
+    global _syncing_style
     p = effective(scene, key)
     settings = getattr(scene, "ald", None)
     world = _ensure_world(scene)
-    ensure_sun(scene, p, reset_rotation=(
-        scene.get("ald_last_palette") != key))
+    key_changed = scene.get("ald_last_palette") != key
+    ensure_sun(scene, p, reset_rotation=key_changed)
+    if key_changed and settings is not None:
+        _syncing_style = True
+        try:
+            settings.cloud_flatness = p.get("cloud_flatness", 0.65)
+            settings.cloud_scale = p.get("cloud_scale", 3.0)
+            settings.cloud_rim_boost = p.get("cloud_rim_boost", 1.0)
+            settings.cloud_amount = p.get("cloud_amount", 0.6)
+        finally:
+            _syncing_style = False
     nt, background = _world_nodes(world)
     _apply_gradient(scene, settings, nt, background, p)
     scene["ald_last_palette"] = key

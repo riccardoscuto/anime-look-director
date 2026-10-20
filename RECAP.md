@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.9.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.9.1** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -74,7 +74,9 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
   `gamma+^3.5 * orizzonte * 0.45`, sommati, tinti dal sole e controllati da
   `Sun Glow`.
 - **Proiezione su guscio curvo** esatta: `p=(Vx*t, Vy*t, Vz)` con
-  `t=0.55/(max(Z,0.015)+0.18)` e **Cloud Flatness** da cumuli a banchi.
+  `t=0.55/(max(Z,0.015)+0.18)`; **Cloud Flatness** fonde sfera grezza e guscio
+  planare (0 = cumuli, 1 = bande). Ogni preset salva flatness, scala, rim e
+  quantità nuvole.
 - **Perlin-Worley**: Voronoi 0.38 + Perlin 0.44 + erosione 0.18.
 - **Derivata solare su densità completa**: secondo campione a `p + 0.12 L`;
   `Delta Gain` e `Rim Boost` sono ora slider espliciti (default 1.0).
@@ -247,3 +249,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **0.8.1** - fix: il colore custom del Sole non ricolora più le nuvole.
 - **0.9.0** - After School Sunset, nuvole planari prospettiche, shading
   backlit con silver lining, micro starfield, nuovo sky mapping.
+- **0.9.1** - stile nuvola per-preset calibrato sulle reference (After School
+  a bande, Summer Noon a cumuli) e blend sfera/guscio per Cloud Flatness.
