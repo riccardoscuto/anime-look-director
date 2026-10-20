@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.9.2**).
+  (currently **0.9.3**).
 
 ## Verify (run after every change)
 ```powershell
@@ -140,8 +140,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   respected by `sync_scene`, `sync_one` and material preset apply.
 - Rim Bias maps Sun=1, Contour=0, Backlight=-1. Terminator Warmth is an additive
   `Sun Color * smoothstep(0..0.12, abs(N.L))` band; Skin is boosted to 0.35.
-- Gate pixel ratios: shadow ~2.62 %, wrap ~16.08 %, ink ~3.46 %, haze ~63.03 %
-  (gate plane fills the frame), toon ~1.59 %, rim ~7.08 %.
+- Gate pixel ratios: shadow ~2.59 %, wrap ~16.36 %, ink ~3.45 %, haze ~63.06 %
+  (gate plane fills the frame), toon ~1.59 %, rim ~7.15 %.
 - Shadow tint uses a `MULTIPLY` Mix on Base Color; palette `shadow_tint` colors are
   normalized (max component 1) so textures keep their detail in shadows.
 - Material presets include `EMISSION`; set `Emission Color` / `Emission Strength`,
@@ -208,8 +208,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   preset strength.
 - Cloud shading uses the full-rho solar finite difference: `body_mix` from
   `delta*DeltaGain + 0.15*(Vz-0.3)` blends Shadow -> Mid; the
-  fringe/sun-edge/gamma product, optionally scaled by RimBoost, blends Cloud
-  Light on the sunward edge. This replaced density-only bands.
+  `(0.92*fringe + 0.08)` / sun-edge / gamma product, optionally scaled by
+  RimBoost, blends Cloud Light on the sunward edge. The 0.08 base is deliberate:
+  a 0.35 base washed the cloud beige when Cloud Amount reached 1.0.
 - Preset `sun_rotation` is applied only to auto-tagged suns; user suns keep their
   rotation. `sun_toward` reads `rotation_euler` for an unparented auto sun to avoid
   stale matrices; `ensure_sun` no longer calls `view_layer.update()` (depsgraph
@@ -231,8 +232,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   tint × combined). `_wire_emission` links it to Principled Emission Color, stores
   `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
   restores on clear.
-- Gate pixel ratios: ink ~3.46 %, rim ~7.08 % (edge-local);
-  shadow ~2.62 %, toon ~1.59 %.
+- Gate pixel ratios: ink ~3.45 %, rim ~7.15 % (edge-local);
+  shadow ~2.59 %, toon ~1.59 %.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.

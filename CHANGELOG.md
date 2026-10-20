@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.3 - 2026-10-20
+### Fixed
+- Cloud **Cloud Light** had a 35 % baseline across the whole cloud body, so
+  increasing Cloud Amount toward 1.0 exposed a flat beige interior. The rim
+  is now edge-local: 92 % fringe weighting plus an 8 % body base. Full coverage
+  keeps the violet/mauve body and a thin silver lining.
+- Version 0.9.3.
+
 ## 0.9.2 - 2026-10-20
 ### Fixed
 - Sidebar N panel now exposes **Cloud Amount** and **Cloud Scale** alongside
