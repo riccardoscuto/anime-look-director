@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.9.4** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.9.5** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -255,3 +255,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **0.9.3** - Silver Lining edge-local: a Cloud Amount 1 il corpo resta viola.
 - **0.9.4** - rimosso il residuo 8% di Cloud Light sul corpo; versione visibile
   nella Sidebar per verificare il reload.
+- **0.9.5** - marker del World Gradient a 10: le scene esistenti ricostruiscono
+  il grafo con il Cloud Light solo sul bordo.

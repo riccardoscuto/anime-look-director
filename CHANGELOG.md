@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.5 - 2026-10-20
+### Fixed
+- Bumped the world-gradient group marker from 9 to 10. The 0.9.4 shader change
+  was not rebuilding existing scenes because `ald_build` had not changed, so
+  Blender kept the old beige-cloud graph. Reloading with 0.9.5 now forces the
+  new edge-only Cloud Light graph.
+
 ## 0.9.4 - 2026-10-20
 ### Fixed
 - Removed the remaining 8 % Cloud Light body base. The silver lining is now
