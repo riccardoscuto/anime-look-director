@@ -1155,9 +1155,9 @@ def _build_gradient_group(ng):
     fringe_add = nodes.new("ShaderNodeMath")
     fringe_add.location = (2800, -540)
     fringe_add.operation = "ADD"
-    # Keep only a faint body base; the old 0.35 washed the whole cloud toward
-    # Cloud Light as soon as Cloud Amount approached 1.0.
-    fringe_add.inputs[1].default_value = 0.08
+    # No body base at all: Cloud Light is strictly the sun-facing fringe.
+    # The old 0.35 (then 0.08) still washed the opaque body toward beige.
+    fringe_add.inputs[1].default_value = 0.0
     links.new(fringe_weight.outputs[0], fringe_add.inputs[0])
 
     gamma_sq = nodes.new("ShaderNodeMath")

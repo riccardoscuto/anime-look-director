@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.4 - 2026-10-20
+### Fixed
+- Removed the remaining 8 % Cloud Light body base. The silver lining is now
+  strictly `fringe * sun_edge * gamma`, so Cloud Amount 1.0 keeps the full
+  violet/mauve body instead of turning beige.
+- Sidebar N now prints the loaded add-on version (`v0.9.4`) so stale Python
+  modules are immediately visible.
+
 ## 0.9.3 - 2026-10-20
 ### Fixed
 - Cloud **Cloud Light** had a 35 % baseline across the whole cloud body, so

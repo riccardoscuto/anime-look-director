@@ -449,11 +449,10 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   `Delta Gain` (default 1.0) is an explicit UI multiplier; no hidden 3x.
   `body_mix = smoothstep(-0.04, 0.04, delta + 0.15*(Vz - 0.3))` blends
   Shadow -> Mid. `fringe = smoothstep(0.545, 0.50, rho)`,
-  `sun_edge = smoothstep(-0.01, 0.06, delta)`, and the rim uses
-  `(0.92*fringe + 0.08) * sun_edge * (0.35+0.65*gamma_plus^2)`.
-  The small 0.08 base keeps the body dark at Cloud Amount=1; the old 0.35
-  baseline washed the entire cloud beige. `Rim Boost` is an explicit UI
-  multiplier before Cloud Light.
+  `sun_edge = smoothstep(-0.01, 0.06, delta)`, and the rim is strictly
+  `fringe * sun_edge * (0.35+0.65*gamma_plus^2)`. There is no body base:
+  the old 0.35 then 0.08 baseline washed the opaque cloud beige at Cloud
+  Amount=1. `Rim Boost` is an explicit UI multiplier before Cloud Light.
 - **Aerial blend / accent**: low clouds mix toward `Horizon Color` by
   `(1-horizon)*0.65`; optional `Sky Accent` paints a smooth band within
   `|Vz - z_mid| < 0.07`.
@@ -474,8 +473,8 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   default.
 - **Gate**: palette registry, AFTER_SCHOOL and the new Sun Glow / Sky Accent /
   Cloud Flatness / Delta Gain / Rim Boost / Contrails sockets are checked.
-  Gate pixel ratios are shadow 2.59 %, wrap 16.36 %, ink 3.45 %, haze 63.06 %,
-  toon 1.59 %, rim 7.15 %. Look-dev renders all seven palettes in a 4-column
+  Gate pixel ratios are shadow 2.58 %, wrap 16.32 %, ink 3.47 %, haze 63.06 %,
+  toon 1.59 %, rim 7.09 %. Look-dev renders all seven palettes in a 4-column
   sheet; the eighth cell stays empty (black).
 
 ### v0.9.0 reference study
