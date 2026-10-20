@@ -544,3 +544,22 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   per-preset cloud style; same-key Apply is handled in the operator.
 - Marker 15. Gate ratios: shadow 2.62 %, wrap 15.39 %, ink 3.57 %,
   haze 63.01 %, toon 1.59 %, rim 6.84 %.
+
+### v1.0.2 notes (restored organic fBm, fringe-only Cloud Light)
+- `_sample_cloud_density()` is back to the v1.0.0 two-value contract:
+  `(rho, warped_pos)`. Warp 0.85*Scale / 0.28; macro 0.55*Scale, Detail 6.0,
+  Roughness 0.58, Distortion 0.18, weight 0.66; billow 1.35*Scale, Detail 5.0,
+  Roughness 0.54, Distortion 0.22, weight 0.22; Voronoi puff 1.60*Scale,
+  dist 0..0.65 smoothstep reversed, weight 0.12.
+- The solar derivative samples that full density with a 0.045 rad view-ray
+  step. Coverage maps Cloud Amount 0..1 to 0.58..0.40; top +0.018 and fringe
+  +0.038. Detail is 0.018 contour and 0.016 body.
+- `body_mix` is a single -0.018..0.008 Shadow -> Mid step. `crown_curve` and
+  `rim_total` are removed. `rim_boosted` receives the fringe factor directly,
+  so Cloud Light cannot flood the body at high Delta Gain or Rim Boost.
+- SUMMER_NOON restored to flatness 0.25, scale 3.2, amount 0.70, shadow
+  (0.28,0.40,0.68), mid (0.90,0.93,0.96), light (1.20,1.16,1.05).
+- Apply Palette resets cloud scale/rim/amount/flatness, delta gain, sun glow
+  and accent amount; same-key Apply is handled in the operator.
+- Marker 16. Gate ratios: shadow 2.63 %, wrap 15.86 %, ink 3.47 %,
+  haze 63.04 %, toon 1.61 %, rim 7.02 %.

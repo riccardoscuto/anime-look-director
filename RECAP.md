@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 1.0.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 1.0.2** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -269,3 +269,6 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
   morfologia fBm, derivata solare 2D e 3 fasce cel-shaded nette.
 - **1.0.1** - Nuvole Ghibli a cupole Voronoi mascherate, derivata su volume
   liscio, 4 fasce gouache e reset degli slider su Apply Palette.
+- **1.0.2** - Ripristino della morfologia fBm organica v1.0.0; Cloud Light
+  confinato al bordo solare, senza crown_curve, e reset di Cloud Scale/Delta
+  Gain/Rim Boost su Apply Palette.

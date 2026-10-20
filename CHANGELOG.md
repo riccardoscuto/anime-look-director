@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.2 - 2026-10-20
+### Fixed
+- Restored the organic v1.0.0 cloud morphology: `_sample_cloud_density` returns
+  `(rho, warped_pos)` with macro 0.66 + billow 0.22 + Voronoi puff 0.12,
+  Detail 6.0/5.0, Roughness 0.58/0.54, domain warp 0.28. The smooth v1.0.1
+  banks are gone.
+- Removed `crown_curve` and `rim_total`. Cloud Light now comes only from
+  `fringe * 0.92 * sun_edge * gamma`, scaled by Cloud Rim Boost. The cloud body
+  stays Cloud Shadow / Cloud Mid even at Delta Gain or Rim Boost 4.0.
+- Solar derivative is back on the full density with a 0.045 rad view-ray step;
+  detail is 0.018 contour and 0.016 body; body is a single -0.018..0.008
+  Shadow -> Mid step.
+- SUMMER_NOON restored to flatness 0.25, scale 3.2, amount 0.70 and the v1.0.0
+  cumulus colors.
+- Apply Palette resets Cloud Scale, Delta Gain and Rim Boost as well as the
+  other per-preset cloud/glow controls.
+- World gradient marker 16.
+
 ## 1.0.1 - 2026-10-20
 ### Fixed
 - `_sample_cloud_density` now returns `(rho_shape, rho_smooth, warped_pos)`.
