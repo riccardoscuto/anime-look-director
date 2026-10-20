@@ -116,6 +116,10 @@ def _build_group(ng):
                    0.5, 0.0, 1.0)
     _ensure_socket(ng, "Hue Lift", "INPUT", "NodeSocketFloat",
                    0.18, 0.0, 0.5)
+    _ensure_socket(ng, "Terminator Warmth", "INPUT", "NodeSocketFloat",
+                   0.2, 0.0, 1.0)
+    _ensure_socket(ng, "Rim Bias", "INPUT", "NodeSocketFloat",
+                   1.0, -1.0, 1.0)
     _ensure_socket(ng, "Color", "OUTPUT", "NodeSocketColor")
     _ensure_socket(ng, "Emission", "OUTPUT", "NodeSocketColor")
 
@@ -221,6 +225,85 @@ def _build_group(ng):
     links.new(lift_color.outputs["Vector"], b_sock)
     lift_add.inputs["Factor"].default_value = 1.0
 
+    # Warm subcutaneous band around the terminator.
+    abs_dot = nodes.new("ShaderNodeMath")
+    abs_dot.location = (220, 420)
+    abs_dot.operation = "ABSOLUTE"
+    links.new(dot.outputs["Value"], abs_dot.inputs[0])
+
+    warm_curve = nodes.new("ShaderNodeMapRange")
+    warm_curve.location = (420, 420)
+    warm_curve.clamp = True
+    _smooth(warm_curve)
+    warm_curve.inputs["From Min"].default_value = 0.0
+    warm_curve.inputs["From Max"].default_value = 0.12
+    warm_curve.inputs["To Min"].default_value = 1.0
+    warm_curve.inputs["To Max"].default_value = 0.0
+    links.new(abs_dot.outputs[0], warm_curve.inputs["Value"])
+
+    warm_amount = nodes.new("ShaderNodeMath")
+    warm_amount.location = (620, 420)
+    warm_amount.operation = "MULTIPLY"
+    warm_amount.use_clamp = True
+    links.new(warm_curve.outputs["Result"], warm_amount.inputs[0])
+    links.new(group_in.outputs["Terminator Warmth"], warm_amount.inputs[1])
+
+    warm_color = nodes.new("ShaderNodeVectorMath")
+    warm_color.location = (820, 420)
+    warm_color.operation = "SCALE"
+    links.new(group_in.outputs["Sun Color"], warm_color.inputs["Vector"])
+    links.new(warm_amount.outputs[0], warm_color.inputs["Scale"])
+
+    warm_add = nodes.new("ShaderNodeMix")
+    warm_add.location = (820, 180)
+    warm_add.data_type = "RGBA"
+    warm_add.blend_type = "ADD"
+    a_sock, b_sock, result_sock = _rgba_sockets(warm_add)
+    links.new(lift_add.outputs["Result"], a_sock)
+    links.new(warm_color.outputs["Vector"], b_sock)
+    warm_add.inputs["Factor"].default_value = 1.0
+
+    # Rim side: bias +1 = sun side, 0 = full contour, -1 = backlight side.
+    back_dot = nodes.new("ShaderNodeMath")
+    back_dot.location = (220, 980)
+    back_dot.operation = "MULTIPLY"
+    back_dot.inputs[1].default_value = -1.0
+    links.new(dot.outputs["Value"], back_dot.inputs[0])
+    back_facing = nodes.new("ShaderNodeMath")
+    back_facing.location = (400, 980)
+    back_facing.operation = "MAXIMUM"
+    back_facing.use_clamp = True
+    links.new(back_dot.outputs[0], back_facing.inputs[0])
+    back_facing.inputs[1].default_value = 0.0
+
+    sun_weight = nodes.new("ShaderNodeMath")
+    sun_weight.location = (220, 820)
+    sun_weight.operation = "MAXIMUM"
+    links.new(group_in.outputs["Rim Bias"], sun_weight.inputs[0])
+    sun_weight.inputs[1].default_value = 0.0
+
+    neg_bias = nodes.new("ShaderNodeMath")
+    neg_bias.location = (400, 820)
+    neg_bias.operation = "MULTIPLY"
+    neg_bias.inputs[1].default_value = -1.0
+    links.new(group_in.outputs["Rim Bias"], neg_bias.inputs[0])
+    back_weight = nodes.new("ShaderNodeMath")
+    back_weight.location = (580, 820)
+    back_weight.operation = "MAXIMUM"
+    links.new(neg_bias.outputs[0], back_weight.inputs[0])
+    back_weight.inputs[1].default_value = 0.0
+
+    abs_bias = nodes.new("ShaderNodeMath")
+    abs_bias.location = (580, 620)
+    abs_bias.operation = "ABSOLUTE"
+    links.new(group_in.outputs["Rim Bias"], abs_bias.inputs[0])
+    contour_weight = nodes.new("ShaderNodeMath")
+    contour_weight.location = (760, 620)
+    contour_weight.operation = "SUBTRACT"
+    contour_weight.use_clamp = True
+    contour_weight.inputs[0].default_value = 1.0
+    links.new(abs_bias.outputs[0], contour_weight.inputs[1])
+
     # Fresnel rim on the sun-facing side, tinted by the sun color.
     layer = nodes.new("ShaderNodeLayerWeight")
     layer.location = (-200, 720)
@@ -253,7 +336,33 @@ def _build_group(ng):
     rim_mask.location = (400, 720)
     rim_mask.operation = "MULTIPLY"
     links.new(rim_curve.outputs["Result"], rim_mask.inputs[0])
-    links.new(facing.outputs[0], rim_mask.inputs[1])
+
+    sun_side = nodes.new("ShaderNodeMath")
+    sun_side.location = (580, 980)
+    sun_side.operation = "MULTIPLY"
+    links.new(sun_weight.outputs[0], sun_side.inputs[0])
+    links.new(facing.outputs[0], sun_side.inputs[1])
+
+    back_side = nodes.new("ShaderNodeMath")
+    back_side.location = (580, 820)
+    back_side.operation = "MULTIPLY"
+    links.new(back_weight.outputs[0], back_side.inputs[0])
+    links.new(back_facing.outputs[0], back_side.inputs[1])
+
+    side_sum = nodes.new("ShaderNodeMath")
+    side_sum.location = (760, 900)
+    side_sum.operation = "ADD"
+    links.new(sun_side.outputs[0], side_sum.inputs[0])
+    links.new(back_side.outputs[0], side_sum.inputs[1])
+
+    side_total = nodes.new("ShaderNodeMath")
+    side_total.location = (940, 820)
+    side_total.operation = "ADD"
+    side_total.use_clamp = True
+    links.new(side_sum.outputs[0], side_total.inputs[0])
+    links.new(contour_weight.outputs[0], side_total.inputs[1])
+
+    links.new(side_total.outputs[0], rim_mask.inputs[1])
 
     rim_scale = nodes.new("ShaderNodeMath")
     rim_scale.location = (600, 720)
@@ -273,7 +382,7 @@ def _build_group(ng):
     rim_add.data_type = "RGBA"
     rim_add.blend_type = "ADD"
     a_sock, b_sock, result_sock = _rgba_sockets(rim_add)
-    links.new(lift_add.outputs["Result"], a_sock)
+    links.new(warm_add.outputs["Result"], a_sock)
     links.new(rim_color.outputs["Vector"], b_sock)
     rim_add.inputs["Factor"].default_value = 1.0
     links.new(result_sock, group_out.inputs["Color"])
@@ -319,7 +428,7 @@ def _group():
     required = {"Color", "Tint", "Strength", "Distance",
                 "Sun Direction", "Sun Color", "Toon Strength",
                 "Terminator Sharpness", "Rim Strength", "Rim Width",
-                "Hue Lift"}
+                "Hue Lift", "Terminator Warmth", "Rim Bias"}
     if not required <= names or not {"Color", "Emission"} <= outputs:
         _build_group(ng)
     return ng
@@ -387,6 +496,10 @@ def _look(scene, settings):
                      and (rim_on or toon_on) else 0.0),
         "hue_lift": (settings.shadow_hue_lift
                      if settings is not None else 0.18),
+        "terminator_warmth": (settings.terminator_warmth
+                              if settings is not None else 0.2),
+        "rim_bias": ({"SUN": 1.0, "CONTOUR": 0.0, "BACK": -1.0}.get(
+            settings.rim_mode, 1.0) if settings is not None else 1.0),
     }
 
 
@@ -405,6 +518,11 @@ def _set_look(node, mat, look):
     node.inputs["Rim Strength"].default_value = rim_strength
     node.inputs["Rim Width"].default_value = rim_width
     node.inputs["Hue Lift"].default_value = look.get("hue_lift", 0.18)
+    warmth = look.get("terminator_warmth", 0.2)
+    if mat.name == "ALD | Skin":
+        warmth = max(warmth, 0.35)
+    node.inputs["Terminator Warmth"].default_value = warmth
+    node.inputs["Rim Bias"].default_value = look.get("rim_bias", 1.0)
 
 
 def _wire_emission(mat, node, look):
@@ -540,10 +658,28 @@ def sync_scene(scene, tint, strength, distance):
     look = _look(scene, settings)
     count = 0
     for mat in scene_materials(scene):
+        if mat.get("ald_exclude"):
+            continue
         if sync_material(mat, tint, strength, distance, look):
             count += 1
     scene["ald_shadow_materials"] = count
     return count
+
+
+def sync_one(scene, mat):
+    """Sync a single material, respecting the exclusion flag."""
+    settings = getattr(scene, "ald", None)
+    if settings is None or mat.get("ald_exclude"):
+        return False
+    if not (settings.shadow_tint or settings.toon_shading
+            or settings.rim_light):
+        return False
+    from . import palette
+    strength = (settings.shadow_tint_strength
+                if settings.shadow_tint else 0.0)
+    return sync_material(mat, palette.shadow_tint_for(scene), strength,
+                         settings.shadow_tint_distance,
+                         _look(scene, settings))
 
 
 def clear_scene(scene):
@@ -620,12 +756,8 @@ def apply_preset_to_selected(scene, key):
             index for index, slot in enumerate(slots) if slot == mat)
 
     settings = getattr(scene, "ald", None)
-    if settings is not None and settings.shadow_tint:
-        from . import palette
-        sync_material(mat, palette.shadow_tint_for(scene),
-                      settings.shadow_tint_strength,
-                      settings.shadow_tint_distance,
-                      _look(scene, settings))
+    if settings is not None:
+        sync_one(scene, mat)
     return len(objects), mat
 
 

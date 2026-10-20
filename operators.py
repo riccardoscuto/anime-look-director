@@ -1,15 +1,20 @@
+import math
+
 import bpy
+from mathutils import Vector
 
 from . import compositor, look, materials, palette, shots
 
 
 def _sync_shadow(scene):
     settings = scene.ald
-    if settings.shadow_tint:
+    if settings.shadow_tint or settings.toon_shading or settings.rim_light:
+        strength = (settings.shadow_tint_strength
+                    if settings.shadow_tint else 0.0)
         return materials.sync_scene(
             scene,
             palette.shadow_tint_for(scene),
-            settings.shadow_tint_strength,
+            strength,
             settings.shadow_tint_distance,
         )
     materials.clear_scene(scene)
@@ -64,14 +69,47 @@ class ALD_OT_apply_palette(bpy.types.Operator):
 class ALD_OT_clear_shadow_tint(bpy.types.Operator):
     bl_idname = "ald.clear_shadow_tint"
     bl_label = "Clear Shadow Tint"
-    bl_description = "Remove the shadow tint from every material and restore Base Color"
+    bl_description = ("Remove the shadow tint group from every material and "
+                      "disable Cel/Rim shading")
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        count = materials.clear_scene(context.scene)
-        context.scene.ald.shadow_tint = False
+        scene = context.scene
+        count = materials.clear_scene(scene)
+        scene.ald.toon_shading = False
+        scene.ald.rim_light = False
+        scene.ald.shadow_tint = False
         self.report({"INFO"},
                     "Anime Look Director: shadow tint cleared from %d materials" % count)
+        return {"FINISHED"}
+
+
+class ALD_OT_toggle_exclude_material(bpy.types.Operator):
+    bl_idname = "ald.toggle_exclude_material"
+    bl_label = "Toggle Material Exclusion"
+    bl_description = "Exclude or include the active material from the shadow tint sync"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.object
+        return (obj is not None and hasattr(obj, "active_material")
+                and obj.active_material is not None)
+
+    def execute(self, context):
+        scene = context.scene
+        mat = context.object.active_material
+        excluded = bool(mat.get("ald_exclude"))
+        if excluded:
+            mat["ald_exclude"] = False
+            materials.sync_one(scene, mat)
+            self.report({"INFO"},
+                        "Anime Look Director: %s included" % mat.name)
+        else:
+            mat["ald_exclude"] = True
+            materials.remove_material(mat)
+            self.report({"INFO"},
+                        "Anime Look Director: %s excluded" % mat.name)
         return {"FINISHED"}
 
 
@@ -131,6 +169,41 @@ class ALD_OT_mark_shot(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_stage_backlight(bpy.types.Operator):
+    bl_idname = "ald.stage_backlight"
+    bl_label = "Stage Backlight"
+    bl_description = "Place the sun in front of the camera and enable backlight effects"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene is not None and context.scene.camera is not None
+
+    def execute(self, context):
+        scene = context.scene
+        camera = scene.camera
+        settings = scene.ald
+        forward = camera.matrix_world.to_quaternion() @ Vector((0.0, 0.0, -1.0))
+        yaw = math.degrees(math.atan2(forward.x, -forward.y))
+        azimuth = yaw + 15.0
+        while azimuth > 180.0:
+            azimuth -= 360.0
+        while azimuth < -180.0:
+            azimuth += 360.0
+
+        settings.sun_disk = True
+        settings.god_rays = True
+        settings.light_wrap = True
+        settings.rim_light = True
+        settings.sun_elevation = 12.0
+        settings.sun_azimuth = azimuth
+        palette.apply_sun_angles(scene, 12.0, azimuth)
+        self.report({"INFO"},
+                    "Anime Look Director: backlight staged at %.0f° / %.0f°"
+                    % (settings.sun_elevation, settings.sun_azimuth))
+        return {"FINISHED"}
+
+
 class ALD_OT_viewport_compositor(bpy.types.Operator):
     bl_idname = "ald.viewport_compositor"
     bl_label = "Enable Viewport Compositor"
@@ -152,8 +225,9 @@ class ALD_OT_viewport_compositor(bpy.types.Operator):
 
 
 _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
-            ALD_OT_clear_shadow_tint, ALD_OT_apply_material_preset,
-            ALD_OT_mark_shot, ALD_OT_viewport_compositor)
+            ALD_OT_clear_shadow_tint, ALD_OT_toggle_exclude_material,
+            ALD_OT_apply_material_preset, ALD_OT_mark_shot,
+            ALD_OT_stage_backlight, ALD_OT_viewport_compositor)
 
 
 def register():

@@ -44,10 +44,14 @@ def apply(scene, force=False):
     from . import palette, materials, compositor
 
     palette.apply_palette(scene, key)
-    if settings.shadow_tint:
+    if settings.shadow_tint or settings.toon_shading or settings.rim_light:
+        strength = (settings.shadow_tint_strength
+                    if settings.shadow_tint else 0.0)
         materials.sync_scene(scene, palette.shadow_tint_for(scene),
-                             settings.shadow_tint_strength,
+                             strength,
                              settings.shadow_tint_distance)
+    else:
+        materials.clear_scene(scene)
     if scene.compositing_node_group:
         compositor.build(scene)
 

@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.7.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.9.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -13,17 +13,24 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 
 ## Cosa fa
 
-1. **Palette atmosferiche** — sei preset che governano world, sole, tint del
-   glare e colore delle ombre.
+1. **Palette atmosferiche** — sette preset che governano world, sole, tint del
+   glare e colore delle ombre, inclusa **After School Sunset**.
 2. **World gradient** — cielo a 4 zone: terreno, orizzonte, mid-sky bridge e
    zenit, con offset e morbidezza dell'orizzonte. Il bridge evita la fascia
    grigia nei cieli al tramonto.
 3. **Auto Sun** — se la scena non ha una SUN, ne viene creata una (`ALD | Sun`)
-   e tinta dalla palette, con rotazione solare dedicata.
+   e tinta dalla palette, con rotazione solare dedicata. Gli slider **Sun
+   Elevation / Sun Azimuth** muovono il sole; **Stage Backlight** lo mette davanti
+   alla camera e accende disco, god rays, light wrap e rim.
 4. **Sun disk** — disco solare nel cielo, allineato alla direzione reale del
    sole, con dimensione e intensità.
-5. **Anime clouds** — nuvole procedurali a due layer, con triade shadow/mid/light
-   e illuminazione direzionale rispetto al sole, con quantità e scala.
+5. **Anime clouds** — proiezione planare prospettica su un deck orizzontale, con
+   fasce stratificate verso l’orizzonte. Il core denso è una silhouette
+   viola/malva, il bordo sottile prende la **silver lining** dorata/rosata;
+   quantità, scala e **Cloud Wind** animato dal frame.
+   - **Micro starfield** — stelle Voronoi con magnitudine variabile e culling
+     noise, nascoste da nuvole e disco solare, con Star Amount e Star Density;
+     Golden Hour, After School, Neon Night e Twilight Dusk le attivano.
 6. **Visible sky / ambient split** — la forza del world regola la luce ambientale,
    mentre il cielo visto dalla camera resta vivido.
 7. **Custom palette colors** — override di cielo, orizzonte, sole e ombra per
@@ -33,17 +40,18 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
    additivo: le texture restano leggibili e anche i materiali caldi prendono la
    velatura blu/viola delle ombre.
 9. **Cel terminator** — stacco direzionale `N·L` sincronizzato col sole, con
-   Cel Shadow e Terminator Sharpness.
-10. **Rim light direzionale** — Fresnel sul lato sole, colorato con `sun_color`;
-    il preset HAIR riceve un boost “angel ring”.
+   Cel Shadow e Terminator Sharpness. **Terminator Warmth** aggiunge la banda
+   calda subsuperficie attorno a `N·L = 0` (boost sul preset Skin).
+10. **Rim light** — Fresnel con tre modalità: **Sun Side**, **360° Contour** e
+    **Backlight**; colore dal sole, boost “angel ring” sul preset HAIR.
 11. **Rim emission** — il rim e una frazione dello shadow tint alimentano
     l’Emission Color del Principled, così il bordo resta visibile in controluce.
 12. **Stack compositor** — `Render Layers → Glare (Bloom) → Sun Beams (opzionale)
-    → Kuwahara (mix per profondità) → Light Wrap → Ink Lines (opzionale) → Lens
-    Distortion → Output`.
+    → Kuwahara (mix per profondità) → Light Wrap → Aerial Haze (opzionale) → Ink
+    Lines (opzionale) → Lens Distortion → Output`.
 13. **Light Wrap** — luce sfocata che rientra sui bordi delle silhouette.
-14. **Anime Ink Lines** — contorni sottili da profondità, tinti con lo shadow tint,
-    con gain dedicato ai bordi interni.
+14. **Anime Ink Lines** — contorni sottili da profondità **e pass Normal** (pieghe
+    e spigoli interni), tinti con lo shadow tint, con gain dedicato ai bordi.
 15. **God Rays** — glare Sun Beams ancorato alla posizione schermo del sole, con
     forza e dimensione regolabili; si aggiorna durante l’animazione.
 16. **Shot markers** — marker timeline `ALD:<PALETTE>` per cambiare palette alle
@@ -51,11 +59,48 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 17. **Per-camera override** — ogni camera può avere la propria palette; cambiando
     camera il look si aggiorna. Precedenza: camera > marker > palette di scena.
 18. **Material presets** — Skin, Hair, Fabric, Metal, Emission applicabili agli
-    oggetti selezionati.
+    oggetti selezionati. **Exclude Material** esclude il materiale attivo dal
+    sync globale senza modificare lo shader.
 19. **Viewport compositor** — un click per mostrare lo stack nel viewport 3D.
 20. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
 21. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
     compositor senza staccare gli occhi dalla camera.
+
+## Novità 0.9.0
+
+- **After School Sunset**: orizzonte pesca-oro, cielo rosa salmone/malva e zenit
+  indaco-lavanda, con nuvole in silhouette viola e bordi dorati.
+- **Sun Glow Mie**: corona stretta `gamma+^16 * 0.65` + lobo largo
+  `gamma+^3.5 * orizzonte * 0.45`, sommati, tinti dal sole e controllati da
+  `Sun Glow`.
+- **Proiezione su guscio curvo** esatta: `p=(Vx*t, Vy*t, Vz)` con
+  `t=0.55/(max(Z,0.015)+0.18)` e **Cloud Flatness** da cumuli a banchi.
+- **Perlin-Worley**: Voronoi 0.38 + Perlin 0.44 + erosione 0.18.
+- **Derivata solare su densità completa**: secondo campione a `p + 0.12 L`;
+  `Delta Gain` e `Rim Boost` sono ora slider espliciti (default 1.0).
+- **Aerial blending**: le nuvole basse assorbono Horizon Color; **Sky Accent**
+  opzionale per la banda turchese/corallo.
+- **Micro stelle**: densità ×2.5, core 0.040/POWER 2.5, noise 45,
+  magnitudine 0.48..0.78 e alone tenue per la leggibilità.
+- **Contrails** opzionali, spente di default.
+- **mu_s**: `L.z` spegne la corona solare sotto l’orizzonte.
+- **Nuovo sky mapping**: ground solo sotto `Z=0` (-0.08..0.01), picco mid-sky
+  clampato 0.05..0.65 e transizione zenitale controllata da Softness.
+- Fix 0.8.1: il custom Sun non ricolora più le nuvole.
+
+### Novità 0.8.0
+
+- **Sun Elevation / Sun Azimuth** con sincronizzazione bidirezionale e **Stage
+  Backlight** one-click.
+- **Starfield** procedurale con quantità/densità e **Cloud Wind**.
+- **Aerial Haze** per la foschia atmosferica in profondità.
+- **Normal Ink Lines** per pieghe e spigoli interni.
+- **Terminator Warmth** e **Rim Mode** (sole / contour / backlight).
+- **Exclude Material** per escludere un materiale dal tint globale.
+- Fix: maschera geometria condivisa tra Light Wrap e Ink; `sun_toward` rispetta
+  i vincoli; lo Shadow Tint off mantiene Cel/Rim; la rotazione manuale del sole
+  non viene più resettata dai refresh del world.
+- **0.8.1**: il colore custom del Sole non modifica più il colore delle nuvole.
 
 ## Flusso di lavoro
 
@@ -77,6 +122,7 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 | Palette | Carattere |
 | --- | --- |
 | Shinkai Golden Hour | controluce caldo, alone arancione, cielo lavanda |
+| After School Sunset | cielo salmone, nuvole viola in controluce con bordi dorati |
 | Ghibli Summer Noon | luce alta e pulita, cielo azzurro, ombre fresche |
 | Rainy Tokyo Night | notte piovosa, blu freddo, contrasto medio |
 | Cyberpunk Neon | magenta/ciano, zenit blu-viola, ombre colorate |
@@ -86,15 +132,22 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 ## Impostazioni principali
 
 - **World Gradient / Horizon / Horizon Softness**
-- **Auto Sun** (creazione automatica della SUN)
+- **Auto Sun** (creazione automatica della SUN), **Sun Elevation / Azimuth** e
+  **Stage Backlight**
+- **Clouds** + quantità, scala, **Cloud Flatness**, **Cloud Wind**,
+  **Contrails**, **Delta Gain** e **Rim Boost**; **Sun Glow**; **Sky Accent**;
+  **Stars** + quantità e densità
 - **Shadow Tint** + forza, distanza, Hue Lift, numero materiali, `Clear Shadow Tint`
-- **Cel Shading** + Cel Shadow e Terminator Sharpness
-- **Rim Light** + forza, larghezza ed emissione
+- **Cel Shading** + Cel Shadow, Terminator Sharpness e Terminator Warmth
+- **Rim Light** + forza, larghezza, **Rim Mode** ed emissione
+- **Exclude / Include Material** per il materiale attivo
 - **Camera Override** (palette specifica della camera attiva)
 - **Halation** (Glare Bloom) e forza
 - **Painterly (Kuwahara)** e dimensione
 - **Chromatic dispersion**
 - **Light Wrap** con forza e dimensione
+- **Aerial Haze** con forza
+- **Ink Lines** + dimensione, forza e sensibilità Normal
 - **God Rays** con forza e dimensione
 - **Depth Near / Far** per il mix del Kuwahara
 - **Material Preset** (Skin / Hair / Fabric / Metal / Emission)
@@ -110,7 +163,13 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
   materiali preset con fake user.
 
 Lo shadow tint è **reversibile**: `Clear Shadow Tint` ripristina il collegamento
-o il colore originale della Base Color.
+o il colore originale della Base Color. Spegnere il toggle **Shadow Tint** porta
+solo l'AO a 0 e mantiene Cel/Rim; la **X** rimuove il gruppo e disattiva anche
+Cel/Rim. I materiali esclusi non vengono toccati dal sync globale.
+
+La rotazione manuale del sole (slider o Stage Backlight) resta valida durante i
+refresh di world/nuvole; la `sun_rotation` del preset viene riapplicata solo
+quando cambia la palette effettiva.
 
 ## Garanzie e limiti
 
@@ -156,16 +215,18 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 
 Output atteso: `ALD GATE: PASS`.
 
-Look-dev (sei palette + contact sheet 3×2):
+Look-dev (sette palette + contact sheet 4 colonne):
 
 ```powershell
 & $blender -b --factory-startup --python preset_dev\lookdev.py -- --out "$env:TEMP\ald_lookdev"
 ```
 
-Il gate copre: gradient, Auto Sun, God Rays (nodo, posizione proiettata,
-mute/restore), shadow tint (inserimento/rimozione/ripristino), Light Wrap
-(struttura e test a pixel), shot markers, material presets, idempotenza,
-multi-scena, render EEVEE e coerenza versione `bl_info`/manifest.
+Il gate copre: gradient, Auto Sun, controlli solari e Stage Backlight, stelle e
+cloud wind, God Rays (nodo, posizione proiettata, mute/restore), shadow tint
+(inserimento/rimozione/ripristino e toggle Cel/Rim), Light Wrap, Aerial Haze,
+Ink depth/Normal, terminator warmth/rim bias, esclusione materiali, shot markers,
+material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
+`bl_info`/manifest.
 
 ## Versioni
 
@@ -181,3 +242,8 @@ multi-scena, render EEVEE e coerenza versione `bl_info`/manifest.
 - **0.6.1** — normalizzazione sun disk, update realtime, ink gain, rim emission.
 - **0.6.2** — fix icona pannello Camera Override.
 - **0.7.0** — color script Linear Rec.709, mid-sky bridge, nuvole direzionali, hue lift.
+- **0.8.0** - controlli solari, Stage Backlight, stelle/cloud wind, aerial haze,
+  normal ink, terminator warmth, rim mode, esclusione materiali.
+- **0.8.1** - fix: il colore custom del Sole non ricolora più le nuvole.
+- **0.9.0** - After School Sunset, nuvole planari prospettiche, shading
+  backlit con silver lining, micro starfield, nuovo sky mapping.

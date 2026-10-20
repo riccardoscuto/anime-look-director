@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (0, 7, 0)
+EXPECTED_VERSION = (0, 9, 0)
 TOLERANCE = 1e-4
 
 
@@ -63,6 +63,21 @@ def check_versions():
     manifest_version = tuple(int(part) for part in manifest["version"].split("."))
     check(manifest_version == version,
           "manifest version %s != bl_info %s" % (manifest_version, version))
+
+
+def check_palette_registry(settings):
+    from anime_look_director import palette as palette_module
+    from anime_look_director import properties
+
+    keys = [item[0] for item in properties.PALETTES]
+    check("AFTER_SCHOOL" in keys, "AFTER_SCHOOL missing from PALETTES")
+    check(len(keys) == len(set(keys)), "duplicate palette identifiers")
+    check(set(keys) == set(palette_module.PRESETS),
+          "PALETTES and PRESETS disagree")
+    identifiers = {item.identifier for item in
+                   settings.bl_rna.properties["palette"].enum_items}
+    check(set(keys) <= identifiers,
+          "palette enum items out of sync with PALETTES")
 
 
 def gradient_node(scene):
@@ -177,7 +192,10 @@ def check_world_gradient(scene, settings):
     check(abs(background.inputs["Strength"].default_value - 1.0) <= TOLERANCE,
           "background strength should be 1.0 when the gradient is active")
 
-    for name in ("Sun Direction", "Sun Strength", "Cloud Amount", "Cloud Scale"):
+    for name in ("Sun Direction", "Sun Strength", "Sun Glow",
+                 "Sky Accent", "Sky Accent Amount", "Cloud Amount",
+                 "Cloud Scale", "Cloud Flatness", "Contrails",
+                 "Cloud Delta Gain", "Cloud Rim Boost"):
         check(node.inputs.get(name) is not None, "world input missing: " + name)
     check(abs(node.inputs["Cloud Amount"].default_value
               - settings.cloud_amount) <= TOLERANCE,
@@ -185,6 +203,27 @@ def check_world_gradient(scene, settings):
     check(abs(node.inputs["Cloud Scale"].default_value
               - settings.cloud_scale) <= TOLERANCE,
           "cloud scale not synced")
+    check(abs(node.inputs["Sun Glow"].default_value
+              - settings.sun_glow) <= TOLERANCE,
+          "sun glow not synced")
+    check(abs(node.inputs["Cloud Flatness"].default_value
+              - settings.cloud_flatness) <= TOLERANCE,
+          "cloud flatness not synced")
+    check(abs(node.inputs["Contrails"].default_value
+              - settings.contrails) <= TOLERANCE,
+          "contrails not synced")
+    check(abs(node.inputs["Sky Accent Amount"].default_value
+              - settings.sky_accent_amount) <= TOLERANCE,
+          "sky accent amount not synced")
+    check(close(node.inputs["Sky Accent"].default_value,
+                settings.sky_accent),
+          "sky accent color not synced")
+    check(abs(node.inputs["Cloud Delta Gain"].default_value
+              - settings.cloud_delta_gain) <= TOLERANCE,
+          "cloud delta gain not synced")
+    check(abs(node.inputs["Cloud Rim Boost"].default_value
+              - settings.cloud_rim_boost) <= TOLERANCE,
+          "cloud rim boost not synced")
 
     bpy.context.view_layer.update()
     bpy.ops.ald.apply_palette()
@@ -215,6 +254,62 @@ def check_world_gradient(scene, settings):
     node = gradient_node(scene)
     check(node.inputs["Cloud Amount"].default_value > 0.0,
           "clouds not restored")
+
+    for name in ("Star Amount", "Star Density", "Cloud Offset"):
+        check(node.inputs.get(name) is not None,
+              "star/wind world input missing: " + name)
+    golden = palette_module.preset("GOLDEN_HOUR")
+    check(abs(node.inputs["Star Amount"].default_value
+              - golden["star_amount"] * settings.star_strength) <= TOLERANCE,
+          "golden hour star amount not synced")
+    check(abs(node.inputs["Star Density"].default_value
+              - settings.star_density) <= TOLERANCE,
+          "star density not synced")
+
+    settings.sun_glow = 0.8
+    check(abs(gradient_node(scene).inputs["Sun Glow"].default_value
+              - 0.8) <= TOLERANCE, "sun glow not updated in place")
+    settings.sun_glow = 0.45
+    settings.cloud_flatness = 0.9
+    check(abs(gradient_node(scene).inputs["Cloud Flatness"].default_value
+              - 0.9) <= TOLERANCE, "cloud flatness not updated in place")
+    settings.cloud_flatness = 0.65
+
+    after = palette_module.preset("AFTER_SCHOOL")
+    settings.palette = "AFTER_SCHOOL"
+    bpy.ops.ald.apply_palette()
+    node = gradient_node(scene)
+    for name, key in (("Sky Color", "sky_color"),
+                      ("Mid Sky Color", "mid_sky_color"),
+                      ("Horizon Color", "horizon_color"),
+                      ("Cloud Shadow", "cloud_shadow"),
+                      ("Cloud Mid", "cloud_mid"),
+                      ("Cloud Light", "cloud_light")):
+        check(close(node.inputs[name].default_value, after[key]),
+              "after school " + name + " not synced")
+    sun = find_sun(scene)
+    check(sun is not None and close(sun.data.color, after["sun_color"]),
+          "after school sun not synced")
+    settings.palette = "GOLDEN_HOUR"
+    bpy.ops.ald.apply_palette()
+
+    neon = palette_module.preset("NEON_NIGHT")
+    settings.palette = "NEON_NIGHT"
+    bpy.ops.ald.apply_palette()
+    node = gradient_node(scene)
+    check(abs(node.inputs["Star Amount"].default_value
+              - neon["star_amount"] * settings.star_strength) <= TOLERANCE,
+          "neon night stars not enabled")
+
+    settings.cloud_wind = 1.0
+    scene.frame_set(10)
+    node = gradient_node(scene)
+    check(abs(node.inputs["Cloud Offset"].default_value[0]) > 0.001,
+          "cloud wind did not animate the cloud offset")
+    settings.cloud_wind = 0.0
+    scene.frame_set(1)
+    settings.palette = "GOLDEN_HOUR"
+    bpy.ops.ald.apply_palette()
 
     bpy.ops.ald.apply_palette()
     nodes = [n for n in scene.world.node_tree.nodes if n.get("ald_world_gradient")]
@@ -250,6 +345,34 @@ def check_world_gradient(scene, settings):
     check(find_sun(scene) is not None, "auto sun not recreated when enabled")
 
 
+def check_material_exclusion(scene, settings, data):
+    obj = data["object"]
+    plain = data["plain"]
+    settings.shadow_tint = True
+    settings.toon_shading = True
+    settings.rim_light = True
+    for selected in list(bpy.context.selected_objects):
+        selected.select_set(False)
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    obj.active_material_index = 0
+    bpy.ops.ald.build()
+    check(tint_node(plain) is not None, "exclusion test has no tint node")
+
+    bpy.ops.ald.toggle_exclude_material()
+    check(bool(plain.get("ald_exclude")), "material was not excluded")
+    check(tint_node(plain) is None, "excluded material still has the tint node")
+    bpy.ops.ald.build()
+    check(tint_node(plain) is None,
+          "excluded material was synced by Build")
+
+    bpy.ops.ald.toggle_exclude_material()
+    check(not plain.get("ald_exclude"), "material was not included")
+    check(tint_node(plain) is not None,
+          "included material did not get the tint node")
+    obj.select_set(False)
+
+
 def check_live_transforms(scene, data):
     from anime_look_director import cameras
     from anime_look_director import palette as palette_module
@@ -279,6 +402,60 @@ def check_live_transforms(scene, data):
         sun.rotation_euler = old_rotation
         bpy.context.view_layer.update()
         cameras.update_transforms(scene, force=True)
+
+
+def check_sun_controls(scene, settings):
+    from anime_look_director import palette as palette_module
+
+    old = (settings.sun_disk, settings.god_rays,
+           settings.light_wrap, settings.rim_light)
+    settings.sun_elevation = 20.0
+    settings.sun_azimuth = 30.0
+    bpy.context.view_layer.update()
+    direction = palette_module.sun_toward(scene)
+    check(direction is not None, "sun control test has no sun")
+    elevation, azimuth = palette_module.angles_from_direction(direction)
+    check(abs(elevation - 20.0) < 0.6 and abs(azimuth - 30.0) < 0.6,
+          "sun elevation/azimuth did not move the sun")
+
+    sun = find_sun(scene)
+    target = bpy.data.objects.new("ALD_GATE_SUN_TARGET", None)
+    scene.collection.objects.link(target)
+    target.location = (0.0, 0.0, 10.0)
+    constraint = sun.constraints.new("TRACK_TO")
+    constraint.target = target
+    constraint.track_axis = "TRACK_NEGATIVE_Z"
+    constraint.up_axis = "UP_Y"
+    bpy.context.view_layer.update()
+    constrained = palette_module.sun_toward(scene)
+    from mathutils import Vector
+    matrix_dir = -(sun.matrix_world.to_quaternion() @ Vector((0.0, 0.0, -1.0)))
+    check(sum(a * b for a, b in zip(constrained, matrix_dir)) > 0.99,
+          "constrained sun did not use its world matrix")
+    sun.constraints.remove(constraint)
+    bpy.data.objects.remove(target, do_unlink=True)
+    bpy.context.view_layer.update()
+
+    old_cloud = settings.cloud_amount
+    settings.cloud_amount = 0.45
+    bpy.context.view_layer.update()
+    direction = palette_module.sun_toward(scene)
+    elevation, azimuth = palette_module.angles_from_direction(direction)
+    check(abs(elevation - 20.0) < 0.6 and abs(azimuth - 30.0) < 0.6,
+          "world refresh reset the manual sun angles")
+    settings.cloud_amount = old_cloud
+
+    result = bpy.ops.ald.stage_backlight()
+    check("FINISHED" in result, "stage backlight operator failed")
+    check(abs(settings.sun_elevation - 12.0) < 0.6,
+          "stage backlight elevation wrong")
+    check(settings.sun_disk and settings.god_rays
+          and settings.light_wrap and settings.rim_light,
+          "stage backlight did not enable the backlight stages")
+
+    (settings.sun_disk, settings.god_rays,
+     settings.light_wrap, settings.rim_light) = old
+    bpy.ops.ald.apply_palette()
 
 
 def check_god_rays(scene, settings):
@@ -367,7 +544,7 @@ def check_shadow_tint(scene, settings, data):
           "shadow tint distance not synced")
     for name in ("Sun Direction", "Sun Color", "Toon Strength",
                  "Terminator Sharpness", "Rim Strength", "Rim Width",
-                 "Hue Lift"):
+                 "Hue Lift", "Terminator Warmth", "Rim Bias"):
         check(name in node.inputs, "shadow tint input missing: " + name)
     expected_dir = palette_module.sun_toward(scene)
     check(expected_dir is not None, "shadow tint has no sun direction")
@@ -383,6 +560,11 @@ def check_shadow_tint(scene, settings, data):
     check(abs(node.inputs["Hue Lift"].default_value
               - settings.shadow_hue_lift) <= TOLERANCE,
           "shadow hue lift not synced to materials")
+    check(abs(node.inputs["Terminator Warmth"].default_value
+              - settings.terminator_warmth) <= TOLERANCE,
+          "terminator warmth not synced to materials")
+    check(abs(node.inputs["Rim Bias"].default_value - 1.0) <= TOLERANCE,
+          "sun-side rim bias not synced")
     emission_color = data["plain_bsdf"].inputs["Emission Color"]
     emission_strength = data["plain_bsdf"].inputs["Emission Strength"]
     check(emission_color.is_linked
@@ -417,6 +599,16 @@ def check_shadow_tint(scene, settings, data):
           "shadow tint did not follow the palette change")
     settings.palette = "GOLDEN_HOUR"
 
+    settings.toon_shading = True
+    settings.rim_light = True
+    settings.shadow_tint = False
+    node = tint_node(checked)
+    check(node is not None,
+          "shadow tint toggle removed the cel/rim node")
+    check(abs(node.inputs["Strength"].default_value) <= TOLERANCE,
+          "shadow tint toggle did not zero the AO strength")
+    settings.shadow_tint = True
+
     bpy.ops.ald.clear_shadow_tint()
     check(tint_node(checked) is None, "shadow tint not removed from plain material")
     check(not data["plain_base"].is_linked,
@@ -436,6 +628,8 @@ def check_shadow_tint(scene, settings, data):
           "material node count not restored")
 
     settings.shadow_tint = True
+    settings.toon_shading = True
+    settings.rim_light = True
     check(tint_node(checked) is not None, "shadow tint not re-enabled")
 
 
@@ -554,6 +748,13 @@ def check_pixels(scene, settings):
         inked = render_pixels(
             scene, os.path.join(tempfile.gettempdir(), "ald_gate_ink.png"))
         settings.ink_lines = False
+        settings.aerial_haze = True
+        settings.haze_strength = 0.9
+        bpy.ops.ald.build()
+        hazed = render_pixels(
+            scene, os.path.join(tempfile.gettempdir(), "ald_gate_haze.png"))
+        settings.aerial_haze = False
+        settings.haze_strength = 0.5
         settings.light_wrap = False
         settings.shadow_tint = True
         settings.shadow_tint_strength = 0.0
@@ -576,16 +777,19 @@ def check_pixels(scene, settings):
         tint_max, tint_mean, tint_ratio = diff_stats(base, tinted)
         wrap_max, wrap_mean, wrap_ratio = diff_stats(base, wrapped)
         ink_max, ink_mean, ink_ratio = diff_stats(base, inked)
+        haze_max, haze_mean, haze_ratio = diff_stats(base, hazed)
         toon_max, toon_mean, toon_ratio = diff_stats(toon_off, toon_on)
         rim_max, rim_mean, rim_ratio = diff_stats(toon_off, rim_on)
         print("ALD GATE pixels: shadow max=%.4f mean=%.5f ratio=%.4f; "
               "wrap max=%.4f mean=%.5f ratio=%.4f; "
               "ink max=%.4f mean=%.5f ratio=%.4f; "
+              "haze max=%.4f mean=%.5f ratio=%.4f; "
               "toon max=%.4f mean=%.5f ratio=%.4f; "
               "rim max=%.4f mean=%.5f ratio=%.4f"
               % (tint_max, tint_mean, tint_ratio,
                  wrap_max, wrap_mean, wrap_ratio,
                  ink_max, ink_mean, ink_ratio,
+                 haze_max, haze_mean, haze_ratio,
                  toon_max, toon_mean, toon_ratio,
                  rim_max, rim_mean, rim_ratio))
         check(tint_max > 0.01 and tint_ratio > 0.001,
@@ -594,6 +798,8 @@ def check_pixels(scene, settings):
               "light wrap does not affect the edges only")
         check(ink_max > 0.01 and 0.0005 < ink_ratio < 0.5,
               "ink lines do not affect the edges only")
+        check(haze_max > 0.01 and haze_ratio > 0.005,
+              "aerial haze does not affect the render")
         check(toon_max > 0.01 and toon_ratio > 0.002,
               "toon terminator does not affect the render")
         check(rim_max > 0.01 and 0.0005 < rim_ratio < 0.5,
@@ -601,6 +807,8 @@ def check_pixels(scene, settings):
     finally:
         scene.camera = old_camera
         settings.ink_lines = False
+        settings.aerial_haze = False
+        settings.haze_strength = 0.5
         settings.light_wrap = True
         settings.light_wrap_strength = 0.4
         settings.light_wrap_size = 24.0
@@ -698,7 +906,17 @@ def check_ink(scene, settings):
     check(gain is not None
           and abs(gain.inputs[1].default_value - 8.0) <= TOLERANCE,
           "ink edge gain missing")
+    check(scene.view_layers[0].use_pass_normal,
+          "normal pass not enabled for ink lines")
+    normal = ng.nodes.get("ALD | Normal Edge")
+    check(normal is not None, "normal edge mask missing")
     count = len(ng.nodes)
+
+    settings.ink_normal_sensitivity = 0.8
+    normal_gain = ng.nodes.get("ALD | Normal Gain")
+    check(normal_gain is not None
+          and abs(normal_gain.inputs[1].default_value - 0.8) <= TOLERANCE,
+          "normal ink sensitivity not updated in place")
 
     settings.ink_strength = 0.8
     factor = ng.nodes.get("ALD | Ink Factor")
@@ -717,6 +935,27 @@ def check_ink(scene, settings):
     check(ng.nodes.get("ALD | Ink Lines") is None, "ink lines not removed")
     settings.ink_strength = 0.6
     settings.ink_size = 1.5
+    settings.ink_normal_sensitivity = 0.6
+
+
+def check_aerial_haze(scene, settings):
+    settings.aerial_haze = True
+    bpy.ops.ald.build()
+    ng = scene.compositing_node_group
+    mix = ng.nodes.get("ALD | Aerial Haze")
+    check(mix is not None, "aerial haze node missing")
+    count = len(ng.nodes)
+    settings.haze_strength = 0.8
+    strength = ng.nodes.get("ALD | Haze Strength")
+    check(strength is not None
+          and abs(strength.inputs[1].default_value - 0.8) <= TOLERANCE,
+          "haze strength not updated in place")
+    check(len(ng.nodes) == count, "haze slider rebuilt the stack")
+    settings.aerial_haze = False
+    bpy.ops.ald.build()
+    check(ng.nodes.get("ALD | Aerial Haze") is None,
+          "aerial haze not removed")
+    settings.haze_strength = 0.5
 
 
 def check_shot_markers(scene, settings):
@@ -919,6 +1158,19 @@ def check_custom_colors(scene, settings, data):
           "custom sun color not applied")
     check(close(palette_module.shadow_tint_for(scene), (0.3, 0.6, 0.9)),
           "custom shadow color not applied")
+
+    cloud_colors = {name: tuple(node.inputs[name].default_value)
+                    for name in ("Cloud Shadow", "Cloud Mid", "Cloud Light")}
+    settings.custom_sun = (0.95, 0.85, 0.05)
+    node = gradient_node(scene)
+    check(close(sun.data.color, (0.95, 0.85, 0.05)),
+          "custom sun color update not applied")
+    for name, before in cloud_colors.items():
+        check(close(node.inputs[name].default_value, before),
+              "custom sun repainted " + name)
+    settings.custom_sun = (0.2, 0.1, 0.9)
+    bpy.ops.ald.apply_palette()
+
     tint = tint_node(data["plain"])
     check(tint is not None
           and close(tint.inputs["Tint"].default_value, (0.3, 0.6, 0.9)),
@@ -1020,17 +1272,21 @@ def main():
     scene = bpy.context.scene
     check(hasattr(scene, "ald"), "settings not registered")
     settings = scene.ald
+    check_palette_registry(settings)
     check(find_sun(scene) is None, "gate must start without a sun")
     data = build_test_materials(scene)
 
     try:
         check_world_gradient(scene, settings)
+        check_sun_controls(scene, settings)
         check_god_rays(scene, settings)
         check_shadow_tint(scene, settings, data)
+        check_material_exclusion(scene, settings, data)
         check_live_transforms(scene, data)
         check_light_wrap(scene, settings)
         check_param_updates(scene, settings)
         check_ink(scene, settings)
+        check_aerial_haze(scene, settings)
         check_shot_markers(scene, settings)
         check_material_presets(scene, settings, data)
         check_custom_colors(scene, settings, data)

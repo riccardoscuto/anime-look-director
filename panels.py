@@ -31,6 +31,14 @@ class ALD_PT_scene(bpy.types.Panel):
         row.prop(s, "material_preset", text="")
         row.operator("ald.apply_material_preset", text="Apply",
                      icon="CHECKMARK")
+        obj = context.object
+        mat = (getattr(obj, "active_material", None)
+               if obj is not None else None)
+        if mat is not None:
+            excluded = bool(mat.get("ald_exclude"))
+            box.operator("ald.toggle_exclude_material",
+                         text="Include Material" if excluded else "Exclude Material",
+                         icon="CHECKMARK" if excluded else "X")
 
         row = layout.row(align=True)
         row.operator("ald.build", icon="PLAY")
@@ -80,10 +88,31 @@ class ALD_PT_world(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "sun_disk_size")
             col.prop(s, "sun_disk_strength")
+        box.prop(s, "sun_glow")
+        col = box.column(align=True)
+        col.prop(s, "sky_accent")
+        col.prop(s, "sky_accent_amount")
         if s.clouds:
             col = box.column(align=True)
             col.prop(s, "cloud_amount")
             col.prop(s, "cloud_scale")
+            col.prop(s, "cloud_flatness")
+            col.prop(s, "cloud_wind")
+            col.prop(s, "contrails")
+            col.prop(s, "cloud_delta_gain")
+            col.prop(s, "cloud_rim_boost")
+
+        row = box.row(align=True)
+        row.prop(s, "stars", toggle=True)
+        if s.stars:
+            col = box.column(align=True)
+            col.prop(s, "star_strength")
+            col.prop(s, "star_density")
+
+        col = box.column(align=True)
+        col.prop(s, "sun_elevation")
+        col.prop(s, "sun_azimuth")
+        box.operator("ald.stage_backlight", icon="LIGHT")
 
         row = box.row()
         row.prop(s, "custom_colors", toggle=True)
@@ -113,10 +142,12 @@ class ALD_PT_world(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "toon_strength")
             col.prop(s, "toon_sharpness")
+            col.prop(s, "terminator_warmth")
         if s.rim_light:
             col = box.column(align=True)
             col.prop(s, "rim_strength")
             col.prop(s, "rim_width")
+            col.prop(s, "rim_mode")
         if s.toon_shading or s.rim_light:
             box.prop(s, "rim_emission")
 
@@ -158,6 +189,10 @@ class ALD_PT_compositor(bpy.types.Panel):
         row.prop(s, "ink_lines", toggle=True)
         if s.ink_lines:
             row.prop(s, "ink_strength", text="Strength")
+        row = box.row(align=True)
+        row.prop(s, "aerial_haze", toggle=True)
+        if s.aerial_haze:
+            row.prop(s, "haze_strength", text="Strength")
 
         col = box.column(align=True)
         if s.halation:
@@ -173,6 +208,7 @@ class ALD_PT_compositor(bpy.types.Panel):
             col.prop(s, "god_rays_size")
         if s.ink_lines:
             col.prop(s, "ink_size")
+            col.prop(s, "ink_normal_sensitivity")
 
         col.separator()
         col.prop(s, "depth_near")
@@ -211,6 +247,27 @@ class ALD_PT_view3d(bpy.types.Panel):
         row = box.row(align=True)
         row.prop(s, "sun_disk", toggle=True)
         row.prop(s, "clouds", toggle=True)
+        if s.clouds:
+            col = box.column(align=True)
+            col.prop(s, "cloud_flatness")
+            col.prop(s, "cloud_wind")
+            col.prop(s, "contrails")
+            col.prop(s, "cloud_delta_gain")
+            col.prop(s, "cloud_rim_boost")
+        box.prop(s, "sun_glow")
+        col = box.column(align=True)
+        col.prop(s, "sky_accent")
+        col.prop(s, "sky_accent_amount")
+        row = box.row(align=True)
+        row.prop(s, "stars", toggle=True)
+        if s.stars:
+            col = box.column(align=True)
+            col.prop(s, "star_strength")
+            col.prop(s, "star_density")
+        col = box.column(align=True)
+        col.prop(s, "sun_elevation")
+        col.prop(s, "sun_azimuth")
+        box.operator("ald.stage_backlight", icon="LIGHT")
         row = box.row()
         row.prop(s, "custom_colors", toggle=True)
         if s.custom_colors:
@@ -235,9 +292,11 @@ class ALD_PT_view3d(bpy.types.Panel):
         if s.toon_shading:
             col = box.column(align=True)
             col.prop(s, "toon_strength")
+            col.prop(s, "terminator_warmth")
         if s.rim_light:
             col = box.column(align=True)
             col.prop(s, "rim_strength")
+            col.prop(s, "rim_mode")
         if s.toon_shading or s.rim_light:
             box.prop(s, "rim_emission")
 
@@ -266,6 +325,10 @@ class ALD_PT_view3d(bpy.types.Panel):
         row.prop(s, "ink_lines", toggle=True)
         if s.ink_lines:
             row.prop(s, "ink_strength", text="Strength")
+        row = box.row(align=True)
+        row.prop(s, "aerial_haze", toggle=True)
+        if s.aerial_haze:
+            row.prop(s, "haze_strength", text="Strength")
 
         col = box.column(align=True)
         if s.halation:
@@ -279,6 +342,7 @@ class ALD_PT_view3d(bpy.types.Panel):
             col.prop(s, "god_rays_size")
         if s.ink_lines:
             col.prop(s, "ink_size")
+            col.prop(s, "ink_normal_sensitivity")
 
         row = layout.row(align=True)
         row.operator("ald.build", icon="PLAY")

@@ -1,5 +1,103 @@
 # Changelog
 
+## 0.9.0 - 2026-10-20
+### Added
+- **AFTER_SCHOOL** ("After School Sunset") palette: salmon-pink horizon,
+  lavender-indigo zenith and backlit violet cloud bands, calibrated for AgX.
+- **Sun Glow**: two Mie lobes around the sun - a narrow corona
+  (`gamma+^16 * 0.65`) and a wide horizon-weighted haze
+  (`gamma+^3.5 * smoothstep(0.75, 0.0, |Vz|) * 0.45`), summed, scaled by the
+  new Sun Glow input (normalized to 0.45), tinted by Sun Color and added before
+  the clouds. The opposite horizon stays cool.
+- **Cloud Flatness**: exact curved-shell point
+  `(Vx*t, Vy*t, Vz)` with `t=0.55/(max(Z,0.015)+0.18)` and Mapping scale
+  `(0.75, 0.75, 1.25+3.0*Cloud Flatness)`; 0 = billowy Ghibli cumuli,
+  0.65 = current 3.2 strata, 1 = Persona bands.
+- **Perlin-Worley cloud density**: inverted Voronoi F1 lobes (0.38) plus two
+  Perlin layers (0.44 base, 0.18 erosion) remove the sponge/camouflage look.
+- **Solar finite difference**: full density is resampled at
+  `p_cloud + 0.12 * L`; `delta = rho_here - rho_toward_sun` drives the
+  Shadow/Mid body split and the sunward Silver Lining. The former hidden
+  `x3` delta and `x2` rim transfers are now explicit `Delta Gain` and
+  `Rim Boost` sliders, default 1.0.
+- **Aerial blending + accent**: low clouds blend chromatically toward
+  `Horizon Color`; an optional `Sky Accent` color/amount paints the
+  turquoise/coral band around the mid-sky stop.
+- **Micro starfield**: Voronoi density is multiplied by 2.5, the core is
+  0.040 with POWER 2.5, and a Scale-45 noise magnitude mask (0.48..0.78) culls
+  dim cells and varies star brightness. A low-intensity halo keeps the core
+  legible at 1080p.
+- **Optional contrails**: a high-altitude, horizontally stretched noise ribbon
+  with its own `Contrails` control, off by default.
+- New ground/horizon/mid-sky gradient mapping: ground is constrained below
+  `Z = 0` (transition -0.08..0.01), mid-sky peak is clamped 0.05..0.65, and
+  the zenith transition is clamped by Softness.
+- `mu_s = L.z` gates the narrow corona below the horizon.
+- Palette registry gate verifies `PALETTES` and `PRESETS` agree, that
+  `AFTER_SCHOOL` is exposed in the scene enum, and that Sun Glow, Sky Accent,
+  Cloud Flatness, Delta Gain, Rim Boost and Contrails are present and synced.
+
+### Changed
+- Recalibrated the six existing palettes for the new planar cloud deck and
+  backlit shading; all preset cloud triads and star amounts were updated.
+- Look-dev now renders all seven palettes in a 4-column contact sheet.
+
+### Fixed
+- Custom Sun still only affects the sun disk/light; cloud light remains the
+  preset value (the 0.8.1 regression test remains in the gate).
+
+## 0.8.1 - 2026-10-20
+### Fixed
+- Custom Colors: changing **Sun** no longer repaints the clouds. The custom
+  sun color now only drives the sun disk/light and sun-based material/compositor
+  tints; the cloud light stays on the selected preset's `cloud_light` value.
+- Added a regression check that changes only `custom_sun` and verifies
+  `Cloud Shadow`, `Cloud Mid` and `Cloud Light` are unchanged.
+
+
+## 0.8.0 - 2026-10-20
+### Added
+- **Sun Elevation / Sun Azimuth** sliders with two-way synchronization to the
+  active sun, plus a one-click **Stage Backlight** operator that frames the sun
+  ahead of the camera (+12 deg / 15 deg side) and enables Sun Disk, God Rays,
+  Light Wrap and Rim Light.
+- **Starfield** in the world group: Voronoi points masked by the zenith, hidden
+  by clouds and near the sun disk. Per-preset star amounts (Neon Night 0.8,
+  Twilight Dusk 0.7) and Star Amount / Star Density controls.
+- **Cloud Wind**: the cloud noise is driven by a frame-based Cloud Offset, so
+  stars remain static while clouds drift during animation.
+- **Aerial Haze**: distant geometry is tinted toward the horizon/shadow color
+  using the depth range, masked to the scene silhouette.
+- **Normal Ink Lines**: a Normal-pass discontinuity extractor is combined with
+  the depth edges to ink creases, furniture and internal hard corners.
+- **Terminator Warmth**: a narrow warm subsurface band around `N.L = 0`, with a
+  Skin preset boost.
+- **Rim Mode**: Sun Side, 360 Contour and Backlight rim selection through a
+  single group input.
+- **Material exclusion**: the active material can be excluded from the global
+  sync (`mat["ald_exclude"]`); excluded materials are skipped by Apply/Build and
+  retain their original shading until included again.
+
+### Changed
+- Light Wrap and Ink Lines now share one silhouette/depth geometry graph;
+  `_depth_edges` receives a vertical offset for the ink chain, removing duplicate
+  overlapping nodes.
+- Turning **Shadow Tint** off zeroes only the AO Strength while keeping Cel and
+  Rim shading active. The **X Clear Shadow Tint** button removes the group and
+  disables Cel/Rim shading for a fully clean material state.
+- `sun_toward` uses `matrix_world` when the sun has constraints, so Track To and
+  other constraint-driven suns work.
+- Auto-sun preset rotation is reapplied only when the palette key changes;
+  manual slider angles and Stage Backlight survive world/cloud/weather refreshes.
+- World gradient group marker is 7; old groups rebuild automatically.
+
+### Gate
+- New checks for sun angle movement, Stage Backlight, angle persistence across
+  world updates, star amount/density, cloud wind offset, aerial haze, normal ink,
+  terminator warmth/rim bias, and material exclusion.
+- Pixel gate adds aerial haze; expected `ALD GATE: PASS`.
+
+
 ## 0.7.0 — 2026-10-19
 ### Added
 - **Scientific 6-preset color script** calibrated in Scene-Linear Rec.709 for AgX,

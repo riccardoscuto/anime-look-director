@@ -357,3 +357,134 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   15.8 %, ink 2.6 %, toon 1.6 %, rim 7.2 %; `ALD GATE: PASS`.
 - The new colors are intentionally more saturated; AgX still compresses highlights,
   and HDR values above 1.0 are expected for horizon/sun/cloud light colors.
+
+### v0.8.0 notes (direction, depth and material control)
+- **Shared geometry**: `build()` calls `_silhouette_mask()` once when Light Wrap,
+  Ink or Aerial Haze is active and passes the mask to each stage. `_depth_edges`
+  accepts `y_offset`; the ink chain is shifted down 1600 units so its nodes no
+  longer overlap the light-wrap chain in the Node Editor.
+- **Normal ink**: when `ink_lines` is on, every view layer gets
+  `use_pass_normal = True`. `_normal_edges` blurs the Normal pass by 1.5 px,
+  subtracts it from the original, takes the vector length, curves 0.01..0.14,
+  multiplies by `ink_normal_sensitivity` and the geometry mask, then combines the
+  result with the depth edge via `MAXIMUM`. This inks creases and internal hard
+  corners that have no depth discontinuity.
+- **Aerial haze**: depth is mapped through `depth_near..depth_far` (0..1), masked
+  by the silhouette and `haze_strength`, then mixed toward
+  `0.65 * horizon + 0.35 * shadow_tint`. The sky is excluded by the geometry mask.
+  The range, strength and color nodes are refreshed in place by `update_params`.
+- **Sun angle sync**: `rotation_from_angles` uses
+  `(radians(90 - elevation), 0, radians(azimuth))`; the inverse reads the actual
+  `sun_toward` direction. `sync_sun_angles` writes the UI properties behind a
+  module guard, and the property update calls `apply_sun_angles`. `ensure_sun`
+  resets the auto-sun rotation only when `ald_last_palette` differs from the
+  applied key, so Stage Backlight and manual sliders survive cloud/world refreshes.
+  `sun_toward` uses `matrix_world` whenever the sun has constraints.
+- **Stage Backlight**: reads the active camera forward vector, sets elevation 12
+  and azimuth = camera yaw + 15, enables Sun Disk/God Rays/Light Wrap/Rim, then
+  applies the angles. Toggles are set **before** the final angle application,
+  because the Sun Disk update can call `look.apply_world` and reapply the palette.
+- **Stars**: `ShaderNodeTexVoronoi` (Distance) at the Star Density scale; the
+  point curve is 0..0.22 (attempts at 0.03 were sub-pixel and invisible). The mask
+  is zenith (Z 0.08..0.25), sun hide (dot 0.96..0.995) and cloud hide
+  (`1 - cloud_amount`), multiplied by Star Amount. Presets carry `star_amount`
+  (Neon 0.8, Twilight 0.7); the UI Star Amount multiplies it. Star color is a
+  fixed cool white (1.4, 1.55, 1.9) added to the sky before the visible/ambient mix.
+- **Cloud wind**: a Mapping node sits between the normalized view vector and the
+  two cloud noises. `Cloud Offset` is a group vector input set from
+  `frame * cloud_wind * (0.02, 0.005, 0)`. Stars use the unoffset view vector, so
+  they stay fixed while clouds drift.
+- **Terminator Warmth**: `abs(N.L)` through a smooth MapRange 0..0.12 -> 1..0,
+  multiplied by the group input and `Sun Color`, then added to the shaded base.
+  `_set_look` boosts Skin to at least 0.35.
+- **Rim modes**: `Rim Bias` (-1..1) maps three weights:
+  `sun=max(bias,0)`, `back=max(-bias,0)`, `contour=1-abs(bias)`. The Fresnel band
+  is multiplied by `sun * max(N.L,0) + back * max(-N.L,0) + contour`. UI modes map
+  Sun=1, Contour=0, Backlight=-1.
+- **Shadow Tint semantics**: toggle off keeps the group and sets the AO Strength
+  to 0.0 while Cel/Rim remain active; the X operator clears the group and turns
+  Cel/Rim off. `look.apply`, `_sync_shadow` and `_on_shadow` all use the same
+  strength rule.
+- **Material exclusion**: `mat["ald_exclude"] = True` removes the group and is
+  checked by `sync_scene`, `sync_one` and material-preset apply; Include restores
+  the group for that material.
+- Gate now covers sun controls/stage, star amount/density, cloud offset, haze,
+  normal pass/ink gain, warmth/bias and material exclusion. Gate pixel ratios:
+  shadow 2.62 %, wrap 15.78 %, ink 3.36 %, haze 63.04 %, toon 1.57 %, rim 7.18 %.
+  Haze ratio is high because the gate plane fills most of the frame; the
+  structural mask prevents it from tinting the sky.
+
+### v0.8.1 note (custom sun / cloud coupling)
+- Bug: `effective()` overwrote `cloud_light` with the custom `sun` color, so
+  dragging the Custom Colors > Sun picker repainted the clouds. The line is
+  removed; `cloud_light` stays on the selected preset, while the custom sun only
+  affects the sun disk/light and sun-driven rim/glare tints.
+- Gate regression: capture `Cloud Shadow/Mid/Light`, change only `custom_sun`,
+  verify the three cloud inputs are unchanged and the sun data color changed.
+
+### v0.9.0 notes (After School, planar clouds, micro stars)
+- **AFTER_SCHOOL** is the seventh preset: salmon-gold horizon, salmon/mauve mid
+  sky and indigo-lavender zenith. `PALETTES`/`PRESETS` are checked against each
+  other and against the scene enum in the gate.
+- **Sun Glow**: `gamma_plus = max(dot(V,L),0)`. Narrow corona
+  `gamma_plus^16 * 0.65` plus wide lobe
+  `gamma_plus^3.5 * smoothstep(0.75, 0.0, abs(Vz)) * 0.45`; the sum is scaled by
+  `Sun Glow / 0.45` (default 0.45), tinted by `Sun Color`, and added before the
+  clouds. The opposite horizon stays cool.
+- **Planar clouds**: exact shell point
+  `p=(Vx*t, Vy*t, Vz)` with `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
+  `Scale=(0.75, 0.75, 1.25 + 3.0 * Cloud Flatness)`; flatness 0.65 gives 3.2.
+  Cloud Offset still drives the Mapping location. The sun-shell sample uses
+  `(Vx*t+0.12Lx, Vy*t+0.12Ly, Vz+0.12Lz)`.
+- **Perlin-Worley density**: inverted Voronoi F1 (0.38) + Perlin N1 0.44 +
+  high-frequency erosion N2 0.18. N1 is Detail 5 / Roughness 0.55 / Distortion
+  0.20; N2 uses scale*3, Detail 4. Coverage stays 0.50..0.535.
+- **Solar derivative / silver lining**: full density is resampled at
+  `p + 0.12L` (Worley + N1 + N2), so `delta = rho(p) - rho(p_sun)`.
+  `Delta Gain` (default 1.0) is an explicit UI multiplier; no hidden 3x.
+  `body_mix = smoothstep(-0.04, 0.04, delta + 0.15*(Vz - 0.3))` blends
+  Shadow -> Mid. `fringe = smoothstep(0.545, 0.50, rho)`,
+  `sun_edge = smoothstep(-0.01, 0.06, delta)`, and
+  `rim = clamp((0.65*fringe+0.35) * sun_edge * (0.35+0.65*gamma_plus^2),0,1)`.
+  `Rim Boost` (default 1.0) is an explicit UI multiplier before Cloud Light.
+- **Aerial blend / accent**: low clouds mix toward `Horizon Color` by
+  `(1-horizon)*0.65`; optional `Sky Accent` paints a smooth band within
+  `|Vz - z_mid| < 0.07`.
+- **mu_s**: `L.z` through smoothstep(-0.08,0.08) gates the narrow solar corona.
+- **Sky mapping**: ground transitions at Z -0.08..0.01; the mid peak is
+  `clamp(0.22 + 0.16 * Horizon Offset, 0.05, 0.65)`; the zenith transition
+  starts at `mid_peak + max(0.55 * Softness, 0.05)` and is clamped to 1.0.
+  Ground never leaks above Z=0.
+- **Stars**: `Star Density` is multiplied by 2.5 before the Voronoi Scale; the
+  distance curve is 0..0.040, POWER 2.5, then multiplied by a Scale-45 Noise /
+  MapRange 0.48..0.78 magnitude mask. A 0.24-wide halo at 0.22 strength keeps
+  the core legible at 1080p; star color is (12.0, 12.5, 15.0), zenith
+  0.06..0.28, sun hide 0.96..0.995, and clouds hide the field with
+  `1 - cloud_amount`.
+- **Contrails**: optional `Contrails` group input; a high-altitude view-vector
+  noise stretched by `(0.12, 5.0, 0.12)`, noise Scale 9, band 0.60..0.615,
+  altitude 0.08..0.30, and an ADD of (1.8, 1.9, 2.1) at 0.18 strength. Off by
+  default.
+- **Gate**: palette registry, AFTER_SCHOOL and the new Sun Glow / Sky Accent /
+  Cloud Flatness / Delta Gain / Rim Boost / Contrails sockets are checked.
+  Gate pixel ratios are shadow 2.60 %, wrap 16.06 %, ink 3.45 %, haze 63.04 %,
+  toon 1.59 %, rim 7.12 %. Look-dev renders all seven palettes in a 4-column
+  sheet; the eighth cell stays empty (black).
+
+### v0.9.0 reference study
+- **Oga Kazuo Art Collection** pp. 97, 100, 117: high-key cyan sky, compact white
+  cumulus with flat bases and lavender-gray shadow sides; this confirms the
+  Perlin-Worley + directional shading direction, not a volumetric raymarch.
+- **Persona 3 Official Artbook** p. 96 (main visual) and p. 106: pale
+  yellow-green horizon against dark silhouettes, plus blue/gold interior light.
+  The original P3 artbook does not contain the later P3 Reload "After School"
+  sky, so the table values remain the calibration source.
+- **Persona 5 Royal / Persona 5 Design Works**: sampled character and prop
+  sheets; almost no atmospheric backgrounds, so they were not used for cloud
+  color calibration.
+- **80.lv / GDC / SIGGRAPH reading**: Ghibli-style limited palettes and
+  Kuwahara finishing; Nubis Perlin-Worley and Beer-Powder; Genshin's 2D
+  `(mu_v, gamma)` sky parameterization; iQuilez fBm/domain-warping and
+  double-tint aerial perspective. The implemented equivalents are the planar
+  shell, three-tone cloud transfer, full-density solar derivative, Mie lobes,
+  aerial cloud/horizon blend and contrail layer.

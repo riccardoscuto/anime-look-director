@@ -3,7 +3,7 @@
 Usage:
   blender -b --factory-startup --python preset_dev/lookdev.py -- [--out DIR]
 
-Outputs one PNG per palette plus a 2x2 contact sheet and prints image stats.
+Outputs one PNG per palette plus a contact sheet and prints image stats.
 This is a development tool: it never saves a .blend.
 """
 
@@ -16,8 +16,8 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PALETTES = ("GOLDEN_HOUR", "SUMMER_NOON", "RAINY_TOKYO", "NEON_NIGHT",
-            "SAKURA_SPRING", "TWILIGHT_DUSK")
+PALETTES = ("GOLDEN_HOUR", "AFTER_SCHOOL", "SUMMER_NOON", "RAINY_TOKYO",
+            "NEON_NIGHT", "SAKURA_SPRING", "TWILIGHT_DUSK")
 
 
 def parse_args():
@@ -139,9 +139,10 @@ def load_rgba(path):
 
 def make_sheet(paths, out_path):
     width, height = 800, 450
-    columns = 3
-    rows = 2
+    columns = 4
+    rows = max(1, (len(paths) + columns - 1) // columns)
     sheet = np.zeros((height * rows, width * columns, 4), dtype=np.float32)
+    sheet[..., 3] = 1.0
     for index, path in enumerate(paths):
         pixels = load_rgba(path).reshape(height, width, 4)
         # Blender image rows start at the bottom: first row on top.

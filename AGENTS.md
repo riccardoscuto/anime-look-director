@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **0.7.0**).
+  (currently **0.9.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -33,8 +33,9 @@ TECH_NOTES); move it on-screen before capturing.
 - `materials.py` — Shadow Tint group (AO + directional terminator + rim),
   material presets, and the per-frame sun sync.
 - `shots.py` — timeline marker palette overrides and the frame-change handler.
-- `operators.py` — `ald.build`, `ald.remove`, `ald.apply_palette`,
-  `ald.clear_shadow_tint`, `ald.viewport_compositor`.
+- `operators.py` - `ald.build`, `ald.remove`, `ald.apply_palette`,
+  `ald.clear_shadow_tint`, `ald.stage_backlight`, `ald.toggle_exclude_material`,
+  `ald.viewport_compositor`.
 - `panels.py` — Scene properties panel plus the View3D sidebar panel.
 - `preset_dev/verify.py` — headless gate.
 - `preset_dev/lookdev.py` — renders all palettes on a fixed scene + contact sheet.
@@ -90,8 +91,52 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   behind, it starts at `(0.5, 0.5)` and strength 0 so the handler can find it.
 - Float sliders use `compositor.update_params(scene)`, which finds nodes by fixed
   names (`ALD | Halation`, `ALD | Kuwahara`, `ALD | Depth Range`,
-  `ALD | Light Wrap Blur/Mask/Edge/Over`, `ALD | Lens`, `ALD | God Rays`) and
-  rewrites sockets. Measured 0.34 ms vs 5.3 ms for a full rebuild.
+  `ALD | Light Wrap Blur/Mask/Edge/Over`, `ALD | Lens`, `ALD | God Rays`,
+  `ALD | Ink Normal Gain`, `ALD | Haze Range/Strength/Color`) and rewrites
+  sockets. Measured 0.34 ms vs 5.3 ms for a full rebuild.
+- Light Wrap, Ink and Aerial Haze share one `_silhouette_mask` call in `build`;
+  pass the mask down. `_depth_edges(..., y_offset=-1600)` keeps the ink chain
+  visually separate in the Node Editor.
+- Normal ink needs `view_layer.use_pass_normal = True`; `_normal_edges` blurs the
+  Normal pass by 1.5 px, subtracts, takes vector length, curves 0.01..0.14 and
+  multiplies by the normal sensitivity and geometry mask. Combine with the depth
+  edge via `MAXIMUM`.
+- World gradient group marker is **9**. Inputs include `Star Amount`, `Star
+  Density` (Voronoi scale, default 180), `Cloud Flatness` and `Cloud Offset`
+  (vector). Exact shell point is `(Vx*t, Vy*t, Vz)` with
+  `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
+  `Scale=(0.75, 0.75, 1.25 + 3.0 * Cloud Flatness)`; Cloud Offset feeds the
+  Mapping location (`frame * cloud_wind * (0.02, 0.005, 0)`). Stars use the
+  unoffset view vector. `Cloud Flatness=0.65` reproduces Z=3.2.
+- Micro stars: Voronoi Scale = `Star Density * 2.5`; distance curve 0..0.040,
+  POWER 2.5, multiplied by a 45-scale Noise -> MapRange 0.48..0.78 magnitude
+  mask, plus a 0.24-wide halo at 0.22, then zenith 0.06..0.28, sun hide
+  0.96..0.995 and `1 - cloud_amount`. Star color is (12.0, 12.5, 15.0).
+- Sun Glow has two lobes: narrow `gamma+^16 * 0.65` gated by `mu_s=L.z`
+  (smoothstep -0.08..0.08), and wide
+  `gamma+^3.5 * smoothstep(0.75,0,abs(Vz)) * 0.45`; sum scaled by
+  `Sun Glow/0.45`, tinted by Sun Color, ADDed before clouds.
+- Solar delta uses the full rho resampled at `p+0.12L`; `Cloud Delta Gain` and
+  `Cloud Rim Boost` are explicit group inputs (default 1.0), not hidden
+  multipliers. Low clouds mix toward Horizon Color by `(1-horizon)*0.65`.
+- Optional contrails use a stretched view-vector noise (0.12,5.0,0.12),
+  noise Scale 9, band 0.60..0.615, altitude 0.08..0.30, group input
+  `Contrails`, default 0, factor 0.18. `Sky Accent`/`Sky Accent Amount` add an
+  optional band within 0.07 of the mid-sky stop.
+- `ensure_sun` only reapplies the preset `sun_rotation` when
+  `ald_last_palette` changes. `sync_sun_angles` writes the elevation/azimuth UI
+  fields behind `_syncing_angles`; `apply_sun_angles` moves the sun and calls
+  `cameras.update_transforms`. Stage Backlight sets its toggles before applying
+  the final angles, because Sun Disk can trigger a world refresh.
+- `sun_toward` uses `matrix_world` when the sun has any constraint; only an
+  unparented, unconstrained auto sun uses `rotation_euler`.
+- Shadow Tint off = AO strength 0 while Cel/Rim stay on; the X operator removes the
+  group and disables Cel/Rim. Material exclusion uses `mat["ald_exclude"]` and is
+  respected by `sync_scene`, `sync_one` and material preset apply.
+- Rim Bias maps Sun=1, Contour=0, Backlight=-1. Terminator Warmth is an additive
+  `Sun Color * smoothstep(0..0.12, abs(N.L))` band; Skin is boosted to 0.35.
+- Gate pixel ratios: shadow ~2.60 %, wrap ~16.06 %, ink ~3.45 %, haze ~63.04 %
+  (gate plane fills the frame), toon ~1.59 %, rim ~7.12 %.
 - Shadow tint uses a `MULTIPLY` Mix on Base Color; palette `shadow_tint` colors are
   normalized (max component 1) so textures keep their detail in shadows.
 - Material presets include `EMISSION`; set `Emission Color` / `Emission Strength`,
@@ -99,7 +144,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Sidebar N panel: `bl_space_type="VIEW_3D"`, `bl_region_type="UI"`,
   `bl_category="Anime Look"`. In tests set
   `region.active_panel_category = "Anime Look"` to select it.
-- World gradient (`ald_build = 3`) also hosts the sun disk and clouds. Inputs:
+- World gradient (`ald_build = 8`) also hosts the sun disk, stars and clouds. Inputs:
   `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
   (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,
   `Cloud Amount/Scale`. Palette colors are wired through these sockets, never
@@ -107,9 +152,13 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Create/tint the sun **before** applying the world gradient, otherwise the first
   apply sees no sun and writes a zero sun direction. Sun/cloud frame updates run
   on `frame_change_post` so matrices are evaluated.
-- Anime clouds: two 3D Noise layers on `Generated` (weights 0.75/0.25), coverage
-  0.48–0.56, three tone bands via MapRange 0.46–0.48 and 0.57–0.59. A plane
-  projection (`x/z`, `y/z`) produced rows/camo on the sky dome; keep 3D noise.
+- Anime clouds: Perlin-Worley density, weights 0.38 inverted Voronoi F1 +
+  0.44 N1 + 0.18 N2, coverage 0.50..0.535. The old raw 3D noise produced
+  vertical camouflage; a naive plane projection (`x/z`, `y/z`) produced rows,
+  so use the normalized projected vector plus the curved shell and dynamic
+  Z flatness. Shading is directional: `delta = N1(p) - N1(p + 0.12 L)` drives
+  Cloud Shadow/Mid; fringe 0.50..0.545, sun edge -0.01..0.04 and gamma factor
+  drive Cloud Light. Do not put Cloud Light at the dense center.
 - Ink lines reuse `_depth_edges(..., band_size=0, edge_size=ink_size)`, multiply
   the image by a dark `shadow_tint * 0.25` color; the gate pixel ratio is ~2.5 %.
 - Custom colors: `palette.effective(scene, key)` applies overrides and
@@ -152,9 +201,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   `gradient * World Strength` (ambient) with the full gradient (camera rays).
   Background Strength is 1.0 when the gradient is active; flat worlds keep the
   preset strength.
-- Cloud shading is directional: `sun_bias` maps `N·L` (-0.5..0.9) to
-  (-0.06..0.08), added to the density before the 0.50–0.53 / 0.56–0.59 tone
-  MapRanges. Coverage is 0.49–0.55.
+- Cloud shading uses the full-rho solar finite difference: `body_mix` from
+  `delta*DeltaGain + 0.15*(Vz-0.3)` blends Shadow -> Mid; the
+  fringe/sun-edge/gamma product, optionally scaled by RimBoost, blends Cloud
+  Light on the sunward edge. This replaced density-only bands.
 - Preset `sun_rotation` is applied only to auto-tagged suns; user suns keep their
   rotation. `sun_toward` reads `rotation_euler` for an unparented auto sun to avoid
   stale matrices; `ensure_sun` no longer calls `view_layer.update()` (depsgraph
@@ -176,8 +226,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   tint × combined). `_wire_emission` links it to Principled Emission Color, stores
   `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
   restores on clear.
-- Gate pixel ratios after the ink gain: ink ~2.6 %, rim ~7.2 % (edge-local);
-  shadow ~2.1 %, toon ~1.6 %.
+- Gate pixel ratios: ink ~3.45 %, rim ~7.12 % (edge-local);
+  shadow ~2.60 %, toon ~1.59 %.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.

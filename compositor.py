@@ -19,6 +19,12 @@ NODE_INK_FACTOR = "ALD | Ink Factor"
 NODE_INK_LINES = "ALD | Ink Lines"
 NODE_INK_COLOR = "ALD | Ink Color"
 NODE_INK_GAIN = "ALD | Ink Gain"
+NODE_INK_NORMAL = "ALD | Normal Edge"
+NODE_INK_NORMAL_GAIN = "ALD | Normal Gain"
+NODE_HAZE_RANGE = "ALD | Haze Range"
+NODE_HAZE_STRENGTH = "ALD | Haze Strength"
+NODE_HAZE_COLOR = "ALD | Haze Color"
+NODE_HAZE_MIX = "ALD | Aerial Haze"
 
 
 def _is_stack(ng):
@@ -66,6 +72,16 @@ def _mix_sockets(mix):
     return a, b, result
 
 
+def _smooth(node):
+    try:
+        items = [item.identifier for item in
+                 node.bl_rna.properties["interpolation_type"].enum_items]
+        if "SMOOTHSTEP" in items:
+            node.interpolation_type = "SMOOTHSTEP"
+    except Exception:
+        pass
+
+
 def _silhouette_mask(nodes, links, render_layers, clip_end):
     """Mask of rendered geometry, independent of world alpha.
 
@@ -92,8 +108,9 @@ def _silhouette_mask(nodes, links, render_layers, clip_end):
 
 
 def _depth_edges(nodes, links, render_layers, geometry, band_size,
-                 edge_size=4.0, blur_name=None):
+                 edge_size=4.0, blur_name=None, y_offset=0.0):
     """Depth-discontinuity mask, optionally widened into an edge band."""
+    before = {node.name for node in nodes}
     depth = render_layers.outputs.get("Depth")
     if depth is None:
         return None
@@ -187,14 +204,18 @@ def _depth_edges(nodes, links, render_layers, geometry, band_size,
     clipped.use_clamp = True
     links.new(edge_value, clipped.inputs[0])
     links.new(geometry, clipped.inputs[1])
+    if y_offset:
+        for node in nodes:
+            if node.name not in before:
+                node.location.y += y_offset
     return clipped.outputs[0]
 
 
-def _light_wrap(nodes, links, image, render_layers, settings, clip_end):
+def _light_wrap(nodes, links, image, render_layers, settings, clip_end,
+                geometry):
     """Add blurred scene light inside the silhouette's edge band."""
     size = max(1.0, settings.light_wrap_size)
     strength = settings.light_wrap_strength
-    mask_value = _silhouette_mask(nodes, links, render_layers, clip_end)
 
     light = nodes.new("CompositorNodeBlur")
     light.location = (-500, -220)
@@ -213,7 +234,7 @@ def _light_wrap(nodes, links, image, render_layers, settings, clip_end):
     a_sock, b_sock, result_sock = _mix_sockets(white)
     a_sock.default_value = (0.0, 0.0, 0.0, 1.0)
     b_sock.default_value = (1.0, 1.0, 1.0, 1.0)
-    links.new(mask_value, white.inputs["Factor"])
+    links.new(geometry, white.inputs["Factor"])
 
     mask = nodes.new("CompositorNodeBlur")
     mask.location = (-650, 480)
@@ -231,10 +252,10 @@ def _light_wrap(nodes, links, image, render_layers, settings, clip_end):
     rim.location = (-280, 540)
     rim.operation = "SUBTRACT"
     rim.use_clamp = True
-    links.new(mask_value, rim.inputs[0])
+    links.new(geometry, rim.inputs[0])
     links.new(separate.outputs["Red"], rim.inputs[1])
 
-    edge_mask = _depth_edges(nodes, links, render_layers, mask_value, size)
+    edge_mask = _depth_edges(nodes, links, render_layers, geometry, size)
     if edge_mask is not None:
         combined = nodes.new("ShaderNodeMath")
         combined.location = (-100, 540)
@@ -377,6 +398,25 @@ def update_params(scene):
     node = nodes.get(NODE_INK_FACTOR)
     if node is not None:
         node.inputs[1].default_value = settings.ink_strength
+    node = nodes.get(NODE_INK_NORMAL_GAIN)
+    if node is not None:
+        node.inputs[1].default_value = settings.ink_normal_sensitivity
+
+    node = nodes.get(NODE_HAZE_RANGE)
+    if node is not None:
+        node.inputs["From Min"].default_value = settings.depth_near
+        node.inputs["From Max"].default_value = max(
+            settings.depth_far, settings.depth_near + 0.001)
+    node = nodes.get(NODE_HAZE_STRENGTH)
+    if node is not None:
+        node.inputs[1].default_value = settings.haze_strength
+    node = nodes.get(NODE_HAZE_COLOR)
+    if node is not None:
+        key = scene.get("ald_effective_palette", settings.palette)
+        p = palette_module.effective(scene, key)
+        haze = tuple(0.65 * h + 0.35 * s for h, s in
+                     zip(p["horizon_color"], p["shadow_tint"]))
+        node.outputs[0].default_value = (*haze, 1.0)
 
 
 def _on_frame_change(scene, *_args):
@@ -396,14 +436,124 @@ def unregister():
         bpy.app.handlers.frame_change_post.remove(_on_frame_change)
 
 
+def _aerial_haze(nodes, links, image, render_layers, settings, geometry,
+                 haze_color):
+    """Tint distant geometry toward the horizon color."""
+    depth = render_layers.outputs.get("Depth")
+    if depth is None:
+        return image
+    depth_range = nodes.new("ShaderNodeMapRange")
+    depth_range.location = (-700, -1500)
+    depth_range.name = NODE_HAZE_RANGE
+    depth_range.clamp = True
+    depth_range.inputs["From Min"].default_value = settings.depth_near
+    depth_range.inputs["From Max"].default_value = max(
+        settings.depth_far, settings.depth_near + 0.001)
+    depth_range.inputs["To Min"].default_value = 0.0
+    depth_range.inputs["To Max"].default_value = 1.0
+    links.new(depth, depth_range.inputs["Value"])
+
+    mask = nodes.new("ShaderNodeMath")
+    mask.location = (-500, -1500)
+    mask.operation = "MULTIPLY"
+    mask.use_clamp = True
+    links.new(depth_range.outputs["Result"], mask.inputs[0])
+    links.new(geometry, mask.inputs[1])
+
+    strength = nodes.new("ShaderNodeMath")
+    strength.location = (-300, -1500)
+    strength.name = NODE_HAZE_STRENGTH
+    strength.operation = "MULTIPLY"
+    strength.use_clamp = True
+    links.new(mask.outputs[0], strength.inputs[0])
+    strength.inputs[1].default_value = settings.haze_strength
+
+    color = nodes.new("CompositorNodeRGB")
+    color.location = (-300, -1660)
+    color.name = NODE_HAZE_COLOR
+    color.outputs[0].default_value = (*haze_color, 1.0)
+
+    mix = nodes.new("ShaderNodeMix")
+    mix.location = (-80, -1500)
+    mix.name = NODE_HAZE_MIX
+    mix.data_type = "RGBA"
+    mix.blend_type = "MIX"
+    a_sock, b_sock, result_sock = _mix_sockets(mix)
+    links.new(image, a_sock)
+    links.new(color.outputs[0], b_sock)
+    links.new(strength.outputs[0], mix.inputs["Factor"])
+    return result_sock
+
+
+def _normal_edges(nodes, links, render_layers, geometry, sensitivity):
+    """Normal-discontinuity mask for creases and hard internal corners."""
+    normal = render_layers.outputs.get("Normal")
+    if normal is None:
+        return None
+    blur = nodes.new("CompositorNodeBlur")
+    blur.location = (-700, -2400)
+    blur.inputs["Type"].default_value = "Gaussian"
+    blur.inputs["Size"].default_value = (1.5, 1.5)
+    links.new(normal, blur.inputs["Image"])
+
+    difference = nodes.new("ShaderNodeVectorMath")
+    difference.location = (-500, -2400)
+    difference.operation = "SUBTRACT"
+    links.new(normal, difference.inputs[0])
+    links.new(blur.outputs["Image"], difference.inputs[1])
+
+    length = nodes.new("ShaderNodeVectorMath")
+    length.location = (-300, -2400)
+    length.operation = "LENGTH"
+    links.new(difference.outputs["Vector"], length.inputs[0])
+
+    curve = nodes.new("ShaderNodeMapRange")
+    curve.location = (-100, -2400)
+    curve.clamp = True
+    _smooth(curve)
+    curve.inputs["From Min"].default_value = 0.01
+    curve.inputs["From Max"].default_value = 0.14
+    curve.inputs["To Min"].default_value = 0.0
+    curve.inputs["To Max"].default_value = 1.0
+    links.new(length.outputs["Value"], curve.inputs["Value"])
+
+    gain = nodes.new("ShaderNodeMath")
+    gain.location = (100, -2400)
+    gain.name = NODE_INK_NORMAL_GAIN
+    gain.operation = "MULTIPLY"
+    gain.use_clamp = True
+    links.new(curve.outputs["Result"], gain.inputs[0])
+    gain.inputs[1].default_value = sensitivity
+
+    mask = nodes.new("ShaderNodeMath")
+    mask.location = (300, -2400)
+    mask.operation = "MULTIPLY"
+    mask.use_clamp = True
+    links.new(gain.outputs[0], mask.inputs[0])
+    links.new(geometry, mask.inputs[1])
+    mask.name = NODE_INK_NORMAL
+    return mask.outputs[0]
+
+
 def _ink_lines(nodes, links, image, render_layers, settings, clip_end,
-               ink_color):
+               geometry, ink_color):
     """Thin dark depth edges over the composited image."""
-    geometry = _silhouette_mask(nodes, links, render_layers, clip_end)
     edge = _depth_edges(nodes, links, render_layers, geometry, 0.0,
-                        settings.ink_size, NODE_INK_EDGE)
+                        settings.ink_size, NODE_INK_EDGE,
+                        y_offset=-1600.0)
     if edge is None:
         return image
+
+    normal_edge = _normal_edges(nodes, links, render_layers, geometry,
+                                settings.ink_normal_sensitivity)
+    if normal_edge is not None:
+        combined = nodes.new("ShaderNodeMath")
+        combined.location = (-460, -1600)
+        combined.operation = "MAXIMUM"
+        combined.use_clamp = True
+        links.new(edge, combined.inputs[0])
+        links.new(normal_edge, combined.inputs[1])
+        edge = combined.outputs[0]
 
     factor = nodes.new("ShaderNodeMath")
     factor.location = (-260, -1040)
@@ -444,6 +594,8 @@ def build(scene):
 
     for layer in scene.view_layers:
         layer.use_pass_z = True
+        if settings.ink_lines:
+            layer.use_pass_normal = True
 
     clip_end = 1000.0
     if scene.camera is not None and scene.camera.data is not None:
@@ -546,14 +698,29 @@ def build(scene):
             factor.default_value = 1.0
         current = result_sock
 
+    if (settings.light_wrap or settings.ink_lines
+            or settings.aerial_haze):
+        geometry = _silhouette_mask(nodes, links, rl, clip_end)
+    else:
+        geometry = None
+
     if settings.light_wrap:
-        current = _light_wrap(nodes, links, current, rl, settings, clip_end)
+        current = _light_wrap(nodes, links, current, rl, settings, clip_end,
+                              geometry)
+
+    if settings.aerial_haze:
+        key = scene.get("ald_effective_palette", settings.palette)
+        p = palette_module.effective(scene, key)
+        haze = tuple(0.65 * h + 0.35 * s for h, s in
+                     zip(p["horizon_color"], p["shadow_tint"]))
+        current = _aerial_haze(nodes, links, current, rl, settings,
+                               geometry, haze)
 
     if settings.ink_lines:
         ink_color = tuple(component * 0.25 for component in
                           palette_module.shadow_tint_for(scene))
         current = _ink_lines(nodes, links, current, rl, settings, clip_end,
-                             ink_color)
+                             geometry, ink_color)
 
     if settings.dispersion:
         lens = nodes.new("CompositorNodeLensdist")

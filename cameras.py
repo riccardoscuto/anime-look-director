@@ -74,6 +74,7 @@ def update_transforms(scene, force=False):
     palette.update_sun_controls(scene)
     materials.update_sun(scene)
     compositor.update_god_rays(scene)
+    palette.sync_sun_angles(scene)
     return True
 
 

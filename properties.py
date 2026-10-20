@@ -3,12 +3,13 @@ from bpy.props import (BoolProperty, EnumProperty, FloatProperty,
                        FloatVectorProperty, PointerProperty)
 
 PALETTES = [
-    ("GOLDEN_HOUR", "Shinkai Golden Hour", "Warm backlight, orange halation"),
-    ("SUMMER_NOON", "Ghibli Summer Noon", "Bright sky, clean high-key light"),
-    ("RAINY_TOKYO", "Rainy Tokyo Night", "Cool rain-soaked night"),
-    ("NEON_NIGHT", "Cyberpunk Neon", "Magenta and cyan artificial light"),
-    ("SAKURA_SPRING", "Sakura Spring", "Soft pink skies and warm spring light"),
-    ("TWILIGHT_DUSK", "Twilight Dusk", "Deep blue sky, low orange sun"),
+    ("GOLDEN_HOUR", "Shinkai Golden Hour", "Warm backlight, cobalt zenith and golden clouds"),
+    ("AFTER_SCHOOL", "After School Sunset", "Persona-style salmon-pink sky with backlit violet cloud bands"),
+    ("SUMMER_NOON", "Ghibli Summer Noon", "Deep cerulean sky, crisp white cumulus with lavender shadows"),
+    ("RAINY_TOKYO", "Rainy Tokyo Night", "Cool rain-soaked slate night"),
+    ("NEON_NIGHT", "Cyberpunk Neon", "Deep night sky with magenta-cyan rim-lit clouds"),
+    ("SAKURA_SPRING", "Sakura Spring", "Cornflower sky, warm sakura horizon and soft lilac clouds"),
+    ("TWILIGHT_DUSK", "Twilight Dusk", "Prussian blue dusk, vermilion horizon and starfield"),
 ]
 
 MATERIALS = [
@@ -87,11 +88,28 @@ def _on_shadow(self, context):
         if scene is None:
             return
         if self.shadow_tint:
-            materials.sync_scene(scene, palette.shadow_tint_for(scene),
-                                 self.shadow_tint_strength,
-                                 self.shadow_tint_distance)
+            strength = self.shadow_tint_strength
+        elif self.toon_shading or self.rim_light:
+            strength = 0.0
         else:
             materials.clear_scene(scene)
+            return
+        materials.sync_scene(scene, palette.shadow_tint_for(scene),
+                             strength,
+                             self.shadow_tint_distance)
+    except Exception:
+        pass
+
+
+def _on_sun_angles(self, context):
+    try:
+        from . import palette
+        if palette.angles_syncing():
+            return
+        if context.scene is not None:
+            palette.apply_sun_angles(context.scene,
+                                     self.sun_elevation,
+                                     self.sun_azimuth)
     except Exception:
         pass
 
@@ -231,6 +249,30 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="Sun Strength", default=6.0, min=0.0, max=50.0,
         description="Brightness of the sun disk",
         update=_on_world)
+    sun_glow: FloatProperty(
+        name="Sun Glow", default=0.45, min=0.0, max=2.0,
+        description="Mie-style anisotropic glare around the sun",
+        update=_on_world)
+    sky_accent: FloatVectorProperty(
+        name="Accent Color",
+        subtype="COLOR",
+        size=3,
+        min=0.0,
+        max=1.0,
+        default=(0.05, 0.32, 0.42),
+        update=_on_world)
+    sky_accent_amount: FloatProperty(
+        name="Accent Amount", default=0.0, min=0.0, max=1.0,
+        description="Optional turquoise/coral band between horizon and mid sky",
+        update=_on_world)
+    sun_elevation: FloatProperty(
+        name="Sun Elevation", default=35.0, min=-5.0, max=85.0,
+        description="Sun height above the horizon in degrees",
+        update=_on_sun_angles)
+    sun_azimuth: FloatProperty(
+        name="Sun Azimuth", default=0.0, min=-180.0, max=180.0,
+        description="Sun horizontal angle in degrees",
+        update=_on_sun_angles)
     clouds: BoolProperty(
         name="Anime Clouds",
         default=True,
@@ -241,6 +283,38 @@ class ALD_Settings(bpy.types.PropertyGroup):
         update=_on_world)
     cloud_scale: FloatProperty(
         name="Cloud Scale", default=2.5, min=0.5, max=12.0,
+        update=_on_world)
+    cloud_flatness: FloatProperty(
+        name="Cloud Flatness", default=0.65, min=0.0, max=1.0,
+        description="0 = billowy Ghibli cumuli, 1 = flat Persona strata",
+        update=_on_world)
+    contrails: FloatProperty(
+        name="Contrails", default=0.0, min=0.0, max=1.0,
+        description="Optional high-altitude contrail streaks",
+        update=_on_world)
+    cloud_delta_gain: FloatProperty(
+        name="Delta Gain", default=1.0, min=0.0, max=4.0,
+        description="Solar finite-difference gain (1 = raw theory)",
+        update=_on_world)
+    cloud_rim_boost: FloatProperty(
+        name="Rim Boost", default=1.0, min=0.0, max=4.0,
+        description="Silver Lining transfer gain (1 = raw theory)",
+        update=_on_world)
+    cloud_wind: FloatProperty(
+        name="Cloud Wind", default=0.0, min=0.0, max=1.0,
+        description="Animate the clouds across the sky over time",
+        update=_on_world)
+    stars: BoolProperty(
+        name="Stars",
+        default=True,
+        description="Procedural starfield in the upper sky",
+        update=_on_world)
+    star_strength: FloatProperty(
+        name="Star Amount", default=1.0, min=0.0, max=1.0,
+        description="Multiplier for the preset star density",
+        update=_on_world)
+    star_density: FloatProperty(
+        name="Star Density", default=180.0, min=50.0, max=400.0,
         update=_on_world)
 
     # --- Shadow tint ----------------------------------------------------
@@ -301,6 +375,21 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="Rim Emission", default=0.5, min=0.0, max=2.0,
         description="Emission strength for rim light and shadow color",
         update=_on_shadow)
+    terminator_warmth: FloatProperty(
+        name="Terminator Warmth", default=0.2, min=0.0, max=1.0,
+        description="Warm subsurface band at the terminator",
+        update=_on_shadow)
+    rim_mode: EnumProperty(
+        name="Rim Mode",
+        description="Where the rim light appears",
+        items=[
+            ("SUN", "Sun Side", "Kick rim on the sun-facing side"),
+            ("CONTOUR", "360° Contour", "Rim around the whole silhouette"),
+            ("BACK", "Backlight", "Rim on the shadow side, opposite the sun"),
+        ],
+        default="SUN",
+        update=_on_shadow,
+    )
 
     # --- Compositor stack ----------------------------------------------
     halation: BoolProperty(name="Halation", default=True,
@@ -321,6 +410,9 @@ class ALD_Settings(bpy.types.PropertyGroup):
     ink_lines: BoolProperty(name="Anime Ink Lines", default=False,
                             description="Thin depth-based ink outlines",
                             update=_on_stack)
+    aerial_haze: BoolProperty(name="Aerial Haze", default=False,
+                              description="Tint distant surfaces toward the horizon",
+                              update=_on_stack)
     halation_strength: FloatProperty(name="Halation Strength", default=0.6,
                                      min=0.0, max=1.0, update=_on_params)
     kuwahara_size: FloatProperty(name="Kuwahara Size", default=6.0,
@@ -339,6 +431,11 @@ class ALD_Settings(bpy.types.PropertyGroup):
                                 min=0.0, max=1.0, update=_on_params)
     ink_size: FloatProperty(name="Ink Size", default=1.5,
                             min=0.5, max=8.0, update=_on_params)
+    ink_normal_sensitivity: FloatProperty(name="Ink Normal", default=0.6,
+                                          min=0.0, max=1.0,
+                                          update=_on_params)
+    haze_strength: FloatProperty(name="Haze Strength", default=0.5,
+                                 min=0.0, max=1.0, update=_on_params)
     depth_near: FloatProperty(name="Depth Near", default=4.0, min=0.0,
                               max=1000.0, subtype="DISTANCE",
                               update=_on_params)
