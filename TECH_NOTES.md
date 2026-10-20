@@ -436,29 +436,30 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   `Scale=(0.75, 0.75, 1.25 + 3.0 * Cloud Flatness)`; flatness 0.65 gives 3.2.
   Cloud Flatness also blends the raw spherical view (billowy) with the planar
   shell: 0 = cumuli, 1 = strata. Cloud Offset still drives the Mapping location.
-  The sun-shell sample uses `(Vx*t+0.12Lx, Vy*t+0.12Ly, Vz+0.12Lz)`.
 - **Per-preset style**: each preset stores `cloud_flatness`, `cloud_scale`,
   `cloud_rim_boost` and `cloud_amount`. `apply_palette()` applies them only on
   a key change behind `palette.style_syncing()`; `_on_world` returns while the
   guard is active. Manual overrides persist on world refreshes.
-- **Perlin-Worley density**: inverted Voronoi F1 (0.38) + Perlin N1 0.44 +
-  high-frequency erosion N2 0.18. N1 is Detail 5 / Roughness 0.55 / Distortion
-  0.20; N2 uses scale*3, Detail 4. Coverage stays 0.50..0.535.
+- **Cloud noise**: domain warp noise at `0.55*Cloud Scale`, Color centered at
+  0.5 and scaled 0.32, added to the mapped position; a macro bank at
+  `0.42*Cloud Scale`; then inverted Voronoi F1 0.36 + N1 0.38 + macro 0.26.
+  The high-frequency N2 is not part of the silhouette; it is centered at 0.5,
+  scaled 0.06 and added only to `body_signal`.
 - **Cloud Amount = coverage**: `tau0 = 0.68 - 0.26*CloudAmount`; coverage uses
-  `tau0..tau0+0.035`, fringe uses `tau0..tau0+0.045`. A 0..0.03 gate makes
+  `tau0..tau0+0.055`, fringe uses `tau0..tau0+0.045`. A 0..0.03 gate makes
   Amount 0 truly empty. Amount no longer multiplies the final cloud opacity,
   so 0.2 gives few compact opaque clouds, not transparent ghosts.
-- **Solar derivative / silver lining**: the `0.12/Cloud Scale` step is added
-  after the cloud Mapping in noise space; detail is shared between both
-  samples, so `delta` captures the primary Worley/N1 shapes. This prevents a
-  step of several noise periods along the flatness-stretched Z axis.
-  `Delta Gain` (default 1.0) is an explicit UI multiplier; no hidden 3x.
-  `body_mix = smoothstep(-0.04, 0.04, delta + 0.15*(Vz - 0.3))` blends
-  Shadow -> Mid. `fringe = smoothstep(0.545, 0.50, rho)`,
-  `sun_edge = smoothstep(-0.01, 0.06, delta)`, and the rim is strictly
-  `fringe * sun_edge * (0.35+0.65*gamma_plus^2)`. There is no body base:
-  the old 0.35 then 0.08 baseline washed the opaque cloud beige at Cloud
-  Amount=1. `Rim Boost` is an explicit UI multiplier before Cloud Light.
+- **Solar derivative / silver lining**: per-cloud light direction is
+  `normalize(sun + (0,0,0.65))`; the `0.38/Cloud Scale` step is applied after
+  the cloud Mapping, warp included. Detail is common between samples, so
+  `delta` captures the primary Worley/N1/macro shapes. `Delta Gain` (default
+  1.0) is explicit. `body_mix = smoothstep(-0.04, 0.04, delta + detail_gain)`
+  blends Shadow -> Mid without any `Vz` term. `fringe = smoothstep(0.545,
+  0.50, rho)`, `sun_edge = smoothstep(-0.01, 0.06, delta)`, rim is
+  `fringe * sun_edge * (0.35+0.65*gamma_plus^2)`, plus a crown highlight
+  `0.35 * smoothstep(0.03,0.11,body_signal) * sun_edge`. No body base; the
+  old 0.35/0.08 baseline washed the opaque cloud beige at Cloud Amount=1.
+  `Rim Boost` is explicit before Cloud Light.
 - **Aerial blend / accent**: low clouds mix toward `Horizon Color` by
   `(1-horizon)*0.65`; optional `Sky Accent` paints a smooth band within
   `|Vz - z_mid| < 0.07`.
@@ -473,14 +474,14 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   the core legible at 1080p; star color is (12.0, 12.5, 15.0), zenith
   0.06..0.28, sun hide 0.96..0.995, and clouds hide the field with
   `1 - cloud_amount`.
-- **Contrails**: optional `Contrails` group input; stretched view-vector noise
-  `(0.12, 5.0, 0.12)`, noise Scale 9, altitude 0.08..0.30. The band is the
-  isoline `abs(noise - 0.60)` mapped 0..0.008 -> 1..0, then scaled by 0.18 and
-  ADDed as (1.8, 1.9, 2.1). Off by default.
+- **Contrails**: planar, not spherical. `u=0.82X+0.57Y + 0.06*noise`,
+  `v=-0.57X+0.82Y`; `abs(u-0.15)` mapped 0..0.012 -> 1..0; length fade
+  `smoothstep(-1.2,0.2,v)*smoothstep(1.8,0.4,v)`; altitude 0.08..0.45;
+  factor 0.18; off by default.
 - **Gate**: palette registry, AFTER_SCHOOL and the new Sun Glow / Sky Accent /
   Cloud Flatness / Delta Gain / Rim Boost / Contrails sockets are checked.
-  Gate pixel ratios are shadow 2.61 %, wrap 16.25 %, ink 3.46 %, haze 63.09 %,
-  toon 1.61 %, rim 7.21 %. Look-dev renders all seven palettes in a 4-column
+  Gate pixel ratios are shadow 2.59 %, wrap 15.72 %, ink 3.50 %, haze 63.02 %,
+  toon 1.59 %, rim 7.03 %. Look-dev renders all seven palettes in a 4-column
   sheet; the eighth cell stays empty (black).
 
 ### v0.9.0 reference study

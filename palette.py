@@ -239,13 +239,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 11):
+                           or ng.get("ald_build") != 12):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 11
+        ng["ald_build"] = 12
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -259,7 +259,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 11
+        ng["ald_build"] = 12
     return ng
 
 
@@ -708,86 +708,6 @@ def _build_gradient_group(ng):
     glow_add.inputs["Factor"].default_value = 1.0
     sky_color = result_sock
 
-    # Optional high-altitude contrails: long, thin horizontal streaks.
-    contrail_map = nodes.new("ShaderNodeMapping")
-    contrail_map.location = (1420, 900)
-    contrail_map.inputs["Scale"].default_value = (0.12, 5.0, 0.12)
-    links.new(view_norm.outputs["Vector"], contrail_map.inputs["Vector"])
-
-    contrail_noise = nodes.new("ShaderNodeTexNoise")
-    contrail_noise.location = (1600, 900)
-    contrail_noise.inputs["Scale"].default_value = 9.0
-    contrail_noise.inputs["Detail"].default_value = 2.0
-    contrail_noise.inputs["Roughness"].default_value = 0.50
-    contrail_noise.inputs["Distortion"].default_value = 0.14
-    links.new(contrail_map.outputs["Vector"], contrail_noise.inputs["Vector"])
-
-    contrail_delta = nodes.new("ShaderNodeMath")
-    contrail_delta.location = (1760, 960)
-    contrail_delta.operation = "SUBTRACT"
-    contrail_delta.inputs[1].default_value = 0.60
-    links.new(contrail_noise.outputs["Fac"], contrail_delta.inputs[0])
-
-    contrail_abs = nodes.new("ShaderNodeMath")
-    contrail_abs.location = (1940, 960)
-    contrail_abs.operation = "ABSOLUTE"
-    links.new(contrail_delta.outputs[0], contrail_abs.inputs[0])
-
-    contrail_band = nodes.new("ShaderNodeMapRange")
-    contrail_band.location = (2120, 900)
-    contrail_band.clamp = True
-    _smooth(contrail_band)
-    contrail_band.inputs["From Min"].default_value = 0.0
-    contrail_band.inputs["From Max"].default_value = 0.008
-    contrail_band.inputs["To Min"].default_value = 1.0
-    contrail_band.inputs["To Max"].default_value = 0.0
-    links.new(contrail_abs.outputs[0], contrail_band.inputs["Value"])
-
-    contrail_alt = nodes.new("ShaderNodeMapRange")
-    contrail_alt.location = (1780, 760)
-    contrail_alt.clamp = True
-    _smooth(contrail_alt)
-    contrail_alt.inputs["From Min"].default_value = 0.08
-    contrail_alt.inputs["From Max"].default_value = 0.30
-    contrail_alt.inputs["To Min"].default_value = 0.0
-    contrail_alt.inputs["To Max"].default_value = 1.0
-    links.new(separate.outputs["Z"], contrail_alt.inputs["Value"])
-
-    contrail_mask = nodes.new("ShaderNodeMath")
-    contrail_mask.location = (1960, 840)
-    contrail_mask.operation = "MULTIPLY"
-    contrail_mask.use_clamp = True
-    links.new(contrail_band.outputs["Result"], contrail_mask.inputs[0])
-    links.new(contrail_alt.outputs["Result"], contrail_mask.inputs[1])
-
-    contrail_amount = nodes.new("ShaderNodeMath")
-    contrail_amount.location = (2140, 840)
-    contrail_amount.operation = "MULTIPLY"
-    contrail_amount.use_clamp = True
-    links.new(contrail_mask.outputs[0], contrail_amount.inputs[0])
-    links.new(group_in.outputs["Contrails"], contrail_amount.inputs[1])
-
-    contrail_factor = nodes.new("ShaderNodeMath")
-    contrail_factor.location = (2320, 840)
-    contrail_factor.operation = "MULTIPLY"
-    contrail_factor.use_clamp = True
-    contrail_factor.inputs[1].default_value = 0.18
-    links.new(contrail_amount.outputs[0], contrail_factor.inputs[0])
-
-    contrail_color = nodes.new("ShaderNodeRGB")
-    contrail_color.location = (2320, 680)
-    contrail_color.outputs[0].default_value = (1.8, 1.9, 2.1, 1.0)
-
-    contrail_add = nodes.new("ShaderNodeMix")
-    contrail_add.location = (2500, 760)
-    contrail_add.data_type = "RGBA"
-    contrail_add.blend_type = "ADD"
-    a_sock, b_sock, result_sock = _rgba_sockets(contrail_add)
-    links.new(sky_color, a_sock)
-    links.new(contrail_color.outputs[0], b_sock)
-    links.new(contrail_factor.outputs[0], contrail_add.inputs["Factor"])
-    sky_color = result_sock
-
     # Perspective planar cloud projection: projects view ray onto a curved
     # horizontal cloud deck so clouds stretch into horizontal bands near the
     # horizon (Persona 3 / Shinkai anime background style).
@@ -882,10 +802,219 @@ def _build_gradient_group(ng):
     links.new(group_in.outputs["Cloud Offset"],
               cloud_mapping.inputs["Location"])
 
+    # Domain warp: break the Voronoi grid and give banks wind-blown tails.
+    warp_scale = nodes.new("ShaderNodeMath")
+    warp_scale.location = (2260, -200)
+    warp_scale.operation = "MULTIPLY"
+    warp_scale.inputs[1].default_value = 0.55
+    links.new(group_in.outputs["Cloud Scale"], warp_scale.inputs[0])
+
+    warp_noise = nodes.new("ShaderNodeTexNoise")
+    warp_noise.location = (2440, -200)
+    warp_noise.inputs["Detail"].default_value = 3.0
+    warp_noise.inputs["Roughness"].default_value = 0.50
+    links.new(cloud_mapping.outputs["Vector"], warp_noise.inputs["Vector"])
+    links.new(warp_scale.outputs[0], warp_noise.inputs["Scale"])
+
+    warp_center = nodes.new("ShaderNodeVectorMath")
+    warp_center.location = (2620, -200)
+    warp_center.operation = "SUBTRACT"
+    warp_center.inputs[1].default_value = (0.5, 0.5, 0.5)
+    links.new(warp_noise.outputs["Color"], warp_center.inputs[0])
+
+    warp_scale_vec = nodes.new("ShaderNodeVectorMath")
+    warp_scale_vec.location = (2800, -200)
+    warp_scale_vec.operation = "SCALE"
+    links.new(warp_center.outputs["Vector"], warp_scale_vec.inputs["Vector"])
+    warp_scale_vec.inputs["Scale"].default_value = 0.32
+
+    warped_pos = nodes.new("ShaderNodeVectorMath")
+    warped_pos.location = (2980, -120)
+    warped_pos.operation = "ADD"
+    links.new(cloud_mapping.outputs["Vector"], warped_pos.inputs[0])
+    links.new(warp_scale_vec.outputs["Vector"], warped_pos.inputs[1])
+
+    # Optional contrails: straight planar filaments, not level sets of a 3D
+    # sphere. u is the cross-trail coordinate, v runs along the trail.
+    contrail_noise = nodes.new("ShaderNodeTexNoise")
+    contrail_noise.location = (2260, 900)
+    contrail_noise.inputs["Scale"].default_value = 4.0
+    contrail_noise.inputs["Detail"].default_value = 3.0
+    contrail_noise.inputs["Roughness"].default_value = 0.50
+    contrail_noise.inputs["Distortion"].default_value = 0.10
+    links.new(planar_shell.outputs["Vector"], contrail_noise.inputs["Vector"])
+
+    trail_u_x = nodes.new("ShaderNodeMath")
+    trail_u_x.location = (2440, 960)
+    trail_u_x.operation = "MULTIPLY"
+    trail_u_x.inputs[1].default_value = 0.82
+    links.new(planar_sep.outputs["X"], trail_u_x.inputs[0])
+
+    trail_u_y = nodes.new("ShaderNodeMath")
+    trail_u_y.location = (2440, 1080)
+    trail_u_y.operation = "MULTIPLY"
+    trail_u_y.inputs[1].default_value = 0.57
+    links.new(planar_sep.outputs["Y"], trail_u_y.inputs[0])
+
+    trail_u_sum = nodes.new("ShaderNodeMath")
+    trail_u_sum.location = (2620, 1020)
+    trail_u_sum.operation = "ADD"
+    links.new(trail_u_x.outputs[0], trail_u_sum.inputs[0])
+    links.new(trail_u_y.outputs[0], trail_u_sum.inputs[1])
+
+    trail_wave = nodes.new("ShaderNodeMath")
+    trail_wave.location = (2620, 900)
+    trail_wave.operation = "MULTIPLY"
+    trail_wave.inputs[1].default_value = 0.06
+    links.new(contrail_noise.outputs["Fac"], trail_wave.inputs[0])
+
+    trail_u = nodes.new("ShaderNodeMath")
+    trail_u.location = (2800, 960)
+    trail_u.operation = "ADD"
+    links.new(trail_u_sum.outputs[0], trail_u.inputs[0])
+    links.new(trail_wave.outputs[0], trail_u.inputs[1])
+
+    trail_u_center = nodes.new("ShaderNodeMath")
+    trail_u_center.location = (2980, 960)
+    trail_u_center.operation = "SUBTRACT"
+    trail_u_center.inputs[1].default_value = 0.15
+    links.new(trail_u.outputs[0], trail_u_center.inputs[0])
+
+    trail_u_abs = nodes.new("ShaderNodeMath")
+    trail_u_abs.location = (3160, 960)
+    trail_u_abs.operation = "ABSOLUTE"
+    links.new(trail_u_center.outputs[0], trail_u_abs.inputs[0])
+
+    contrail_band = nodes.new("ShaderNodeMapRange")
+    contrail_band.location = (3340, 960)
+    contrail_band.clamp = True
+    _smooth(contrail_band)
+    contrail_band.inputs["From Min"].default_value = 0.0
+    contrail_band.inputs["From Max"].default_value = 0.012
+    contrail_band.inputs["To Min"].default_value = 1.0
+    contrail_band.inputs["To Max"].default_value = 0.0
+    links.new(trail_u_abs.outputs[0], contrail_band.inputs["Value"])
+
+    trail_v_x = nodes.new("ShaderNodeMath")
+    trail_v_x.location = (2440, 1160)
+    trail_v_x.operation = "MULTIPLY"
+    trail_v_x.inputs[1].default_value = -0.57
+    links.new(planar_sep.outputs["X"], trail_v_x.inputs[0])
+
+    trail_v_y = nodes.new("ShaderNodeMath")
+    trail_v_y.location = (2440, 1280)
+    trail_v_y.operation = "MULTIPLY"
+    trail_v_y.inputs[1].default_value = 0.82
+    links.new(planar_sep.outputs["Y"], trail_v_y.inputs[0])
+
+    trail_v = nodes.new("ShaderNodeMath")
+    trail_v.location = (2620, 1220)
+    trail_v.operation = "ADD"
+    links.new(trail_v_x.outputs[0], trail_v.inputs[0])
+    links.new(trail_v_y.outputs[0], trail_v.inputs[1])
+
+    trail_len_a = nodes.new("ShaderNodeMapRange")
+    trail_len_a.location = (2800, 1180)
+    trail_len_a.clamp = True
+    _smooth(trail_len_a)
+    trail_len_a.inputs["From Min"].default_value = -1.2
+    trail_len_a.inputs["From Max"].default_value = 0.2
+    trail_len_a.inputs["To Min"].default_value = 0.0
+    trail_len_a.inputs["To Max"].default_value = 1.0
+    links.new(trail_v.outputs[0], trail_len_a.inputs["Value"])
+
+    trail_len_b = nodes.new("ShaderNodeMapRange")
+    trail_len_b.location = (2800, 1300)
+    trail_len_b.clamp = True
+    _smooth(trail_len_b)
+    trail_len_b.inputs["From Min"].default_value = 1.8
+    trail_len_b.inputs["From Max"].default_value = 0.4
+    trail_len_b.inputs["To Min"].default_value = 0.0
+    trail_len_b.inputs["To Max"].default_value = 1.0
+    links.new(trail_v.outputs[0], trail_len_b.inputs["Value"])
+
+    trail_len = nodes.new("ShaderNodeMath")
+    trail_len.location = (2980, 1240)
+    trail_len.operation = "MULTIPLY"
+    trail_len.use_clamp = True
+    links.new(trail_len_a.outputs["Result"], trail_len.inputs[0])
+    links.new(trail_len_b.outputs["Result"], trail_len.inputs[1])
+
+    contrail_alt = nodes.new("ShaderNodeMapRange")
+    contrail_alt.location = (3160, 1120)
+    contrail_alt.clamp = True
+    _smooth(contrail_alt)
+    contrail_alt.inputs["From Min"].default_value = 0.08
+    contrail_alt.inputs["From Max"].default_value = 0.45
+    contrail_alt.inputs["To Min"].default_value = 0.0
+    contrail_alt.inputs["To Max"].default_value = 1.0
+    links.new(separate.outputs["Z"], contrail_alt.inputs["Value"])
+
+    contrail_mask = nodes.new("ShaderNodeMath")
+    contrail_mask.location = (3340, 1120)
+    contrail_mask.operation = "MULTIPLY"
+    contrail_mask.use_clamp = True
+    links.new(contrail_band.outputs["Result"], contrail_mask.inputs[0])
+    links.new(trail_len.outputs[0], contrail_mask.inputs[1])
+
+    contrail_mask_alt = nodes.new("ShaderNodeMath")
+    contrail_mask_alt.location = (3520, 1120)
+    contrail_mask_alt.operation = "MULTIPLY"
+    contrail_mask_alt.use_clamp = True
+    links.new(contrail_mask.outputs[0], contrail_mask_alt.inputs[0])
+    links.new(contrail_alt.outputs["Result"], contrail_mask_alt.inputs[1])
+
+    contrail_amount = nodes.new("ShaderNodeMath")
+    contrail_amount.location = (3700, 1120)
+    contrail_amount.operation = "MULTIPLY"
+    contrail_amount.use_clamp = True
+    links.new(contrail_mask_alt.outputs[0], contrail_amount.inputs[0])
+    links.new(group_in.outputs["Contrails"], contrail_amount.inputs[1])
+
+    contrail_factor = nodes.new("ShaderNodeMath")
+    contrail_factor.location = (3880, 1120)
+    contrail_factor.operation = "MULTIPLY"
+    contrail_factor.use_clamp = True
+    contrail_factor.inputs[1].default_value = 0.18
+    links.new(contrail_amount.outputs[0], contrail_factor.inputs[0])
+
+    contrail_color = nodes.new("ShaderNodeRGB")
+    contrail_color.location = (3880, 960)
+    contrail_color.outputs[0].default_value = (1.8, 1.9, 2.1, 1.0)
+
+    contrail_add = nodes.new("ShaderNodeMix")
+    contrail_add.location = (4060, 1000)
+    contrail_add.data_type = "RGBA"
+    contrail_add.blend_type = "ADD"
+    a_sock, b_sock, result_sock = _rgba_sockets(contrail_add)
+    links.new(sky_color, a_sock)
+    links.new(contrail_color.outputs[0], b_sock)
+    links.new(contrail_factor.outputs[0], contrail_add.inputs["Factor"])
+    sky_color = result_sock
+
+    macro_scale = nodes.new("ShaderNodeMath")
+    macro_scale.location = (3160, -120)
+    macro_scale.operation = "MULTIPLY"
+    macro_scale.inputs[1].default_value = 0.42
+    links.new(group_in.outputs["Cloud Scale"], macro_scale.inputs[0])
+
+    macro_noise = nodes.new("ShaderNodeTexNoise")
+    macro_noise.location = (3340, -120)
+    macro_noise.inputs["Detail"].default_value = 3.0
+    macro_noise.inputs["Roughness"].default_value = 0.50
+    links.new(warped_pos.outputs["Vector"], macro_noise.inputs["Vector"])
+    links.new(macro_scale.outputs[0], macro_noise.inputs["Scale"])
+
+    macro_weight = nodes.new("ShaderNodeMath")
+    macro_weight.location = (3520, -120)
+    macro_weight.operation = "MULTIPLY"
+    macro_weight.inputs[1].default_value = 0.26
+    links.new(macro_noise.outputs["Fac"], macro_weight.inputs[0])
+
     # Inverted Worley F1 gives compact, convex anime cloud lobes.
     worley = nodes.new("ShaderNodeTexVoronoi")
     worley.location = (1540, -560)
-    links.new(cloud_mapping.outputs["Vector"], worley.inputs["Vector"])
+    links.new(warped_pos.outputs["Vector"], worley.inputs["Vector"])
     links.new(group_in.outputs["Cloud Scale"], worley.inputs["Scale"])
 
     worley_range = nodes.new("ShaderNodeMapRange")
@@ -901,7 +1030,7 @@ def _build_gradient_group(ng):
     worley_weight = nodes.new("ShaderNodeMath")
     worley_weight.location = (1900, -560)
     worley_weight.operation = "MULTIPLY"
-    worley_weight.inputs[1].default_value = 0.38
+    worley_weight.inputs[1].default_value = 0.36
     links.new(worley_range.outputs["Result"], worley_weight.inputs[0])
 
     noise = nodes.new("ShaderNodeTexNoise")
@@ -909,13 +1038,13 @@ def _build_gradient_group(ng):
     noise.inputs["Detail"].default_value = 5.0
     noise.inputs["Roughness"].default_value = 0.55
     noise.inputs["Distortion"].default_value = 0.20
-    links.new(cloud_mapping.outputs["Vector"], noise.inputs["Vector"])
+    links.new(warped_pos.outputs["Vector"], noise.inputs["Vector"])
     links.new(group_in.outputs["Cloud Scale"], noise.inputs["Scale"])
 
     detail_scale = nodes.new("ShaderNodeMath")
     detail_scale.location = (1540, -420)
     detail_scale.operation = "MULTIPLY"
-    detail_scale.inputs[1].default_value = 3.0
+    detail_scale.inputs[1].default_value = 2.8
     links.new(group_in.outputs["Cloud Scale"], detail_scale.inputs[0])
 
     detail = nodes.new("ShaderNodeTexNoise")
@@ -923,27 +1052,33 @@ def _build_gradient_group(ng):
     detail.inputs["Detail"].default_value = 4.0
     detail.inputs["Roughness"].default_value = 0.54
     detail.inputs["Distortion"].default_value = 0.08
-    links.new(cloud_mapping.outputs["Vector"], detail.inputs["Vector"])
+    links.new(warped_pos.outputs["Vector"], detail.inputs["Vector"])
     links.new(detail_scale.outputs[0], detail.inputs["Scale"])
 
     base_weight = nodes.new("ShaderNodeMath")
     base_weight.location = (1900, -160)
     base_weight.operation = "MULTIPLY"
-    base_weight.inputs[1].default_value = 0.44
+    base_weight.inputs[1].default_value = 0.38
     links.new(noise.outputs["Fac"], base_weight.inputs[0])
 
-    detail_weight = nodes.new("ShaderNodeMath")
-    detail_weight.location = (1900, -320)
-    detail_weight.operation = "MULTIPLY"
-    detail_weight.inputs[1].default_value = 0.18
-    links.new(detail.outputs["Fac"], detail_weight.inputs[0])
+    detail_center = nodes.new("ShaderNodeMath")
+    detail_center.location = (1900, -320)
+    detail_center.operation = "SUBTRACT"
+    detail_center.inputs[1].default_value = 0.5
+    links.new(detail.outputs["Fac"], detail_center.inputs[0])
+
+    detail_gain = nodes.new("ShaderNodeMath")
+    detail_gain.location = (2080, -320)
+    detail_gain.operation = "MULTIPLY"
+    detail_gain.inputs[1].default_value = 0.06
+    links.new(detail_center.outputs[0], detail_gain.inputs[0])
 
     combined_noise = nodes.new("ShaderNodeMath")
     combined_noise.location = (2080, -240)
     combined_noise.operation = "ADD"
     combined_noise.use_clamp = True
     links.new(base_weight.outputs[0], combined_noise.inputs[0])
-    links.new(detail_weight.outputs[0], combined_noise.inputs[1])
+    links.new(macro_weight.outputs[0], combined_noise.inputs[1])
 
     combined = nodes.new("ShaderNodeMath")
     combined.location = (2260, -300)
@@ -952,19 +1087,29 @@ def _build_gradient_group(ng):
     links.new(combined_noise.outputs[0], combined.inputs[0])
     links.new(worley_weight.outputs[0], combined.inputs[1])
 
-    # Finite difference toward the sun, applied AFTER the cloud Mapping in
-    # cloud-noise space. 0.12 / Cloud Scale keeps the step small even when the
-    # cloud scale is 4 or higher. Detail is kept common in both samples.
+    # Per-cloud self-shadow direction: sun + zenith, normalized. The finite
+    # difference is applied after Mapping and uses 0.38 / Cloud Scale.
+    light_up = nodes.new("ShaderNodeVectorMath")
+    light_up.location = (2260, -620)
+    light_up.operation = "ADD"
+    links.new(sun_norm.outputs["Vector"], light_up.inputs[0])
+    light_up.inputs[1].default_value = (0.0, 0.0, 0.65)
+
+    light_dir = nodes.new("ShaderNodeVectorMath")
+    light_dir.location = (2440, -620)
+    light_dir.operation = "NORMALIZE"
+    links.new(light_up.outputs["Vector"], light_dir.inputs[0])
+
     sun_mapped_step = nodes.new("ShaderNodeMath")
     sun_mapped_step.location = (2260, -720)
     sun_mapped_step.operation = "DIVIDE"
-    sun_mapped_step.inputs[0].default_value = 0.12
+    sun_mapped_step.inputs[0].default_value = 0.38
     links.new(group_in.outputs["Cloud Scale"], sun_mapped_step.inputs[1])
 
     sun_mapped_vec = nodes.new("ShaderNodeVectorMath")
     sun_mapped_vec.location = (2440, -720)
     sun_mapped_vec.operation = "SCALE"
-    links.new(sun_norm.outputs["Vector"], sun_mapped_vec.inputs["Vector"])
+    links.new(light_dir.outputs["Vector"], sun_mapped_vec.inputs["Vector"])
     links.new(sun_mapped_step.outputs[0], sun_mapped_vec.inputs["Scale"])
 
     mapped_sun = nodes.new("ShaderNodeVectorMath")
@@ -973,21 +1118,27 @@ def _build_gradient_group(ng):
     links.new(cloud_mapping.outputs["Vector"], mapped_sun.inputs[0])
     links.new(sun_mapped_vec.outputs["Vector"], mapped_sun.inputs[1])
 
+    mapped_sun_warp = nodes.new("ShaderNodeVectorMath")
+    mapped_sun_warp.location = (2800, -720)
+    mapped_sun_warp.operation = "ADD"
+    links.new(mapped_sun.outputs["Vector"], mapped_sun_warp.inputs[0])
+    links.new(warp_scale_vec.outputs["Vector"], mapped_sun_warp.inputs[1])
+
     noise_sun = nodes.new("ShaderNodeTexNoise")
-    noise_sun.location = (2800, -760)
+    noise_sun.location = (2980, -760)
     noise_sun.inputs["Detail"].default_value = 5.0
     noise_sun.inputs["Roughness"].default_value = 0.55
     noise_sun.inputs["Distortion"].default_value = 0.20
-    links.new(mapped_sun.outputs["Vector"], noise_sun.inputs["Vector"])
+    links.new(mapped_sun_warp.outputs["Vector"], noise_sun.inputs["Vector"])
     links.new(group_in.outputs["Cloud Scale"], noise_sun.inputs["Scale"])
 
     worley_sun = nodes.new("ShaderNodeTexVoronoi")
-    worley_sun.location = (2800, -1060)
-    links.new(mapped_sun.outputs["Vector"], worley_sun.inputs["Vector"])
+    worley_sun.location = (2980, -1060)
+    links.new(mapped_sun_warp.outputs["Vector"], worley_sun.inputs["Vector"])
     links.new(group_in.outputs["Cloud Scale"], worley_sun.inputs["Scale"])
 
     worley_sun_range = nodes.new("ShaderNodeMapRange")
-    worley_sun_range.location = (2980, -1060)
+    worley_sun_range.location = (3160, -1060)
     worley_sun_range.clamp = True
     _smooth(worley_sun_range)
     worley_sun_range.inputs["From Min"].default_value = 0.0
@@ -997,26 +1148,26 @@ def _build_gradient_group(ng):
     links.new(worley_sun.outputs["Distance"], worley_sun_range.inputs["Value"])
 
     worley_sun_weight = nodes.new("ShaderNodeMath")
-    worley_sun_weight.location = (3160, -1060)
+    worley_sun_weight.location = (3340, -1060)
     worley_sun_weight.operation = "MULTIPLY"
-    worley_sun_weight.inputs[1].default_value = 0.38
+    worley_sun_weight.inputs[1].default_value = 0.36
     links.new(worley_sun_range.outputs["Result"], worley_sun_weight.inputs[0])
 
     base_sun_weight = nodes.new("ShaderNodeMath")
-    base_sun_weight.location = (2980, -820)
+    base_sun_weight.location = (3160, -820)
     base_sun_weight.operation = "MULTIPLY"
-    base_sun_weight.inputs[1].default_value = 0.44
+    base_sun_weight.inputs[1].default_value = 0.38
     links.new(noise_sun.outputs["Fac"], base_sun_weight.inputs[0])
 
     combined_sun_noise = nodes.new("ShaderNodeMath")
-    combined_sun_noise.location = (3160, -860)
+    combined_sun_noise.location = (3340, -860)
     combined_sun_noise.operation = "ADD"
     combined_sun_noise.use_clamp = True
     links.new(base_sun_weight.outputs[0], combined_sun_noise.inputs[0])
-    links.new(detail_weight.outputs[0], combined_sun_noise.inputs[1])
+    links.new(macro_weight.outputs[0], combined_sun_noise.inputs[1])
 
     combined_sun = nodes.new("ShaderNodeMath")
-    combined_sun.location = (3340, -900)
+    combined_sun.location = (3520, -900)
     combined_sun.operation = "ADD"
     combined_sun.use_clamp = True
     links.new(combined_sun_noise.outputs[0], combined_sun.inputs[0])
@@ -1049,7 +1200,7 @@ def _build_gradient_group(ng):
     coverage_top = nodes.new("ShaderNodeMath")
     coverage_top.location = (2620, -220)
     coverage_top.operation = "ADD"
-    coverage_top.inputs[1].default_value = 0.035
+    coverage_top.inputs[1].default_value = 0.055
     links.new(coverage_center.outputs["Result"], coverage_top.inputs[0])
 
     fringe_top = nodes.new("ShaderNodeMath")
@@ -1085,23 +1236,11 @@ def _build_gradient_group(ng):
     links.new(coverage.outputs["Result"], coverage_gate.inputs[0])
     links.new(amount_gate.outputs["Result"], coverage_gate.inputs[1])
 
-    mu_offset = nodes.new("ShaderNodeMath")
-    mu_offset.location = (2080, -720)
-    mu_offset.operation = "SUBTRACT"
-    mu_offset.inputs[1].default_value = 0.3
-    links.new(separate.outputs["Z"], mu_offset.inputs[0])
-
-    mu_weight = nodes.new("ShaderNodeMath")
-    mu_weight.location = (2260, -720)
-    mu_weight.operation = "MULTIPLY"
-    mu_weight.inputs[1].default_value = 0.15
-    links.new(mu_offset.outputs[0], mu_weight.inputs[0])
-
     body_signal = nodes.new("ShaderNodeMath")
     body_signal.location = (2440, -720)
     body_signal.operation = "ADD"
     links.new(delta_used.outputs[0], body_signal.inputs[0])
-    links.new(mu_weight.outputs[0], body_signal.inputs[1])
+    links.new(detail_gain.outputs[0], body_signal.inputs[1])
 
     body_mix = nodes.new("ShaderNodeMapRange")
     body_mix.location = (2620, -720)
@@ -1179,11 +1318,41 @@ def _build_gradient_group(ng):
     links.new(rim_edge.outputs[0], rim_factor.inputs[0])
     links.new(gamma_add.outputs[0], rim_factor.inputs[1])
 
+    crown_curve = nodes.new("ShaderNodeMapRange")
+    crown_curve.location = (3160, -1040)
+    crown_curve.clamp = True
+    _smooth(crown_curve)
+    crown_curve.inputs["From Min"].default_value = 0.03
+    crown_curve.inputs["From Max"].default_value = 0.11
+    crown_curve.inputs["To Min"].default_value = 0.0
+    crown_curve.inputs["To Max"].default_value = 1.0
+    links.new(body_signal.outputs[0], crown_curve.inputs["Value"])
+
+    crown_edge = nodes.new("ShaderNodeMath")
+    crown_edge.location = (3340, -1040)
+    crown_edge.operation = "MULTIPLY"
+    crown_edge.use_clamp = True
+    links.new(crown_curve.outputs["Result"], crown_edge.inputs[0])
+    links.new(sun_edge.outputs["Result"], crown_edge.inputs[1])
+
+    crown_amount = nodes.new("ShaderNodeMath")
+    crown_amount.location = (3520, -1040)
+    crown_amount.operation = "MULTIPLY"
+    crown_amount.inputs[1].default_value = 0.35
+    links.new(crown_edge.outputs[0], crown_amount.inputs[0])
+
+    rim_total = nodes.new("ShaderNodeMath")
+    rim_total.location = (3340, -900)
+    rim_total.operation = "ADD"
+    rim_total.use_clamp = True
+    links.new(rim_factor.outputs[0], rim_total.inputs[0])
+    links.new(crown_amount.outputs[0], rim_total.inputs[1])
+
     rim_boosted = nodes.new("ShaderNodeMath")
-    rim_boosted.location = (3340, -900)
+    rim_boosted.location = (3520, -900)
     rim_boosted.operation = "MULTIPLY"
     rim_boosted.use_clamp = True
-    links.new(rim_factor.outputs[0], rim_boosted.inputs[0])
+    links.new(rim_total.outputs[0], rim_boosted.inputs[0])
     links.new(group_in.outputs["Cloud Rim Boost"], rim_boosted.inputs[1])
 
     mix_body = nodes.new("ShaderNodeMix")

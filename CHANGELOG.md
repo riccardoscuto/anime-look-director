@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.8 - 2026-10-20
+### Changed
+- Cloud overhaul: domain-warped coordinates (`warp_noise` at 0.55*Cloud Scale,
+  centered and scaled 0.32), a low-frequency macro bank (0.42*Cloud Scale,
+  weight 0.26), and a separate soft silhouette density (0.36 Worley + 0.38 N1
+  + 0.26 macro). High-frequency detail is injected only into `body_signal`.
+- Per-cloud self-shadow: `light_dir = normalize(sun + zenith*0.65)` with a
+  `0.38/Cloud Scale` step applied after Mapping; `mu_weight` removed.
+  Crown highlight adds `0.35 * smoothstep(0.03, 0.11, body_signal) * sun_edge`
+  to the rim.
+- Contrails rebuilt in planar space: straight `u = 0.82X + 0.57Y` filaments
+  with `v = -0.57X + 0.82Y` length fade, not spherical level sets.
+- World gradient marker bumped 11 -> 12.
+
 ## 0.9.7 - 2026-10-20
 ### Fixed
 - **Cloud Amount is now coverage, not opacity.** It drives the density

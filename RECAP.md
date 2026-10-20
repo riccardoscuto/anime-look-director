@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 0.9.7** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 0.9.8** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -261,3 +261,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
   per colpa di `addon.module` (stringa) usato come modulo.
 - **0.9.7** - Cloud Amount = copertura, delta solare dopo il Mapping e
   contrails come isolinea sottile.
+- **0.9.8** - Domain warping, macro-banco, silhouette separata, luce per
+  singola nuvola e contrails rettilinei in prospettiva.
