@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.1 - 2026-10-20
+### Fixed
+- Shooting stars and Hanabi fireworks now use true 2D Voronoi cells on
+  stereographic/cylindrical sky coordinates, eliminating spherical 3D cell
+  artifacts and round blobs.
+- Added Milky Way: a warped galactic river with a dark dust rift, cyan/violet
+  palette and star-density boost.
+- Sun Beams threshold raised to 3.5 so beams originate from the sun disk, not
+  from stars or fireworks.
+- Fireworks use larger hero bursts, gravitational droop, radial spokes,
+  peony/pistil rings, embers and a radial color gradient.
+- World gradient marker 24.
+
 ## 1.1.0 - 2026-10-20
 ### Added
 - Sun Beams and Sun Glow toggles directly in the Sun controls; Apply Palette

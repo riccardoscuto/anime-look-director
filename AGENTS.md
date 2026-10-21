@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **1.1.0**).
+  (currently **1.1.1**).
 
 ## Verify (run after every change)
 ```powershell
@@ -101,7 +101,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Normal pass by 1.5 px, subtracts, takes vector length, curves 0.01..0.14 and
   multiplies by the normal sensitivity and geometry mask. Combine with the depth
   edge via `MAXIMUM`.
-- World gradient group marker is **23**. Inputs include `Star Amount`, `Star
+- World gradient group marker is **24**. Inputs include `Star Amount`, `Star
   Density` (Voronoi scale, default 180), `Cloud Flatness` and `Cloud Offset`
   (vector). Exact shell point is `(Vx*t, Vy*t, Vz)` with
   `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
@@ -136,6 +136,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Shooting stars and Hanabi fireworks are procedural world-gradient generators.
   Their Phase inputs update from `update_sun_controls`; exposure is controlled
   by the `Shooting Star Amount` and `Fireworks Amount` sockets.
+- Shooting stars use stereographic 2D coordinates and `voronoi_dimensions =
+  "2D"` anisotropic cells. Fireworks use cylindrical 2D layers with drooping
+  radial spokes. Milky Way is a `Milky Way` socket fed by a warped river mask.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth
@@ -172,8 +175,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   respected by `sync_scene`, `sync_one` and material preset apply.
 - Rim Bias maps Sun=1, Contour=0, Backlight=-1. Terminator Warmth is an additive
   `Sun Color * smoothstep(0..0.12, abs(N.L))` band; Skin is boosted to 0.35.
-- Gate pixel ratios: shadow ~2.60 %, wrap ~15.99 %, ink ~3.34 %, haze ~62.95 %
-  (gate plane fills the frame), toon ~1.60 %, rim ~7.32 %.
+- Gate pixel ratios: shadow ~2.63 %, wrap ~15.70 %, ink ~3.41 %, haze ~62.85 %
+  (gate plane fills the frame), toon ~1.57 %, rim ~7.21 %.
 - Shadow tint uses a `MULTIPLY` Mix on Base Color; palette `shadow_tint` colors are
   normalized (max component 1) so textures keep their detail in shadows.
 - Material presets include `EMISSION`; set `Emission Color` / `Emission Strength`,
@@ -184,7 +187,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Panel code must read the module version from `sys.modules[__package__]`;
   `bpy.context.preferences.addons[...].module` is a **path string** in 5.1,
   and accessing `.bl_info` on it kills the whole panel draw.
-- World gradient (`ald_build = 23`) also hosts the sun disk, stars and clouds. Inputs:
+- World gradient (`ald_build = 24`) also hosts the sun disk, stars and clouds. Inputs:
   `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
   (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,
   `Cloud Amount/Scale`. Palette colors are wired through these sockets, never
@@ -265,8 +268,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   tint × combined). `_wire_emission` links it to Principled Emission Color, stores
   `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
   restores on clear.
-- Gate pixel ratios: ink ~3.34 %, rim ~7.32 % (edge-local);
-  shadow ~2.60 %, toon ~1.60 %.
+- Gate pixel ratios: ink ~3.41 %, rim ~7.21 % (edge-local);
+  shadow ~2.63 %, toon ~1.57 %.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.

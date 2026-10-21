@@ -656,3 +656,14 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - Fireworks use cell-local radial Voronoi spokes, peony/pistil rings, burst
   glow and per-cell gold/magenta/cyan colors at 16x; shooting stars use a
   cell-local 3D trajectory with a bright 18x PSF head.
+
+### v1.1.1 notes (2D generators, Milky Way, Hanabi)
+- Shooting stars use stereographic 2D coordinates and `voronoi_dimensions =
+  "2D"` anisotropic cells, with tapered 1.5px trails and a cross flare.
+- Milky Way is a warped diagonal river with a dark dust rift and cyan/violet
+  tint, exposed as the `Milky Way` socket.
+- Fireworks use two cylindrical 2D layers with gravitational droop, continuous
+  radial spokes, peony/pistil rings, embers and radial color gradient. Sun
+  Beams threshold is 3.5.
+- Marker 24. Gate ratios: shadow 2.63 %, wrap 15.70 %, ink 3.41 %,
+  haze 62.85 %, toon 1.57 %, rim 7.21 %.

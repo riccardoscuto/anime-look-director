@@ -350,6 +350,10 @@ class ALD_Settings(bpy.types.PropertyGroup):
     star_density: FloatProperty(
         name="Star Density", default=180.0, min=50.0, max=400.0,
         update=_on_world)
+    milky_way: FloatProperty(
+        name="Milky Way", default=0.0, min=0.0, max=1.0,
+        description="Luminous anime Galactic River with dark cosmic dust rift",
+        update=_on_world)
     shooting_stars: BoolProperty(
         name="Shooting Stars", default=False,
         description="Procedural anime shooting stars / meteors in the sky",
@@ -379,11 +383,11 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Fraction of active firework bursts",
         update=_on_world)
     fireworks_scale: FloatProperty(
-        name="Fireworks Scale", default=4.5, min=1.5, max=12.0,
-        description="Scale of the firework shells in the sky",
+        name="Fireworks Scale", default=2.2, min=1.0, max=6.0,
+        description="Scale of firework shells (lower = larger hero bursts)",
         update=_on_world)
     fireworks_phase: FloatProperty(
-        name="Burst Phase", default=0.65, min=0.1, max=1.0,
+        name="Burst Phase", default=0.80, min=0.2, max=1.0,
         description="Expansion stage of the firework shells",
         update=_on_world)
 

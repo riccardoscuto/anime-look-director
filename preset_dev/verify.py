@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 1, 0)
+EXPECTED_VERSION = (1, 1, 1)
 TOLERANCE = 1e-4
 
 
@@ -255,12 +255,15 @@ def check_world_gradient(scene, settings):
     check(node.inputs["Cloud Amount"].default_value > 0.0,
           "clouds not restored")
 
-    for name in ("Star Amount", "Star Density", "Cloud Offset",
+    for name in ("Star Amount", "Star Density", "Cloud Offset", "Milky Way",
                  "Shooting Star Amount", "Shooting Star Length",
                  "Shooting Star Dir", "Shooting Star Phase",
                  "Fireworks Amount", "Fireworks Scale", "Fireworks Phase"):
         check(node.inputs.get(name) is not None,
               "world input missing: " + name)
+    check(any(getattr(item, "voronoi_dimensions", "") == "2D"
+              for item in node.node_tree.nodes if item.type == "TEX_VORONOI"),
+          "2D Voronoi generators missing")
     golden = palette_module.preset("GOLDEN_HOUR")
     check(abs(settings.star_strength - golden["star_amount"]) <= TOLERANCE,
           "golden hour star amount not synced to style")
@@ -390,6 +393,12 @@ def check_world_gradient(scene, settings):
     check(abs(node.inputs["Star Amount"].default_value
               - settings.star_strength) <= TOLERANCE,
           "neon night stars not enabled")
+    check(settings.milky_way > 0.0, "neon milky way not enabled")
+    settings.palette = "TWILIGHT_DUSK"
+    bpy.ops.ald.apply_palette()
+    check(settings.milky_way > 0.0, "twilight milky way not enabled")
+    settings.palette = "GOLDEN_HOUR"
+    bpy.ops.ald.apply_palette()
 
     settings.cloud_wind = 1.0
     scene.frame_set(10)

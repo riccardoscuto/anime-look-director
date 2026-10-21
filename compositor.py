@@ -647,7 +647,7 @@ def build(scene):
         beams.location = (-1150, 220)
         beams.name = NODE_GOD_RAYS
         beams.inputs["Type"].default_value = "Sun Beams"
-        beams.inputs["Threshold"].default_value = 0.9
+        beams.inputs["Threshold"].default_value = 3.5
         beams.inputs["Strength"].default_value = (
             settings.god_rays_strength if position is not None else 0.0)
         beams.inputs["Size"].default_value = settings.god_rays_size

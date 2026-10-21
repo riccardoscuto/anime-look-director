@@ -119,6 +119,7 @@ class ALD_PT_world(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "star_strength")
             col.prop(s, "star_density")
+            col.prop(s, "milky_way")
         if s.shooting_stars:
             col = box.column(align=True)
             col.prop(s, "shooting_star_amount")
@@ -311,6 +312,7 @@ class ALD_PT_view3d(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "star_strength")
             col.prop(s, "star_density")
+            col.prop(s, "milky_way")
         if s.shooting_stars:
             col = box.column(align=True)
             col.prop(s, "shooting_star_amount")
