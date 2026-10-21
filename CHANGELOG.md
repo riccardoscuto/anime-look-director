@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.9.1 - 2026-10-22
+### Added
+- The node group reproduces the drag free limit with the ballistic solution
+  (`p0 + v0 * a + 0.5 * g * a²`), exactly like the Python solver: the closed
+  form loses precision when the drag goes to zero.
+- The gate now runs the mandatory tests of the technical guide that were still
+  missing: identical state after a frame jump, the same physical state at 24,
+  30 and 60 fps, the drag free and gravity free limits, the child sparks that
+  outlive the head of the star and the occlusion of the burst behind a
+  building.
+
 ## 2.9.0 - 2026-10-22
 ### Added
 - New `ALD | FX Trail GN` group: the thin filament of every star is now a

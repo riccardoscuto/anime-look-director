@@ -186,6 +186,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   it out, with 0 the trail dies with the body. `Decay Power` reproduces the
   `sqrt` falloff of the flash. In the Geometry Nodes path the frame handler
   writes no geometry: 2.5 ms/frame against 121.7 ms for the Python writer.
+- FX 2.9.1 rules: the node group mixes the ballistic solution when the drag
+  is below 1e-4 (the closed form cancels huge numbers). The gate runs the
+  mandatory tests of the guide: frame jump, 24/30/60 fps, drag free and
+  gravity free limits, the sparks that outlive the head and the occlusion of
+  the burst behind a building.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

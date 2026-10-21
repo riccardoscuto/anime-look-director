@@ -174,6 +174,39 @@ def _motion(nodes, links, group_in):
                        offset.outputs["Vector"], (80, -720))
     position_jitter = _vector(nodes, links, "ADD", position.outputs["Vector"],
                               jitter.outputs["Attribute"], (240, -720))
+
+    # Drag free limit: the closed form above loses precision when k -> 0, so
+    # the ballistic solution is used instead (same branch as the Python
+    # solver).
+    ballistic = _math(nodes, links, "LESS_THAN", drag.outputs["Attribute"],
+                      None, (240, -1040))
+    ballistic.inputs[1].default_value = 0.0001
+    age_squared = _math(nodes, links, "MULTIPLY", sample_age.outputs[0],
+                        sample_age.outputs[0], (240, -1160))
+    half_gravity = _math(nodes, links, "MULTIPLY", age_squared.outputs[0], None,
+                         (400, -1160))
+    half_gravity.inputs[1].default_value = 0.5
+    vel_age = _vector(nodes, links, "SCALE", vel.outputs["Attribute"], None,
+                      (400, -1280), scale=sample_age.outputs[0])
+    gravity_term = _vector(nodes, links, "SCALE", group_in.outputs["Gravity"],
+                           None, (560, -1160), scale=half_gravity.outputs[0])
+    ballistic_offset = _vector(nodes, links, "ADD", vel_age.outputs["Vector"],
+                               gravity_term.outputs["Vector"], (560, -1280))
+    ballistic_position = _vector(nodes, links, "ADD",
+                                 pos0.outputs["Attribute"],
+                                 ballistic_offset.outputs["Vector"], (720, -1280))
+    inverse_ballistic = _math(nodes, links, "SUBTRACT", None,
+                              ballistic.outputs[0], (400, -1040))
+    inverse_ballistic.inputs[0].default_value = 1.0
+    drag_weight = _vector(nodes, links, "SCALE", position.outputs["Vector"],
+                          None, (720, -720), scale=inverse_ballistic.outputs[0])
+    ballistic_weight = _vector(nodes, links, "SCALE",
+                               ballistic_position.outputs["Vector"], None,
+                               (720, -980), scale=ballistic.outputs[0])
+    mixed_position = _vector(nodes, links, "ADD", drag_weight.outputs["Vector"],
+                             ballistic_weight.outputs["Vector"], (880, -860))
+    position_jitter = _vector(nodes, links, "ADD", mixed_position.outputs["Vector"],
+                              jitter.outputs["Attribute"], (1000, -860))
     return {"position": position_jitter.outputs["Vector"],
             "sample_age": sample_age.outputs[0],
             "head_age": head_age.outputs[0],
@@ -437,8 +470,8 @@ def attach_trail_modifier(obj, group, sockets, gravity, material, trail=0.0,
 INSTANCE_VERTS = 12
 
 
-def realized_centers(obj, depsgraph):
-    """Evaluate the group and return the centre of every instance.
+def realized_instances(obj, depsgraph):
+    """Evaluate the group and return (centre, radius) of every instance.
 
     The instances are temporarily realized so the gate can compare the node
     evaluation against the Python solver.
@@ -462,7 +495,7 @@ def realized_centers(obj, depsgraph):
         depsgraph.update()
         evaluated = obj.evaluated_get(depsgraph)
         mesh = evaluated.to_mesh()
-        centers = []
+        instances = []
         for start in range(0, len(mesh.vertices), INSTANCE_VERTS):
             chunk = mesh.vertices[start:start + INSTANCE_VERTS]
             if len(chunk) < INSTANCE_VERTS:
@@ -470,9 +503,16 @@ def realized_centers(obj, depsgraph):
             total = Vector((0.0, 0.0, 0.0))
             for vertex in chunk:
                 total += vertex.co
-            centers.append(total / len(chunk))
+            center = total / len(chunk)
+            radius = max((vertex.co - center).length for vertex in chunk)
+            instances.append((center, radius))
         evaluated.to_mesh_clear()
-        return centers
+        return instances
     finally:
         group.nodes.remove(realize)
         group.links.new(source, socket)
+
+
+def realized_centers(obj, depsgraph):
+    """Evaluate the group and return the centre of every instance."""
+    return [center for center, _radius in realized_instances(obj, depsgraph)]

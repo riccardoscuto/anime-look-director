@@ -812,3 +812,17 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The frame handler still exists for the Python fallback but it writes no
   geometry in the Geometry Nodes path: measured 2.5 ms/frame against
   121.7 ms/frame for the Python writer (4 bursts + 4 meteors).
+
+### v2.9.1 notes (limits and mandatory gate tests)
+- The node group uses the ballistic solution when the drag is below 1e-4:
+  the closed form p0 + v_inf * a + (v0 - v_inf) * (1 - e^(-k a)) / k cancels
+  huge numbers when k -> 0 and loses precision. The group mixes the two
+  solutions with the drag < 1e-4 test, like the Python solver.
+- New gate tests (mandatory list of the guide):
+  - identical state after a frame jump (the node evaluation is repeated);
+  - the same physical state at 24, 30 and 60 fps;
+  - the drag free and gravity free limits (p0 + v0 * a + 0.5 * g * a^2);
+  - the child sparks stay alive when the head of the star is gone (the
+    realized instance radius is read with x_nodes.realized_instances);
+  - the burst behind a building is hidden (the occluder is a plane between
+    the camera and the burst, the gate geometry is hidden for the render).

@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 9, 0)
+EXPECTED_VERSION = (2, 9, 1)
 TOLERANCE = 1e-4
 
 
@@ -1404,6 +1404,71 @@ def check_multiscene(scene):
         bpy.data.scenes.remove(other)
 
 
+def check_fx_occlusion(scene):
+    """A building in front of the burst must hide the particles."""
+    from anime_look_director import fx as fx_module
+
+    previous_frame = scene.frame_current
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_engine = scene.render.engine
+    path = os.path.join(tempfile.gettempdir(), "ald_gate_fx_occlusion.png")
+    origin, forward, _up, _right = fx_module._camera_basis(scene)
+    material = bpy.data.materials.new("ALD Gate Occluder")
+    material.use_nodes = True
+    bsdf = material.node_tree.nodes.get("Principled BSDF")
+    if bsdf is not None:
+        bsdf.inputs["Base Color"].default_value = (0.8, 0.05, 0.05, 1.0)
+        if "Emission Color" in bsdf.inputs:
+            bsdf.inputs["Emission Color"].default_value = (0.8, 0.05, 0.05, 1.0)
+            bsdf.inputs["Emission Strength"].default_value = 1.0
+    # The wall stands between the camera and the burst.
+    bpy.ops.mesh.primitive_plane_add(size=400.0,
+                                     location=tuple(origin + forward * 12.0))
+    occluder = bpy.context.object
+    occluder.rotation_euler = (-forward).to_track_quat("Z", "Y").to_euler()
+    # The gate geometry must not hide the occluder.
+    hidden = []
+    for obj in scene.objects:
+        if obj is occluder or obj.get("ald_fx"):
+            continue
+        if obj.type == "CAMERA" or obj.type == "LIGHT":
+            continue
+        hidden.append((obj, obj.hide_render))
+        obj.hide_render = True
+    occluder.data.materials.append(material)
+    try:
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=5, distance=30.0, time=0.6)
+        scene.frame_set(12)
+        scene.render.engine = "BLENDER_EEVEE"
+        scene.render.resolution_x = 64
+        scene.render.resolution_y = 64
+        scene.render.resolution_percentage = 100
+        scene.render.filepath = path
+        bpy.ops.render.render(write_still=True)
+        if os.path.exists(path):
+            image = bpy.data.images.load(path)
+            width, height = image.size
+            pixels = list(image.pixels)
+            index = ((height // 2) * width + (width // 2)) * 4
+            red = pixels[index]
+            green = pixels[index + 1]
+            blue = pixels[index + 2]
+            check(red > 0.4 and red > green * 1.4 and red > blue * 1.4,
+                  "the occluder does not hide the burst (%.3f, %.3f, %.3f)"
+                  % (red, green, blue))
+            bpy.data.images.remove(image)
+    finally:
+        for obj, state in hidden:
+            obj.hide_render = state
+        bpy.data.objects.remove(occluder, do_unlink=True)
+        bpy.data.materials.remove(material)
+        fx_module.clear(scene)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        scene.render.engine = previous_engine
+        scene.frame_set(previous_frame)
+
+
 def check_render(scene):
     scene.render.engine = "BLENDER_EEVEE"
     scene.render.resolution_x = 64
@@ -1714,6 +1779,10 @@ def check_fx_gn_parity(scene):
     fx_module.clear(scene)
     scene.frame_set(previous_frame)
     check_fx_gn_meteors(scene)
+    check_fx_gn_determinism(scene)
+    check_fx_gn_limits(scene)
+    check_fx_gn_children(scene)
+    check_fx_occlusion(scene)
 
     # The Python solver stays available as a fallback.
     scene.ald.fx_gn_prototype = False
@@ -1788,6 +1857,108 @@ def check_fx_gn_meteors(scene):
 
     fx_module.clear(scene)
     scene.frame_set(previous_frame)
+
+
+def check_fx_gn_determinism(scene):
+    """The node evaluation must survive frame jumps and frame rate changes."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    previous_fps = scene.render.fps
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    scene.frame_set(12)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    heads = bpy.data.objects.get("ALD FX GN Heads 1")
+    check(heads is not None, "geometry nodes burst heads missing")
+    if heads is None:
+        return
+    reference = fx_nodes.realized_centers(heads, depsgraph)
+    check(len(reference) > 0, "geometry nodes burst produced no head")
+
+    # Jump to another frame and come back: the state must be identical.
+    scene.frame_set(40)
+    scene.frame_set(12)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    again = fx_nodes.realized_centers(heads, depsgraph)
+    check(len(again) == len(reference)
+          and all((first - second).length < 1e-5
+                  for first, second in zip(reference, again)),
+          "the node evaluation changed after a frame jump")
+
+    # The same instant expressed in seconds must not depend on the frame rate.
+    for fps, frame in ((24, 12), (30, 15), (60, 30)):
+        scene.render.fps = fps
+        scene.frame_set(frame)
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        stepped = fx_nodes.realized_centers(heads, depsgraph)
+        check(len(stepped) == len(reference)
+              and all((first - second).length < 1e-4
+                      for first, second in zip(reference, stepped)),
+              "the node evaluation depends on the frame rate (%d fps)" % fps)
+    scene.render.fps = previous_fps
+    scene.frame_set(previous_frame)
+    fx_module.clear(scene)
+
+
+def check_fx_gn_limits(scene):
+    """Drag free and gravity free limits must be mathematically correct."""
+    from mathutils import Vector
+
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    material = fx_module._material("ALD FX Gate Limit", (1.0, 1.0, 1.0), 1.0)
+    velocity = Vector((10.0, 0.0, 0.0))
+    origin = Vector((0.0, 0.0, 0.0))
+    for gravity in (Vector((0.0, 0.0, 0.0)), Vector((0.0, 0.0, -9.81))):
+        particles = [{
+            "birth": 0.0, "life": 10.0, "drag": 0.0, "radius": 0.05,
+            "vel": velocity, "pos0": origin, "tau": 0.0,
+            "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
+        }]
+        obj = fx_module._gn_points_object(
+            scene, "ALD FX Gate Ballistic", material, particles,
+            gravity=gravity)
+        obj["ald_fx_kind"] = "gate"
+        scene.frame_set(12)
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        centers = fx_nodes.realized_centers(obj, depsgraph)
+        age = 12 / (scene.render.fps / max(scene.render.fps_base, 1e-6))
+        expected = origin + velocity * age + 0.5 * gravity * age * age
+        check(centers and (centers[0] - expected).length < 1e-3,
+              "the drag free limit is wrong: %s instead of %s"
+              % (centers[0] if centers else None, expected))
+        bpy.data.objects.remove(obj, do_unlink=True)
+    scene.frame_set(previous_frame)
+
+
+def check_fx_gn_children(scene):
+    """The children must stay alive when the head of the star is gone."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    # A late instant: some stars are dying, the sparks are still burning.
+    scene.frame_set(26)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    sparks = bpy.data.objects.get("ALD FX GN Sparks 1")
+    heads = bpy.data.objects.get("ALD FX GN Heads 1")
+    check(sparks is not None, "geometry nodes sparks missing")
+    if sparks is not None:
+        instances = fx_nodes.realized_instances(sparks, depsgraph)
+        alive = [radius for _center, radius in instances if radius > 1e-4]
+        check(alive, "the child sparks die with the head of the star")
+    if heads is not None:
+        instances = fx_nodes.realized_instances(heads, depsgraph)
+        dead = [radius for _center, radius in instances if radius <= 1e-4]
+        check(dead, "the head of the star is still alive at this instant")
+    scene.frame_set(previous_frame)
+    fx_module.clear(scene)
 
 
 def main():

@@ -129,7 +129,8 @@ def _fibonacci_direction(index, count, jitter, seed, burst):
 
 
 def _gn_points_object(scene, name, material, particles, trail=0.0,
-                      age_offset=0.0, min_scale=0.35, decay_power=1.0):
+                      age_offset=0.0, min_scale=0.35, decay_power=1.0,
+                      gravity=None):
     """Build a points object whose motion is evaluated by Geometry Nodes."""
     from . import fx_nodes
     count = len(particles)
@@ -159,8 +160,10 @@ def _gn_points_object(scene, name, material, particles, trail=0.0,
     obj["ald_fx"] = True
     _collection(scene).objects.link(obj)
     group, sockets = fx_nodes.build_burst_group()
-    fx_nodes.attach_burst_modifier(obj, group, sockets, GRAVITY, material,
-                                   trail=trail, age_offset=age_offset,
+    fx_nodes.attach_burst_modifier(obj, group, sockets,
+                                   GRAVITY if gravity is None else gravity,
+                                   material, trail=trail,
+                                   age_offset=age_offset,
                                    min_scale=min_scale,
                                    decay_power=decay_power)
     return obj
