@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.3.0**).
+  (currently **2.4.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -153,6 +153,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   times and rotate the families. Read the camera basis from the local
   transform: `matrix_world` can be stale right after moving the camera.
   Never leave a particle with a zero radius: degenerate faces crash EEVEE.
+- FX 2.4 rules: every star leaves a beaded chain of emissive grains (thin
+  filament only for cohesion) and `fx_age` is the single source of truth for
+  the burst phase used by the handler and by the Update FX operator.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

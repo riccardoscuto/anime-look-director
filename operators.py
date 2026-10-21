@@ -251,6 +251,7 @@ class ALD_OT_fx_fireworks(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
+        scene.ald.fx_age = self.age
         time = _scene_time(scene) + self.age
         count = fx.create_fireworks(scene, self.count, self.seed,
                                     self.distance, time, family=self.family)
@@ -278,6 +279,7 @@ class ALD_OT_fx_meteors(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
+        scene.ald.fx_age = self.age
         time = _scene_time(scene) + self.age
         count = fx.create_meteors(scene, self.count, self.seed, self.distance,
                                   time)
@@ -303,8 +305,9 @@ class ALD_OT_fx_update(bpy.types.Operator):
             self.report({"WARNING"}, "Anime Look Director: no FX system")
             return {"CANCELLED"}
         fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
-        time = ((scene.frame_current + scene.frame_subframe)
-                / max(fps, 1e-6) + float(config.get("age", 0.8)))
+        age = float(getattr(scene.ald, "fx_age", config.get("age", 0.8)))
+        time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
+        time += age
         fx.update(scene, time)
         return {"FINISHED"}
 

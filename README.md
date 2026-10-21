@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.3.0)
+## What it does (v2.4.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -137,7 +137,8 @@ Expected output: `ALD GATE: PASS`.
 - v2.0.1 - tapered physical firework trails, hollow shells and stronger droop
 - v2.1.0 - deterministic FX solver, per-scene ownership, FX backend selector
 - v2.2.0 - FX compositing separation with dedicated glow
-- v2.3.0 - animated in-place FX, burst roles and staggered families (current)
+- v2.3.0 - animated in-place FX, burst roles and staggered families
+- v2.4.0 - beaded spark trails and a live Burst Age control (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

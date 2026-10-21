@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.4.0 - 2026-10-22
+### Added
+- Beaded spark trails: every star now leaves a granular string of emissive
+  grains that thins out towards the tail, with a faint filament for cohesion.
+  This replaces the continuous ribbon look of v2.3.0.
+- `Burst Age` control (0..6 s) in the FX panel: the whole system can be
+  scrubbed through the explosion phase without touching the timeline.
+### Fixed
+- The FX frame handler now reads the authoritative `fx_age` setting, so the
+  burst phase stays consistent while scrubbing frames.
+
 ## 2.3.0 - 2026-10-22
 ### Added
 - Animated FX: geometry is allocated once and updated in place from the

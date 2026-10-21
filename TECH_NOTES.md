@@ -737,3 +737,10 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   birth times and rotating families.
 - The camera basis is read from the local transform, so bursts placed right
   after moving the camera land in frame.
+
+### v2.4.0 notes (beaded trails and burst age)
+- Each primary star leaves a chain of small emissive grains (SAMPLES per
+  star, radius shrinking towards the tail) plus a thin filament for cohesion.
+- x_age (0..6 s) is the authoritative phase of the burst: the frame handler
+  and the Update FX operator both use it, so scrubbing the timeline never
+  changes the phase of the explosion.

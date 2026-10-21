@@ -137,6 +137,20 @@ def _on_params(self, context):
         pass
 
 
+def _on_fx_age(self, context):
+    """Re-evaluate the FX system when the burst age changes."""
+    try:
+        from . import fx
+        scene = context.scene
+        config = scene.get("ald_fx_config")
+        if isinstance(config, dict):
+            config["age"] = self.fx_age
+            scene["ald_fx_config"] = config
+        fx.update(scene)
+    except Exception:
+        pass
+
+
 def _on_shots(self, context):
     try:
         from . import shots
@@ -397,6 +411,10 @@ class ALD_Settings(bpy.types.PropertyGroup):
                ("FX3D", "FX 3D", "Physical particles created in the scene")],
         default="FX3D",
         description="Which fireworks backend stays active")
+    fx_age: FloatProperty(
+        name="Burst Age", default=0.8, min=0.0, max=6.0,
+        description="Seconds after the burst shown by the FX system",
+        update=_on_fx_age)
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,
         description="Dedicated glow for the 3D FX layer",

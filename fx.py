@@ -284,9 +284,21 @@ def _build_fireworks(scene, count, seed, distance, family):
                       6.0),
         ]
         spoke_count = config["spokes"]
-        trail_obj = _build_curve(scene, "ALD FX %s %d Trails" % (family_key, index),
-                                 spoke_count, materials, 0.075 * size_scale)
+        trail_obj = _build_curve(scene, "ALD FX %s %d Filament" % (family_key, index),
+                                 spoke_count, materials, 0.022 * size_scale)
         trail_obj["ald_fx_kind"] = kind
+        # Beaded spark trails: a chain of small emissive grains per star,
+        # exactly like the granular string of sparks in the references.
+        bead_objects = []
+        for slot in range(3):
+            spokes = [s for s in range(spoke_count) if s % 3 == slot]
+            count = len(spokes) * SAMPLES
+            bead_obj, bead_ranges = _build_particle_mesh(
+                "ALD FX %s %d Beads %d" % (family_key, index, slot),
+                [center] * count, [0.001] * count, materials[slot])
+            _collection(scene).objects.link(bead_obj)
+            bead_obj["ald_fx_kind"] = kind
+            bead_objects.append((bead_obj, bead_ranges, spokes))
         head_obj, head_ranges = _build_particle_mesh(
             "ALD FX %s %d Heads" % (family_key, index),
             [center] * spoke_count, [0.001] * spoke_count, materials[0])
@@ -308,6 +320,7 @@ def _build_fireworks(scene, count, seed, distance, family):
             "center": center, "birth": birth, "seed": seed,
             "size_scale": size_scale, "materials": materials,
             "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
+            "beads": bead_objects,
             "sparks": spark_obj, "spark_ranges": spark_ranges,
             "core": core_obj, "core_ranges": core_ranges,
         })
@@ -327,6 +340,8 @@ def _update_fireworks(system, time):
         head_radii = []
         spark_centers = []
         spark_radii = []
+        bead_centers = [[], [], []]
+        bead_radii = [[], [], []]
         for spoke in range(spoke_count):
             life = _hash_range(seed, index, spoke, 2, config["life"] * 0.6,
                                config["life"])
@@ -342,10 +357,18 @@ def _update_fireworks(system, time):
                 tau = trail_time * (1.0 - step / (SAMPLES - 1.0))
                 sample_age = max(0.0, age - tau)
                 point = _position(center, v0, config["drag"], sample_age)
+                profile = step / (SAMPLES - 1.0)
                 if not alive:
                     point = center + Vector((0.0, 0.0, 1000.0))
                 spline.points[step].co = (point.x, point.y, point.z, 1.0)
-                spline.points[step].radius = 0.25 + 0.9 * (step / (SAMPLES - 1.0)) ** 1.4
+                spline.points[step].radius = 0.25 + 0.9 * profile ** 1.4
+                slot = spoke % 3
+                bead_centers[slot].append(point)
+                if alive:
+                    bead_radii[slot].append(
+                        0.05 * burst["size_scale"] * (0.25 + 0.75 * profile))
+                else:
+                    bead_radii[slot].append(0.0001)
             head = _position(center, v0, config["drag"], max(0.0, age))
             radius = 0.13 * burst["size_scale"]
             if not alive:
@@ -379,6 +402,9 @@ def _update_fireworks(system, time):
                                    * (1.0 - child_age / max(child_life, 1e-3)))
         _write_particle_mesh(burst["heads"].data, burst["head_ranges"],
                              head_centers, head_radii)
+        for slot, (bead_obj, bead_ranges, _spokes) in enumerate(burst["beads"]):
+            _write_particle_mesh(bead_obj.data, bead_ranges,
+                                 bead_centers[slot], bead_radii[slot])
         if spark_centers:
             _write_particle_mesh(burst["sparks"].data, burst["spark_ranges"],
                                  spark_centers, spark_radii)
@@ -558,8 +584,12 @@ def _on_frame_change(scene, *_args):
     if not registry:
         return
     fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
-    config = scene.get("ald_fx_config") or {}
-    age_offset = float(config.get("age", 0.0)) if isinstance(config, dict) else 0.0
+    settings = getattr(scene, "ald", None)
+    age_offset = float(getattr(settings, "fx_age", 0.0)) if settings else 0.0
+    if not age_offset:
+        config = scene.get("ald_fx_config") or {}
+        if isinstance(config, dict):
+            age_offset = float(config.get("age", 0.0))
     time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
     time += age_offset
     for system in registry.values():

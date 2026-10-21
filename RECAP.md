@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.3.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.4.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -293,4 +293,6 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.2.0** - Separazione compositoriale degli FX con glow dedicato e nuclei netti.
 
 - **2.3.0** - FX animati aggiornati in place, composizione a ruoli e famiglie sfalsate.
+
+- **2.4.0** - Scie a corona di scintille e controllo Burst Age dal pannello FX.
 

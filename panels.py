@@ -429,6 +429,7 @@ class ALD_PT_fx(bpy.types.Panel):
         layout = self.layout
         col = layout.column(align=True)
         col.prop(context.scene.ald, "fx_backend")
+        col.prop(context.scene.ald, "fx_age")
         glow = layout.column(align=True)
         glow.prop(context.scene.ald, "fx_glow_strength")
         glow.prop(context.scene.ald, "fx_glow_size")
