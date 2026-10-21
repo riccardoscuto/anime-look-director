@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.8.0 - 2026-10-22
+### Added
+- The Geometry Nodes group now evaluates the whole burst population, not only
+  the heads: the trail grains, the inner pistil (heads and grains) and the
+  child sparks are all computed by `ALD | FX Burst GN`.
+- New per point attributes: `tau` (age offset of the sample), `jitter`
+  (constant scatter of a grain) and `use_decay` (follow the head brightness
+  decay or keep the baked size). The group exposes `Trail`, `Age Offset` and
+  `Min Scale` so the node evaluation matches the Python solver exactly.
+- The child sparks are now emitted from the position and velocity the parent
+  star had at the emission instant: a spark is a body of its own, not a
+  particle of a moving source.
+- The gate measures the parity between the node evaluation and the Python
+  solver (heads, grains, pistil, pistil grains and sparks must agree within
+  1 mm) and checks that the Python path is still available as a fallback.
+- `GN Particles (Prototype)` toggle in the FX panel.
+
 ## 2.7.0 - 2026-10-22
 ### Added
 - Geometry Nodes prototype for the burst heads: the deterministic data

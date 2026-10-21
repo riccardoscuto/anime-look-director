@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 7, 0)
+EXPECTED_VERSION = (2, 8, 0)
 TOLERANCE = 1e-4
 
 
@@ -1538,6 +1538,187 @@ def check_fx(scene):
                   and any(mod.type == "NODES" for mod in obj.modifiers)]
     check(gn_objects, "no FX object uses the Geometry Nodes burst")
     fx_module.clear(scene)
+    check_fx_gn_parity(scene)
+
+
+def check_fx_gn_parity(scene):
+    """The node group must reproduce the Python solver exactly."""
+    from mathutils import Vector
+
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    scene.frame_set(12)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    burst = registry["fireworks"]["bursts"][1]
+    config = burst["config"]
+    center = burst["center"]
+    birth = burst["birth"]
+    seed = burst["seed"]
+    spoke_count = config["spokes"]
+    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+    age = 12 / fps + float(scene.ald.fx_age) - birth
+
+    heads = bpy.data.objects.get("ALD FX GN Heads 1")
+    check(heads is not None, "geometry nodes burst heads missing")
+    if heads is not None:
+        centers = fx_nodes.realized_centers(heads, depsgraph)
+        check(len(centers) == spoke_count,
+              "geometry nodes burst produced %d heads" % len(centers))
+        worst = 0.0
+        for spoke in range(spoke_count):
+            life, v0 = fx_module._gn_star_data(seed, burst["index"], config,
+                                               spoke, spoke_count)
+            if not (0.0 < age <= life):
+                continue
+            expected = fx_module._position(center, v0, config["drag"], age)
+            worst = max(worst, (expected - centers[spoke]).length)
+        check(worst < 1e-3,
+              "geometry nodes heads drift from the solver (%.6f m)" % worst)
+
+    grains = bpy.data.objects.get("ALD FX GN Beads 1 0")
+    check(grains is not None, "geometry nodes burst grains missing")
+    if grains is not None:
+        grain_centers = fx_nodes.realized_centers(grains, depsgraph)
+        spokes = [s for s in range(spoke_count) if s % 3 == 0]
+        check(len(grain_centers) == len(spokes) * fx_module.SAMPLES,
+              "geometry nodes grains count mismatch")
+        worst = 0.0
+        for bead_index, spoke in enumerate(spokes):
+            life, v0 = fx_module._gn_star_data(seed, burst["index"], config,
+                                               spoke, spoke_count)
+            alive = 0.0 <= age <= life
+            trail_time = min(age, config["trail"]) if alive else 0.0
+            for step in range(fx_module.SAMPLES):
+                tau = trail_time * (1.0 - step / (fx_module.SAMPLES - 1.0))
+                sample_age = max(0.0, age - tau)
+                point = fx_module._position(center, v0, config["drag"],
+                                            sample_age)
+                profile = step / (fx_module.SAMPLES - 1.0)
+                scatter = 0.10 * burst["size_scale"] * (1.0 - profile)
+                jitter = Vector((
+                    fx_module._hash_range(seed, burst["index"],
+                                          spoke * 16 + step, 20, -scatter,
+                                          scatter),
+                    fx_module._hash_range(seed, burst["index"],
+                                          spoke * 16 + step, 21, -scatter,
+                                          scatter),
+                    fx_module._hash_range(seed, burst["index"],
+                                          spoke * 16 + step, 22, -scatter,
+                                          scatter),
+                ))
+                expected = point + jitter
+                actual = grain_centers[bead_index * fx_module.SAMPLES + step]
+                worst = max(worst, (expected - actual).length)
+        check(worst < 1e-3,
+              "geometry nodes grains drift from the solver (%.6f m)" % worst)
+
+    pistil = bpy.data.objects.get("ALD FX GN Pistil 1")
+    check(pistil is not None, "geometry nodes pistil missing")
+    if pistil is not None:
+        centers = fx_nodes.realized_centers(pistil, depsgraph)
+        pistil_count = config["pistil"]
+        check(len(centers) == pistil_count,
+              "geometry nodes pistil count mismatch")
+        worst = 0.0
+        for spoke in range(pistil_count):
+            _direction, life, v0, alive = fx_module._star_state(
+                seed, burst["index"], spoke, pistil_count, config, age,
+                speed_scale=0.68, life_scale=0.85, hash_offset=500)
+            if not alive:
+                continue
+            drag = config["drag"] * 1.2
+            expected = fx_module._position(center, v0, drag, age)
+            worst = max(worst, (expected - centers[spoke]).length)
+        check(worst < 1e-3,
+              "geometry nodes pistil drifts from the solver (%.6f m)" % worst)
+
+    pistil_grains = bpy.data.objects.get("ALD FX GN Pistil Grains 1")
+    check(pistil_grains is not None, "geometry nodes pistil grains missing")
+    if pistil_grains is not None:
+        centers = fx_nodes.realized_centers(pistil_grains, depsgraph)
+        pistil_count = config["pistil"]
+        check(len(centers) == pistil_count * fx_module.SAMPLES,
+              "geometry nodes pistil grains count mismatch")
+        worst = 0.0
+        for spoke in range(pistil_count):
+            _direction, life, v0, alive = fx_module._star_state(
+                seed, burst["index"], spoke, pistil_count, config, age,
+                speed_scale=0.68, life_scale=0.85, hash_offset=500)
+            drag = config["drag"] * 1.2
+            trail_time = min(age, config["trail"] * 0.6) if alive else 0.0
+            for step in range(fx_module.SAMPLES):
+                tau = trail_time * (1.0 - step / (fx_module.SAMPLES - 1.0))
+                sample_age = max(0.0, age - tau)
+                expected = fx_module._position(center, v0, drag, sample_age)
+                index = spoke * fx_module.SAMPLES + step
+                worst = max(worst, (expected - centers[index]).length)
+        check(worst < 1e-3,
+              "geometry nodes pistil grains drift (%.6f m)" % worst)
+
+    sparks = bpy.data.objects.get("ALD FX GN Sparks 1")
+    check(sparks is not None, "geometry nodes sparks missing")
+    if sparks is not None:
+        centers = fx_nodes.realized_centers(sparks, depsgraph)
+        spark_count = spoke_count * config["sparks"]
+        check(len(centers) == spark_count,
+              "geometry nodes sparks count mismatch")
+        worst = 0.0
+        for spoke in range(spoke_count):
+            life, v0 = fx_module._gn_star_data(seed, burst["index"], config,
+                                               spoke, spoke_count)
+            for child in range(config["sparks"]):
+                emit = fx_module._hash_range(seed, burst["index"],
+                                             spoke * 8 + child, 4, 0.05,
+                                             life * 0.55)
+                child_life = fx_module._hash_range(seed, burst["index"],
+                                                  spoke * 8 + child, 5, 0.45,
+                                                  1.5)
+                child_age = age - emit
+                if child_age <= 0.0 or child_age > child_life:
+                    continue
+                parent_pos = fx_module._position(center, v0, config["drag"],
+                                                 emit)
+                parent_vel = fx_module._velocity(v0, config["drag"], emit)
+                perturb = Vector((
+                    fx_module._hash_range(seed, burst["index"],
+                                          spoke * 8 + child, 6, -1.6, 1.6),
+                    fx_module._hash_range(seed, burst["index"],
+                                          spoke * 8 + child, 7, -1.6, 1.6),
+                    fx_module._hash_range(seed, burst["index"],
+                                          spoke * 8 + child, 8, -1.6, 1.6),
+                )) * 1.2
+                child_v0 = parent_vel * 0.35 + perturb
+                expected = fx_module._position(parent_pos, child_v0, 2.4,
+                                              child_age)
+                index = spoke * config["sparks"] + child
+                worst = max(worst, (expected - centers[index]).length)
+        check(worst < 1e-3,
+              "geometry nodes sparks drift from the solver (%.6f m)" % worst)
+
+    fx_module.clear(scene)
+    scene.frame_set(previous_frame)
+
+    # The Python solver stays available as a fallback.
+    scene.ald.fx_gn_prototype = False
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    python_objects = [obj for obj in bpy.data.objects if obj.get("ald_fx")]
+    python_heads = [obj for obj in python_objects
+                    if obj.name.endswith(" Heads")]
+    check(python_heads, "python fallback did not build the star heads")
+    check(not any(mod.type == "NODES" for obj in python_objects
+                  for mod in obj.modifiers),
+          "python fallback still uses the node group")
+    check(any(obj.type == "MESH" and len(obj.data.vertices) > 12
+              for obj in python_objects),
+          "python fallback did not write the particle geometry")
+    fx_module.clear(scene)
+    scene.ald.fx_gn_prototype = True
 
 
 def main():

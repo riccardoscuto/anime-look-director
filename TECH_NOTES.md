@@ -773,3 +773,21 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   Points / Scene Time, and be attached to a real FX object.
 - Next step: move the trail beads to Points to Curves (Curve Group ID = parent
   id, Weight = sample time) and then convert the whole system.
+
+### v2.8.0 notes (Geometry Nodes for the whole burst population)
+- x_nodes.py owns ALD | FX Burst GN; the same group evaluates the star
+  heads, the trail grains, the inner pistil and the child sparks.
+- Per point attributes: irth, life, el, drag, pos0, adius,
+  	au (age offset of the sample), jitter (constant scatter), use_decay
+  (follow the head decay or keep the baked size).
+- Group inputs: Geometry, Gravity, Material, Trail, Age Offset,
+  Min Scale. Trail reproduces 	rail_time = min(age, trail), Age Offset
+  reproduces the x_age shift of the Python solver, Min Scale reproduces
+  the  .35 + 0.65 * (1 - age / life) head fade.
+- The child sparks are emitted from the position and the velocity the parent
+  had at the emission instant (a spark is a body of its own).
+- The gate realizes the instances and compares the node evaluation with the
+  Python solver: heads, grains, pistil, pistil grains and sparks must agree
+  within 1 mm (x_nodes.realized_centers).
+- The Python path stays available: GN Particles (Prototype) off rebuilds the
+  system with the mesh writer.

@@ -128,7 +128,8 @@ def _fibonacci_direction(index, count, jitter, seed, burst):
     return Vector((math.cos(theta) * radius, math.sin(theta) * radius, z))
 
 
-def _gn_head_object(scene, name, material, particles, radius):
+def _gn_points_object(scene, name, material, particles, trail=0.0,
+                      age_offset=0.0, min_scale=0.35):
     """Build a points object whose motion is evaluated by Geometry Nodes."""
     from . import fx_nodes
     count = len(particles)
@@ -141,8 +142,11 @@ def _gn_head_object(scene, name, material, particles, radius):
             ("life", "FLOAT", [p["life"] for p in particles]),
             ("drag", "FLOAT", [p["drag"] for p in particles]),
             ("radius", "FLOAT", [p["radius"] for p in particles]),
+            ("tau", "FLOAT", [p["tau"] for p in particles]),
+            ("use_decay", "FLOAT", [p["use_decay"] for p in particles]),
             ("vel", "FLOAT_VECTOR", [p["vel"] for p in particles]),
-            ("pos0", "FLOAT_VECTOR", [p["pos0"] for p in particles])):
+            ("pos0", "FLOAT_VECTOR", [p["pos0"] for p in particles]),
+            ("jitter", "FLOAT_VECTOR", [p["jitter"] for p in particles])):
         attribute = mesh.attributes.new(attr_name, attr_type, "POINT")
         if attr_type == "FLOAT":
             attribute.data.foreach_set("value", values)
@@ -156,8 +160,125 @@ def _gn_head_object(scene, name, material, particles, radius):
     _collection(scene).objects.link(obj)
     group, sockets = fx_nodes.build_burst_group()
     fx_nodes.attach_burst_modifier(obj, group, sockets, GRAVITY, material,
-                                   radius)
+                                   trail=trail, age_offset=age_offset,
+                                   min_scale=min_scale)
     return obj
+
+
+def _gn_star_data(seed, index, config, spoke, spoke_count):
+    """Deterministic lifetime and initial velocity of one primary star."""
+    life = _hash_range(seed, index, spoke, 2, config["life"] * 0.6,
+                       config["life"])
+    direction = _fibonacci_direction(spoke, spoke_count, 0.35, seed, index)
+    speed = _hash_range(seed, index, spoke, 3, config["speed"] * 0.75,
+                        config["speed"] * 1.15)
+    return life, direction * speed
+
+
+def _gn_head_particles(seed, index, config, birth, center, size_scale,
+                       spoke_count):
+    """Point data of the star heads, evaluated by Geometry Nodes."""
+    particles = []
+    for spoke in range(spoke_count):
+        life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
+        particles.append({
+            "birth": birth, "life": life, "drag": config["drag"],
+            "radius": 0.13 * size_scale, "vel": v0, "pos0": center,
+            "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
+        })
+    return particles
+
+
+def _gn_bead_particles(seed, index, config, birth, center, size_scale,
+                       spoke_count, slot):
+    """Point data of the trail grains of one colour slot."""
+    particles = []
+    spokes = [s for s in range(spoke_count) if s % 3 == slot]
+    for spoke in spokes:
+        life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
+        for step in range(SAMPLES):
+            profile = step / (SAMPLES - 1.0)
+            scatter = 0.10 * size_scale * (1.0 - profile)
+            jitter = Vector((
+                _hash_range(seed, index, spoke * 16 + step, 20,
+                            -scatter, scatter),
+                _hash_range(seed, index, spoke * 16 + step, 21,
+                            -scatter, scatter),
+                _hash_range(seed, index, spoke * 16 + step, 22,
+                            -scatter, scatter),
+            ))
+            grain = 0.65 + 0.7 * _hash_unit(seed, index, spoke * 16 + step, 23)
+            particles.append({
+                "birth": birth, "life": life, "drag": config["drag"],
+                "radius": 0.05 * size_scale * (0.25 + 0.75 * profile) * grain,
+                "vel": v0, "pos0": center,
+                "tau": config["trail"] * (1.0 - profile),
+                "jitter": jitter, "use_decay": 0.0,
+            })
+    return particles
+
+
+def _gn_pistil_particles(seed, index, config, birth, center, size_scale,
+                         pistil_count, grains=False):
+    """Point data of the inner pistil population (heads or trail grains)."""
+    particles = []
+    for spoke in range(pistil_count):
+        life = _hash_range(seed, index, spoke + 500, 2,
+                           config["life"] * 0.6 * 0.85, config["life"] * 0.85)
+        direction = _fibonacci_direction(spoke, pistil_count, 0.35, seed, index)
+        speed = _hash_range(seed, index, spoke + 500, 3,
+                            config["speed"] * 0.75 * 0.68,
+                            config["speed"] * 1.15 * 0.68)
+        v0 = direction * speed
+        drag = config["drag"] * 1.2
+        if grains:
+            for step in range(SAMPLES):
+                profile = step / (SAMPLES - 1.0)
+                particles.append({
+                    "birth": birth, "life": life, "drag": drag,
+                    "radius": 0.028 * size_scale * (0.25 + 0.75 * profile),
+                    "vel": v0, "pos0": center,
+                    "tau": config["trail"] * 0.6 * (1.0 - profile),
+                    "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 0.0,
+                })
+        else:
+            particles.append({
+                "birth": birth, "life": life, "drag": drag,
+                "radius": 0.10 * size_scale, "vel": v0, "pos0": center,
+                "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
+            })
+    return particles
+
+
+def _gn_spark_particles(seed, index, config, birth, center, size_scale,
+                         spoke_count):
+    """Point data of the child sparks.
+
+    The emission point is the position of the parent star at the emission
+    time: the spark is a body of its own, not a particle of a moving source.
+    """
+    particles = []
+    for spoke in range(spoke_count):
+        life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
+        for child in range(config["sparks"]):
+            emit = _hash_range(seed, index, spoke * 8 + child, 4, 0.05,
+                               life * 0.55)
+            child_life = _hash_range(seed, index, spoke * 8 + child, 5, 0.45,
+                                     1.5)
+            parent_pos = _position(center, v0, config["drag"], emit)
+            parent_vel = _velocity(v0, config["drag"], emit)
+            perturb = Vector((
+                _hash_range(seed, index, spoke * 8 + child, 6, -1.6, 1.6),
+                _hash_range(seed, index, spoke * 8 + child, 7, -1.6, 1.6),
+                _hash_range(seed, index, spoke * 8 + child, 8, -1.6, 1.6),
+            )) * 1.2
+            particles.append({
+                "birth": birth + emit, "life": child_life, "drag": 2.4,
+                "radius": 0.045 * size_scale,
+                "vel": parent_vel * 0.35 + perturb, "pos0": parent_pos,
+                "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
+            })
+    return particles
 
 
 def _star_state(seed, index, spoke, count, config, age, speed_scale=1.0,
@@ -357,34 +478,10 @@ def _build_fireworks(scene, count, seed, distance, family):
             [center] * spoke_count, [0.001] * spoke_count, materials[0])
         _collection(scene).objects.link(head_obj)
         head_obj["ald_fx_kind"] = kind
-        # Geometry Nodes prototype: the hero burst heads are evaluated by GN.
         gn_heads = None
-        use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
-            else False
-        if use_gn and index == 1:
-            particles = []
-            for spoke in range(spoke_count):
-                life = _hash_range(seed, index, spoke, 2, config["life"] * 0.6,
-                                   config["life"])
-                direction = _fibonacci_direction(spoke, spoke_count, 0.35,
-                                                 seed, index)
-                speed = _hash_range(seed, index, spoke, 3,
-                                    config["speed"] * 0.75,
-                                    config["speed"] * 1.15)
-                particles.append({
-                    "birth": birth, "life": life, "drag": config["drag"],
-                    "radius": 0.13 * size_scale, "vel": direction * speed,
-                    "pos0": center,
-                })
-            try:
-                gn_heads = _gn_head_object(
-                    scene, "ALD FX GN Heads %d" % index, materials[0],
-                    particles, 1.0)
-                bpy.data.objects.remove(head_obj, do_unlink=True)
-                head_obj = None
-                head_ranges = []
-            except Exception:
-                gn_heads = None
+        gn_beads = []
+        gn_pistil = None
+        gn_sparks = None
         # Inner contrasting pistil population (the classic Hanabi core).
         pistil_count = config["pistil"]
         pistil_obj, pistil_ranges = _build_particle_mesh(
@@ -404,6 +501,74 @@ def _build_fireworks(scene, count, seed, distance, family):
             [center] * spark_total, [0.001] * spark_total, materials[2])
         _collection(scene).objects.link(spark_obj)
         spark_obj["ald_fx_kind"] = kind
+        # Geometry Nodes prototype: the burst particles are evaluated by the
+        # node group instead of Python.
+        use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
+            else False
+        if use_gn:
+            created = []
+            try:
+                age_offset = float(getattr(settings, "fx_age", 0.0)) \
+                    if settings else 0.0
+                gn_heads = _gn_points_object(
+                    scene, "ALD FX GN Heads %d" % index, materials[0],
+                    _gn_head_particles(seed, index, config, birth, center,
+                                       size_scale, spoke_count),
+                    trail=0.0, age_offset=age_offset)
+                created.append(gn_heads)
+                for slot in range(3):
+                    bead_gn = _gn_points_object(
+                        scene, "ALD FX GN Beads %d %d" % (index, slot),
+                        materials[slot],
+                        _gn_bead_particles(seed, index, config, birth, center,
+                                           size_scale, spoke_count, slot),
+                        trail=config["trail"], age_offset=age_offset)
+                    created.append(bead_gn)
+                    gn_beads.append(bead_gn)
+                gn_pistil = _gn_points_object(
+                    scene, "ALD FX GN Pistil %d" % index, materials[1],
+                    _gn_pistil_particles(seed, index, config, birth, center,
+                                         size_scale, pistil_count),
+                    trail=0.0, age_offset=age_offset)
+                created.append(gn_pistil)
+                gn_pistil_grains = _gn_points_object(
+                    scene, "ALD FX GN Pistil Grains %d" % index, materials[1],
+                    _gn_pistil_particles(seed, index, config, birth, center,
+                                         size_scale, pistil_count, grains=True),
+                    trail=config["trail"] * 0.6, age_offset=age_offset)
+                created.append(gn_pistil_grains)
+                gn_beads.append(gn_pistil_grains)
+                gn_sparks = _gn_points_object(
+                    scene, "ALD FX GN Sparks %d" % index, materials[2],
+                    _gn_spark_particles(seed, index, config, birth, center,
+                                        size_scale, spoke_count),
+                    trail=0.0, age_offset=age_offset, min_scale=0.0)
+                created.append(gn_sparks)
+                # The Python meshes are replaced by the node group.
+                for python_obj in (head_obj, pistil_obj, pistil_bead_obj,
+                                   spark_obj):
+                    bpy.data.objects.remove(python_obj, do_unlink=True)
+                for bead_obj, _bead_ranges, _spokes in bead_objects:
+                    bpy.data.objects.remove(bead_obj, do_unlink=True)
+                head_obj = None
+                head_ranges = []
+                bead_objects = []
+                pistil_obj = None
+                pistil_ranges = []
+                pistil_bead_obj = None
+                pistil_bead_ranges = []
+                spark_obj = None
+                spark_ranges = []
+                # The replaced Python meshes must not survive as orphans.
+                _cleanup_orphans()
+            except Exception:
+                for obj in created:
+                    if obj.name in bpy.data.objects:
+                        bpy.data.objects.remove(obj, do_unlink=True)
+                gn_heads = None
+                gn_beads = []
+                gn_pistil = None
+                gn_sparks = None
         core_obj, core_ranges = _build_particle_mesh(
             "ALD FX %s %d Flash" % (family_key, index), [center], [0.001],
             materials[1])
@@ -414,7 +579,8 @@ def _build_fireworks(scene, count, seed, distance, family):
             "center": center, "birth": birth, "seed": seed,
             "size_scale": size_scale, "materials": materials,
             "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
-            "gn_heads": gn_heads,
+            "gn_heads": gn_heads, "gn_beads": gn_beads,
+            "gn_pistil": gn_pistil, "gn_sparks": gn_sparks,
             "beads": bead_objects,
             "pistil": (pistil_obj, pistil_ranges, pistil_bead_obj,
                        pistil_bead_ranges, pistil_count),
@@ -432,6 +598,9 @@ def _update_fireworks(system, time):
         index = burst["index"]
         age = time - burst["birth"]
         spoke_count = config["spokes"]
+        gn_heads = burst.get("gn_heads")
+        gn_pistil = burst.get("gn_pistil")
+        gn_sparks = burst.get("gn_sparks")
         trail_data = burst["trail"].data
         head_centers = []
         head_radii = []
@@ -488,7 +657,7 @@ def _update_fireworks(system, time):
                 radius *= 0.35 + 0.65 * (1.0 - age / max(life, 1e-3))
             head_centers.append(head)
             head_radii.append(radius)
-            for child in range(config["sparks"]):
+            for child in range(config["sparks"]) if not gn_sparks else ():
                 emit = _hash_range(seed, index, spoke * 8 + child, 4, 0.05,
                                   life * 0.55)
                 child_age = age - emit
@@ -517,7 +686,7 @@ def _update_fireworks(system, time):
         pistil_radii = []
         pistil_bead_centers = []
         pistil_bead_radii = []
-        for spoke in range(pistil_count):
+        for spoke in range(pistil_count) if not gn_pistil else ():
             direction, life, v0, alive = _star_state(
                 seed, index, spoke, pistil_count, config, age,
                 speed_scale=0.68, life_scale=0.85, hash_offset=500)
@@ -548,14 +717,15 @@ def _update_fireworks(system, time):
         if burst.get("gn_heads") is None:
             _write_particle_mesh(burst["heads"].data, burst["head_ranges"],
                                  head_centers, head_radii)
-        _write_particle_mesh(pistil_obj.data, pistil_ranges, pistil_centers,
-                             pistil_radii)
-        _write_particle_mesh(pistil_bead_obj.data, pistil_bead_ranges,
-                             pistil_bead_centers, pistil_bead_radii)
+        if gn_pistil is None:
+            _write_particle_mesh(pistil_obj.data, pistil_ranges,
+                                 pistil_centers, pistil_radii)
+            _write_particle_mesh(pistil_bead_obj.data, pistil_bead_ranges,
+                                 pistil_bead_centers, pistil_bead_radii)
         for slot, (bead_obj, bead_ranges, _spokes) in enumerate(burst["beads"]):
             _write_particle_mesh(bead_obj.data, bead_ranges,
                                  bead_centers[slot], bead_radii[slot])
-        if spark_centers:
+        if spark_centers and gn_sparks is None:
             _write_particle_mesh(burst["sparks"].data, burst["spark_ranges"],
                                  spark_centers, spark_radii)
         # Central flash: bright for a fraction of a second only.

@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.7.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.8.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -301,4 +301,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.6.0** - Scie granulari a 16 campioni, frammenti e persistent train delle meteore, controlli di composizione.
 
 - **2.7.0** - Prototipo Geometry Nodes per le teste dei fuochi (dati su attributi, moto valutato da Scene Time).
+- **2.8.0** - Geometry Nodes valuta tutta la popolazione del burst (teste, grani, pistil, scintille), con gate di parità rispetto al solver Python.
 

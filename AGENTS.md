@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.7.0**).
+  (currently **2.8.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -169,6 +169,16 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   pos0); the node group evaluates the analytic motion with Scene Time. When the
   group already exists, reuse it and resolve the socket identifiers by name.
   The prototype runs on one burst only and is verified by the gate.
+- FX 2.8 rules: the same group evaluates heads, trail grains, pistil and
+  child sparks. New attributes `tau` (age offset of the sample), `jitter`
+  (constant scatter) and `use_decay` (follow the head fade or keep the baked
+  size). Group inputs `Trail`, `Age Offset` and `Min Scale` reproduce the
+  Python solver exactly: `trail_time = min(age, trail)`, the `fx_age` shift and
+  the `0.35 + 0.65 * (1 - age / life)` fade. The gate realizes the instances
+  and compares the node evaluation with the Python solver within 1 mm
+  (`fx_nodes.realized_centers`). The child sparks are emitted from the parent
+  position and velocity at the emission instant. The Python path stays
+  available: `GN Particles (Prototype)` off.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

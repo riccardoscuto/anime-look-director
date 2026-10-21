@@ -437,8 +437,9 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Horizontal and vertical spread of the bursts",
         update=_on_fx_age)
     fx_gn_prototype: BoolProperty(
-        name="GN Heads (Prototype)", default=True,
-        description="Evaluate the hero burst heads with Geometry Nodes",
+        name="GN Particles (Prototype)", default=True,
+        description="Evaluate the burst particles with Geometry Nodes "
+                    "instead of the Python solver",
         update=_on_fx_age)
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,
