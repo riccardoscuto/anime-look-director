@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.1.0**).
+  (currently **2.2.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -151,6 +151,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth
   factor so the sky/stars are never smeared by the painterly filter.
+- FX compositing: the Emission pass masks `ALD | FX Restore` (cores restored
+  after the painterly filters) and `ALD | FX Glow` blooms only the particles.
+  Never tint FX with the sun halation colour.
 - `_sample_cloud_density()` returns `(rho, envelope, warped_pos)`. Rho is
   Perlin-Worley: macro `Detail 5.5/Roughness 0.56` weighted 0.62, plus
   `(0.22 billow + 0.16 Voronoi puff)` gated by a macro envelope
@@ -184,7 +187,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Rim Bias maps Sun=1, Contour=0, Backlight=-1. Terminator Warmth is an additive
   `Sun Color * smoothstep(0..0.12, abs(N.L))` band; Skin is boosted to 0.35.
 - Gate pixel ratios: shadow ~2.60 %, wrap ~15.99 %, ink ~3.34 %, haze ~62.95 %
-  (gate plane fills the frame), toon ~1.60 %, rim ~7.32 %.
+  (gate plane fills the frame), toon ~1.60 %, rim ~6.89 %.
 - Shadow tint uses a `MULTIPLY` Mix on Base Color; palette `shadow_tint` colors are
   normalized (max component 1) so textures keep their detail in shadows.
 - Material presets include `EMISSION`; set `Emission Color` / `Emission Strength`,
@@ -276,7 +279,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   tint × combined). `_wire_emission` links it to Principled Emission Color, stores
   `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
   restores on clear.
-- Gate pixel ratios: ink ~3.34 %, rim ~7.32 % (edge-local);
+- Gate pixel ratios: ink ~3.34 %, rim ~6.89 % (edge-local);
   shadow ~2.60 %, toon ~1.60 %.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group

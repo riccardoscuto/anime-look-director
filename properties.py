@@ -397,6 +397,18 @@ class ALD_Settings(bpy.types.PropertyGroup):
                ("FX3D", "FX 3D", "Physical particles created in the scene")],
         default="FX3D",
         description="Which fireworks backend stays active")
+    fx_glow_strength: FloatProperty(
+        name="FX Glow", default=0.6, min=0.0, max=3.0,
+        description="Dedicated glow for the 3D FX layer",
+        update=_on_params)
+    fx_glow_size: FloatProperty(
+        name="FX Glow Size", default=0.7, min=0.0, max=1.0,
+        description="Size of the dedicated FX glow",
+        update=_on_params)
+    fx_glow_threshold: FloatProperty(
+        name="FX Glow Threshold", default=1.0, min=0.0, max=10.0,
+        description="Luminance threshold of the dedicated FX glow",
+        update=_on_params)
 
     # --- Shadow tint ----------------------------------------------------
     shadow_tint: BoolProperty(

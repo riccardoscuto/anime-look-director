@@ -719,3 +719,10 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   the owner's objects and its own orphan datablocks.
 - x_backend selects Disabled / Legacy World / FX 3D so both generators are
   never active at the same time.
+
+### v2.2.0 notes (FX compositing separation)
+- The view layer enables the Emission pass; ALD | FX Mask (RGB to BW of the
+  emission pass) restores the particle cores after Kuwahara, Ink and Haze, so
+  the environment stays painterly while the fireworks stay sharp.
+- ALD | FX Glow blooms the emission pass only, with independent strength,
+  size and threshold, instead of the sun-tinted atmospheric halation.

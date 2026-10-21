@@ -429,6 +429,9 @@ class ALD_PT_fx(bpy.types.Panel):
         layout = self.layout
         col = layout.column(align=True)
         col.prop(context.scene.ald, "fx_backend")
+        glow = layout.column(align=True)
+        glow.prop(context.scene.ald, "fx_glow_strength")
+        glow.prop(context.scene.ald, "fx_glow_size")
         col.operator("ald.fx_fireworks", icon="LIGHT")
         col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
         col.operator("ald.fx_update", icon="FILE_REFRESH")

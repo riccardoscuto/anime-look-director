@@ -14,6 +14,8 @@ NODE_LIGHT_WRAP_MASK = "ALD | Light Wrap Mask"
 NODE_LIGHT_WRAP_EDGE = "ALD | Light Wrap Edge"
 NODE_LIGHT_WRAP_OVER = "ALD | Light Wrap Over"
 NODE_LENS = "ALD | Lens"
+NODE_FX_RESTORE = "ALD | FX Restore"
+NODE_FX_GLOW = "ALD | FX Glow"
 NODE_GOD_RAYS = "ALD | God Rays"
 NODE_INK_EDGE = "ALD | Ink Edge"
 NODE_INK_FACTOR = "ALD | Ink Factor"
@@ -375,6 +377,16 @@ def update_params(scene):
     if node is not None:
         node.inputs["Size"].default_value = settings.god_rays_size
         node.inputs["Strength"].default_value = settings.god_rays_strength
+
+    node = nodes.get(NODE_FX_GLOW)
+    if node is not None:
+        node.inputs["Strength"].default_value = getattr(
+            settings, "fx_glow_strength", 0.6)
+        node.inputs["Threshold"].default_value = getattr(
+            settings, "fx_glow_threshold", 1.0)
+        if "Size" in node.inputs:
+            node.inputs["Size"].default_value = getattr(
+                settings, "fx_glow_size", 0.7)
         update_god_rays(scene)
 
     from . import palette as palette_module
@@ -596,6 +608,9 @@ def build(scene):
 
     for layer in scene.view_layers:
         layer.use_pass_z = True
+        # The emission pass isolates the 3D FX (fireworks, meteors) from the
+        # painted sky so the painterly filters never smear their cores.
+        layer.use_pass_emit = True
         if settings.ink_lines:
             layer.use_pass_normal = True
 
@@ -622,6 +637,7 @@ def build(scene):
     rl.location = (-1500, 0)
     current = rl.outputs["Image"]
     depth = rl.outputs.get("Depth")
+    emission = rl.outputs.get("Emission")
 
     from . import palette as palette_module
     palette_key = scene.get("ald_effective_palette", settings.palette)
@@ -734,6 +750,51 @@ def build(scene):
                           palette_module.shadow_tint_for(scene))
         current = _ink_lines(nodes, links, current, rl, settings, clip_end,
                              geometry, ink_color)
+
+    # FX separation: the 3D particles are restored on top of the painted
+    # result, so Kuwahara, Ink and Haze never blur their cores, and they get
+    # their own glow instead of the sun-tinted atmospheric bloom.
+    if emission is not None:
+        bw = nodes.new("CompositorNodeRGBToBW")
+        bw.location = (560, 320)
+        bw.name = "ALD | FX Mask"
+        links.new(emission, bw.inputs[0])
+
+        restore = nodes.new("ShaderNodeMix")
+        restore.location = (700, 240)
+        restore.name = NODE_FX_RESTORE
+        restore.data_type = "RGBA"
+        restore.blend_type = "MIX"
+        a_sock, b_sock, result_sock = _mix_sockets(restore)
+        links.new(current, a_sock)
+        links.new(emission, b_sock)
+        links.new(bw.outputs[0], restore.inputs["Factor"])
+        current = result_sock
+
+        fx_glare = nodes.new("CompositorNodeGlare")
+        fx_glare.location = (560, 460)
+        fx_glare.name = NODE_FX_GLOW
+        fx_glare.inputs["Type"].default_value = "Bloom"
+        fx_glare.inputs["Threshold"].default_value = getattr(
+            settings, "fx_glow_threshold", 1.0)
+        fx_glare.inputs["Strength"].default_value = getattr(
+            settings, "fx_glow_strength", 0.6)
+        if "Size" in fx_glare.inputs:
+            fx_glare.inputs["Size"].default_value = getattr(
+                settings, "fx_glow_size", 0.7)
+        links.new(emission, fx_glare.inputs["Image"])
+        glare_out = fx_glare.outputs.get("Glare")
+        if glare_out is None:
+            glare_out = fx_glare.outputs["Image"]
+        fx_add = nodes.new("ShaderNodeMix")
+        fx_add.location = (780, 300)
+        fx_add.data_type = "RGBA"
+        fx_add.blend_type = "ADD"
+        a_sock, b_sock, result_sock = _mix_sockets(fx_add)
+        links.new(current, a_sock)
+        links.new(glare_out, b_sock)
+        fx_add.inputs["Factor"].default_value = 1.0
+        current = result_sock
 
     if settings.dispersion:
         lens = nodes.new("CompositorNodeLensdist")

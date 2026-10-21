@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.1.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.2.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -289,4 +289,6 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.0.1** - Scie particellari rastremate, gusci vuoti e gravita' piu' marcata nei fuochi FX.
 
 - **2.1.0** - Solver FX deterministico con drag analitico, ownership per scena e selettore del backend.
+
+- **2.2.0** - Separazione compositoriale degli FX con glow dedicato e nuclei netti.
 

@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 1, 0)
+EXPECTED_VERSION = (2, 2, 0)
 TOLERANCE = 1e-4
 
 
@@ -768,13 +768,11 @@ def check_light_wrap(scene, settings):
           "light wrap depth-edge mask missing")
 
     settings.light_wrap = False
-    types = [n.bl_idname for n in scene.compositing_node_group.nodes]
-    check("CompositorNodeAlphaOver" not in types,
+    check(scene.compositing_node_group.nodes.get("ALD | Light Wrap Over") is None,
           "light wrap not removed when disabled")
     settings.light_wrap = True
-    types = [n.bl_idname for n in scene.compositing_node_group.nodes]
-    check("CompositorNodeAlphaOver" in types,
-          "light wrap not restored when enabled")
+    check(scene.compositing_node_group.nodes.get("ALD | Light Wrap Over")
+          is not None, "light wrap not restored when enabled")
 
 
 def diff_stats(a, b):
@@ -1002,6 +1000,15 @@ def check_param_updates(scene, settings):
     check(node is not None, "Lens node missing")
     check(abs(node.inputs["Dispersion"].default_value - 0.02) <= TOLERANCE,
           "Dispersion not updated in place")
+
+    settings.fx_glow_strength = 1.2
+    node = ng.nodes.get("ALD | FX Glow")
+    check(node is not None, "FX glow node missing")
+    check(abs(node.inputs["Strength"].default_value - 1.2) <= TOLERANCE,
+          "FX glow strength not updated in place")
+    check(ng.nodes.get("ALD | FX Restore") is not None,
+          "FX restore node missing")
+    settings.fx_glow_strength = 0.6
     check(len(ng.nodes) == count, "a slider rebuilt the stack")
 
     settings.halation_strength = 0.6

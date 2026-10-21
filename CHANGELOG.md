@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.0 - 2026-10-21
+### Added
+- Compositor separation for the 3D FX: an emission-pass mask restores the
+  particle cores after the painterly filters, so Kuwahara, Ink and Haze never
+  blur the fireworks while the environment stays painted.
+- Dedicated FX glow with its own strength, size and threshold controls,
+  independent from the sun-tinted atmospheric halation.
+
 ## 2.1.0 - 2026-10-21
 ### Added
 - Deterministic FX solver: analytic linear-drag motion in seconds, stable
