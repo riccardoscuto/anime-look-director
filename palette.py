@@ -2433,7 +2433,7 @@ def _build_gradient_group(ng):
     meteor_thresh_span = nodes.new("ShaderNodeMath")
     meteor_thresh_span.location = (4220, -4120)
     meteor_thresh_span.operation = "MULTIPLY"
-    meteor_thresh_span.inputs[1].default_value = 0.45
+    meteor_thresh_span.inputs[1].default_value = 0.85
     links.new(group_in.outputs["Shooting Star Amount"], meteor_thresh_span.inputs[0])
 
     meteor_thresh = nodes.new("ShaderNodeMath")
@@ -2537,10 +2537,20 @@ def _build_gradient_group(ng):
         layer_scale.inputs[1].default_value = scale_mult
         links.new(group_in.outputs["Fireworks Scale"], layer_scale.inputs[0])
 
-        fw_pos_scaled = n("ShaderNodeVectorMath", 2060, -4400)
+        layer_scale_mapped = n("ShaderNodeMath", 1880, -4520)
+        layer_scale_mapped.operation = "MULTIPLY"
+        layer_scale_mapped.inputs[1].default_value = 0.12
+        links.new(layer_scale.outputs[0], layer_scale_mapped.inputs[0])
+
+        layer_scale_base = n("ShaderNodeMath", 2060, -4520)
+        layer_scale_base.operation = "ADD"
+        layer_scale_base.inputs[1].default_value = 0.75
+        links.new(layer_scale_mapped.outputs[0], layer_scale_base.inputs[0])
+
+        fw_pos_scaled = n("ShaderNodeVectorMath", 2240, -4400)
         fw_pos_scaled.operation = "SCALE"
         links.new(view_norm.outputs["Vector"], fw_pos_scaled.inputs[0])
-        links.new(layer_scale.outputs[0], fw_pos_scaled.inputs["Scale"])
+        links.new(layer_scale_base.outputs[0], fw_pos_scaled.inputs["Scale"])
 
         fw_offset = n("ShaderNodeVectorMath", 2240, -4400)
         fw_offset.operation = "ADD"
@@ -2611,8 +2621,8 @@ def _build_gradient_group(ng):
         _smooth(size_var)
         size_var.inputs["From Min"].default_value = 0.0
         size_var.inputs["From Max"].default_value = 1.0
-        size_var.inputs["To Min"].default_value = 0.30
-        size_var.inputs["To Max"].default_value = 0.46
+        size_var.inputs["To Min"].default_value = 0.36
+        size_var.inputs["To Max"].default_value = 0.60
         links.new(fw_rand.outputs["Y"], size_var.inputs["Value"])
 
         r_max = n("ShaderNodeMath", 3860, -4480)
@@ -2676,14 +2686,14 @@ def _build_gradient_group(ng):
         spoke1_core.clamp = True
         _smooth(spoke1_core)
         spoke1_core.inputs["From Min"].default_value = 0.0
-        spoke1_core.inputs["From Max"].default_value = 0.16
+        spoke1_core.inputs["From Max"].default_value = 0.24
         spoke1_core.inputs["To Min"].default_value = 1.0
         spoke1_core.inputs["To Max"].default_value = 0.0
         links.new(spoke1_wave.outputs[0], spoke1_core.inputs["Value"])
 
         spoke1_sharp = n("ShaderNodeMath", 4940, -4880)
         spoke1_sharp.operation = "POWER"
-        spoke1_sharp.inputs[1].default_value = 2.0
+        spoke1_sharp.inputs[1].default_value = 1.6
         links.new(spoke1_core.outputs["Result"], spoke1_sharp.inputs[0])
 
         spoke2_phase = n("ShaderNodeMath", 4400, -5040)
@@ -2700,7 +2710,7 @@ def _build_gradient_group(ng):
         spoke2_core.clamp = True
         _smooth(spoke2_core)
         spoke2_core.inputs["From Min"].default_value = 0.0
-        spoke2_core.inputs["From Max"].default_value = 0.18
+        spoke2_core.inputs["From Max"].default_value = 0.24
         spoke2_core.inputs["To Min"].default_value = 1.0
         spoke2_core.inputs["To Max"].default_value = 0.0
         links.new(spoke2_wave.outputs[0], spoke2_core.inputs["Value"])
@@ -2911,7 +2921,7 @@ def _build_gradient_group(ng):
         links.new(glow.outputs[0], fw_shape2.inputs[1])
 
         color_core = n("ShaderNodeRGB", 5300, -6000)
-        color_core.outputs[0].default_value = (1.0, 0.82, 0.45, 1.0)
+        color_core.outputs[0].default_value = (1.0, 0.55, 0.12, 1.0)
         color_amber = n("ShaderNodeRGB", 5300, -6160)
         color_amber.outputs[0].default_value = (1.0, 0.32, 0.12, 1.0)
         color_magenta = n("ShaderNodeRGB", 5300, -6320)
@@ -2963,24 +2973,29 @@ def _build_gradient_group(ng):
 
         color_scale = n("ShaderNodeVectorMath", 6020, -6160)
         color_scale.operation = "SCALE"
-        color_scale.inputs["Scale"].default_value = 2.4
+        color_scale.inputs["Scale"].default_value = 1.1
         links.new(color_mix_b.outputs["Result"], color_scale.inputs["Vector"])
 
         thresh_span = n("ShaderNodeMath", 5300, -6640)
         thresh_span.operation = "MULTIPLY"
-        thresh_span.inputs[1].default_value = 0.65
+        thresh_span.inputs[1].default_value = 0.35
         links.new(group_in.outputs["Fireworks Amount"], thresh_span.inputs[0])
 
-        thresh = n("ShaderNodeMath", 5480, -6640)
+        thresh_base = n("ShaderNodeMath", 5480, -6640)
+        thresh_base.operation = "ADD"
+        thresh_base.inputs[1].default_value = 0.02
+        links.new(thresh_span.outputs[0], thresh_base.inputs[0])
+
+        thresh = n("ShaderNodeMath", 5660, -6640)
         thresh.operation = "SUBTRACT"
         thresh.use_clamp = True
         thresh.inputs[0].default_value = 1.0
-        links.new(thresh_span.outputs[0], thresh.inputs[1])
+        links.new(thresh_base.outputs[0], thresh.inputs[1])
 
         thresh_top = n("ShaderNodeMath", 5660, -6640)
         thresh_top.operation = "ADD"
         thresh_top.use_clamp = True
-        thresh_top.inputs[1].default_value = 0.02
+        thresh_top.inputs[1].default_value = 0.20
         links.new(thresh.outputs[0], thresh_top.inputs[0])
 
         exist = n("ShaderNodeMapRange", 5840, -6640)
