@@ -2921,7 +2921,7 @@ def _build_gradient_group(ng):
         links.new(glow.outputs[0], fw_shape2.inputs[1])
 
         color_core = n("ShaderNodeRGB", 5300, -6000)
-        color_core.outputs[0].default_value = (1.0, 0.55, 0.12, 1.0)
+        color_core.outputs[0].default_value = (1.0, 0.42, 0.08, 1.0)
         color_amber = n("ShaderNodeRGB", 5300, -6160)
         color_amber.outputs[0].default_value = (1.0, 0.32, 0.12, 1.0)
         color_magenta = n("ShaderNodeRGB", 5300, -6320)
@@ -2973,7 +2973,7 @@ def _build_gradient_group(ng):
 
         color_scale = n("ShaderNodeVectorMath", 6020, -6160)
         color_scale.operation = "SCALE"
-        color_scale.inputs["Scale"].default_value = 1.1
+        color_scale.inputs["Scale"].default_value = 1.0
         links.new(color_mix_b.outputs["Result"], color_scale.inputs["Vector"])
 
         thresh_span = n("ShaderNodeMath", 5300, -6640)
@@ -2995,7 +2995,7 @@ def _build_gradient_group(ng):
         thresh_top = n("ShaderNodeMath", 5660, -6640)
         thresh_top.operation = "ADD"
         thresh_top.use_clamp = True
-        thresh_top.inputs[1].default_value = 0.20
+        thresh_top.inputs[1].default_value = 0.35
         links.new(thresh.outputs[0], thresh_top.inputs[0])
 
         exist = n("ShaderNodeMapRange", 5840, -6640)
