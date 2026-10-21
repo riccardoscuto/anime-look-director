@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.6.0 - 2026-10-22
+### Added
+- Denser, more granular spark trails: 16 samples per star with per-grain
+  jitter and brightness variation, so the strings read as embers and not as
+  dotted lines.
+- Meteors now leave burning fragments and a persistent train that outlives the
+  head before fading out.
+- Composition controls in the FX panel: `Burst Spread` and a world-space
+  `Composition Offset` to frame the bursts by hand.
+
 ## 2.5.0 - 2026-10-22
 ### Added
 - Inner contrasting **pistil** population for every burst: a smaller, slower

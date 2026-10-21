@@ -138,15 +138,28 @@ def _on_params(self, context):
 
 
 def _on_fx_age(self, context):
-    """Re-evaluate the FX system when the burst age changes."""
+    """Re-evaluate (or rebuild) the FX system when the burst age changes."""
     try:
         from . import fx
         scene = context.scene
         config = scene.get("ald_fx_config")
-        if isinstance(config, dict):
-            config["age"] = self.fx_age
-            scene["ald_fx_config"] = config
-        fx.update(scene)
+        if not isinstance(config, dict):
+            fx.update(scene)
+            return
+        config["age"] = self.fx_age
+        scene["ald_fx_config"] = config
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        time = ((scene.frame_current + scene.frame_subframe)
+                / max(fps, 1e-6) + self.fx_age)
+        if config.get("kind") == "meteors":
+            fx.create_meteors(scene, config.get("count", 4),
+                              config.get("seed", 21),
+                              config.get("distance", 140.0), time)
+        else:
+            fx.create_fireworks(scene, config.get("count", 3),
+                                config.get("seed", 7),
+                                config.get("distance", 110.0), time,
+                                family=config.get("family", "CHRYSANTHEMUM"))
     except Exception:
         pass
 
@@ -414,6 +427,14 @@ class ALD_Settings(bpy.types.PropertyGroup):
     fx_age: FloatProperty(
         name="Burst Age", default=0.8, min=0.0, max=6.0,
         description="Seconds after the burst shown by the FX system",
+        update=_on_fx_age)
+    fx_composition_offset: FloatVectorProperty(
+        name="Composition Offset", size=3, subtype="TRANSLATION",
+        default=(0.0, 0.0, 0.0),
+        description="World-space offset applied to the whole firework group")
+    fx_burst_spread: FloatProperty(
+        name="Burst Spread", default=1.0, min=0.2, max=3.0,
+        description="Horizontal and vertical spread of the bursts",
         update=_on_fx_age)
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,

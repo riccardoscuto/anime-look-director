@@ -753,3 +753,11 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - Occlusion is preserved because ALD | FX Restore reads the depth tested
   emission pass; a box in front of a burst hides the particles (verified with a
   render sample of the covered pixel).
+
+### v2.6.0 notes (granular trails, meteor debris, composition)
+- Trails use 16 samples per star with per-grain jitter and brightness
+  variation, so the strings read as scattered embers.
+- Meteors emit burning fragments and keep a persistent train for a short
+  while after the head is gone.
+- x_burst_spread and x_composition_offset let the user frame the group
+  by hand; changing them rebuilds the system with the new placement.

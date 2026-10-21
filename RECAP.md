@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.5.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.6.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -297,4 +297,6 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.4.0** - Scie a corona di scintille e controllo Burst Age dal pannello FX.
 
 - **2.5.0** - Pistil interno, editor dei sistemi FX e occlusione verificata con render.
+
+- **2.6.0** - Scie granulari a 16 campioni, frammenti e persistent train delle meteore, controlli di composizione.
 

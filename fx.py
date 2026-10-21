@@ -53,7 +53,7 @@ PALETTES = (
 )
 
 GRAVITY = Vector((0.0, 0.0, -9.81))
-SAMPLES = 10
+SAMPLES = 16
 SYSTEMS = {}
 
 
@@ -261,9 +261,10 @@ def _camera_basis(scene):
             (rotation @ Vector((1.0, 0.0, 0.0))).normalized())
 
 
-def _burst_center(origin, forward, up, right, index, total, distance):
-    spread_x = -0.18 + 0.36 * (index + 0.5) / max(total, 1)
-    spread_y = 0.05 + 0.05 * math.sin(index * 1.7)
+def _burst_center(origin, forward, up, right, index, total, distance,
+                 spread=1.0):
+    spread_x = (-0.18 + 0.36 * (index + 0.5) / max(total, 1)) * spread
+    spread_y = (0.05 + 0.05 * math.sin(index * 1.7)) * spread
     return (origin + forward * distance + right * distance * spread_x
             + up * distance * spread_y)
 
@@ -276,6 +277,10 @@ def _build_fireworks(scene, count, seed, distance, family):
     origin, forward, up, right = _camera_basis(scene)
     kind = "fireworks"
     size_scale = max(0.6, min(2.0, distance / 60.0))
+    settings = getattr(scene, "ald", None)
+    spread = float(getattr(settings, "fx_burst_spread", 1.0)) if settings else 1.0
+    offset = Vector(getattr(settings, "fx_composition_offset", (0.0, 0.0, 0.0))) \
+        if settings else Vector((0.0, 0.0, 0.0))
     bursts = []
     for index in range(max(1, count)):
         # Composition: the first burst is the hero, the others are secondary
@@ -287,7 +292,8 @@ def _build_fireworks(scene, count, seed, distance, family):
                                       (0.78 if role == 1 else 0.58))
         center = _burst_center(origin, forward, up, right, index, count,
                                 family_distance * (0.85 + 0.25 *
-                                                   _hash_unit(seed, index, 0, 1)))
+                                                   _hash_unit(seed, index, 0, 1)),
+                                spread) + offset
         birth = 0.0 if index == 0 else (0.25 if role == 1 else 0.85)
         family_colors = PALETTES[index % len(PALETTES)]
         materials = [
@@ -395,8 +401,21 @@ def _update_fireworks(system, time):
                 slot = spoke % 3
                 bead_centers[slot].append(point)
                 if alive:
+                    scatter = 0.10 * burst["size_scale"] * (1.0 - profile)
+                    jitter = Vector((
+                        _hash_range(seed, index, spoke * 16 + step, 20,
+                                    -scatter, scatter),
+                        _hash_range(seed, index, spoke * 16 + step, 21,
+                                    -scatter, scatter),
+                        _hash_range(seed, index, spoke * 16 + step, 22,
+                                    -scatter, scatter),
+                    ))
+                    bead_centers[slot][-1] = point + jitter
+                    grain = 0.65 + 0.7 * _hash_unit(seed, index,
+                                                   spoke * 16 + step, 23)
                     bead_radii[slot].append(
-                        0.05 * burst["size_scale"] * (0.25 + 0.75 * profile))
+                        0.05 * burst["size_scale"] * (0.25 + 0.75 * profile)
+                        * grain)
                 else:
                     bead_radii[slot].append(0.0001)
             head = _position(center, v0, config["drag"], max(0.0, age))
@@ -505,9 +524,15 @@ def _build_meteors(scene, count, seed, distance):
         material)
     _collection(scene).objects.link(head_obj)
     head_obj["ald_fx_kind"] = "meteors"
+    fragment_obj, fragment_ranges = _build_particle_mesh(
+        "ALD FX Meteor Fragments", [origin] * (max(1, count) * 3),
+        [0.001] * (max(1, count) * 3), material)
+    _collection(scene).objects.link(fragment_obj)
+    fragment_obj["ald_fx_kind"] = "meteors"
     return {"kind": "meteors", "count": count, "seed": seed,
             "distance": distance, "radiant": radiant, "origin": origin,
             "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
+            "fragments": fragment_obj, "fragment_ranges": fragment_ranges,
             "material": material}
 
 
@@ -520,13 +545,18 @@ def _update_meteors(system, time):
     trail_data = system["trail"].data
     head_centers = []
     head_radii = []
+    fragment_centers = []
+    fragment_radii = []
     for index in range(max(1, count)):
         birth = index * 0.9 + _hash_range(seed, index, 0, 1, 0.0, 0.6)
         age = time - birth
         life = _hash_range(seed, index, 0, 2, 0.55, 1.15)
         spline = trail_data.splines[index]
         alive = 0.0 < age <= life
-        trail = min(age, 0.32) if alive else 0.0
+        # The persistent train outlives the head for a short while.
+        train = min(max(age, 0.0), 0.32)
+        if age > life:
+            train = max(0.0, 0.32 - (age - life)) if age - life < 0.32 else 0.0
         spread = Vector((
             _hash_range(seed, index, 0, 3, -0.09, 0.09),
             _hash_range(seed, index, 0, 4, -0.06, 0.06),
@@ -537,12 +567,16 @@ def _update_meteors(system, time):
         speed = _hash_range(seed, index, 0, 6, 26.0, 38.0)
         v0 = direction * speed
         for step in range(SAMPLES):
-            tau = trail * (1.0 - step / (SAMPLES - 1.0))
+            tau = train * (1.0 - step / (SAMPLES - 1.0))
             point = _position(start, v0, 0.08, max(0.0, age - tau))
-            if not alive:
+            if train <= 0.0:
                 point = origin + Vector((0.0, 0.0, 1000.0))
             spline.points[step].co = (point.x, point.y, point.z, 1.0)
-            spline.points[step].radius = 0.2 + 0.8 * (step / (SAMPLES - 1.0))
+            fade = 1.0
+            if age > life:
+                fade = max(0.0, 1.0 - (age - life) / 0.32)
+            spline.points[step].radius = (0.2 + 0.8 * (step / (SAMPLES - 1.0))) \
+                * fade
         head = _position(start, v0, 0.08, max(0.0, age))
         radius = 0.18
         if not alive:
@@ -550,8 +584,29 @@ def _update_meteors(system, time):
             radius = 0.0001
         head_centers.append(head)
         head_radii.append(radius)
+        # Fragments: small embers that keep burning after the meteor.
+        for fragment in range(3):
+            emit = _hash_range(seed, index, 30 + fragment, 7, 0.05, life * 0.8)
+            frag_age = age - emit
+            frag_life = _hash_range(seed, index, 30 + fragment, 8, 0.4, 1.4)
+            if frag_age <= 0.0 or frag_age > frag_life:
+                fragment_centers.append(origin + Vector((0.0, 0.0, 1000.0)))
+                fragment_radii.append(0.0001)
+                continue
+            parent = _position(start, v0, 0.08, age - emit)
+            parent_vel = v0 * math.exp(-0.08 * (age - emit))
+            push = Vector((
+                _hash_range(seed, index, 30 + fragment, 9, -2.4, 2.4),
+                _hash_range(seed, index, 30 + fragment, 10, -2.4, 2.4),
+                _hash_range(seed, index, 30 + fragment, 11, -3.2, 1.2),
+            ))
+            fragment_centers.append(_position(parent, parent_vel * 0.25 + push,
+                                               1.6, frag_age))
+            fragment_radii.append(0.05 * (1.0 - frag_age / max(frag_life, 1e-3)))
     _write_particle_mesh(system["heads"].data, system["head_ranges"],
                          head_centers, head_radii)
+    _write_particle_mesh(system["fragments"].data, system["fragment_ranges"],
+                         fragment_centers, fragment_radii)
 
 
 # ---------------------------------------------------------------------------

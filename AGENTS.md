@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.5.0**).
+  (currently **2.6.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -160,6 +160,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   population with its own colour. The FX panel lists the systems of the scene
   and clears them per kind. FX occlusion relies on the depth tested emission
   pass: `ALD | FX Restore` must stay driven by `ALD | FX Mask`.
+- FX 2.6 rules: trails use 16 samples per star with per-grain jitter and
+  brightness variation. Meteors emit burning fragments and keep a persistent
+  train after the head dies. `fx_burst_spread` and `fx_composition_offset`
+  control the framing; changing them rebuilds the system.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth
