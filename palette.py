@@ -296,13 +296,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 26):
+                           or ng.get("ald_build") != 27):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 26
+        ng["ald_build"] = 27
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -316,7 +316,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 26
+        ng["ald_build"] = 27
     return ng
 
 
@@ -2525,6 +2525,59 @@ def _build_gradient_group(ng):
 
     # Hanabi fireworks: two cylindrical 2D layers with radial chrysanthemum
     # spokes, gravitational droop, tips, pistils and colored embers.
+    # Horizon-aligned stereographic basis for fireworks.
+    st_r_sq = nodes.new("ShaderNodeMath")
+    st_r_sq.location = (1700, -4200)
+    st_r_sq.operation = "ADD"
+    st_r_sq.inputs[1].default_value = 0.0001
+    st_r_sq_x = nodes.new("ShaderNodeMath")
+    st_r_sq_x.location = (1500, -4200)
+    st_r_sq_x.operation = "MULTIPLY"
+    links.new(st_x.outputs[0], st_r_sq_x.inputs[0])
+    links.new(st_x.outputs[0], st_r_sq_x.inputs[1])
+    st_r_sq_y = nodes.new("ShaderNodeMath")
+    st_r_sq_y.location = (1500, -4360)
+    st_r_sq_y.operation = "MULTIPLY"
+    links.new(st_y.outputs[0], st_r_sq_y.inputs[0])
+    links.new(st_y.outputs[0], st_r_sq_y.inputs[1])
+    st_r_sum = nodes.new("ShaderNodeMath")
+    st_r_sum.location = (1700, -4360)
+    st_r_sum.operation = "ADD"
+    links.new(st_r_sq_x.outputs[0], st_r_sum.inputs[0])
+    links.new(st_r_sq_y.outputs[0], st_r_sum.inputs[1])
+    links.new(st_r_sum.outputs[0], st_r_sq.inputs[0])
+    st_r = nodes.new("ShaderNodeMath")
+    st_r.location = (1880, -4280)
+    st_r.operation = "SQRT"
+    links.new(st_r_sq.outputs[0], st_r.inputs[0])
+
+    fw_gx = nodes.new("ShaderNodeMath")
+    fw_gx.location = (2060, -4200)
+    fw_gx.operation = "DIVIDE"
+    links.new(st_x.outputs[0], fw_gx.inputs[0])
+    links.new(st_r.outputs[0], fw_gx.inputs[1])
+    fw_gy = nodes.new("ShaderNodeMath")
+    fw_gy.location = (2060, -4360)
+    fw_gy.operation = "DIVIDE"
+    links.new(st_y.outputs[0], fw_gy.inputs[0])
+    links.new(st_r.outputs[0], fw_gy.inputs[1])
+    fw_ux = nodes.new("ShaderNodeMath")
+    fw_ux.location = (2240, -4200)
+    fw_ux.operation = "MULTIPLY"
+    fw_ux.inputs[1].default_value = -1.0
+    links.new(fw_gx.outputs[0], fw_ux.inputs[0])
+    fw_uy = nodes.new("ShaderNodeMath")
+    fw_uy.location = (2240, -4360)
+    fw_uy.operation = "MULTIPLY"
+    fw_uy.inputs[1].default_value = -1.0
+    links.new(fw_gy.outputs[0], fw_uy.inputs[0])
+    fw_hx = nodes.new("ShaderNodeMath")
+    fw_hx.location = (2240, -4520)
+    fw_hx.operation = "MULTIPLY"
+    fw_hx.inputs[1].default_value = -1.0
+    links.new(fw_gy.outputs[0], fw_hx.inputs[0])
+    fw_hy = fw_gx
+
     def hanabi_layer(tag, scale_mult, offset_x, offset_y, y_off):
         def n(idname, x, y):
             item = nodes.new(idname)
@@ -2582,15 +2635,41 @@ def _build_gradient_group(ng):
         links.new(fw_v2.outputs[0], dv.inputs[0])
         links.new(fw_cell.outputs["Y"], dv.inputs[1])
 
+        dx_a = n("ShaderNodeMath", 2960, -4800)
+        dx_a.operation = "MULTIPLY"
+        links.new(du.outputs[0], dx_a.inputs[0])
+        links.new(fw_hx.outputs[0], dx_a.inputs[1])
+        dx_b = n("ShaderNodeMath", 2960, -4960)
+        dx_b.operation = "MULTIPLY"
+        links.new(dv.outputs[0], dx_b.inputs[0])
+        links.new(fw_gy.outputs[0], dx_b.inputs[1])
+        dx = n("ShaderNodeMath", 3140, -4880)
+        dx.operation = "ADD"
+        links.new(dx_a.outputs[0], dx.inputs[0])
+        links.new(dx_b.outputs[0], dx.inputs[1])
+
+        dy_a = n("ShaderNodeMath", 2960, -5120)
+        dy_a.operation = "MULTIPLY"
+        links.new(du.outputs[0], dy_a.inputs[0])
+        links.new(fw_ux.outputs[0], dy_a.inputs[1])
+        dy_b = n("ShaderNodeMath", 2960, -5280)
+        dy_b.operation = "MULTIPLY"
+        links.new(dv.outputs[0], dy_b.inputs[0])
+        links.new(fw_uy.outputs[0], dy_b.inputs[1])
+        dy = n("ShaderNodeMath", 3140, -5200)
+        dy.operation = "ADD"
+        links.new(dy_a.outputs[0], dy.inputs[0])
+        links.new(dy_b.outputs[0], dy.inputs[1])
+
         du_sq = n("ShaderNodeMath", 3140, -4480)
         du_sq.operation = "MULTIPLY"
-        links.new(du.outputs[0], du_sq.inputs[0])
-        links.new(du.outputs[0], du_sq.inputs[1])
+        links.new(dx.outputs[0], du_sq.inputs[0])
+        links.new(dx.outputs[0], du_sq.inputs[1])
 
         dv_sq = n("ShaderNodeMath", 3140, -4640)
         dv_sq.operation = "MULTIPLY"
-        links.new(dv.outputs[0], dv_sq.inputs[0])
-        links.new(dv.outputs[0], dv_sq.inputs[1])
+        links.new(dy.outputs[0], dv_sq.inputs[0])
+        links.new(dy.outputs[0], dv_sq.inputs[1])
 
         r_sq = n("ShaderNodeMath", 3320, -4560)
         r_sq.operation = "ADD"
@@ -2612,12 +2691,12 @@ def _build_gradient_group(ng):
 
         droop = n("ShaderNodeMath", 3320, -4720)
         droop.operation = "MULTIPLY"
-        droop.inputs[1].default_value = 0.85
+        droop.inputs[1].default_value = 1.65
         links.new(r_sq.outputs[0], droop.inputs[0])
 
         dy_droop = n("ShaderNodeMath", 3500, -4720)
         dy_droop.operation = "ADD"
-        links.new(dv.outputs[0], dy_droop.inputs[0])
+        links.new(dy.outputs[0], dy_droop.inputs[0])
         links.new(droop.outputs[0], dy_droop.inputs[1])
 
         dy_droop_sq = n("ShaderNodeMath", 3680, -4720)
@@ -2637,14 +2716,14 @@ def _build_gradient_group(ng):
         theta = n("ShaderNodeMath", 3680, -4880)
         theta.operation = "ARCTAN2"
         links.new(dy_droop.outputs[0], theta.inputs[0])
-        links.new(du.outputs[0], theta.inputs[1])
+        links.new(dx.outputs[0], theta.inputs[1])
 
         size_var = n("ShaderNodeMapRange", 3680, -5040)
         size_var.clamp = True
         _smooth(size_var)
         size_var.inputs["From Min"].default_value = 0.0
         size_var.inputs["From Max"].default_value = 1.0
-        size_var.inputs["To Min"].default_value = 0.19
+        size_var.inputs["To Min"].default_value = 0.20
         size_var.inputs["To Max"].default_value = 0.27
         links.new(fw_rand.outputs["Y"], size_var.inputs["Value"])
 
@@ -2671,18 +2750,19 @@ def _build_gradient_group(ng):
         links.new(rand_z.outputs[0], ang_vec.inputs["Z"])
 
         ang_noise = n("ShaderNodeTexNoise", 4220, -5280)
-        ang_noise.inputs["Scale"].default_value = 11.0
-        ang_noise.inputs["Detail"].default_value = 2.0
+        ang_noise.inputs["Scale"].default_value = 9.5
+        ang_noise.inputs["Detail"].default_value = 2.5
+        ang_noise.inputs["Roughness"].default_value = 0.6
         links.new(ang_vec.outputs["Vector"], ang_noise.inputs["Vector"])
 
         ang_scale = n("ShaderNodeMath", 4400, -5200)
         ang_scale.operation = "MULTIPLY"
-        ang_scale.inputs[1].default_value = 0.18
+        ang_scale.inputs[1].default_value = 0.46
         links.new(ang_noise.outputs["Fac"], ang_scale.inputs[0])
 
         ang_base = n("ShaderNodeMath", 4580, -5200)
         ang_base.operation = "ADD"
-        ang_base.inputs[1].default_value = 0.86
+        ang_base.inputs[1].default_value = 0.68
         links.new(ang_scale.outputs[0], ang_base.inputs[0])
 
         r_ray_max = n("ShaderNodeMath", 4760, -5040)
@@ -2738,14 +2818,24 @@ def _build_gradient_group(ng):
         spoke1_wave.inputs[1].default_value = 0.5
         links.new(spoke1_sum.outputs[0], spoke1_wave.inputs[0])
 
-        spoke1_core = n("ShaderNodeMapRange", 5120, -5840)
+        r_width_comp = n("ShaderNodeMath", 4940, -6000)
+        r_width_comp.operation = "MAXIMUM"
+        r_width_comp.inputs[1].default_value = 0.28
+        links.new(norm_r.outputs[0], r_width_comp.inputs[0])
+
+        s1_lin = n("ShaderNodeMath", 5120, -5920)
+        s1_lin.operation = "MULTIPLY"
+        links.new(spoke1_wave.outputs[0], s1_lin.inputs[0])
+        links.new(r_width_comp.outputs[0], s1_lin.inputs[1])
+
+        spoke1_core = n("ShaderNodeMapRange", 5300, -5840)
         spoke1_core.clamp = True
         _smooth(spoke1_core)
         spoke1_core.inputs["From Min"].default_value = 0.0
         spoke1_core.inputs["From Max"].default_value = 0.075
         spoke1_core.inputs["To Min"].default_value = 1.0
         spoke1_core.inputs["To Max"].default_value = 0.0
-        links.new(spoke1_wave.outputs[0], spoke1_core.inputs["Value"])
+        links.new(s1_lin.outputs[0], spoke1_core.inputs["Value"])
 
         spoke1_sharp = n("ShaderNodeMath", 5300, -5840)
         spoke1_sharp.operation = "POWER"
@@ -2837,6 +2927,48 @@ def _build_gradient_group(ng):
         links.new(spoke1_sharp.outputs[0], tips.inputs[0])
         links.new(tip_env.outputs["Result"], tips.inputs[1])
 
+        mid_dist = n("ShaderNodeMath", 5120, -6560)
+        mid_dist.operation = "SUBTRACT"
+        mid_dist.inputs[1].default_value = 0.68
+        links.new(norm_r.outputs[0], mid_dist.inputs[0])
+        mid_abs = n("ShaderNodeMath", 5300, -6560)
+        mid_abs.operation = "ABSOLUTE"
+        links.new(mid_dist.outputs[0], mid_abs.inputs[0])
+        mid_env = n("ShaderNodeMapRange", 5480, -6560)
+        mid_env.clamp = True
+        _smooth(mid_env)
+        mid_env.inputs["From Min"].default_value = 0.0
+        mid_env.inputs["From Max"].default_value = 0.065
+        mid_env.inputs["To Min"].default_value = 1.0
+        mid_env.inputs["To Max"].default_value = 0.0
+        links.new(mid_abs.outputs[0], mid_env.inputs["Value"])
+        mid_head = n("ShaderNodeMath", 5660, -6560)
+        mid_head.operation = "MULTIPLY"
+        mid_head.use_clamp = True
+        links.new(spoke1_sharp.outputs[0], mid_head.inputs[0])
+        links.new(mid_env.outputs["Result"], mid_head.inputs[1])
+
+        inner_dist = n("ShaderNodeMath", 5120, -6720)
+        inner_dist.operation = "SUBTRACT"
+        inner_dist.inputs[1].default_value = 0.42
+        links.new(norm_r.outputs[0], inner_dist.inputs[0])
+        inner_abs = n("ShaderNodeMath", 5300, -6720)
+        inner_abs.operation = "ABSOLUTE"
+        links.new(inner_dist.outputs[0], inner_abs.inputs[0])
+        inner_env = n("ShaderNodeMapRange", 5480, -6720)
+        inner_env.clamp = True
+        _smooth(inner_env)
+        inner_env.inputs["From Min"].default_value = 0.0
+        inner_env.inputs["From Max"].default_value = 0.070
+        inner_env.inputs["To Min"].default_value = 1.0
+        inner_env.inputs["To Max"].default_value = 0.0
+        links.new(inner_abs.outputs[0], inner_env.inputs["Value"])
+        inner_head = n("ShaderNodeMath", 5660, -6720)
+        inner_head.operation = "MULTIPLY"
+        inner_head.use_clamp = True
+        links.new(spoke1_sharp.outputs[0], inner_head.inputs[0])
+        links.new(inner_env.outputs["Result"], inner_head.inputs[1])
+
         spoke2_phase = n("ShaderNodeMath", 4400, -6640)
         spoke2_phase.operation = "MULTIPLY"
         spoke2_phase.inputs[1].default_value = 24.0 / (2.0 * math.pi)
@@ -2901,7 +3033,7 @@ def _build_gradient_group(ng):
         ember_dx = n("ShaderNodeMath", 4400, -7120)
         ember_dx.operation = "MULTIPLY"
         ember_dx.inputs[1].default_value = 38.0
-        links.new(du.outputs[0], ember_dx.inputs[0])
+        links.new(dx.outputs[0], ember_dx.inputs[0])
         ember_dy = n("ShaderNodeMath", 4400, -7280)
         ember_dy.operation = "MULTIPLY"
         ember_dy.inputs[1].default_value = 38.0
@@ -3001,10 +3133,15 @@ def _build_gradient_group(ng):
         outer_c.use_clamp = True
         links.new(outer_b.outputs[0], outer_c.inputs[0])
         links.new(glow_curve.outputs["Result"], outer_c.inputs[1])
-        outer_guard = n("ShaderNodeMath", 5840, -6480)
+        outer_d = n("ShaderNodeMath", 5840, -6480)
+        outer_d.operation = "ADD"
+        outer_d.use_clamp = True
+        links.new(outer_c.outputs[0], outer_d.inputs[0])
+        links.new(mid_head.outputs[0], outer_d.inputs[1])
+        outer_guard = n("ShaderNodeMath", 6020, -6480)
         outer_guard.operation = "MULTIPLY"
         outer_guard.use_clamp = True
-        links.new(outer_c.outputs[0], outer_guard.inputs[0])
+        links.new(outer_d.outputs[0], outer_guard.inputs[0])
         links.new(guard.outputs["Result"], outer_guard.inputs[1])
 
         inner_a = n("ShaderNodeMath", 5480, -6800)
@@ -3012,10 +3149,15 @@ def _build_gradient_group(ng):
         inner_a.use_clamp = True
         links.new(pistil.outputs[0], inner_a.inputs[0])
         links.new(core_curve.outputs["Result"], inner_a.inputs[1])
-        inner_guard = n("ShaderNodeMath", 5660, -6800)
+        inner_b = n("ShaderNodeMath", 5660, -6800)
+        inner_b.operation = "ADD"
+        inner_b.use_clamp = True
+        links.new(inner_a.outputs[0], inner_b.inputs[0])
+        links.new(inner_head.outputs[0], inner_b.inputs[1])
+        inner_guard = n("ShaderNodeMath", 5840, -6800)
         inner_guard.operation = "MULTIPLY"
         inner_guard.use_clamp = True
-        links.new(inner_a.outputs[0], inner_guard.inputs[0])
+        links.new(inner_b.outputs[0], inner_guard.inputs[0])
         links.new(guard.outputs["Result"], inner_guard.inputs[1])
 
         # High-chroma analogous palettes per cell.
@@ -3151,9 +3293,14 @@ def _build_gradient_group(ng):
         links.new(exist.outputs["Result"], layer_weight.inputs[0])
         links.new(gate.outputs["Result"], layer_weight.inputs[1])
 
-        layer_rgb = n("ShaderNodeVectorMath", 6200, -8600)
+        hdr_boost = n("ShaderNodeVectorMath", 6200, -8600)
+        hdr_boost.operation = "SCALE"
+        hdr_boost.inputs["Scale"].default_value = 5.5
+        links.new(burst_rgb.outputs["Vector"], hdr_boost.inputs["Vector"])
+
+        layer_rgb = n("ShaderNodeVectorMath", 6380, -8600)
         layer_rgb.operation = "SCALE"
-        links.new(burst_rgb.outputs["Vector"], layer_rgb.inputs["Vector"])
+        links.new(hdr_boost.outputs["Vector"], layer_rgb.inputs["Vector"])
         links.new(layer_weight.outputs[0], layer_rgb.inputs["Scale"])
         return layer_rgb.outputs["Vector"]
 
@@ -3169,8 +3316,8 @@ def _build_gradient_group(ng):
     fw_alt_low.location = (6460, -2040)
     fw_alt_low.clamp = True
     _smooth(fw_alt_low)
-    fw_alt_low.inputs["From Min"].default_value = 0.02
-    fw_alt_low.inputs["From Max"].default_value = 0.09
+    fw_alt_low.inputs["From Min"].default_value = -0.02
+    fw_alt_low.inputs["From Max"].default_value = 0.05
     fw_alt_low.inputs["To Min"].default_value = 0.0
     fw_alt_low.inputs["To Max"].default_value = 1.0
     links.new(shifted_z.outputs[0], fw_alt_low.inputs["Value"])
@@ -3179,8 +3326,8 @@ def _build_gradient_group(ng):
     fw_alt_high.location = (6640, -2040)
     fw_alt_high.clamp = True
     _smooth(fw_alt_high)
-    fw_alt_high.inputs["From Min"].default_value = 0.36
-    fw_alt_high.inputs["From Max"].default_value = 0.54
+    fw_alt_high.inputs["From Min"].default_value = 0.48
+    fw_alt_high.inputs["From Max"].default_value = 0.72
     fw_alt_high.inputs["To Min"].default_value = 1.0
     fw_alt_high.inputs["To Max"].default_value = 0.0
     links.new(shifted_z.outputs[0], fw_alt_high.inputs["Value"])

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.4 - 2026-10-20
+### Fixed
+- Hanabi uses horizon-aligned local axes on the stereographic disk, a stronger
+  parabolic weeping-willow droop, three radial spark shells and constant
+  linear trail width, replacing flat single-ring bicycle-wheel geometry.
+- Bright hoshi star-heads at outer, mid and inner radii add spherical depth;
+  hot heads and trails use separate 5.5x/9.5x HDR boosts.
+- Fireworks altitude mask widened so hero bursts remain visible near the
+  horizon and in the upper sky.
+- World gradient marker 27.
+
 ## 1.1.3 - 2026-10-20
 ### Fixed
 - Hanabi fireworks use true 2D stereographic Voronoi grids, low randomness and

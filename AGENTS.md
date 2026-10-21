@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **1.1.3**).
+  (currently **1.1.4**).
 
 ## Verify (run after every change)
 ```powershell
@@ -101,7 +101,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Normal pass by 1.5 px, subtracts, takes vector length, curves 0.01..0.14 and
   multiplies by the normal sensitivity and geometry mask. Combine with the depth
   edge via `MAXIMUM`.
-- World gradient group marker is **26**. Inputs include `Star Amount`, `Star
+- World gradient group marker is **27**. Inputs include `Star Amount`, `Star
   Density` (Voronoi scale, default 180), `Cloud Flatness` and `Cloud Offset`
   (vector). Exact shell point is `(Vx*t, Vy*t, Vz)` with
   `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
@@ -136,10 +136,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Shooting stars and Hanabi fireworks are procedural world-gradient generators.
   Their Phase inputs update from `update_sun_controls`; exposure is controlled
   by the `Shooting Star Amount` and `Fireworks Amount` sockets.
-- Shooting stars use the local tangent basis (`tan_h`, `tan_v`) and needle
-  widths. Fireworks use true 2D stereographic Voronoi cells with `Randomness
-  0.35`, hollow spark-shell envelopes, hoshi tips, pistils and high-chroma
-  analogous palettes. Milky Way is wired to its slider and star boost.
+- Shooting stars use the local tangent basis and needle widths. Fireworks use
+  true 2D stereographic cells plus horizon-aligned local axes, three radial
+  hoshi shells, constant linear trail width, strong droop and HDR head boosts.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth
@@ -188,7 +187,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Panel code must read the module version from `sys.modules[__package__]`;
   `bpy.context.preferences.addons[...].module` is a **path string** in 5.1,
   and accessing `.bl_info` on it kills the whole panel draw.
-- World gradient (`ald_build = 26`) also hosts the sun disk, stars and clouds. Inputs:
+- World gradient (`ald_build = 27`) also hosts the sun disk, stars and clouds. Inputs:
   `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
   (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,
   `Cloud Amount/Scale`. Palette colors are wired through these sockets, never

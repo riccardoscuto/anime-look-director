@@ -688,3 +688,13 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   layers sum directly instead of a 50/50 color mix.
 - Marker 26. Gate ratios: shadow 2.60 %, wrap 15.99 %, ink 3.34 %,
   haze 62.95 %, toon 1.60 %, rim 7.32 %.
+
+### v1.1.4 notes (spherical foreshortened Hanabi)
+- Fireworks use horizon-aligned local axes on the stereographic plane, strong
+  parabolic droop, and three radial shell bands (outer/mid/inner) with bright
+  hoshi heads to introduce spherical depth. Trail width is compensated by
+  max(norm_r, 0.28) so filaments do not fan into wedges.
+- Chromatic shells use 5.5x HDR, with separate hot head boost up to 9.5x.
+- Firework altitude masks are widened to -0.02..0.05 and 0.48..0.72.
+- Marker 27. Gate ratios: shadow 2.60 %, wrap 15.99 %, ink 3.34 %,
+  haze 62.95 %, toon 1.60 %, rim 7.32 %.
