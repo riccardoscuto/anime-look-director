@@ -417,7 +417,23 @@ class ALD_PT_view3d(bpy.types.Panel):
         layout.operator("ald.viewport_compositor", icon="RESTRICT_VIEW_OFF")
 
 
-_classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor, ALD_PT_view3d)
+class ALD_PT_fx(bpy.types.Panel):
+    bl_label = "FX Particles"
+    bl_idname = "ALD_PT_fx"
+    bl_parent_id = "ALD_PT_scene"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+        col.operator("ald.fx_fireworks", icon="LIGHT")
+        col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
+        col.operator("ald.fx_clear", icon="TRASH")
+
+
+_classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor, ALD_PT_fx, ALD_PT_view3d)
 
 
 def register():

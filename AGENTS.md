@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **1.1.4**).
+  (currently **2.0.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -139,6 +139,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Shooting stars use the local tangent basis and needle widths. Fireworks use
   true 2D stereographic cells plus horizon-aligned local axes, three radial
   hoshi shells, constant linear trail width, strong droop and HDR head boosts.
+- FX 2.0 particle objects live in `fx.py` and the `ALD | FX` collection:
+  physical depth, gravity and overlap for fireworks/meteors, separate from the
+  world shader's sky, clouds, stars and Milky Way.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

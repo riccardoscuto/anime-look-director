@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 1.1.4** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.0.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -285,3 +285,4 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **1.1.2** - Piano tangente per meteore/fuochi, Milky Way cablata e colori Hanabi saturi.
 - **1.1.3** - Fuochi Hanabi 2D stereografici, gusci cavi e palette cromatiche pure.
 - **1.1.4** - Fuochi Hanabi a gusci sferici scorciati, scie a larghezza costante e teste hoshi HDR.
+- **2.0.0** - FX particellari 3D per fuochi d'artificio e stelle cadenti con profondità e gravità reali.

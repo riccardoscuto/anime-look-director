@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0 - 2026-10-20
+### Added
+- FX particle architecture in `fx.py`: physically placed 3D fireworks and
+  shooting-star trails with camera-space placement, gravity, parabolic droop,
+  multi-shell depth, hoshi heads and saturated chemical-like palettes.
+- Operators `ald.fx_fireworks`, `ald.fx_meteors` and `ald.fx_clear`, plus an
+  FX Particles panel.
+### Changed
+- The sky/world shader remains responsible for clouds, stars, Milky Way and
+  atmosphere; explosions and meteors now have real 3D depth and overlap.
+
 ## 1.1.4 - 2026-10-20
 ### Fixed
 - Hanabi uses horizon-aligned local axes on the stereographic disk, a stronger

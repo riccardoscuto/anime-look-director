@@ -698,3 +698,12 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - Firework altitude masks are widened to -0.02..0.05 and 0.48..0.72.
 - Marker 27. Gate ratios: shadow 2.60 %, wrap 15.99 %, ink 3.34 %,
   haze 62.95 %, toon 1.60 %, rim 7.32 %.
+
+### v2.0.0 notes (3D FX particle architecture)
+- x.py creates temporary ALD | FX objects in camera space: firework
+  trails use parabolic gravity, three shell scales, hoshi heads and saturated
+  emission materials; meteors use parallel radiant trajectories and needle
+  trails. Objects are physical, so depth, overlap and perspective work.
+- Operators: ld.fx_fireworks, ld.fx_meteors, ld.fx_clear; panel FX
+  Particles exposes the buttons. World shader remains responsible for sky,
+  clouds, stars and Milky Way.

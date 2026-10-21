@@ -3,7 +3,7 @@ import math
 import bpy
 from mathutils import Vector
 
-from . import compositor, look, materials, palette, shots
+from . import compositor, fx, look, materials, palette, shots
 
 
 def _sync_shadow(scene):
@@ -228,10 +228,62 @@ class ALD_OT_viewport_compositor(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_fireworks(bpy.types.Operator):
+    bl_idname = "ald.fx_fireworks"
+    bl_label = "Create Fireworks"
+    bl_description = "Create physically placed 3D fireworks particles in camera space"
+    bl_options = {"REGISTER", "UNDO"}
+
+    count: bpy.props.IntProperty(name="Bursts", default=4, min=1, max=8)
+    seed: bpy.props.IntProperty(name="Seed", default=7, min=0, max=99999)
+    distance: bpy.props.FloatProperty(name="Distance", default=30.0,
+                                      min=5.0, max=120.0)
+
+    def execute(self, context):
+        count = fx.create_fireworks(context.scene, self.count, self.seed,
+                                    self.distance)
+        self.report({"INFO"}, "Anime Look Director: %d fireworks created" %
+                    count)
+        return {"FINISHED"}
+
+
+class ALD_OT_fx_meteors(bpy.types.Operator):
+    bl_idname = "ald.fx_meteors"
+    bl_label = "Create Shooting Stars"
+    bl_description = "Create parallel radiant 3D meteor trails in camera space"
+    bl_options = {"REGISTER", "UNDO"}
+
+    count: bpy.props.IntProperty(name="Meteors", default=4, min=1, max=12)
+    seed: bpy.props.IntProperty(name="Seed", default=21, min=0, max=99999)
+    distance: bpy.props.FloatProperty(name="Distance", default=34.0,
+                                      min=5.0, max=120.0)
+
+    def execute(self, context):
+        count = fx.create_meteors(context.scene, self.count, self.seed,
+                                  self.distance)
+        self.report({"INFO"}, "Anime Look Director: %d shooting stars created" %
+                    count)
+        return {"FINISHED"}
+
+
+class ALD_OT_fx_clear(bpy.types.Operator):
+    bl_idname = "ald.fx_clear"
+    bl_label = "Clear FX"
+    bl_description = "Remove temporary fireworks and shooting-star objects"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        count = fx.clear(context.scene)
+        self.report({"INFO"}, "Anime Look Director: %d FX objects removed" %
+                    count)
+        return {"FINISHED"}
+
+
 _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_clear_shadow_tint, ALD_OT_toggle_exclude_material,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
-            ALD_OT_stage_backlight, ALD_OT_viewport_compositor)
+            ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
+            ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_clear)
 
 
 def register():

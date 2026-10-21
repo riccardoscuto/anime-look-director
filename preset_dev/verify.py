@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 1, 4)
+EXPECTED_VERSION = (2, 0, 0)
 TOLERANCE = 1e-4
 
 
