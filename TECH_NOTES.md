@@ -646,3 +646,13 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   `Cloud Scale * 1.55`, billow 0.22. Open sky stays clean.
 - Marker 22. Gate ratios: shadow 2.60 %, wrap 15.99 %, ink 3.34 %,
   haze 62.95 %, toon 1.60 %, rim 7.32 %.
+
+### v1.1.0 notes (sun beam toggles, shooting stars, Hanabi)
+- Sun Glow is gated by `sun_glow_enabled`; God Rays reset to false on Apply
+  Palette so Stage Backlight cannot leave a stale Sun Beams effect.
+- World gradient has shooting-star and firework generators with independent
+  amount/length/angle/phase and amount/scale/phase sockets. Their phase is
+  animated through `update_sun_controls` when Cloud Wind is active.
+- Fireworks use cell-local radial Voronoi spokes, peony/pistil rings, burst
+  glow and per-cell gold/magenta/cyan colors at 16x; shooting stars use a
+  cell-local 3D trajectory with a bright 18x PSF head.

@@ -116,7 +116,10 @@ def _on_sun_angles(self, context):
 
 def _on_stack(self, context):
     try:
-        from . import compositor
+        from . import compositor, palette
+        if palette.style_syncing():
+            return
+        scene = context.scene
         scene = context.scene
         if scene is not None and scene.compositing_node_group:
             compositor.build(scene)
@@ -276,6 +279,10 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="Sun Strength", default=6.0, min=0.0, max=50.0,
         description="Brightness of the sun disk",
         update=_on_world)
+    sun_glow_enabled: BoolProperty(
+        name="Sun Glow", default=True,
+        description="Enable Mie atmospheric glow around the sun",
+        update=_on_world)
     sun_glow: FloatProperty(
         name="Sun Glow", default=0.45, min=0.0, max=2.0,
         description="Mie-style anisotropic glare around the sun",
@@ -342,6 +349,42 @@ class ALD_Settings(bpy.types.PropertyGroup):
         update=_on_world)
     star_density: FloatProperty(
         name="Star Density", default=180.0, min=50.0, max=400.0,
+        update=_on_world)
+    shooting_stars: BoolProperty(
+        name="Shooting Stars", default=False,
+        description="Procedural anime shooting stars / meteors in the sky",
+        update=_on_world)
+    shooting_star_amount: FloatProperty(
+        name="Meteor Amount", default=0.65, min=0.0, max=1.0,
+        description="Density of active shooting stars",
+        update=_on_world)
+    shooting_star_length: FloatProperty(
+        name="Trail Length", default=0.55, min=0.1, max=1.0,
+        description="Length of the ionized meteor tail",
+        update=_on_world)
+    shooting_star_angle: FloatProperty(
+        name="Meteor Angle", default=32.0, min=-180.0, max=180.0,
+        description="Trajectory angle in degrees",
+        update=_on_world)
+    shooting_star_phase: FloatProperty(
+        name="Meteor Phase", default=0.0, min=0.0, max=100.0,
+        description="Phase offset along the trajectory",
+        update=_on_world)
+    fireworks: BoolProperty(
+        name="Fireworks (Hanabi)", default=False,
+        description="Procedural anime fireworks bursts above the horizon",
+        update=_on_world)
+    fireworks_amount: FloatProperty(
+        name="Fireworks Amount", default=0.60, min=0.0, max=1.0,
+        description="Fraction of active firework bursts",
+        update=_on_world)
+    fireworks_scale: FloatProperty(
+        name="Fireworks Scale", default=4.5, min=1.5, max=12.0,
+        description="Scale of the firework shells in the sky",
+        update=_on_world)
+    fireworks_phase: FloatProperty(
+        name="Burst Phase", default=0.65, min=0.1, max=1.0,
+        description="Expansion stage of the firework shells",
         update=_on_world)
 
     # --- Shadow tint ----------------------------------------------------

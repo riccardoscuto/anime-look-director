@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 1.0.8** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 1.1.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -280,3 +280,4 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **1.0.6** - Toggle cielo sempre ripristinati, Star Amount reale senza moltiplicazioni nascoste, stelle leggibili con domain warp e pannelli allineati.
 - **1.0.7** - Cielo escluso dal Kuwahara, stelle puntiformi Poisson, Horizon Offset reale, contrail tintate.
 - **1.0.8** - Stelle PSF anti-aliasing con canali hash indipendenti e nuvole Perlin-Worley.
+- **1.1.0** - Toggle Sun Beams/Sun Glow, stelle cadenti procedurali e fuochi d'artificio Hanabi.

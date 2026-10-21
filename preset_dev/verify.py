@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 0, 8)
+EXPECTED_VERSION = (1, 1, 0)
 TOLERANCE = 1e-4
 
 
@@ -255,9 +255,12 @@ def check_world_gradient(scene, settings):
     check(node.inputs["Cloud Amount"].default_value > 0.0,
           "clouds not restored")
 
-    for name in ("Star Amount", "Star Density", "Cloud Offset"):
+    for name in ("Star Amount", "Star Density", "Cloud Offset",
+                 "Shooting Star Amount", "Shooting Star Length",
+                 "Shooting Star Dir", "Shooting Star Phase",
+                 "Fireworks Amount", "Fireworks Scale", "Fireworks Phase"):
         check(node.inputs.get(name) is not None,
-              "star/wind world input missing: " + name)
+              "world input missing: " + name)
     golden = palette_module.preset("GOLDEN_HOUR")
     check(abs(settings.star_strength - golden["star_amount"]) <= TOLERANCE,
           "golden hour star amount not synced to style")
@@ -267,6 +270,28 @@ def check_world_gradient(scene, settings):
     check(abs(node.inputs["Star Density"].default_value
               - settings.star_density) <= TOLERANCE,
           "star density not synced")
+
+    settings.shooting_stars = True
+    settings.fireworks = True
+    settings.god_rays = True
+    settings.sun_glow_enabled = False
+    node = gradient_node(scene)
+    check(node.inputs["Shooting Star Amount"].default_value > 0.0,
+          "shooting star amount not enabled")
+    check(node.inputs["Fireworks Amount"].default_value > 0.0,
+          "firework amount not enabled")
+    check(abs(node.inputs["Sun Glow"].default_value) <= TOLERANCE,
+          "sun glow toggle did not zero the glow")
+    bpy.ops.ald.apply_palette()
+    node = gradient_node(scene)
+    check(not settings.shooting_stars, "apply palette did not disable shooting stars")
+    check(not settings.fireworks, "apply palette did not disable fireworks")
+    check(not settings.god_rays, "apply palette did not disable god rays")
+    check(settings.sun_glow_enabled, "apply palette did not restore sun glow toggle")
+    check(abs(node.inputs["Shooting Star Amount"].default_value) <= TOLERANCE,
+          "shooting star amount not reset")
+    check(abs(node.inputs["Fireworks Amount"].default_value) <= TOLERANCE,
+          "firework amount not reset")
 
     settings.sun_glow = 0.8
     check(abs(gradient_node(scene).inputs["Sun Glow"].default_value

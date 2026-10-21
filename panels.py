@@ -90,7 +90,15 @@ class ALD_PT_world(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "sun_disk_size")
             col.prop(s, "sun_disk_strength")
-        box.prop(s, "sun_glow")
+        row = box.row(align=True)
+        row.prop(s, "sun_glow_enabled", text="Sun Glow", toggle=True)
+        row.prop(s, "god_rays", text="Sun Beams", toggle=True)
+        if s.sun_glow_enabled:
+            box.prop(s, "sun_glow", text="Glow Strength")
+        if s.god_rays:
+            col = box.column(align=True)
+            col.prop(s, "god_rays_strength", text="Beam Strength")
+            col.prop(s, "god_rays_size", text="Beam Size")
         col = box.column(align=True)
         col.prop(s, "sky_accent")
         col.prop(s, "sky_accent_amount")
@@ -106,10 +114,24 @@ class ALD_PT_world(bpy.types.Panel):
 
         row = box.row(align=True)
         row.prop(s, "stars", toggle=True)
+        row.prop(s, "shooting_stars", toggle=True)
         if s.stars:
             col = box.column(align=True)
             col.prop(s, "star_strength")
             col.prop(s, "star_density")
+        if s.shooting_stars:
+            col = box.column(align=True)
+            col.prop(s, "shooting_star_amount")
+            col.prop(s, "shooting_star_length")
+            col.prop(s, "shooting_star_angle")
+            col.prop(s, "shooting_star_phase")
+        row = box.row(align=True)
+        row.prop(s, "fireworks", toggle=True)
+        if s.fireworks:
+            col = box.column(align=True)
+            col.prop(s, "fireworks_amount")
+            col.prop(s, "fireworks_scale")
+            col.prop(s, "fireworks_phase")
 
         col = box.column(align=True)
         col.prop(s, "sun_elevation")
@@ -261,7 +283,15 @@ class ALD_PT_view3d(bpy.types.Panel):
             col = box.column(align=True)
             col.prop(s, "sun_disk_size")
             col.prop(s, "sun_disk_strength")
-        box.prop(s, "sun_glow")
+        row = box.row(align=True)
+        row.prop(s, "sun_glow_enabled", text="Sun Glow", toggle=True)
+        row.prop(s, "god_rays", text="Sun Beams", toggle=True)
+        if s.sun_glow_enabled:
+            box.prop(s, "sun_glow", text="Glow Strength")
+        if s.god_rays:
+            col = box.column(align=True)
+            col.prop(s, "god_rays_strength", text="Beam Strength")
+            col.prop(s, "god_rays_size", text="Beam Size")
         col = box.column(align=True)
         col.prop(s, "sky_accent")
         col.prop(s, "sky_accent_amount")
@@ -276,10 +306,24 @@ class ALD_PT_view3d(bpy.types.Panel):
             col.prop(s, "cloud_rim_boost")
         row = box.row(align=True)
         row.prop(s, "stars", toggle=True)
+        row.prop(s, "shooting_stars", toggle=True)
         if s.stars:
             col = box.column(align=True)
             col.prop(s, "star_strength")
             col.prop(s, "star_density")
+        if s.shooting_stars:
+            col = box.column(align=True)
+            col.prop(s, "shooting_star_amount")
+            col.prop(s, "shooting_star_length")
+            col.prop(s, "shooting_star_angle")
+            col.prop(s, "shooting_star_phase")
+        row = box.row(align=True)
+        row.prop(s, "fireworks", toggle=True)
+        if s.fireworks:
+            col = box.column(align=True)
+            col.prop(s, "fireworks_amount")
+            col.prop(s, "fireworks_scale")
+            col.prop(s, "fireworks_phase")
         col = box.column(align=True)
         col.prop(s, "sun_elevation")
         col.prop(s, "sun_azimuth")

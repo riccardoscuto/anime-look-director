@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v1.0.8)
+## What it does (v1.1.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -127,7 +127,8 @@ Expected output: `ALD GATE: PASS`.
 - v1.0.5 - dedicated cloud color controls and three-tier hash-based starfield
 - v1.0.6 - reliable sky toggles, true Star Amount, warped readable stars, panel parity
 - v1.0.7 - sharp Kuwahara-masked sky, pinpoint stars, true horizon shift, tinted contrails
-- v1.0.8 - anti-aliased PSF stars with X/Y/Z hash channels and Perlin-Worley clouds (current)
+- v1.0.8 - anti-aliased PSF stars with X/Y/Z hash channels and Perlin-Worley clouds
+- v1.1.0 - Sun Beams/Glow quick toggles, shooting stars and anime fireworks (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

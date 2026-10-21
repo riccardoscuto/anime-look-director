@@ -289,13 +289,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 22):
+                           or ng.get("ald_build") != 23):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 22
+        ng["ald_build"] = 23
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -309,7 +309,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 22
+        ng["ald_build"] = 23
     return ng
 
 
@@ -607,6 +607,44 @@ def _build_gradient_group(ng):
     star_density.min_value = 50.0
     star_density.max_value = 400.0
     star_density.default_value = 180.0
+    shooting_star_amount = ng.interface.new_socket(
+        name="Shooting Star Amount", in_out="INPUT",
+        socket_type="NodeSocketFloat")
+    shooting_star_amount.min_value = 0.0
+    shooting_star_amount.max_value = 1.0
+    shooting_star_amount.default_value = 0.0
+    shooting_star_length = ng.interface.new_socket(
+        name="Shooting Star Length", in_out="INPUT",
+        socket_type="NodeSocketFloat")
+    shooting_star_length.min_value = 0.1
+    shooting_star_length.max_value = 1.0
+    shooting_star_length.default_value = 0.55
+    shooting_star_dir = ng.interface.new_socket(
+        name="Shooting Star Dir", in_out="INPUT",
+        socket_type="NodeSocketVector")
+    shooting_star_dir.default_value = (0.52, -0.35, -0.78)
+    shooting_star_phase = ng.interface.new_socket(
+        name="Shooting Star Phase", in_out="INPUT",
+        socket_type="NodeSocketFloat")
+    shooting_star_phase.default_value = 0.0
+    fireworks_amount = ng.interface.new_socket(
+        name="Fireworks Amount", in_out="INPUT",
+        socket_type="NodeSocketFloat")
+    fireworks_amount.min_value = 0.0
+    fireworks_amount.max_value = 1.0
+    fireworks_amount.default_value = 0.0
+    fireworks_scale = ng.interface.new_socket(
+        name="Fireworks Scale", in_out="INPUT",
+        socket_type="NodeSocketFloat")
+    fireworks_scale.min_value = 1.5
+    fireworks_scale.max_value = 12.0
+    fireworks_scale.default_value = 4.5
+    fireworks_phase = ng.interface.new_socket(
+        name="Fireworks Phase", in_out="INPUT",
+        socket_type="NodeSocketFloat")
+    fireworks_phase.min_value = 0.1
+    fireworks_phase.max_value = 1.0
+    fireworks_phase.default_value = 0.65
     cloud_offset = ng.interface.new_socket(name="Cloud Offset", in_out="INPUT",
                                            socket_type="NodeSocketVector")
     cloud_offset.default_value = (0.0, 0.0, 0.0)
@@ -1882,6 +1920,637 @@ def _build_gradient_group(ng):
     links.new(star_amount.outputs[0], star_mix.inputs["Factor"])
     sky_color = star_mix.outputs["Result"]
 
+    # Procedural shooting stars: cell-local 3D trajectory with a PSF head.
+    meteor_pos = nodes.new("ShaderNodeVectorMath")
+    meteor_pos.location = (1880, -1900)
+    meteor_pos.operation = "SCALE"
+    meteor_pos.inputs["Scale"].default_value = 4.2
+    links.new(view_norm.outputs["Vector"], meteor_pos.inputs["Vector"])
+
+    meteor_vor = nodes.new("ShaderNodeTexVoronoi")
+    meteor_vor.location = (2060, -1900)
+    links.new(meteor_pos.outputs["Vector"], meteor_vor.inputs["Vector"])
+
+    meteor_rand = nodes.new("ShaderNodeSeparateXYZ")
+    meteor_rand.location = (2240, -1900)
+    links.new(meteor_vor.outputs["Color"], meteor_rand.inputs["Vector"])
+
+    meteor_rel = nodes.new("ShaderNodeVectorMath")
+    meteor_rel.location = (2240, -2060)
+    meteor_rel.operation = "SUBTRACT"
+    links.new(meteor_pos.outputs["Vector"], meteor_rel.inputs[0])
+    links.new(meteor_vor.outputs["Position"], meteor_rel.inputs[1])
+
+    meteor_dir = nodes.new("ShaderNodeVectorMath")
+    meteor_dir.location = (2240, -2220)
+    meteor_dir.operation = "NORMALIZE"
+    links.new(group_in.outputs["Shooting Star Dir"], meteor_dir.inputs[0])
+
+    meteor_s_raw = nodes.new("ShaderNodeVectorMath")
+    meteor_s_raw.location = (2420, -2060)
+    meteor_s_raw.operation = "DOT_PRODUCT"
+    links.new(meteor_rel.outputs["Vector"], meteor_s_raw.inputs[0])
+    links.new(meteor_dir.outputs["Vector"], meteor_s_raw.inputs[1])
+
+    meteor_cell_phase = nodes.new("ShaderNodeMath")
+    meteor_cell_phase.location = (2420, -2220)
+    meteor_cell_phase.operation = "MULTIPLY"
+    meteor_cell_phase.inputs[1].default_value = 0.35
+    links.new(meteor_rand.outputs["Y"], meteor_cell_phase.inputs[0])
+
+    meteor_phase_sum = nodes.new("ShaderNodeMath")
+    meteor_phase_sum.location = (2600, -2220)
+    meteor_phase_sum.operation = "ADD"
+    links.new(meteor_cell_phase.outputs[0], meteor_phase_sum.inputs[0])
+    links.new(group_in.outputs["Shooting Star Phase"], meteor_phase_sum.inputs[1])
+
+    meteor_phase_wrap = nodes.new("ShaderNodeMath")
+    meteor_phase_wrap.location = (2780, -2220)
+    meteor_phase_wrap.operation = "MODULO"
+    meteor_phase_wrap.inputs[1].default_value = 0.50
+    links.new(meteor_phase_sum.outputs[0], meteor_phase_wrap.inputs[0])
+
+    meteor_phase_centered = nodes.new("ShaderNodeMath")
+    meteor_phase_centered.location = (2960, -2220)
+    meteor_phase_centered.operation = "SUBTRACT"
+    meteor_phase_centered.inputs[1].default_value = 0.25
+    links.new(meteor_phase_wrap.outputs[0], meteor_phase_centered.inputs[0])
+
+    meteor_s = nodes.new("ShaderNodeMath")
+    meteor_s.location = (3140, -2060)
+    meteor_s.operation = "SUBTRACT"
+    links.new(meteor_s_raw.outputs["Value"], meteor_s.inputs[0])
+    links.new(meteor_phase_centered.outputs[0], meteor_s.inputs[1])
+
+    meteor_proj = nodes.new("ShaderNodeVectorMath")
+    meteor_proj.location = (2600, -2060)
+    meteor_proj.operation = "SCALE"
+    links.new(meteor_dir.outputs["Vector"], meteor_proj.inputs[0])
+    links.new(meteor_s_raw.outputs["Value"], meteor_proj.inputs["Scale"])
+
+    meteor_perp_vec = nodes.new("ShaderNodeVectorMath")
+    meteor_perp_vec.location = (2780, -2060)
+    meteor_perp_vec.operation = "SUBTRACT"
+    links.new(meteor_rel.outputs["Vector"], meteor_perp_vec.inputs[0])
+    links.new(meteor_proj.outputs["Vector"], meteor_perp_vec.inputs[1])
+
+    meteor_d_perp = nodes.new("ShaderNodeVectorMath")
+    meteor_d_perp.location = (2960, -2060)
+    meteor_d_perp.operation = "LENGTH"
+    links.new(meteor_perp_vec.outputs["Vector"], meteor_d_perp.inputs[0])
+
+    meteor_len = nodes.new("ShaderNodeMath")
+    meteor_len.location = (2600, -2380)
+    meteor_len.operation = "MULTIPLY"
+    meteor_len.inputs[1].default_value = 0.42
+    links.new(group_in.outputs["Shooting Star Length"], meteor_len.inputs[0])
+
+    meteor_neg_len = nodes.new("ShaderNodeMath")
+    meteor_neg_len.location = (2780, -2380)
+    meteor_neg_len.operation = "MULTIPLY"
+    meteor_neg_len.inputs[1].default_value = -1.0
+    links.new(meteor_len.outputs[0], meteor_neg_len.inputs[0])
+
+    meteor_tail_ramp = nodes.new("ShaderNodeMapRange")
+    meteor_tail_ramp.location = (2960, -2380)
+    meteor_tail_ramp.clamp = True
+    _smooth(meteor_tail_ramp)
+    meteor_tail_ramp.inputs["To Min"].default_value = 0.0
+    meteor_tail_ramp.inputs["To Max"].default_value = 1.0
+    links.new(meteor_neg_len.outputs[0], meteor_tail_ramp.inputs["From Min"])
+    meteor_tail_ramp.inputs["From Max"].default_value = 0.0
+    links.new(meteor_s.outputs[0], meteor_tail_ramp.inputs["Value"])
+
+    meteor_head_cut = nodes.new("ShaderNodeMapRange")
+    meteor_head_cut.location = (2960, -2540)
+    meteor_head_cut.clamp = True
+    _smooth(meteor_head_cut)
+    meteor_head_cut.inputs["From Min"].default_value = 0.0
+    meteor_head_cut.inputs["From Max"].default_value = 0.018
+    meteor_head_cut.inputs["To Min"].default_value = 1.0
+    meteor_head_cut.inputs["To Max"].default_value = 0.0
+    links.new(meteor_s.outputs[0], meteor_head_cut.inputs["Value"])
+
+    meteor_along = nodes.new("ShaderNodeMath")
+    meteor_along.location = (3140, -2380)
+    meteor_along.operation = "MULTIPLY"
+    meteor_along.use_clamp = True
+    links.new(meteor_tail_ramp.outputs["Result"], meteor_along.inputs[0])
+    links.new(meteor_head_cut.outputs["Result"], meteor_along.inputs[1])
+
+    meteor_taper = nodes.new("ShaderNodeMath")
+    meteor_taper.location = (3320, -2380)
+    meteor_taper.operation = "POWER"
+    meteor_taper.inputs[1].default_value = 2.0
+    links.new(meteor_along.outputs[0], meteor_taper.inputs[0])
+
+    meteor_line = nodes.new("ShaderNodeMapRange")
+    meteor_line.location = (3140, -2200)
+    meteor_line.clamp = True
+    _smooth(meteor_line)
+    meteor_line.inputs["From Min"].default_value = 0.0
+    meteor_line.inputs["From Max"].default_value = 0.012
+    meteor_line.inputs["To Min"].default_value = 1.0
+    meteor_line.inputs["To Max"].default_value = 0.0
+    links.new(meteor_d_perp.outputs["Value"], meteor_line.inputs["Value"])
+
+    meteor_streak = nodes.new("ShaderNodeMath")
+    meteor_streak.location = (3500, -2280)
+    meteor_streak.operation = "MULTIPLY"
+    meteor_streak.use_clamp = True
+    links.new(meteor_line.outputs["Result"], meteor_streak.inputs[0])
+    links.new(meteor_taper.outputs[0], meteor_streak.inputs[1])
+
+    head_s_abs = nodes.new("ShaderNodeMath")
+    head_s_abs.location = (3320, -2540)
+    head_s_abs.operation = "ABSOLUTE"
+    links.new(meteor_s.outputs[0], head_s_abs.inputs[0])
+
+    head_s_mask = nodes.new("ShaderNodeMapRange")
+    head_s_mask.location = (3500, -2540)
+    head_s_mask.clamp = True
+    _smooth(head_s_mask)
+    head_s_mask.inputs["From Min"].default_value = 0.0
+    head_s_mask.inputs["From Max"].default_value = 0.024
+    head_s_mask.inputs["To Min"].default_value = 1.0
+    head_s_mask.inputs["To Max"].default_value = 0.0
+    links.new(head_s_abs.outputs[0], head_s_mask.inputs["Value"])
+
+    head_d_mask = nodes.new("ShaderNodeMapRange")
+    head_d_mask.location = (3500, -2700)
+    head_d_mask.clamp = True
+    _smooth(head_d_mask)
+    head_d_mask.inputs["From Min"].default_value = 0.0
+    head_d_mask.inputs["From Max"].default_value = 0.024
+    head_d_mask.inputs["To Min"].default_value = 1.0
+    head_d_mask.inputs["To Max"].default_value = 0.0
+    links.new(meteor_d_perp.outputs["Value"], head_d_mask.inputs["Value"])
+
+    meteor_head = nodes.new("ShaderNodeMath")
+    meteor_head.location = (3680, -2620)
+    meteor_head.operation = "MULTIPLY"
+    meteor_head.use_clamp = True
+    links.new(head_s_mask.outputs["Result"], meteor_head.inputs[0])
+    links.new(head_d_mask.outputs["Result"], meteor_head.inputs[1])
+
+    meteor_shape = nodes.new("ShaderNodeMath")
+    meteor_shape.location = (3860, -2400)
+    meteor_shape.operation = "MAXIMUM"
+    meteor_shape.use_clamp = True
+    links.new(meteor_streak.outputs[0], meteor_shape.inputs[0])
+    links.new(meteor_head.outputs[0], meteor_shape.inputs[1])
+
+    meteor_thresh_span = nodes.new("ShaderNodeMath")
+    meteor_thresh_span.location = (3320, -2860)
+    meteor_thresh_span.operation = "MULTIPLY"
+    meteor_thresh_span.inputs[1].default_value = 0.65
+    links.new(group_in.outputs["Shooting Star Amount"], meteor_thresh_span.inputs[0])
+
+    meteor_thresh = nodes.new("ShaderNodeMath")
+    meteor_thresh.location = (3500, -2860)
+    meteor_thresh.operation = "SUBTRACT"
+    meteor_thresh.use_clamp = True
+    meteor_thresh.inputs[0].default_value = 1.0
+    links.new(meteor_thresh_span.outputs[0], meteor_thresh.inputs[1])
+
+    meteor_thresh_top = nodes.new("ShaderNodeMath")
+    meteor_thresh_top.location = (3680, -2860)
+    meteor_thresh_top.operation = "ADD"
+    meteor_thresh_top.use_clamp = True
+    meteor_thresh_top.inputs[1].default_value = 0.02
+    links.new(meteor_thresh.outputs[0], meteor_thresh_top.inputs[0])
+
+    meteor_exist = nodes.new("ShaderNodeMapRange")
+    meteor_exist.location = (3860, -2860)
+    meteor_exist.clamp = True
+    _smooth(meteor_exist)
+    links.new(meteor_rand.outputs["X"], meteor_exist.inputs["Value"])
+    links.new(meteor_thresh.outputs[0], meteor_exist.inputs["From Min"])
+    links.new(meteor_thresh_top.outputs[0], meteor_exist.inputs["From Max"])
+    meteor_exist.inputs["To Min"].default_value = 0.0
+    meteor_exist.inputs["To Max"].default_value = 1.0
+
+    meteor_gate = nodes.new("ShaderNodeMapRange")
+    meteor_gate.location = (3500, -3020)
+    meteor_gate.clamp = True
+    _smooth(meteor_gate)
+    meteor_gate.inputs["From Min"].default_value = 0.0
+    meteor_gate.inputs["From Max"].default_value = 0.02
+    meteor_gate.inputs["To Min"].default_value = 0.0
+    meteor_gate.inputs["To Max"].default_value = 1.0
+    links.new(group_in.outputs["Shooting Star Amount"], meteor_gate.inputs["Value"])
+
+    meteor_final = nodes.new("ShaderNodeMath")
+    meteor_final.location = (4040, -2500)
+    meteor_final.operation = "MULTIPLY"
+    meteor_final.use_clamp = True
+    links.new(meteor_shape.outputs[0], meteor_final.inputs[0])
+    links.new(meteor_exist.outputs["Result"], meteor_final.inputs[1])
+
+    meteor_final_gate = nodes.new("ShaderNodeMath")
+    meteor_final_gate.location = (4220, -2500)
+    meteor_final_gate.operation = "MULTIPLY"
+    meteor_final_gate.use_clamp = True
+    links.new(meteor_final.outputs[0], meteor_final_gate.inputs[0])
+    links.new(meteor_gate.outputs["Result"], meteor_final_gate.inputs[1])
+
+    meteor_final_masked = nodes.new("ShaderNodeMath")
+    meteor_final_masked.location = (4400, -2500)
+    meteor_final_masked.operation = "MULTIPLY"
+    meteor_final_masked.use_clamp = True
+    links.new(meteor_final_gate.outputs[0], meteor_final_masked.inputs[0])
+    links.new(zenith.outputs["Result"], meteor_final_masked.inputs[1])
+
+    meteor_final_cloud = nodes.new("ShaderNodeMath")
+    meteor_final_cloud.location = (4580, -2500)
+    meteor_final_cloud.operation = "MULTIPLY"
+    meteor_final_cloud.use_clamp = True
+    links.new(meteor_final_masked.outputs[0], meteor_final_cloud.inputs[0])
+    links.new(cloud_hide.outputs[0], meteor_final_cloud.inputs[1])
+
+    meteor_tint = nodes.new("ShaderNodeMix")
+    meteor_tint.location = (4400, -2200)
+    meteor_tint.data_type = "RGBA"
+    meteor_tint.blend_type = "MIX"
+    meteor_tint.inputs["Factor"].default_value = 0.30
+    a_sock, b_sock, result_sock = _rgba_sockets(meteor_tint)
+    a_sock.default_value = (0.80, 0.95, 1.0, 1.0)
+    links.new(group_in.outputs["Cloud Light"], b_sock)
+
+    meteor_scale = nodes.new("ShaderNodeVectorMath")
+    meteor_scale.location = (4580, -2200)
+    meteor_scale.operation = "SCALE"
+    meteor_scale.inputs["Scale"].default_value = 18.0
+    links.new(meteor_tint.outputs["Result"], meteor_scale.inputs["Vector"])
+
+    meteor_mix = nodes.new("ShaderNodeMix")
+    meteor_mix.location = (4760, -200)
+    meteor_mix.data_type = "RGBA"
+    meteor_mix.blend_type = "ADD"
+    a_sock, b_sock, result_sock = _rgba_sockets(meteor_mix)
+    links.new(sky_color, a_sock)
+    links.new(meteor_scale.outputs["Vector"], b_sock)
+    links.new(meteor_final_cloud.outputs[0], meteor_mix.inputs["Factor"])
+
+    # Procedural anime fireworks: radial Voronoi cells with Hanabi rings.
+    fw_pos = nodes.new("ShaderNodeVectorMath")
+    fw_pos.location = (1880, -3200)
+    fw_pos.operation = "SCALE"
+    links.new(view_norm.outputs["Vector"], fw_pos.inputs[0])
+    links.new(group_in.outputs["Fireworks Scale"], fw_pos.inputs["Scale"])
+
+    fw_vor = nodes.new("ShaderNodeTexVoronoi")
+    fw_vor.location = (2060, -3200)
+    links.new(fw_pos.outputs["Vector"], fw_vor.inputs["Vector"])
+
+    fw_rand = nodes.new("ShaderNodeSeparateXYZ")
+    fw_rand.location = (2240, -3200)
+    links.new(fw_vor.outputs["Color"], fw_rand.inputs["Vector"])
+
+    fw_color_a = nodes.new("ShaderNodeMapRange")
+    fw_color_a.location = (2420, -3200)
+    fw_color_a.clamp = True
+    _smooth(fw_color_a)
+    fw_color_a.inputs["From Min"].default_value = 0.0
+    fw_color_a.inputs["From Max"].default_value = 0.5
+    fw_color_a.inputs["To Min"].default_value = 0.0
+    fw_color_a.inputs["To Max"].default_value = 1.0
+    links.new(fw_rand.outputs["Z"], fw_color_a.inputs["Value"])
+
+    fw_color_b = nodes.new("ShaderNodeMapRange")
+    fw_color_b.location = (2420, -3360)
+    fw_color_b.clamp = True
+    _smooth(fw_color_b)
+    fw_color_b.inputs["From Min"].default_value = 0.5
+    fw_color_b.inputs["From Max"].default_value = 1.0
+    fw_color_b.inputs["To Min"].default_value = 0.0
+    fw_color_b.inputs["To Max"].default_value = 1.0
+    links.new(fw_rand.outputs["Z"], fw_color_b.inputs["Value"])
+
+    fw_rel = nodes.new("ShaderNodeVectorMath")
+    fw_rel.location = (2240, -3360)
+    fw_rel.operation = "SUBTRACT"
+    links.new(fw_pos.outputs["Vector"], fw_rel.inputs[0])
+    links.new(fw_vor.outputs["Position"], fw_rel.inputs[1])
+
+    fw_dir = nodes.new("ShaderNodeVectorMath")
+    fw_dir.location = (2420, -3360)
+    fw_dir.operation = "NORMALIZE"
+    links.new(fw_rel.outputs["Vector"], fw_dir.inputs[0])
+
+    fw_spokes_vor = nodes.new("ShaderNodeTexVoronoi")
+    fw_spokes_vor.location = (2420, -3520)
+    fw_spokes_vor.inputs["Scale"].default_value = 18.0
+    links.new(fw_dir.outputs["Vector"], fw_spokes_vor.inputs["Vector"])
+
+    fw_spoke = nodes.new("ShaderNodeMapRange")
+    fw_spoke.location = (2600, -3520)
+    fw_spoke.clamp = True
+    _smooth(fw_spoke)
+    fw_spoke.inputs["From Min"].default_value = 0.0
+    fw_spoke.inputs["From Max"].default_value = 0.24
+    fw_spoke.inputs["To Min"].default_value = 1.0
+    fw_spoke.inputs["To Max"].default_value = 0.0
+    links.new(fw_spokes_vor.outputs["Distance"], fw_spoke.inputs["Value"])
+
+    fw_spoke_sharp = nodes.new("ShaderNodeMath")
+    fw_spoke_sharp.location = (2780, -3520)
+    fw_spoke_sharp.operation = "POWER"
+    fw_spoke_sharp.inputs[1].default_value = 2.2
+    links.new(fw_spoke.outputs["Result"], fw_spoke_sharp.inputs[0])
+
+    fw_size_var = nodes.new("ShaderNodeMapRange")
+    fw_size_var.location = (2600, -3200)
+    fw_size_var.clamp = True
+    _smooth(fw_size_var)
+    fw_size_var.inputs["From Min"].default_value = 0.0
+    fw_size_var.inputs["From Max"].default_value = 1.0
+    fw_size_var.inputs["To Min"].default_value = 0.24
+    fw_size_var.inputs["To Max"].default_value = 0.42
+    links.new(fw_rand.outputs["Y"], fw_size_var.inputs["Value"])
+
+    fw_radius = nodes.new("ShaderNodeMath")
+    fw_radius.location = (2780, -3200)
+    fw_radius.operation = "MULTIPLY"
+    links.new(fw_size_var.outputs["Result"], fw_radius.inputs[0])
+    links.new(group_in.outputs["Fireworks Phase"], fw_radius.inputs[1])
+
+    fw_r = nodes.new("ShaderNodeMath")
+    fw_r.location = (2780, -3360)
+    fw_r.operation = "ADD"
+    fw_r.inputs[1].default_value = 0.0001
+    links.new(fw_vor.outputs["Distance"], fw_r.inputs[0])
+
+    fw_norm_r = nodes.new("ShaderNodeMath")
+    fw_norm_r.location = (2960, -3360)
+    fw_norm_r.operation = "DIVIDE"
+    links.new(fw_r.outputs[0], fw_norm_r.inputs[0])
+    links.new(fw_radius.outputs[0], fw_norm_r.inputs[1])
+
+    fw_inside = nodes.new("ShaderNodeMapRange")
+    fw_inside.location = (3140, -3360)
+    fw_inside.clamp = True
+    _smooth(fw_inside)
+    fw_inside.inputs["From Min"].default_value = 1.0
+    fw_inside.inputs["From Max"].default_value = 1.08
+    fw_inside.inputs["To Min"].default_value = 1.0
+    fw_inside.inputs["To Max"].default_value = 0.0
+    links.new(fw_norm_r.outputs[0], fw_inside.inputs["Value"])
+
+    fw_center_hole = nodes.new("ShaderNodeMapRange")
+    fw_center_hole.location = (3140, -3520)
+    fw_center_hole.clamp = True
+    _smooth(fw_center_hole)
+    fw_center_hole.inputs["From Min"].default_value = 0.08
+    fw_center_hole.inputs["From Max"].default_value = 0.25
+    fw_center_hole.inputs["To Min"].default_value = 0.0
+    fw_center_hole.inputs["To Max"].default_value = 1.0
+    links.new(fw_norm_r.outputs[0], fw_center_hole.inputs["Value"])
+
+    fw_trail_env = nodes.new("ShaderNodeMath")
+    fw_trail_env.location = (3320, -3440)
+    fw_trail_env.operation = "MULTIPLY"
+    fw_trail_env.use_clamp = True
+    links.new(fw_inside.outputs["Result"], fw_trail_env.inputs[0])
+    links.new(fw_center_hole.outputs["Result"], fw_trail_env.inputs[1])
+
+    fw_trails = nodes.new("ShaderNodeMath")
+    fw_trails.location = (3500, -3440)
+    fw_trails.operation = "MULTIPLY"
+    fw_trails.use_clamp = True
+    links.new(fw_spoke_sharp.outputs[0], fw_trails.inputs[0])
+    links.new(fw_trail_env.outputs[0], fw_trails.inputs[1])
+
+    fw_rim_dist = nodes.new("ShaderNodeMath")
+    fw_rim_dist.location = (3320, -3600)
+    fw_rim_dist.operation = "SUBTRACT"
+    fw_rim_dist.inputs[1].default_value = 0.92
+    links.new(fw_norm_r.outputs[0], fw_rim_dist.inputs[0])
+
+    fw_rim_abs = nodes.new("ShaderNodeMath")
+    fw_rim_abs.location = (3500, -3600)
+    fw_rim_abs.operation = "ABSOLUTE"
+    links.new(fw_rim_dist.outputs[0], fw_rim_abs.inputs[0])
+
+    fw_rim_band = nodes.new("ShaderNodeMapRange")
+    fw_rim_band.location = (3680, -3600)
+    fw_rim_band.clamp = True
+    _smooth(fw_rim_band)
+    fw_rim_band.inputs["From Min"].default_value = 0.0
+    fw_rim_band.inputs["From Max"].default_value = 0.08
+    fw_rim_band.inputs["To Min"].default_value = 1.0
+    fw_rim_band.inputs["To Max"].default_value = 0.0
+    links.new(fw_rim_abs.outputs[0], fw_rim_band.inputs["Value"])
+
+    fw_tips = nodes.new("ShaderNodeMath")
+    fw_tips.location = (3860, -3600)
+    fw_tips.operation = "MULTIPLY"
+    fw_tips.use_clamp = True
+    links.new(fw_rim_band.outputs["Result"], fw_tips.inputs[0])
+    links.new(fw_spoke.outputs["Result"], fw_tips.inputs[1])
+
+    fw_pistil_dist = nodes.new("ShaderNodeMath")
+    fw_pistil_dist.location = (3320, -3760)
+    fw_pistil_dist.operation = "SUBTRACT"
+    fw_pistil_dist.inputs[1].default_value = 0.45
+    links.new(fw_norm_r.outputs[0], fw_pistil_dist.inputs[0])
+
+    fw_pistil_abs = nodes.new("ShaderNodeMath")
+    fw_pistil_abs.location = (3500, -3760)
+    fw_pistil_abs.operation = "ABSOLUTE"
+    links.new(fw_pistil_dist.outputs[0], fw_pistil_abs.inputs[0])
+
+    fw_pistil_band = nodes.new("ShaderNodeMapRange")
+    fw_pistil_band.location = (3680, -3760)
+    fw_pistil_band.clamp = True
+    _smooth(fw_pistil_band)
+    fw_pistil_band.inputs["From Min"].default_value = 0.0
+    fw_pistil_band.inputs["From Max"].default_value = 0.06
+    fw_pistil_band.inputs["To Min"].default_value = 0.75
+    fw_pistil_band.inputs["To Max"].default_value = 0.0
+    links.new(fw_pistil_abs.outputs[0], fw_pistil_band.inputs["Value"])
+
+    fw_pistil = nodes.new("ShaderNodeMath")
+    fw_pistil.location = (3860, -3760)
+    fw_pistil.operation = "MULTIPLY"
+    fw_pistil.use_clamp = True
+    links.new(fw_pistil_band.outputs["Result"], fw_pistil.inputs[0])
+    links.new(fw_spoke.outputs["Result"], fw_pistil.inputs[1])
+
+    fw_glow = nodes.new("ShaderNodeMapRange")
+    fw_glow.location = (3680, -3920)
+    fw_glow.clamp = True
+    _smooth(fw_glow)
+    fw_glow.inputs["From Min"].default_value = 0.0
+    fw_glow.inputs["From Max"].default_value = 1.15
+    fw_glow.inputs["To Min"].default_value = 0.16
+    fw_glow.inputs["To Max"].default_value = 0.0
+    links.new(fw_norm_r.outputs[0], fw_glow.inputs["Value"])
+
+    fw_inner = nodes.new("ShaderNodeMath")
+    fw_inner.location = (4040, -3520)
+    fw_inner.operation = "MAXIMUM"
+    fw_inner.use_clamp = True
+    links.new(fw_trails.outputs[0], fw_inner.inputs[0])
+    links.new(fw_tips.outputs[0], fw_inner.inputs[1])
+
+    fw_extra = nodes.new("ShaderNodeMath")
+    fw_extra.location = (4040, -3800)
+    fw_extra.operation = "ADD"
+    fw_extra.use_clamp = True
+    links.new(fw_pistil.outputs[0], fw_extra.inputs[0])
+    links.new(fw_glow.outputs["Result"], fw_extra.inputs[1])
+
+    fw_shape = nodes.new("ShaderNodeMath")
+    fw_shape.location = (4220, -3600)
+    fw_shape.operation = "ADD"
+    fw_shape.use_clamp = True
+    links.new(fw_inner.outputs[0], fw_shape.inputs[0])
+    links.new(fw_extra.outputs[0], fw_shape.inputs[1])
+
+    fw_alt_low = nodes.new("ShaderNodeMapRange")
+    fw_alt_low.location = (3320, -4080)
+    fw_alt_low.clamp = True
+    _smooth(fw_alt_low)
+    fw_alt_low.inputs["From Min"].default_value = 0.03
+    fw_alt_low.inputs["From Max"].default_value = 0.10
+    fw_alt_low.inputs["To Min"].default_value = 0.0
+    fw_alt_low.inputs["To Max"].default_value = 1.0
+    links.new(shifted_z.outputs[0], fw_alt_low.inputs["Value"])
+
+    fw_alt_high = nodes.new("ShaderNodeMapRange")
+    fw_alt_high.location = (3500, -4080)
+    fw_alt_high.clamp = True
+    _smooth(fw_alt_high)
+    fw_alt_high.inputs["From Min"].default_value = 0.38
+    fw_alt_high.inputs["From Max"].default_value = 0.55
+    fw_alt_high.inputs["To Min"].default_value = 1.0
+    fw_alt_high.inputs["To Max"].default_value = 0.0
+    links.new(shifted_z.outputs[0], fw_alt_high.inputs["Value"])
+
+    fw_alt = nodes.new("ShaderNodeMath")
+    fw_alt.location = (3680, -4080)
+    fw_alt.operation = "MULTIPLY"
+    fw_alt.use_clamp = True
+    links.new(fw_alt_low.outputs["Result"], fw_alt.inputs[0])
+    links.new(fw_alt_high.outputs["Result"], fw_alt.inputs[1])
+
+    fw_thresh_span = nodes.new("ShaderNodeMath")
+    fw_thresh_span.location = (3320, -4240)
+    fw_thresh_span.operation = "MULTIPLY"
+    fw_thresh_span.inputs[1].default_value = 0.55
+    links.new(group_in.outputs["Fireworks Amount"], fw_thresh_span.inputs[0])
+
+    fw_thresh = nodes.new("ShaderNodeMath")
+    fw_thresh.location = (3500, -4240)
+    fw_thresh.operation = "SUBTRACT"
+    fw_thresh.use_clamp = True
+    fw_thresh.inputs[0].default_value = 1.0
+    links.new(fw_thresh_span.outputs[0], fw_thresh.inputs[1])
+
+    fw_thresh_top = nodes.new("ShaderNodeMath")
+    fw_thresh_top.location = (3680, -4240)
+    fw_thresh_top.operation = "ADD"
+    fw_thresh_top.use_clamp = True
+    fw_thresh_top.inputs[1].default_value = 0.02
+    links.new(fw_thresh.outputs[0], fw_thresh_top.inputs[0])
+
+    fw_exist = nodes.new("ShaderNodeMapRange")
+    fw_exist.location = (3860, -4240)
+    fw_exist.clamp = True
+    _smooth(fw_exist)
+    links.new(fw_rand.outputs["X"], fw_exist.inputs["Value"])
+    links.new(fw_thresh.outputs[0], fw_exist.inputs["From Min"])
+    links.new(fw_thresh_top.outputs[0], fw_exist.inputs["From Max"])
+    fw_exist.inputs["To Min"].default_value = 0.0
+    fw_exist.inputs["To Max"].default_value = 1.0
+
+    fw_gate = nodes.new("ShaderNodeMapRange")
+    fw_gate.location = (3500, -4400)
+    fw_gate.clamp = True
+    _smooth(fw_gate)
+    fw_gate.inputs["From Min"].default_value = 0.0
+    fw_gate.inputs["From Max"].default_value = 0.02
+    fw_gate.inputs["To Min"].default_value = 0.0
+    fw_gate.inputs["To Max"].default_value = 1.0
+    links.new(group_in.outputs["Fireworks Amount"], fw_gate.inputs["Value"])
+
+    fw_final = nodes.new("ShaderNodeMath")
+    fw_final.location = (4400, -3900)
+    fw_final.operation = "MULTIPLY"
+    fw_final.use_clamp = True
+    links.new(fw_shape.outputs[0], fw_final.inputs[0])
+    links.new(fw_exist.outputs["Result"], fw_final.inputs[1])
+
+    fw_final_gate = nodes.new("ShaderNodeMath")
+    fw_final_gate.location = (4580, -3900)
+    fw_final_gate.operation = "MULTIPLY"
+    fw_final_gate.use_clamp = True
+    links.new(fw_final.outputs[0], fw_final_gate.inputs[0])
+    links.new(fw_gate.outputs["Result"], fw_final_gate.inputs[1])
+
+    fw_final_alt = nodes.new("ShaderNodeMath")
+    fw_final_alt.location = (4760, -3900)
+    fw_final_alt.operation = "MULTIPLY"
+    fw_final_alt.use_clamp = True
+    links.new(fw_final_gate.outputs[0], fw_final_alt.inputs[0])
+    links.new(fw_alt.outputs[0], fw_final_alt.inputs[1])
+
+    fw_final_cloud = nodes.new("ShaderNodeMath")
+    fw_final_cloud.location = (4940, -3900)
+    fw_final_cloud.operation = "MULTIPLY"
+    fw_final_cloud.use_clamp = True
+    links.new(fw_final_alt.outputs[0], fw_final_cloud.inputs[0])
+    links.new(cloud_hide.outputs[0], fw_final_cloud.inputs[1])
+
+    fw_gold = nodes.new("ShaderNodeRGB")
+    fw_gold.location = (4400, -4240)
+    fw_gold.outputs[0].default_value = (1.0, 0.58, 0.14, 1.0)
+
+    fw_magenta = nodes.new("ShaderNodeRGB")
+    fw_magenta.location = (4400, -4380)
+    fw_magenta.outputs[0].default_value = (1.0, 0.18, 0.55, 1.0)
+
+    fw_cyan = nodes.new("ShaderNodeRGB")
+    fw_cyan.location = (4400, -4520)
+    fw_cyan.outputs[0].default_value = (0.15, 0.85, 1.0, 1.0)
+
+    fw_mix1 = nodes.new("ShaderNodeMix")
+    fw_mix1.location = (4580, -4300)
+    fw_mix1.data_type = "RGBA"
+    fw_mix1.blend_type = "MIX"
+    fw_mix1.inputs["Factor"].default_value = 0.5
+    a_sock, b_sock, result_sock = _rgba_sockets(fw_mix1)
+    links.new(fw_gold.outputs[0], a_sock)
+    links.new(fw_magenta.outputs[0], b_sock)
+    links.new(fw_color_a.outputs["Result"], fw_mix1.inputs["Factor"])
+
+    fw_mix2 = nodes.new("ShaderNodeMix")
+    fw_mix2.location = (4760, -4300)
+    fw_mix2.data_type = "RGBA"
+    fw_mix2.blend_type = "MIX"
+    fw_mix2.inputs["Factor"].default_value = 0.5
+    a_sock, b_sock, result_sock = _rgba_sockets(fw_mix2)
+    links.new(fw_mix1.outputs["Result"], a_sock)
+    links.new(fw_cyan.outputs[0], b_sock)
+    links.new(fw_color_b.outputs["Result"], fw_mix2.inputs["Factor"])
+
+    fw_color_scale = nodes.new("ShaderNodeVectorMath")
+    fw_color_scale.location = (4940, -4300)
+    fw_color_scale.operation = "SCALE"
+    fw_color_scale.inputs["Scale"].default_value = 16.0
+    links.new(fw_mix2.outputs["Result"], fw_color_scale.inputs["Vector"])
+
+    fw_mix = nodes.new("ShaderNodeMix")
+    fw_mix.location = (5120, -200)
+    fw_mix.data_type = "RGBA"
+    fw_mix.blend_type = "ADD"
+    a_sock, b_sock, result_sock = _rgba_sockets(fw_mix)
+    links.new(meteor_mix.outputs["Result"], a_sock)
+    links.new(fw_color_scale.outputs["Vector"], b_sock)
+    links.new(fw_final_cloud.outputs[0], fw_mix.inputs["Factor"])
+    sky_color = fw_mix.outputs["Result"]
+
     # Visible sky stays vivid; ambient light is scaled by World Strength.
     light_path = nodes.new("ShaderNodeLightPath")
     light_path.location = (2320, 420)
@@ -1974,6 +2643,8 @@ def apply_preset_style(scene, p):
         settings.cloud_amount = p.get("cloud_amount", 0.6)
         settings.cloud_delta_gain = p.get("cloud_delta_gain", 1.0)
         settings.sun_glow = p.get("sun_glow", 0.45)
+        settings.sun_glow_enabled = p.get("sun_glow_enabled", True)
+        settings.god_rays = p.get("god_rays", False)
         settings.sky_accent = p.get("sky_accent", (0.05, 0.32, 0.42))
         settings.sky_accent_amount = p.get("sky_accent_amount", 0.0)
         settings.horizon_offset = p.get("horizon_offset", 0.0)
@@ -1988,6 +2659,8 @@ def apply_preset_style(scene, p):
         settings.stars = p.get("stars", True)
         settings.star_strength = p.get("star_amount", 0.0)
         settings.star_density = p.get("star_density", 180.0)
+        settings.shooting_stars = p.get("shooting_stars", False)
+        settings.fireworks = p.get("fireworks", False)
     finally:
         _syncing_style = False
 
@@ -2123,8 +2796,10 @@ def _apply_gradient(scene, settings, nt, background, p):
     node.inputs["Sun Inner"].default_value = math.cos(math.radians(radius))
     node.inputs["Sun Outer"].default_value = math.cos(
         math.radians(radius + softness))
+    sun_glow_on = getattr(settings, "sun_glow_enabled", True) if settings else True
     node.inputs["Sun Glow"].default_value = (
-        getattr(settings, "sun_glow", 0.45) if settings else 0.45)
+        (getattr(settings, "sun_glow", 0.45) if settings else 0.45)
+        if sun_glow_on else 0.0)
     node.inputs["Sky Accent"].default_value = _rgba(
         getattr(settings, "sky_accent", (0.05, 0.32, 0.42))
         if settings else (0.05, 0.32, 0.42))
@@ -2152,6 +2827,27 @@ def _apply_gradient(scene, settings, nt, background, p):
     node.inputs["Star Amount"].default_value = max(0.0, min(1.0, star_amount))
     node.inputs["Star Density"].default_value = (
         getattr(settings, "star_density", 180.0) if settings else 180.0)
+    node.inputs["Shooting Star Amount"].default_value = (
+        (getattr(settings, "shooting_star_amount", 0.65)
+         if getattr(settings, "shooting_stars", False) else 0.0)
+        if settings else 0.0)
+    node.inputs["Shooting Star Length"].default_value = (
+        getattr(settings, "shooting_star_length", 0.55) if settings else 0.55)
+    angle_rad = math.radians(getattr(settings, "shooting_star_angle", 32.0))
+    node.inputs["Shooting Star Dir"].default_value = (
+        math.cos(angle_rad) * 0.65, math.sin(angle_rad) * 0.65, -0.76)
+    phase = getattr(settings, "shooting_star_phase", 0.0) if settings else 0.0
+    if settings is not None and getattr(settings, "cloud_wind", 0.0) > 0.0:
+        phase += scene.frame_current * 0.035
+    node.inputs["Shooting Star Phase"].default_value = phase
+    node.inputs["Fireworks Amount"].default_value = (
+        (getattr(settings, "fireworks_amount", 0.60)
+         if getattr(settings, "fireworks", False) else 0.0)
+        if settings else 0.0)
+    node.inputs["Fireworks Scale"].default_value = (
+        getattr(settings, "fireworks_scale", 4.5) if settings else 4.5)
+    node.inputs["Fireworks Phase"].default_value = (
+        getattr(settings, "fireworks_phase", 0.65) if settings else 0.65)
     node.inputs["Cloud Offset"].default_value = _cloud_offset(scene, settings)
 
     for link in list(background.inputs["Color"].links):
@@ -2214,6 +2910,10 @@ def update_sun_controls(scene):
     settings = getattr(scene, "ald", None)
     if settings is not None:
         node.inputs["Cloud Offset"].default_value = _cloud_offset(scene, settings)
+        phase = getattr(settings, "shooting_star_phase", 0.0)
+        if getattr(settings, "cloud_wind", 0.0) > 0.0:
+            phase += scene.frame_current * 0.035
+        node.inputs["Shooting Star Phase"].default_value = phase
     direction = sun_toward(scene)
     if direction is None:
         node.inputs["Sun Strength"].default_value = 0.0

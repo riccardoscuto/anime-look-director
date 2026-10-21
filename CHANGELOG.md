@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 - 2026-10-20
+### Added
+- Sun Beams and Sun Glow toggles directly in the Sun controls; Apply Palette
+  disables stale God Rays from Stage Backlight and restores the preset glow.
+- Procedural shooting stars with cell-local 3D trajectories, independent hash
+  channels, phase animation and HDR meteor heads.
+- Procedural Hanabi fireworks with radial Voronoi spokes, peony/pistil rings,
+  soft burst glow and per-cell gold/magenta/cyan palette.
+### Changed
+- World gradient marker 23.
+
 ## 1.0.8 - 2026-10-20
 ### Fixed
 - Stars are now anti-aliased PSF points: existence, magnitude and temperature

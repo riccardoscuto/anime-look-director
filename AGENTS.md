@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **1.0.8**).
+  (currently **1.1.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -101,7 +101,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Normal pass by 1.5 px, subtracts, takes vector length, curves 0.01..0.14 and
   multiplies by the normal sensitivity and geometry mask. Combine with the depth
   edge via `MAXIMUM`.
-- World gradient group marker is **22**. Inputs include `Star Amount`, `Star
+- World gradient group marker is **23**. Inputs include `Star Amount`, `Star
   Density` (Voronoi scale, default 180), `Cloud Flatness` and `Cloud Offset`
   (vector). Exact shell point is `(Vx*t, Vy*t, Vz)` with
   `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
@@ -131,6 +131,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   `custom_cloud_light`; `effective()` uses them only when Custom Colors is on.
   They sync on palette change/custom enable and are independent of
   Horizon/Sun/Shadow.
+- Sun controls expose `sun_glow_enabled` and `god_rays`; Apply Palette resets
+  God Rays to false so Stage Backlight never leaves stale beams behind.
+- Shooting stars and Hanabi fireworks are procedural world-gradient generators.
+  Their Phase inputs update from `update_sun_controls`; exposure is controlled
+  by the `Shooting Star Amount` and `Fireworks Amount` sockets.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth
@@ -179,7 +184,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Panel code must read the module version from `sys.modules[__package__]`;
   `bpy.context.preferences.addons[...].module` is a **path string** in 5.1,
   and accessing `.bl_info` on it kills the whole panel draw.
-- World gradient (`ald_build = 22`) also hosts the sun disk, stars and clouds. Inputs:
+- World gradient (`ald_build = 23`) also hosts the sun disk, stars and clouds. Inputs:
   `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
   (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,
   `Cloud Amount/Scale`. Palette colors are wired through these sockets, never
