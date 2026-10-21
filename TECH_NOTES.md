@@ -744,3 +744,12 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - x_age (0..6 s) is the authoritative phase of the burst: the frame handler
   and the Update FX operator both use it, so scrubbing the timeline never
   changes the phase of the explosion.
+
+### v2.5.0 notes (pistil, system editor, occlusion)
+- Every burst grows a second, smaller and slower population with its own colour
+  and beaded trail: the inner pistil of the Hanabi references.
+- The FX panel lists the systems owned by the scene and can clear fireworks and
+  meteors separately (ld.fx_clear_kind).
+- Occlusion is preserved because ALD | FX Restore reads the depth tested
+  emission pass; a box in front of a burst hides the particles (verified with a
+  render sample of the covered pixel).

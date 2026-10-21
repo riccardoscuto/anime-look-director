@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.5.0 - 2026-10-22
+### Added
+- Inner contrasting **pistil** population for every burst: a smaller, slower
+  shell with its own colour and beaded trail, as in the Hanabi references.
+- The FX panel now lists the systems present in the scene and can clear
+  fireworks and meteors independently.
+### Verified
+- Occlusion: a solid object placed in front of a burst hides the particles
+  (the emission pass is depth tested), confirmed with a render sample.
+
 ## 2.4.0 - 2026-10-22
 ### Added
 - Beaded spark trails: every star now leaves a granular string of emissive

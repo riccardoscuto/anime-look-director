@@ -128,6 +128,21 @@ def _fibonacci_direction(index, count, jitter, seed, burst):
     return Vector((math.cos(theta) * radius, math.sin(theta) * radius, z))
 
 
+def _star_state(seed, index, spoke, count, config, age, speed_scale=1.0,
+                life_scale=1.0, hash_offset=0):
+    """Deterministic state of one primary star at a given age."""
+    life = _hash_range(seed, index, spoke + hash_offset, 2,
+                       config["life"] * 0.6 * life_scale,
+                       config["life"] * life_scale)
+    direction = _fibonacci_direction(spoke, count, 0.35, seed, index)
+    speed = _hash_range(seed, index, spoke + hash_offset, 3,
+                        config["speed"] * 0.75 * speed_scale,
+                        config["speed"] * 1.15 * speed_scale)
+    v0 = direction * speed
+    alive = 0.0 <= age <= life
+    return direction, life, v0, alive
+
+
 def _position(p0, v0, drag, age):
     """Position at ``age`` seconds with linear drag and world gravity."""
     if age <= 0.0:
@@ -304,6 +319,19 @@ def _build_fireworks(scene, count, seed, distance, family):
             [center] * spoke_count, [0.001] * spoke_count, materials[0])
         _collection(scene).objects.link(head_obj)
         head_obj["ald_fx_kind"] = kind
+        # Inner contrasting pistil population (the classic Hanabi core).
+        pistil_count = config["pistil"]
+        pistil_obj, pistil_ranges = _build_particle_mesh(
+            "ALD FX %s %d Pistil Heads" % (family_key, index),
+            [center] * pistil_count, [0.001] * pistil_count, materials[1])
+        _collection(scene).objects.link(pistil_obj)
+        pistil_obj["ald_fx_kind"] = kind
+        pistil_bead_obj, pistil_bead_ranges = _build_particle_mesh(
+            "ALD FX %s %d Pistil Beads" % (family_key, index),
+            [center] * (pistil_count * SAMPLES),
+            [0.001] * (pistil_count * SAMPLES), materials[1])
+        _collection(scene).objects.link(pistil_bead_obj)
+        pistil_bead_obj["ald_fx_kind"] = kind
         spark_total = spoke_count * config["sparks"]
         spark_obj, spark_ranges = _build_particle_mesh(
             "ALD FX %s %d Sparks" % (family_key, index),
@@ -321,6 +349,8 @@ def _build_fireworks(scene, count, seed, distance, family):
             "size_scale": size_scale, "materials": materials,
             "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
             "beads": bead_objects,
+            "pistil": (pistil_obj, pistil_ranges, pistil_bead_obj,
+                       pistil_bead_ranges, pistil_count),
             "sparks": spark_obj, "spark_ranges": spark_ranges,
             "core": core_obj, "core_ranges": core_ranges,
         })
@@ -400,8 +430,47 @@ def _update_fireworks(system, time):
                                               child_age))
                 spark_radii.append(0.045 * burst["size_scale"]
                                    * (1.0 - child_age / max(child_life, 1e-3)))
+        # Inner contrasting pistil: a smaller, slower population.
+        (pistil_obj, pistil_ranges, pistil_bead_obj, pistil_bead_ranges,
+         pistil_count) = burst["pistil"]
+        pistil_centers = []
+        pistil_radii = []
+        pistil_bead_centers = []
+        pistil_bead_radii = []
+        for spoke in range(pistil_count):
+            direction, life, v0, alive = _star_state(
+                seed, index, spoke, pistil_count, config, age,
+                speed_scale=0.68, life_scale=0.85, hash_offset=500)
+            drag = config["drag"] * 1.2
+            if alive:
+                head = _position(center, v0, drag, age)
+                pistil_centers.append(head)
+                pistil_radii.append(
+                    0.10 * burst["size_scale"]
+                    * (0.35 + 0.65 * (1.0 - age / max(life, 1e-3))))
+            else:
+                pistil_centers.append(center + Vector((0.0, 0.0, 1000.0)))
+                pistil_radii.append(0.0001)
+            trail_time = min(age, config["trail"] * 0.6) if alive else 0.0
+            for step in range(SAMPLES):
+                tau = trail_time * (1.0 - step / (SAMPLES - 1.0))
+                point = _position(center, v0, drag, max(0.0, age - tau))
+                profile = step / (SAMPLES - 1.0)
+                if not alive:
+                    point = center + Vector((0.0, 0.0, 1000.0))
+                pistil_bead_centers.append(point)
+                if alive:
+                    pistil_bead_radii.append(
+                        0.028 * burst["size_scale"] * (0.25 + 0.75 * profile))
+                else:
+                    pistil_bead_radii.append(0.0001)
+
         _write_particle_mesh(burst["heads"].data, burst["head_ranges"],
                              head_centers, head_radii)
+        _write_particle_mesh(pistil_obj.data, pistil_ranges, pistil_centers,
+                             pistil_radii)
+        _write_particle_mesh(pistil_bead_obj.data, pistil_bead_ranges,
+                             pistil_bead_centers, pistil_bead_radii)
         for slot, (bead_obj, bead_ranges, _spokes) in enumerate(burst["beads"]):
             _write_particle_mesh(bead_obj.data, bead_ranges,
                                  bead_centers[slot], bead_radii[slot])
@@ -554,7 +623,26 @@ def update(scene, time=None):
     return True
 
 
-def clear(scene, keep_system=False):
+def systems_info(scene):
+    """Return the FX systems present in a scene as (kind, object count)."""
+    registry = SYSTEMS.get(_scene_id(scene), {})
+    info = []
+    for kind, system in registry.items():
+        if not system:
+            continue
+        owner = _scene_id(scene)
+        count = 0
+        for coll in bpy.data.collections:
+            if coll.get(OWNER_KEY) != owner:
+                continue
+            for obj in coll.objects:
+                if obj.get("ald_fx") and obj.get("ald_fx_kind") == kind:
+                    count += 1
+        info.append((kind, count))
+    return info
+
+
+def clear(scene, keep_system=False, kind=None):
     """Remove the FX systems owned by ``scene`` and their orphan data."""
     owner = _scene_id(scene)
     removed = 0
@@ -565,10 +653,17 @@ def clear(scene, keep_system=False):
             break
     if coll is not None:
         for obj in list(coll.objects):
-            if obj.get("ald_fx"):
-                bpy.data.objects.remove(obj, do_unlink=True)
-                removed += 1
-    if not keep_system:
+            if not obj.get("ald_fx"):
+                continue
+            if kind is not None and obj.get("ald_fx_kind") != kind:
+                continue
+            bpy.data.objects.remove(obj, do_unlink=True)
+            removed += 1
+    if kind is not None:
+        registry = SYSTEMS.get(owner)
+        if registry is not None:
+            registry.pop(kind, None)
+    elif not keep_system:
         SYSTEMS.pop(owner, None)
     _cleanup_orphans()
     return removed

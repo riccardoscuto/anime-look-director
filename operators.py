@@ -327,12 +327,29 @@ class ALD_OT_fx_clear(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_clear_kind(bpy.types.Operator):
+    bl_idname = "ald.fx_clear_kind"
+    bl_label = "Clear FX System"
+    bl_description = "Remove one FX system (fireworks or meteors) from the scene"
+    bl_options = {"REGISTER", "UNDO"}
+
+    kind: bpy.props.EnumProperty(
+        name="Kind", items=[("fireworks", "Fireworks", ""),
+                            ("meteors", "Meteors", "")], default="fireworks")
+
+    def execute(self, context):
+        count = fx.clear(context.scene, kind=self.kind)
+        self.report({"INFO"}, "Anime Look Director: %d FX objects removed" %
+                    count)
+        return {"FINISHED"}
+
+
 _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_clear_shadow_tint, ALD_OT_toggle_exclude_material,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_update,
-            ALD_OT_fx_clear)
+            ALD_OT_fx_clear, ALD_OT_fx_clear_kind)
 
 
 def register():

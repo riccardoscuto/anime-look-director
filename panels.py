@@ -441,6 +441,13 @@ class ALD_PT_fx(bpy.types.Panel):
         if config:
             layout.label(text="FX active: %s" % config.get("kind", "-"),
                          icon="DOT")
+        from . import fx
+        for kind, count in fx.systems_info(context.scene):
+            row = layout.row(align=True)
+            row.label(text="%s (%d)" % (kind.capitalize(), count),
+                      icon="PARTICLE_DATA")
+            op = row.operator("ald.fx_clear_kind", text="", icon="X")
+            op.kind = kind
 
 
 _classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor, ALD_PT_fx, ALD_PT_view3d)

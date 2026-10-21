@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 4, 0)
+EXPECTED_VERSION = (2, 5, 0)
 TOLERANCE = 1e-4
 
 
@@ -1504,6 +1504,16 @@ def check_fx(scene):
     fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
     compositor_module.build(scene)
     check(_fx_signature(scene)[0] > 0, "compositor rebuild removed the FX")
+    ng = scene.compositing_node_group
+    if ng is not None:
+        mask = ng.nodes.get("ALD | FX Mask")
+        restore = ng.nodes.get("ALD | FX Restore")
+        check(mask is not None, "FX mask node missing")
+        check(restore is not None, "FX restore node missing")
+        if mask is not None and restore is not None:
+            check(any(link.from_node == mask
+                      for link in restore.inputs["Factor"].links),
+                  "FX restore is not driven by the emission mask")
 
     fx_module.clear(scene)
     bpy.data.scenes.remove(other)
