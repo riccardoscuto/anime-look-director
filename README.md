@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v1.0.5)
+## What it does (v1.0.6)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -13,8 +13,8 @@ Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.
   The **Cloud Flatness** control blends billowy cumuli (0) and flat horizontal
   strata (1). Perlin-Worley density gives compact lobes, while a solar
   finite difference drives violet/mauve cores and a thin silver-lining rim.
-  **Delta Gain** and **Rim Boost** expose the painterly transfers; low clouds
-  absorb the horizon tint and an optional **Sky Accent** paints a turquoise or
+  **Delta Gain** and **Rim Boost** expose the painterly transfers; cloud color is
+  independent from the horizon tint and an optional **Sky Accent** paints a turquoise or
   coral band around the mid-sky stop.
 - **Visible-sky / ambient split**: `World Strength` controls ambient light while
   the camera-visible sky stays vivid (Light Path `Is Camera Ray`).
@@ -124,7 +124,8 @@ Expected output: `ALD GATE: PASS`.
 - v1.0.2 - restored organic fBm clouds; Cloud Light confined to the sun fringe
 - v1.0.3 - envelope-driven shading, internal Cloud Light suppression, atmosphere resets
 - v1.0.4 - cloud/horizon decoupling, clustered painterly stars, richer presets, neutral UI names
-- v1.0.5 - dedicated cloud color controls and three-tier hash-based starfield (current)
+- v1.0.5 - dedicated cloud color controls and three-tier hash-based starfield
+- v1.0.6 - reliable sky toggles, true Star Amount, warped readable stars, panel parity (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

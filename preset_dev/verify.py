@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 0, 5)
+EXPECTED_VERSION = (1, 0, 6)
 TOLERANCE = 1e-4
 
 
@@ -259,8 +259,10 @@ def check_world_gradient(scene, settings):
         check(node.inputs.get(name) is not None,
               "star/wind world input missing: " + name)
     golden = palette_module.preset("GOLDEN_HOUR")
+    check(abs(settings.star_strength - golden["star_amount"]) <= TOLERANCE,
+          "golden hour star amount not synced to style")
     check(abs(node.inputs["Star Amount"].default_value
-              - golden["star_amount"] * settings.star_strength) <= TOLERANCE,
+              - settings.star_strength) <= TOLERANCE,
           "golden hour star amount not synced")
     check(abs(node.inputs["Star Density"].default_value
               - settings.star_density) <= TOLERANCE,
@@ -339,6 +341,9 @@ def check_world_gradient(scene, settings):
           "apply palette did not reset contrails")
     check(abs(settings.star_density - after["star_density"]) <= TOLERANCE,
           "apply palette did not reset star density")
+    settings.clouds = False
+    bpy.ops.ald.apply_palette()
+    check(settings.clouds, "apply palette did not re-enable clouds")
     settings.palette = "GOLDEN_HOUR"
     bpy.ops.ald.apply_palette()
 
@@ -346,8 +351,10 @@ def check_world_gradient(scene, settings):
     settings.palette = "NEON_NIGHT"
     bpy.ops.ald.apply_palette()
     node = gradient_node(scene)
+    check(abs(settings.star_strength - neon["star_amount"]) <= TOLERANCE,
+          "neon star amount not synced to style")
     check(abs(node.inputs["Star Amount"].default_value
-              - neon["star_amount"] * settings.star_strength) <= TOLERANCE,
+              - settings.star_strength) <= TOLERANCE,
           "neon night stars not enabled")
 
     settings.cloud_wind = 1.0

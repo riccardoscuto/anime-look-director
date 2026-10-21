@@ -28,14 +28,7 @@ def _on_palette(self, context):
         if scene is None:
             return
         if self.custom_colors:
-            p = palette.preset(self.palette)
-            self.custom_sky = p["sky_color"]
-            self.custom_horizon = p["horizon_color"]
-            self.custom_sun = p["sun_color"]
-            self.custom_shadow = p["shadow_tint"]
-            self.custom_cloud_shadow = p["cloud_shadow"]
-            self.custom_cloud_mid = p["cloud_mid"]
-            self.custom_cloud_light = p["cloud_light"]
+            palette.sync_custom_colors(self, palette.preset(self.palette))
         look.apply(scene, force=True)
     except Exception:
         pass
@@ -57,20 +50,19 @@ def _on_custom(self, context):
     try:
         from . import palette
         if self.custom_colors:
-            p = palette.preset(self.palette)
-            self.custom_sky = p["sky_color"]
-            self.custom_horizon = p["horizon_color"]
-            self.custom_sun = p["sun_color"]
-            self.custom_shadow = p["shadow_tint"]
-            self.custom_cloud_shadow = p["cloud_shadow"]
-            self.custom_cloud_mid = p["cloud_mid"]
-            self.custom_cloud_light = p["cloud_light"]
+            palette.sync_custom_colors(self, palette.preset(self.palette))
         _on_custom_color(self, context)
     except Exception:
         pass
 
 
 def _on_custom_color(self, context):
+    try:
+        from . import palette
+        if palette.style_syncing():
+            return
+    except Exception:
+        pass
     _on_world(self, context)
     try:
         from . import materials, palette
@@ -346,7 +338,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         update=_on_world)
     star_strength: FloatProperty(
         name="Star Amount", default=1.0, min=0.0, max=1.0,
-        description="Multiplier for the preset star density",
+        description="Visible star amount for the preset",
         update=_on_world)
     star_density: FloatProperty(
         name="Star Density", default=180.0, min=50.0, max=400.0,

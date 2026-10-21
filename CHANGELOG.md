@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.6 - 2026-10-20
+### Fixed
+- Apply Palette now re-enables `world_gradient`, `sun_disk`, `clouds` and
+  `stars`, so a palette change restores the cloud controls and the sky UI.
+- Removed the hidden `star_amount * star_strength` double multiplication.
+  `star_strength` is now the visible preset star amount and the shader reads it
+  directly, so raising Star Amount to 1.0 gives 100% of the stars.
+- Custom color synchronization is guarded with `_syncing_style`, avoiding seven
+  consecutive world/material rebuilds when Custom Colors is active.
+- Starfield stars are no longer sub-pixel: celestial domain warp, readable
+  tier radii (0.14/0.12/0.10), hash culling and a 10x glow.
+- Sidebar now includes Sun Disk Size/Strength and the shadow-tint X button,
+  matching the Scene panel layout.
+- World gradient marker 20.
+
 ## 1.0.5 - 2026-10-20
 ### Added
 - Dedicated Custom Colors entries for Cloud Shadow, Cloud Mid and Cloud Light.

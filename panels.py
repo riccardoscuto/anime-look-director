@@ -257,6 +257,14 @@ class ALD_PT_view3d(bpy.types.Panel):
         row = box.row(align=True)
         row.prop(s, "sun_disk", toggle=True)
         row.prop(s, "clouds", toggle=True)
+        if s.sun_disk:
+            col = box.column(align=True)
+            col.prop(s, "sun_disk_size")
+            col.prop(s, "sun_disk_strength")
+        box.prop(s, "sun_glow")
+        col = box.column(align=True)
+        col.prop(s, "sky_accent")
+        col.prop(s, "sky_accent_amount")
         if s.clouds:
             col = box.column(align=True)
             col.prop(s, "cloud_amount")
@@ -266,10 +274,6 @@ class ALD_PT_view3d(bpy.types.Panel):
             col.prop(s, "contrails")
             col.prop(s, "cloud_delta_gain")
             col.prop(s, "cloud_rim_boost")
-        box.prop(s, "sun_glow")
-        col = box.column(align=True)
-        col.prop(s, "sky_accent")
-        col.prop(s, "sky_accent_amount")
         row = box.row(align=True)
         row.prop(s, "stars", toggle=True)
         if s.stars:
@@ -298,6 +302,7 @@ class ALD_PT_view3d(bpy.types.Panel):
         row.prop(s, "shadow_tint", toggle=True)
         count = scene.get("ald_shadow_materials", 0)
         row.label(text="%d mats" % count, icon="MATERIAL")
+        row.operator("ald.clear_shadow_tint", text="", icon="X")
         if s.shadow_tint:
             col = box.column(align=True)
             col.prop(s, "shadow_tint_strength")

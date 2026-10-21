@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 1.0.5** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 1.0.6** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -33,9 +33,9 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
      Golden Hour, After School, Neon Night e Twilight Dusk le attivano.
 6. **Visible sky / ambient split** — la forza del world regola la luce ambientale,
    mentre il cielo visto dalla camera resta vivido.
-7. **Custom palette colors** — override di cielo, orizzonte, sole e ombra per
-   scena; cambiando preset con override attivo i colori si riallineano al nuovo
-   preset.
+7. **Custom palette colors** - override di cielo, orizzonte, sole, ombra e
+   nuvole per scena; cambiando preset con override attivo i colori si
+   riallineano al nuovo preset.
 8. **Shadow tint** — node group reversibile e **moltiplicativo**, con **Hue Lift**
    additivo: le texture restano leggibili e anche i materiali caldi prendono la
    velatura blu/viola delle ombre.
@@ -80,8 +80,8 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 - **Perlin-Worley**: Voronoi 0.38 + Perlin 0.44 + erosione 0.18.
 - **Derivata solare su densità completa**: secondo campione a `p + 0.12 L`;
   `Delta Gain` e `Rim Boost` sono ora slider espliciti (default 1.0).
-- **Aerial blending**: le nuvole basse assorbono Horizon Color; **Sky Accent**
-  opzionale per la banda turchese/corallo.
+- **Aerial blending**: il colore delle nuvole resta indipendente dall'orizzonte;
+  **Sky Accent** è opzionale per la banda turchese/corallo.
 - **Micro stelle**: densità ×2.5, core 0.040/POWER 2.5, noise 45,
   magnitudine 0.48..0.78 e alone tenue per la leggibilità.
 - **Contrails** opzionali, spente di default.
@@ -277,3 +277,4 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **1.0.4** - Colore nuvole indipendente dall'orizzonte, starfield a cluster
   con hero stars, preset atmosferici completi e nomi UI neutri.
 - **1.0.5** - Selettori Cloud Shadow/Mid/Light in Custom Colors e starfield a 3 livelli con hash Voronoi, temperature casuali e glow 6x.
+- **1.0.6** - Toggle cielo sempre ripristinati, Star Amount reale senza moltiplicazioni nascoste, stelle leggibili con domain warp e pannelli allineati.

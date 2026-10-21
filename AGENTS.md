@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **1.0.5**).
+  (currently **1.0.6**).
 
 ## Verify (run after every change)
 ```powershell
@@ -101,7 +101,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Normal pass by 1.5 px, subtracts, takes vector length, curves 0.01..0.14 and
   multiplies by the normal sensitivity and geometry mask. Combine with the depth
   edge via `MAXIMUM`.
-- World gradient group marker is **19**. Inputs include `Star Amount`, `Star
+- World gradient group marker is **20**. Inputs include `Star Amount`, `Star
   Density` (Voronoi scale, default 180), `Cloud Flatness` and `Cloud Offset`
   (vector). Exact shell point is `(Vx*t, Vy*t, Vz)` with
   `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
@@ -128,10 +128,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   horizon/shadow overrides, and the Cloud Mid fallback is neutral
   `(0.6, 0.6, 0.7)`. Horizon only controls the alpha/altitude fade.
 - Starfield is clustered and uses per-cell Voronoi Color hashes, never a
-  one-octave Noise threshold for culling. Three tiers: stardust at density*2.2,
-  medium stars at *0.90 and hero stars at *0.38; medium/hero grids are
-  translated. Warm/cool temperature mixes use `vor1 Color.Z`; the final tint is
-  25% Cloud Light at 6x. Preset star amount/density are authoritative.
+  one-octave Noise threshold for culling. A celestial domain warp
+  (Noise Scale 4.2, offset 0.14) feeds the Voronoi grids; three tiers use
+  density*1.15, *0.55 and *0.24 with readable radii (0.14, 0.12, 0.10).
+  Warm/cool temperature mixes use `vor1 Color.Z`; the final tint is 25% Cloud
+  Light at 10x. `star_strength` is the visible amount, not a hidden multiplier.
 - Custom Colors exposes `custom_cloud_shadow`, `custom_cloud_mid` and
   `custom_cloud_light`; `effective()` uses them only when Custom Colors is on.
   They sync on palette change/custom enable and are independent of
@@ -149,8 +150,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Rim Boost. Fringe top is +0.022, the fringe is squared before the 0.95
   weight, and the sun edge maps 0.000..0.022.
 - `Cloud Delta Gain` and `Cloud Rim Boost` are explicit group inputs
-  (default 1.0), not hidden multipliers. Low clouds mix toward Horizon Color by
-  `(1-horizon)*0.65`.
+  (default 1.0), not hidden multipliers. Cloud color is never mixed toward
+  Horizon Color.
 - Contrails use gnomonic `X/Z`, `Y/Z` coordinates (not the curved shell
   `planar_uv`): `u=0.82X+0.57Y+0.06*noise`, `v=-0.57X+0.82Y`,
   `abs(u-0.15)` 0..0.012, length fade and altitude 0.08..0.45. Do not use
@@ -169,7 +170,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   respected by `sync_scene`, `sync_one` and material preset apply.
 - Rim Bias maps Sun=1, Contour=0, Backlight=-1. Terminator Warmth is an additive
   `Sun Color * smoothstep(0..0.12, abs(N.L))` band; Skin is boosted to 0.35.
-- Gate pixel ratios: shadow ~2.63 %, wrap ~15.81 %, ink ~3.51 %, haze ~63.03 %
+- Gate pixel ratios: shadow ~2.64 %, wrap ~15.75 %, ink ~3.51 %, haze ~63.04 %
   (gate plane fills the frame), toon ~1.61 %, rim ~7.01 %.
 - Shadow tint uses a `MULTIPLY` Mix on Base Color; palette `shadow_tint` colors are
   normalized (max component 1) so textures keep their detail in shadows.
@@ -181,7 +182,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Panel code must read the module version from `sys.modules[__package__]`;
   `bpy.context.preferences.addons[...].module` is a **path string** in 5.1,
   and accessing `.bl_info` on it kills the whole panel draw.
-- World gradient (`ald_build = 19`) also hosts the sun disk, stars and clouds. Inputs:
+- World gradient (`ald_build = 20`) also hosts the sun disk, stars and clouds. Inputs:
   `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
   (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,
   `Cloud Amount/Scale`. Palette colors are wired through these sockets, never
@@ -263,7 +264,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
   restores on clear.
 - Gate pixel ratios: ink ~3.51 %, rim ~7.01 % (edge-local);
-  shadow ~2.63 %, toon ~1.61 %.
+  shadow ~2.64 %, toon ~1.61 %.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.

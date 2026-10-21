@@ -289,13 +289,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 19):
+                           or ng.get("ald_build") != 20):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 19
+        ng["ald_build"] = 20
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -309,7 +309,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 19
+        ng["ald_build"] = 20
     return ng
 
 
@@ -1498,38 +1498,62 @@ def _build_gradient_group(ng):
     links.new(cloud_glow_add.outputs["Result"], b_sock)
     links.new(cloud_amount_node.outputs[0], cloud_mix.inputs["Factor"])
 
-    # Clustered painterly starfield: three independent Voronoi tiers, each
-    # using the per-cell Color hash instead of a low-frequency Perlin cull.
-    # This avoids the invisible-star thresholds of v1.0.4 and breaks any
-    # regular cell grid by offsetting the medium and hero layers.
+    # Clustered painterly starfield: three independent Voronoi tiers with a
+    # celestial domain warp. The per-cell Color hash culls stars uniformly and
+    # the translated/warped grids avoid a regular cell pattern.
+    star_warp_noise = nodes.new("ShaderNodeTexNoise")
+    star_warp_noise.location = (1880, -280)
+    star_warp_noise.inputs["Scale"].default_value = 4.2
+    star_warp_noise.inputs["Detail"].default_value = 2.0
+    star_warp_noise.inputs["Roughness"].default_value = 0.50
+    links.new(view_norm.outputs["Vector"], star_warp_noise.inputs["Vector"])
+
+    star_warp_center = nodes.new("ShaderNodeVectorMath")
+    star_warp_center.location = (2060, -280)
+    star_warp_center.operation = "SUBTRACT"
+    star_warp_center.inputs[1].default_value = (0.5, 0.5, 0.5)
+    links.new(star_warp_noise.outputs["Color"], star_warp_center.inputs[0])
+
+    star_warp_vec = nodes.new("ShaderNodeVectorMath")
+    star_warp_vec.location = (2240, -280)
+    star_warp_vec.operation = "SCALE"
+    star_warp_vec.inputs["Scale"].default_value = 0.14
+    links.new(star_warp_center.outputs["Vector"], star_warp_vec.inputs[0])
+
+    star_coord = nodes.new("ShaderNodeVectorMath")
+    star_coord.location = (2420, -280)
+    star_coord.operation = "ADD"
+    links.new(view_norm.outputs["Vector"], star_coord.inputs[0])
+    links.new(star_warp_vec.outputs["Vector"], star_coord.inputs[1])
+
     cluster_noise = nodes.new("ShaderNodeTexNoise")
-    cluster_noise.location = (1880, -360)
-    cluster_noise.inputs["Scale"].default_value = 2.6
+    cluster_noise.location = (2600, -280)
+    cluster_noise.inputs["Scale"].default_value = 2.4
     cluster_noise.inputs["Detail"].default_value = 3.0
     cluster_noise.inputs["Roughness"].default_value = 0.55
-    cluster_noise.inputs["Distortion"].default_value = 0.35
-    links.new(view_norm.outputs["Vector"], cluster_noise.inputs["Vector"])
+    cluster_noise.inputs["Distortion"].default_value = 0.30
+    links.new(star_coord.outputs["Vector"], cluster_noise.inputs["Vector"])
 
     cluster_mask = nodes.new("ShaderNodeMapRange")
-    cluster_mask.location = (2060, -360)
+    cluster_mask.location = (2780, -280)
     cluster_mask.clamp = True
     _smooth(cluster_mask)
-    cluster_mask.inputs["From Min"].default_value = 0.30
-    cluster_mask.inputs["From Max"].default_value = 0.62
-    cluster_mask.inputs["To Min"].default_value = 0.25
+    cluster_mask.inputs["From Min"].default_value = 0.28
+    cluster_mask.inputs["From Max"].default_value = 0.58
+    cluster_mask.inputs["To Min"].default_value = 0.30
     cluster_mask.inputs["To Max"].default_value = 1.0
     links.new(cluster_noise.outputs["Fac"], cluster_mask.inputs["Value"])
 
-    # Tier 1: painted stardust, dense but subordinate.
+    # Tier 1: painted stardust with a readable radius and soft core.
     star1_scale = nodes.new("ShaderNodeMath")
     star1_scale.location = (1880, -560)
     star1_scale.operation = "MULTIPLY"
-    star1_scale.inputs[1].default_value = 2.2
+    star1_scale.inputs[1].default_value = 1.15
     links.new(group_in.outputs["Star Density"], star1_scale.inputs[0])
 
     vor1 = nodes.new("ShaderNodeTexVoronoi")
     vor1.location = (2060, -560)
-    links.new(view_norm.outputs["Vector"], vor1.inputs["Vector"])
+    links.new(star_coord.outputs["Vector"], vor1.inputs["Vector"])
     links.new(star1_scale.outputs[0], vor1.inputs["Scale"])
 
     vor1_rand = nodes.new("ShaderNodeSeparateXYZ")
@@ -1541,46 +1565,52 @@ def _build_gradient_group(ng):
     star1_spot.clamp = True
     _smooth(star1_spot)
     star1_spot.inputs["From Min"].default_value = 0.0
-    star1_spot.inputs["From Max"].default_value = 0.085
+    star1_spot.inputs["From Max"].default_value = 0.14
     star1_spot.inputs["To Min"].default_value = 1.0
     star1_spot.inputs["To Max"].default_value = 0.0
     links.new(vor1.outputs["Distance"], star1_spot.inputs["Value"])
+
+    star1_sharp = nodes.new("ShaderNodeMath")
+    star1_sharp.location = (2600, -560)
+    star1_sharp.operation = "POWER"
+    star1_sharp.inputs[1].default_value = 2.0
+    links.new(star1_spot.outputs["Result"], star1_sharp.inputs[0])
 
     star1_cull = nodes.new("ShaderNodeMapRange")
     star1_cull.location = (2420, -720)
     star1_cull.clamp = True
     _smooth(star1_cull)
-    star1_cull.inputs["From Min"].default_value = 0.35
-    star1_cull.inputs["From Max"].default_value = 0.98
+    star1_cull.inputs["From Min"].default_value = 0.42
+    star1_cull.inputs["From Max"].default_value = 0.95
     star1_cull.inputs["To Min"].default_value = 0.0
-    star1_cull.inputs["To Max"].default_value = 0.55
+    star1_cull.inputs["To Max"].default_value = 0.85
     links.new(vor1_rand.outputs["X"], star1_cull.inputs["Value"])
 
     tier1_raw = nodes.new("ShaderNodeMath")
-    tier1_raw.location = (2600, -620)
+    tier1_raw.location = (2780, -620)
     tier1_raw.operation = "MULTIPLY"
     tier1_raw.use_clamp = True
-    links.new(star1_spot.outputs["Result"], tier1_raw.inputs[0])
+    links.new(star1_sharp.outputs[0], tier1_raw.inputs[0])
     links.new(star1_cull.outputs["Result"], tier1_raw.inputs[1])
 
     tier1_stars = nodes.new("ShaderNodeMath")
-    tier1_stars.location = (2780, -620)
+    tier1_stars.location = (2960, -620)
     tier1_stars.operation = "MULTIPLY"
     tier1_stars.use_clamp = True
     links.new(tier1_raw.outputs[0], tier1_stars.inputs[0])
     links.new(cluster_mask.outputs["Result"], tier1_stars.inputs[1])
 
-    # Tier 2: medium constellation stars on a translated grid.
+    # Tier 2: medium stars on a translated grid.
     view_offset_2 = nodes.new("ShaderNodeVectorMath")
     view_offset_2.location = (1880, -900)
     view_offset_2.operation = "ADD"
     view_offset_2.inputs[1].default_value = (1.73, -2.41, 0.89)
-    links.new(view_norm.outputs["Vector"], view_offset_2.inputs[0])
+    links.new(star_coord.outputs["Vector"], view_offset_2.inputs[0])
 
     star2_scale = nodes.new("ShaderNodeMath")
     star2_scale.location = (1880, -1060)
     star2_scale.operation = "MULTIPLY"
-    star2_scale.inputs[1].default_value = 0.90
+    star2_scale.inputs[1].default_value = 0.55
     links.new(group_in.outputs["Star Density"], star2_scale.inputs[0])
 
     vor2 = nodes.new("ShaderNodeTexVoronoi")
@@ -1597,30 +1627,36 @@ def _build_gradient_group(ng):
     star2_spot.clamp = True
     _smooth(star2_spot)
     star2_spot.inputs["From Min"].default_value = 0.0
-    star2_spot.inputs["From Max"].default_value = 0.075
+    star2_spot.inputs["From Max"].default_value = 0.12
     star2_spot.inputs["To Min"].default_value = 1.0
     star2_spot.inputs["To Max"].default_value = 0.0
     links.new(vor2.outputs["Distance"], star2_spot.inputs["Value"])
+
+    star2_sharp = nodes.new("ShaderNodeMath")
+    star2_sharp.location = (2600, -900)
+    star2_sharp.operation = "POWER"
+    star2_sharp.inputs[1].default_value = 1.8
+    links.new(star2_spot.outputs["Result"], star2_sharp.inputs[0])
 
     star2_cull = nodes.new("ShaderNodeMapRange")
     star2_cull.location = (2420, -1060)
     star2_cull.clamp = True
     _smooth(star2_cull)
-    star2_cull.inputs["From Min"].default_value = 0.55
-    star2_cull.inputs["From Max"].default_value = 0.98
+    star2_cull.inputs["From Min"].default_value = 0.52
+    star2_cull.inputs["From Max"].default_value = 0.96
     star2_cull.inputs["To Min"].default_value = 0.0
-    star2_cull.inputs["To Max"].default_value = 0.85
+    star2_cull.inputs["To Max"].default_value = 1.0
     links.new(vor2_rand.outputs["X"], star2_cull.inputs["Value"])
 
     tier2_raw = nodes.new("ShaderNodeMath")
-    tier2_raw.location = (2600, -960)
+    tier2_raw.location = (2780, -960)
     tier2_raw.operation = "MULTIPLY"
     tier2_raw.use_clamp = True
-    links.new(star2_spot.outputs["Result"], tier2_raw.inputs[0])
+    links.new(star2_sharp.outputs[0], tier2_raw.inputs[0])
     links.new(star2_cull.outputs["Result"], tier2_raw.inputs[1])
 
     tier2_stars = nodes.new("ShaderNodeMath")
-    tier2_stars.location = (2780, -960)
+    tier2_stars.location = (2960, -960)
     tier2_stars.operation = "MULTIPLY"
     tier2_stars.use_clamp = True
     links.new(tier2_raw.outputs[0], tier2_stars.inputs[0])
@@ -1631,12 +1667,12 @@ def _build_gradient_group(ng):
     view_offset_3.location = (1880, -1240)
     view_offset_3.operation = "ADD"
     view_offset_3.inputs[1].default_value = (-3.14, 1.17, 2.65)
-    links.new(view_norm.outputs["Vector"], view_offset_3.inputs[0])
+    links.new(star_coord.outputs["Vector"], view_offset_3.inputs[0])
 
     star3_scale = nodes.new("ShaderNodeMath")
     star3_scale.location = (1880, -1400)
     star3_scale.operation = "MULTIPLY"
-    star3_scale.inputs[1].default_value = 0.38
+    star3_scale.inputs[1].default_value = 0.24
     links.new(group_in.outputs["Star Density"], star3_scale.inputs[0])
 
     vor3 = nodes.new("ShaderNodeTexVoronoi")
@@ -1653,7 +1689,7 @@ def _build_gradient_group(ng):
     hero_core.clamp = True
     _smooth(hero_core)
     hero_core.inputs["From Min"].default_value = 0.0
-    hero_core.inputs["From Max"].default_value = 0.068
+    hero_core.inputs["From Max"].default_value = 0.10
     hero_core.inputs["To Min"].default_value = 1.0
     hero_core.inputs["To Max"].default_value = 0.0
     links.new(vor3.outputs["Distance"], hero_core.inputs["Value"])
@@ -1663,8 +1699,8 @@ def _build_gradient_group(ng):
     hero_halo.clamp = True
     _smooth(hero_halo)
     hero_halo.inputs["From Min"].default_value = 0.0
-    hero_halo.inputs["From Max"].default_value = 0.22
-    hero_halo.inputs["To Min"].default_value = 0.30
+    hero_halo.inputs["From Max"].default_value = 0.26
+    hero_halo.inputs["To Min"].default_value = 0.35
     hero_halo.inputs["To Max"].default_value = 0.0
     links.new(vor3.outputs["Distance"], hero_halo.inputs["Value"])
 
@@ -1679,8 +1715,8 @@ def _build_gradient_group(ng):
     hero_cull.location = (2600, -1480)
     hero_cull.clamp = True
     _smooth(hero_cull)
-    hero_cull.inputs["From Min"].default_value = 0.70
-    hero_cull.inputs["From Max"].default_value = 0.96
+    hero_cull.inputs["From Min"].default_value = 0.65
+    hero_cull.inputs["From Max"].default_value = 0.95
     hero_cull.inputs["To Min"].default_value = 0.0
     hero_cull.inputs["To Max"].default_value = 1.0
     links.new(vor3_rand.outputs["X"], hero_cull.inputs["Value"])
@@ -1693,14 +1729,14 @@ def _build_gradient_group(ng):
     links.new(hero_cull.outputs["Result"], tier3_stars.inputs[1])
 
     star_sum_12 = nodes.new("ShaderNodeMath")
-    star_sum_12.location = (2960, -760)
+    star_sum_12.location = (3140, -760)
     star_sum_12.operation = "ADD"
     star_sum_12.use_clamp = True
     links.new(tier1_stars.outputs[0], star_sum_12.inputs[0])
     links.new(tier2_stars.outputs[0], star_sum_12.inputs[1])
 
     star_total = nodes.new("ShaderNodeMath")
-    star_total.location = (3140, -760)
+    star_total.location = (3320, -760)
     star_total.operation = "ADD"
     star_total.use_clamp = True
     links.new(star_sum_12.outputs[0], star_total.inputs[0])
@@ -1726,35 +1762,35 @@ def _build_gradient_group(ng):
     links.new(dot.outputs["Value"], sun_hide.inputs["Value"])
 
     star_mask_a = nodes.new("ShaderNodeMath")
-    star_mask_a.location = (3320, -760)
+    star_mask_a.location = (3500, -760)
     star_mask_a.operation = "MULTIPLY"
     star_mask_a.use_clamp = True
     links.new(star_total.outputs[0], star_mask_a.inputs[0])
     links.new(zenith.outputs["Result"], star_mask_a.inputs[1])
 
     star_mask_b = nodes.new("ShaderNodeMath")
-    star_mask_b.location = (3500, -760)
+    star_mask_b.location = (3680, -760)
     star_mask_b.operation = "MULTIPLY"
     star_mask_b.use_clamp = True
     links.new(star_mask_a.outputs[0], star_mask_b.inputs[0])
     links.new(sun_hide.outputs["Result"], star_mask_b.inputs[1])
 
     cloud_hide = nodes.new("ShaderNodeMath")
-    cloud_hide.location = (3320, -980)
+    cloud_hide.location = (3500, -980)
     cloud_hide.operation = "SUBTRACT"
     cloud_hide.use_clamp = True
     cloud_hide.inputs[0].default_value = 1.0
     links.new(cloud_amount_node.outputs[0], cloud_hide.inputs[1])
 
     star_mask_c = nodes.new("ShaderNodeMath")
-    star_mask_c.location = (3680, -760)
+    star_mask_c.location = (3860, -760)
     star_mask_c.operation = "MULTIPLY"
     star_mask_c.use_clamp = True
     links.new(star_mask_b.outputs[0], star_mask_c.inputs[0])
     links.new(cloud_hide.outputs[0], star_mask_c.inputs[1])
 
     star_amount = nodes.new("ShaderNodeMath")
-    star_amount.location = (3860, -760)
+    star_amount.location = (4040, -760)
     star_amount.operation = "MULTIPLY"
     star_amount.use_clamp = True
     links.new(star_mask_c.outputs[0], star_amount.inputs[0])
@@ -1762,15 +1798,15 @@ def _build_gradient_group(ng):
 
     # Per-cell temperature: warm gold to cool ice, then 25% Cloud Light tint.
     star_warm_rgb = nodes.new("ShaderNodeRGB")
-    star_warm_rgb.location = (2960, -1160)
+    star_warm_rgb.location = (3140, -1160)
     star_warm_rgb.outputs[0].default_value = (1.0, 0.91, 0.78, 1.0)
 
     star_cool_rgb = nodes.new("ShaderNodeRGB")
-    star_cool_rgb.location = (2960, -1300)
+    star_cool_rgb.location = (3140, -1300)
     star_cool_rgb.outputs[0].default_value = (0.78, 0.91, 1.0, 1.0)
 
     star_temp_mix = nodes.new("ShaderNodeMix")
-    star_temp_mix.location = (3140, -1220)
+    star_temp_mix.location = (3320, -1220)
     star_temp_mix.data_type = "RGBA"
     star_temp_mix.blend_type = "MIX"
     a_sock, b_sock, result_sock = _rgba_sockets(star_temp_mix)
@@ -1779,7 +1815,7 @@ def _build_gradient_group(ng):
     links.new(vor1_rand.outputs["Z"], star_temp_mix.inputs["Factor"])
 
     star_tint_mix = nodes.new("ShaderNodeMix")
-    star_tint_mix.location = (3320, -1220)
+    star_tint_mix.location = (3500, -1220)
     star_tint_mix.data_type = "RGBA"
     star_tint_mix.blend_type = "MIX"
     star_tint_mix.inputs["Factor"].default_value = 0.25
@@ -1788,13 +1824,13 @@ def _build_gradient_group(ng):
     links.new(group_in.outputs["Cloud Light"], b_sock)
 
     star_tint_scale = nodes.new("ShaderNodeVectorMath")
-    star_tint_scale.location = (3500, -1220)
+    star_tint_scale.location = (3680, -1220)
     star_tint_scale.operation = "SCALE"
-    star_tint_scale.inputs["Scale"].default_value = 6.0
+    star_tint_scale.inputs["Scale"].default_value = 10.0
     links.new(star_tint_mix.outputs["Result"], star_tint_scale.inputs["Vector"])
 
     star_mix = nodes.new("ShaderNodeMix")
-    star_mix.location = (4040, -200)
+    star_mix.location = (4220, -200)
     star_mix.data_type = "RGBA"
     star_mix.blend_type = "ADD"
     a_sock, b_sock, result_sock = _rgba_sockets(star_mix)
@@ -1900,10 +1936,33 @@ def apply_preset_style(scene, p):
         settings.horizon_offset = p.get("horizon_offset", 0.0)
         settings.horizon_softness = p.get("horizon_softness", 0.5)
         settings.contrails = p.get("contrails", 0.0)
-        settings.star_strength = p.get("star_strength", 1.0)
+        settings.world_gradient = p.get("world_gradient", True)
+        settings.sun_disk = p.get("sun_disk", True)
+        settings.clouds = p.get("clouds", True)
+        settings.stars = p.get("stars", True)
+        settings.star_strength = p.get("star_amount", 0.0)
         settings.star_density = p.get("star_density", 180.0)
     finally:
         _syncing_style = False
+
+
+def sync_custom_colors(settings, p):
+    """Sync all custom color fields behind the style guard."""
+    global _syncing_style
+    if settings is None:
+        return
+    was_syncing = _syncing_style
+    _syncing_style = True
+    try:
+        settings.custom_sky = p["sky_color"]
+        settings.custom_horizon = p["horizon_color"]
+        settings.custom_sun = p["sun_color"]
+        settings.custom_shadow = p["shadow_tint"]
+        settings.custom_cloud_shadow = p["cloud_shadow"]
+        settings.custom_cloud_mid = p["cloud_mid"]
+        settings.custom_cloud_light = p["cloud_light"]
+    finally:
+        _syncing_style = was_syncing
 
 
 def rotation_from_angles(elevation, azimuth):
@@ -2041,10 +2100,9 @@ def _apply_gradient(scene, settings, nt, background, p):
         getattr(settings, "cloud_rim_boost", 1.0) if settings else 1.0)
 
     stars = getattr(settings, "stars", True) if settings else False
-    star_amount = 0.0
-    if stars:
-        star_amount = (p.get("star_amount", 0.0)
-                       * getattr(settings, "star_strength", 1.0))
+    star_amount = ((getattr(settings, "star_strength", p.get("star_amount", 0.0))
+                    if settings else p.get("star_amount", 0.0))
+                   if stars else 0.0)
     node.inputs["Star Amount"].default_value = max(0.0, min(1.0, star_amount))
     node.inputs["Star Density"].default_value = (
         getattr(settings, "star_density", 180.0) if settings else 180.0)

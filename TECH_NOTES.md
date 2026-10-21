@@ -460,8 +460,8 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   `0.35 * smoothstep(0.03,0.11,body_signal) * sun_edge`. No body base; the
   old 0.35/0.08 baseline washed the opaque cloud beige at Cloud Amount=1.
   `Rim Boost` is explicit before Cloud Light.
-- **Aerial blend / accent**: low clouds mix toward `Horizon Color` by
-  `(1-horizon)*0.65`; optional `Sky Accent` paints a smooth band within
+- **Aerial blend / accent**: cloud color is independent from `Horizon Color`;
+  optional `Sky Accent` paints a smooth band within
   `|Vz - z_mid| < 0.07`.
 - **mu_s**: `L.z` through smoothstep(-0.08,0.08) gates the narrow solar corona.
 - **Sky mapping**: ground transitions at Z -0.08..0.01; the mid peak is
@@ -608,3 +608,18 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   `vor1.Color.Z`, then mixes 25% Cloud Light and scales by 6.0.
 - Marker 19. Gate ratios: shadow 2.63 %, wrap 15.81 %, ink 3.51 %,
   haze 63.03 %, toon 1.61 %, rim 7.01 %.
+
+### v1.0.6 notes (reliable toggles, true star amount, readable stars)
+- `apply_preset_style` resets world_gradient, sun_disk, clouds and stars; the
+  cloud UI no longer disappears after a palette change.
+- `star_strength` is the visible star amount. `_apply_gradient` reads it
+  directly (no hidden preset multiplier), and the gate checks Golden/Neon sync.
+- Custom color sync goes through `palette.sync_custom_colors()` behind
+  `_syncing_style`, so palette changes with Custom Colors do not trigger
+  repeated rebuilds.
+- Stars use a domain warp (Noise 4.2, 0.14), tier scales *1.15/*0.55/*0.24,
+  readable radii 0.14/0.12/0.10 and a 10x glow. Voronoi Color hashes cull
+  stars per cell.
+- Sidebar now matches Scene panel: Sun Disk Size/Strength and shadow-tint X.
+- Marker 20. Gate ratios: shadow 2.64 %, wrap 15.75 %, ink 3.51 %,
+  haze 63.04 %, toon 1.61 %, rim 7.01 %.
