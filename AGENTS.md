@@ -179,6 +179,13 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   (`fx_nodes.realized_centers`). The child sparks are emitted from the parent
   position and velocity at the emission instant. The Python path stays
   available: `GN Particles (Prototype)` off.
+- FX 2.9 rules: `ALD | FX Trail GN` evaluates the filament
+  (Points to Curves + Curve to Mesh) and the meteors use the same groups.
+  The train factor is `max(0, min(age, trail) - max(0, age - life))`; the
+  `Fade Window` input keeps the persistent train of a meteor alive and thins
+  it out, with 0 the trail dies with the body. `Decay Power` reproduces the
+  `sqrt` falloff of the flash. In the Geometry Nodes path the frame handler
+  writes no geometry: 2.5 ms/frame against 121.7 ms for the Python writer.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

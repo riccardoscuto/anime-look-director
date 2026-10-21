@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.9.0 - 2026-10-22
+### Added
+- New `ALD | FX Trail GN` group: the thin filament of every star is now a
+  curve tube evaluated by the nodes (Points to Curves + Curve to Mesh), with
+  the same taper and the same growth of the tail.
+- The central flash of a burst is evaluated by the node group too, with the
+  `Decay Power` input that reproduces the `sqrt` falloff of the flash.
+- The meteors (head, persistent train and burning fragments) are evaluated by
+  the node groups; the Python writer is no longer used by default.
+- The train retracts when the body dies
+  (`train = max(0, min(age, trail) - (age - life))`) and the persistent train
+  of a meteor thins out with the new `Fade Window` input.
+### Changed
+- The frame handler no longer writes any geometry in the Geometry Nodes path:
+  the whole FX system is evaluated by the nodes (2.5 ms per frame against
+  121.7 ms for the Python writer, measured with 4 bursts and 4 meteors).
+- The gate verifies the meteors too: the node evaluation must match the
+  Python solver within 1 mm and no Python meteor may stay in the scene.
+- The `GN Particles (Prototype)` toggle keeps the Python writer available as
+  a fallback.
+
 ## 2.8.0 - 2026-10-22
 ### Added
 - The Geometry Nodes group now evaluates the whole burst population, not only

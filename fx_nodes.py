@@ -1,11 +1,19 @@
-"""Geometry Nodes prototype for the 3D FX bursts.
+"""Geometry Nodes evaluation of the 3D FX bursts.
 
 The Python side owns the deterministic data (hash based seeds, birth times,
 velocities, lifetimes, per grain jitter). Geometry Nodes evaluates the analytic
 motion every frame, so the timeline no longer depends on a Python handler
 rewriting mesh vertices.
 
-The same group evaluates the star heads and the beaded trail grains:
+Two groups are built:
+
+``ALD | FX Burst GN``
+    evaluates the star heads, the beaded trail grains, the inner pistil and
+    the child sparks as instanced spheres;
+``ALD | FX Trail GN``
+    evaluates the thin filament of every star as a curve tube.
+
+The same point attributes drive both:
 
 ``tau``
     age offset of the sample: ``0`` for a head, the trail offset for a grain.
@@ -25,6 +33,7 @@ import bpy
 from mathutils import Vector
 
 GROUP_NAME = "ALD | FX Burst GN"
+TRAIL_GROUP_NAME = "ALD | FX Trail GN"
 
 
 def _math(nodes, links, operation, x, y, location):
@@ -59,12 +68,7 @@ def _attribute(nodes, links, name, data_type, location):
     return node
 
 
-#: interface sockets exposed by the group, in creation order.
-SOCKET_NAMES = ("Geometry", "Gravity", "Material", "Trail", "Age Offset",
-                "Min Scale")
-
-
-def _socket_ids(ng):
+def _socket_ids(ng, defaults):
     """Resolve the interface socket identifiers by name."""
     ids = {}
     for item in ng.interface.items_tree:
@@ -73,59 +77,34 @@ def _socket_ids(ng):
             ids[name.lower().replace(" ", "_")] = item.identifier
         else:
             ids["output"] = item.identifier
-    defaults = {"geometry": "Socket_0", "gravity": "Socket_1",
-                "material": "Socket_2", "trail": "Socket_3",
-                "age_offset": "Socket_4", "min_scale": "Socket_5"}
     for key, value in defaults.items():
         ids.setdefault(key, value)
     return ids
 
 
-def build_burst_group():
-    """Create (or reuse) the burst node group and return it with its sockets."""
-    existing = bpy.data.node_groups.get(GROUP_NAME)
-    if existing is not None:
-        return existing, _socket_ids(existing)
-    ng = bpy.data.node_groups.new(GROUP_NAME, "GeometryNodeTree")
-    nodes = ng.nodes
-    links = ng.links
+BURST_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
+                          "material": "Socket_2", "trail": "Socket_3",
+                          "age_offset": "Socket_4", "min_scale": "Socket_5",
+                          "decay_power": "Socket_6"}
+TRAIL_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
+                          "material": "Socket_2", "trail": "Socket_3",
+                          "age_offset": "Socket_4", "radius": "Socket_5",
+                          "fade_window": "Socket_6"}
 
-    geometry = ng.interface.new_socket(name="Geometry", in_out="INPUT",
-                                        socket_type="NodeSocketGeometry")
-    gravity = ng.interface.new_socket(name="Gravity", in_out="INPUT",
-                                       socket_type="NodeSocketVector")
-    material = ng.interface.new_socket(name="Material", in_out="INPUT",
-                                        socket_type="NodeSocketMaterial")
-    trail = ng.interface.new_socket(name="Trail", in_out="INPUT",
-                                    socket_type="NodeSocketFloat")
-    trail.default_value = 0.0
-    age_offset = ng.interface.new_socket(name="Age Offset", in_out="INPUT",
-                                         socket_type="NodeSocketFloat")
-    age_offset.default_value = 0.0
-    min_scale = ng.interface.new_socket(name="Min Scale", in_out="INPUT",
-                                        socket_type="NodeSocketFloat")
-    min_scale.default_value = 0.35
-    ng.interface.new_socket(name="Geometry", in_out="OUTPUT",
-                             socket_type="NodeSocketGeometry")
-    sockets = {"geometry": geometry.identifier, "gravity": gravity.identifier,
-               "material": material.identifier, "trail": trail.identifier,
-               "age_offset": age_offset.identifier,
-               "min_scale": min_scale.identifier}
 
-    group_in = nodes.new("NodeGroupInput")
-    group_in.location = (-1700, 0)
-    group_out = nodes.new("NodeGroupOutput")
-    group_out.location = (1500, 0)
+def _motion(nodes, links, group_in):
+    """Build the analytic motion subgraph.
 
+    Returns the sockets of the sample position, the sample age, the head age
+    and the lifetime, so the callers can reuse them.
+    """
     birth = _attribute(nodes, links, "birth", "FLOAT", (-1700, -260))
     life = _attribute(nodes, links, "life", "FLOAT", (-1700, -360))
     vel = _attribute(nodes, links, "vel", "FLOAT_VECTOR", (-1700, -460))
     drag = _attribute(nodes, links, "drag", "FLOAT", (-1700, -560))
     pos0 = _attribute(nodes, links, "pos0", "FLOAT_VECTOR", (-1700, -660))
-    rad = _attribute(nodes, links, "radius", "FLOAT", (-1700, -760))
     tau = _attribute(nodes, links, "tau", "FLOAT", (-1700, -860))
     jitter = _attribute(nodes, links, "jitter", "FLOAT_VECTOR", (-1700, -960))
-    use_decay = _attribute(nodes, links, "use_decay", "FLOAT", (-1700, -1060))
 
     clock = nodes.new("GeometryNodeInputSceneTime")
     clock.location = (-1700, -140)
@@ -137,31 +116,29 @@ def build_burst_group():
                      birth.outputs["Attribute"], (-1360, -200))
 
     # The trail scales with the age, exactly like the Python solver:
-    # trail_time = min(age, trail).
+    # trail_time = min(age, trail). Once the body dies the train retracts:
+    # train_time = max(0, min(age, trail) - (age - life)).
     trail_safe = _math(nodes, links, "MAXIMUM", group_in.outputs["Trail"], None,
                        (-1360, -320))
     trail_safe.inputs[1].default_value = 0.0001
     trail_clamped = _math(nodes, links, "MINIMUM", head_age.outputs[0],
                           group_in.outputs["Trail"], (-1200, -320))
-    trail_scale = _math(nodes, links, "DIVIDE", trail_clamped.outputs[0],
-                        trail_safe.outputs[0], (-1040, -320))
+    overshoot = _math(nodes, links, "SUBTRACT", head_age.outputs[0],
+                      life.outputs["Attribute"], (-1200, -440))
+    overshoot_pos = _math(nodes, links, "MAXIMUM", overshoot.outputs[0], None,
+                          (-1040, -440))
+    overshoot_pos.inputs[1].default_value = 0.0
+    train_time = _math(nodes, links, "SUBTRACT", trail_clamped.outputs[0],
+                       overshoot_pos.outputs[0], (-880, -360))
+    train_time_pos = _math(nodes, links, "MAXIMUM", train_time.outputs[0], None,
+                           (-760, -360))
+    train_time_pos.inputs[1].default_value = 0.0
+    trail_scale = _math(nodes, links, "DIVIDE", train_time_pos.outputs[0],
+                        trail_safe.outputs[0], (-620, -360))
     tau_eff = _math(nodes, links, "MULTIPLY", tau.outputs["Attribute"],
-                    trail_scale.outputs[0], (-880, -380))
+                    trail_scale.outputs[0], (-460, -380))
     sample_age = _math(nodes, links, "SUBTRACT", head_age.outputs[0],
-                       tau_eff.outputs[0], (-720, -280))
-
-    alive_a = _math(nodes, links, "GREATER_THAN", sample_age.outputs[0],
-                    None, (-560, -340))
-    alive_a.inputs[1].default_value = 0.0
-    alive_b = _math(nodes, links, "LESS_THAN", sample_age.outputs[0],
-                    life.outputs["Attribute"], (-560, -420))
-    alive_sample = _math(nodes, links, "MULTIPLY", alive_a.outputs[0],
-                         alive_b.outputs[0], (-400, -380))
-    # The whole family dies with the star, not only with the sample.
-    head_alive = _math(nodes, links, "LESS_THAN", head_age.outputs[0],
-                       life.outputs["Attribute"], (-560, -460))
-    alive = _math(nodes, links, "MULTIPLY", alive_sample.outputs[0],
-                  head_alive.outputs[0], (-240, -400))
+                       tau_eff.outputs[0], (-300, -280))
 
     k = _math(nodes, links, "MAXIMUM", drag.outputs["Attribute"], None,
               (-560, -520))
@@ -197,11 +174,70 @@ def build_burst_group():
                        offset.outputs["Vector"], (80, -720))
     position_jitter = _vector(nodes, links, "ADD", position.outputs["Vector"],
                               jitter.outputs["Attribute"], (240, -720))
+    return {"position": position_jitter.outputs["Vector"],
+            "sample_age": sample_age.outputs[0],
+            "head_age": head_age.outputs[0],
+            "life": life.outputs["Attribute"]}
+
+
+def _build_group(name, socket_specs):
+    """Create a node group with the given interface sockets."""
+    ng = bpy.data.node_groups.new(name, "GeometryNodeTree")
+    sockets = {}
+    for socket_name, socket_type, default in socket_specs:
+        socket = ng.interface.new_socket(name=socket_name, in_out="INPUT",
+                                          socket_type=socket_type)
+        if default is not None and socket_type == "NodeSocketFloat":
+            socket.default_value = default
+        sockets[socket_name.lower().replace(" ", "_")] = socket.identifier
+    ng.interface.new_socket(name="Geometry", in_out="OUTPUT",
+                             socket_type="NodeSocketGeometry")
+    return ng, sockets
+
+
+def build_burst_group():
+    """Create (or reuse) the burst node group and return it with its sockets."""
+    existing = bpy.data.node_groups.get(GROUP_NAME)
+    if existing is not None:
+        return existing, _socket_ids(existing, BURST_SOCKET_DEFAULTS)
+    ng, sockets = _build_group(GROUP_NAME, (
+        ("Geometry", "NodeSocketGeometry", None),
+        ("Gravity", "NodeSocketVector", None),
+        ("Material", "NodeSocketMaterial", None),
+        ("Trail", "NodeSocketFloat", 0.0),
+        ("Age Offset", "NodeSocketFloat", 0.0),
+        ("Min Scale", "NodeSocketFloat", 0.35),
+        ("Decay Power", "NodeSocketFloat", 1.0),
+    ))
+    nodes = ng.nodes
+    links = ng.links
+
+    group_in = nodes.new("NodeGroupInput")
+    group_in.location = (-1900, 0)
+    group_out = nodes.new("NodeGroupOutput")
+    group_out.location = (1500, 0)
+
+    motion = _motion(nodes, links, group_in)
+    rad = _attribute(nodes, links, "radius", "FLOAT", (-1700, -760))
+    use_decay = _attribute(nodes, links, "use_decay", "FLOAT", (-1700, -1060))
+
+    alive_a = _math(nodes, links, "GREATER_THAN", motion["sample_age"], None,
+                    (-560, -340))
+    alive_a.inputs[1].default_value = 0.0
+    alive_b = _math(nodes, links, "LESS_THAN", motion["sample_age"],
+                    motion["life"], (-560, -420))
+    alive_sample = _math(nodes, links, "MULTIPLY", alive_a.outputs[0],
+                         alive_b.outputs[0], (-400, -380))
+    # The whole family dies with the star, not only with the sample.
+    head_alive = _math(nodes, links, "LESS_THAN", motion["head_age"],
+                       motion["life"], (-560, -460))
+    alive = _math(nodes, links, "MULTIPLY", alive_sample.outputs[0],
+                  head_alive.outputs[0], (-240, -400))
 
     set_pos = nodes.new("GeometryNodeSetPosition")
     set_pos.location = (420, -200)
     links.new(group_in.outputs["Geometry"], set_pos.inputs["Geometry"])
-    links.new(position_jitter.outputs["Vector"], set_pos.inputs["Position"])
+    links.new(motion["position"], set_pos.inputs["Position"])
 
     ico = nodes.new("GeometryNodeMeshIcoSphere")
     ico.location = (420, -1020)
@@ -215,15 +251,17 @@ def build_burst_group():
     links.new(rad.outputs["Attribute"], scale_vec.inputs["Z"])
 
     # Brightness decay: the head fades with its age, the grains keep their size.
-    head_frac = _math(nodes, links, "DIVIDE", head_age.outputs[0],
-                      life.outputs["Attribute"], (-880, -700))
+    head_frac = _math(nodes, links, "DIVIDE", motion["head_age"],
+                      motion["life"], (-880, -700))
     head_decay = _math(nodes, links, "SUBTRACT", None, head_frac.outputs[0],
                        (-720, -700))
     head_decay.inputs[0].default_value = 1.0
     head_decay_pos = _math(nodes, links, "MAXIMUM", head_decay.outputs[0], None,
                            (-560, -700))
     head_decay_pos.inputs[1].default_value = 0.0
-    scale_range = _math(nodes, links, "SUBTRACT", None, head_decay_pos.outputs[0],
+    head_power = _math(nodes, links, "POWER", head_decay_pos.outputs[0],
+                       group_in.outputs["Decay Power"], (-480, -700))
+    scale_range = _math(nodes, links, "SUBTRACT", None, head_power.outputs[0],
                         (-400, -700))
     scale_range.inputs[0].default_value = 1.0
     span = _math(nodes, links, "SUBTRACT", None, group_in.outputs["Min Scale"],
@@ -261,8 +299,114 @@ def build_burst_group():
     return ng, sockets
 
 
+def build_trail_group():
+    """Create (or reuse) the trail node group and return it with its sockets."""
+    existing = bpy.data.node_groups.get(TRAIL_GROUP_NAME)
+    if existing is not None:
+        return existing, _socket_ids(existing, TRAIL_SOCKET_DEFAULTS)
+    ng, sockets = _build_group(TRAIL_GROUP_NAME, (
+        ("Geometry", "NodeSocketGeometry", None),
+        ("Gravity", "NodeSocketVector", None),
+        ("Material", "NodeSocketMaterial", None),
+        ("Trail", "NodeSocketFloat", 0.0),
+        ("Age Offset", "NodeSocketFloat", 0.0),
+        ("Radius", "NodeSocketFloat", 0.02),
+        ("Fade Window", "NodeSocketFloat", 0.0),
+    ))
+    nodes = ng.nodes
+    links = ng.links
+
+    group_in = nodes.new("NodeGroupInput")
+    group_in.location = (-1900, 0)
+    group_out = nodes.new("NodeGroupOutput")
+    group_out.location = (1500, 0)
+
+    motion = _motion(nodes, links, group_in)
+    rad = _attribute(nodes, links, "radius", "FLOAT", (-1700, -760))
+    curve_id = _attribute(nodes, links, "curve_id", "INT", (-1700, -1160))
+    weight = _attribute(nodes, links, "weight", "FLOAT", (-1700, -1260))
+
+    set_pos = nodes.new("GeometryNodeSetPosition")
+    set_pos.location = (420, -200)
+    links.new(group_in.outputs["Geometry"], set_pos.inputs["Geometry"])
+    links.new(motion["position"], set_pos.inputs["Position"])
+
+    # Samples that are not born yet are removed: the tail grows with the age.
+    # When no fade window is set the trail dies with the body.
+    unborn = _math(nodes, links, "LESS_THAN", motion["sample_age"], None,
+                   (420, -420))
+    unborn.inputs[1].default_value = 0.0
+    dead = _math(nodes, links, "GREATER_THAN", motion["sample_age"],
+                 motion["life"], (420, -520))
+    no_fade = _math(nodes, links, "LESS_THAN", group_in.outputs["Fade Window"],
+                    None, (420, -620))
+    no_fade.inputs[1].default_value = 0.5
+    dead_gated = _math(nodes, links, "MULTIPLY", dead.outputs[0],
+                       no_fade.outputs[0], (620, -560))
+    remove = _math(nodes, links, "MAXIMUM", unborn.outputs[0],
+                   dead_gated.outputs[0], (620, -420))
+    delete = nodes.new("GeometryNodeDeleteGeometry")
+    delete.location = (800, -200)
+    delete.domain = "POINT"
+    delete.mode = "ALL"
+    links.new(set_pos.outputs["Geometry"], delete.inputs["Geometry"])
+    links.new(remove.outputs[0], delete.inputs["Selection"])
+
+    to_curves = nodes.new("GeometryNodePointsToCurves")
+    to_curves.location = (980, -200)
+    links.new(delete.outputs["Geometry"], to_curves.inputs["Points"])
+    links.new(curve_id.outputs["Attribute"], to_curves.inputs["Curve Group ID"])
+    links.new(weight.outputs["Attribute"], to_curves.inputs["Weight"])
+
+    # Fade: the persistent train of a meteor thins out after the head dies.
+    fade_safe = _math(nodes, links, "MAXIMUM", group_in.outputs["Fade Window"],
+                      None, (620, -760))
+    fade_safe.inputs[1].default_value = 0.0001
+    fade_over = _math(nodes, links, "SUBTRACT", motion["head_age"],
+                      motion["life"], (620, -860))
+    fade_over_pos = _math(nodes, links, "MAXIMUM", fade_over.outputs[0], None,
+                          (780, -860))
+    fade_over_pos.inputs[1].default_value = 0.0
+    fade_ratio = _math(nodes, links, "DIVIDE", fade_over_pos.outputs[0],
+                       fade_safe.outputs[0], (940, -820))
+    fade = _math(nodes, links, "SUBTRACT", None, fade_ratio.outputs[0],
+                 (1060, -820))
+    fade.inputs[0].default_value = 1.0
+    fade_clamped = _math(nodes, links, "MAXIMUM", fade.outputs[0], None,
+                         (1180, -820))
+    fade_clamped.inputs[1].default_value = 0.0
+    radius_scaled = _math(nodes, links, "MULTIPLY", rad.outputs["Attribute"],
+                          fade_clamped.outputs[0], (1300, -820))
+
+    set_radius = nodes.new("GeometryNodeSetCurveRadius")
+    set_radius.location = (1420, -200)
+    links.new(to_curves.outputs["Curves"], set_radius.inputs["Curve"])
+    links.new(radius_scaled.outputs[0], set_radius.inputs["Radius"])
+
+    circle = nodes.new("GeometryNodeCurvePrimitiveCircle")
+    circle.location = (1420, -520)
+    if "Resolution" in circle.inputs:
+        circle.inputs["Resolution"].default_value = 4
+    links.new(group_in.outputs["Radius"], circle.inputs["Radius"])
+
+    curve_to_mesh = nodes.new("GeometryNodeCurveToMesh")
+    curve_to_mesh.location = (1600, -200)
+    links.new(set_radius.outputs["Curve"], curve_to_mesh.inputs["Curve"])
+    links.new(circle.outputs["Curve"], curve_to_mesh.inputs["Profile Curve"])
+    if "Fill Caps" in curve_to_mesh.inputs:
+        curve_to_mesh.inputs["Fill Caps"].default_value = True
+
+    set_material = nodes.new("GeometryNodeSetMaterial")
+    set_material.location = (1760, -200)
+    links.new(curve_to_mesh.outputs["Mesh"], set_material.inputs["Geometry"])
+    links.new(group_in.outputs["Material"], set_material.inputs["Material"])
+
+    links.new(set_material.outputs["Geometry"], group_out.inputs["Geometry"])
+    return ng, sockets
+
+
 def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
-                          age_offset=0.0, min_scale=0.35):
+                          age_offset=0.0, min_scale=0.35, decay_power=1.0):
     """Add the burst modifier to a points object and set its inputs."""
     modifier = obj.modifiers.new("ALD FX Burst", "NODES")
     modifier.node_group = group
@@ -271,6 +415,21 @@ def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
     modifier[sockets["trail"]] = float(trail)
     modifier[sockets["age_offset"]] = float(age_offset)
     modifier[sockets["min_scale"]] = float(min_scale)
+    modifier[sockets["decay_power"]] = float(decay_power)
+    return modifier
+
+
+def attach_trail_modifier(obj, group, sockets, gravity, material, trail=0.0,
+                          age_offset=0.0, radius=0.02, fade_window=0.0):
+    """Add the trail modifier to a points object and set its inputs."""
+    modifier = obj.modifiers.new("ALD FX Trail", "NODES")
+    modifier.node_group = group
+    modifier[sockets["gravity"]] = gravity
+    modifier[sockets["material"]] = material
+    modifier[sockets["trail"]] = float(trail)
+    modifier[sockets["age_offset"]] = float(age_offset)
+    modifier[sockets["radius"]] = float(radius)
+    modifier[sockets["fade_window"]] = float(fade_window)
     return modifier
 
 

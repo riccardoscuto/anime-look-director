@@ -129,7 +129,7 @@ def _fibonacci_direction(index, count, jitter, seed, burst):
 
 
 def _gn_points_object(scene, name, material, particles, trail=0.0,
-                      age_offset=0.0, min_scale=0.35):
+                      age_offset=0.0, min_scale=0.35, decay_power=1.0):
     """Build a points object whose motion is evaluated by Geometry Nodes."""
     from . import fx_nodes
     count = len(particles)
@@ -161,7 +161,8 @@ def _gn_points_object(scene, name, material, particles, trail=0.0,
     group, sockets = fx_nodes.build_burst_group()
     fx_nodes.attach_burst_modifier(obj, group, sockets, GRAVITY, material,
                                    trail=trail, age_offset=age_offset,
-                                   min_scale=min_scale)
+                                   min_scale=min_scale,
+                                   decay_power=decay_power)
     return obj
 
 
@@ -279,6 +280,73 @@ def _gn_spark_particles(seed, index, config, birth, center, size_scale,
                 "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
             })
     return particles
+
+
+def _gn_trail_object(scene, name, material, particles, trail=0.0,
+                     age_offset=0.0, radius=0.02, fade_window=0.0):
+    """Build a curve object whose motion is evaluated by Geometry Nodes."""
+    from . import fx_nodes
+    count = len(particles)
+    mesh = bpy.data.meshes.new(name)
+    mesh["ald_fx"] = True
+    mesh.from_pydata([(0.0, 0.0, 0.0)] * count, [], [])
+    mesh.update()
+    for attr_name, attr_type, values in (
+            ("birth", "FLOAT", [p["birth"] for p in particles]),
+            ("life", "FLOAT", [p["life"] for p in particles]),
+            ("drag", "FLOAT", [p["drag"] for p in particles]),
+            ("radius", "FLOAT", [p["radius"] for p in particles]),
+            ("tau", "FLOAT", [p["tau"] for p in particles]),
+            ("weight", "FLOAT", [float(p["weight"]) for p in particles]),
+            ("curve_id", "INT", [int(p["curve_id"]) for p in particles]),
+            ("vel", "FLOAT_VECTOR", [p["vel"] for p in particles]),
+            ("pos0", "FLOAT_VECTOR", [p["pos0"] for p in particles]),
+            ("jitter", "FLOAT_VECTOR", [p["jitter"] for p in particles])):
+        attribute = mesh.attributes.new(attr_name, attr_type, "POINT")
+        if attr_type == "FLOAT_VECTOR":
+            flat = []
+            for vector in values:
+                flat.extend(vector)
+            attribute.data.foreach_set("vector", flat)
+        else:
+            attribute.data.foreach_set("value", values)
+    obj = bpy.data.objects.new(name, mesh)
+    obj["ald_fx"] = True
+    _collection(scene).objects.link(obj)
+    group, sockets = fx_nodes.build_trail_group()
+    fx_nodes.attach_trail_modifier(obj, group, sockets, GRAVITY, material,
+                                   trail=trail, age_offset=age_offset,
+                                   radius=radius, fade_window=fade_window)
+    return obj
+
+
+def _gn_trail_particles(seed, index, config, birth, center, spoke_count, slot):
+    """Point data of the thin filament of every star of one colour slot."""
+    particles = []
+    spokes = [s for s in range(spoke_count) if s % 3 == slot]
+    for spoke in spokes:
+        life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
+        for step in range(SAMPLES):
+            profile = step / (SAMPLES - 1.0)
+            particles.append({
+                "birth": birth, "life": life, "drag": config["drag"],
+                "radius": 0.25 + 0.9 * profile ** 1.4,
+                "vel": v0, "pos0": center,
+                "tau": config["trail"] * (1.0 - profile),
+                "jitter": Vector((0.0, 0.0, 0.0)),
+                "curve_id": spoke, "weight": step,
+            })
+    return particles
+
+
+def _gn_flash_particles(birth, core, center, size_scale):
+    """Point data of the central flash of a burst."""
+    return [{
+        "birth": birth, "life": core, "drag": 100.0,
+        "radius": 0.25 * size_scale, "vel": Vector((0.0, 0.0, 0.0)),
+        "pos0": center, "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)),
+        "use_decay": 1.0,
+    }]
 
 
 def _star_state(seed, index, spoke, count, config, age, speed_scale=1.0,
@@ -501,6 +569,11 @@ def _build_fireworks(scene, count, seed, distance, family):
             [center] * spark_total, [0.001] * spark_total, materials[2])
         _collection(scene).objects.link(spark_obj)
         spark_obj["ald_fx_kind"] = kind
+        core_obj, core_ranges = _build_particle_mesh(
+            "ALD FX %s %d Flash" % (family_key, index), [center], [0.001],
+            materials[1])
+        _collection(scene).objects.link(core_obj)
+        core_obj["ald_fx_kind"] = kind
         # Geometry Nodes prototype: the burst particles are evaluated by the
         # node group instead of Python.
         use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
@@ -544,9 +617,25 @@ def _build_fireworks(scene, count, seed, distance, family):
                                         size_scale, spoke_count),
                     trail=0.0, age_offset=age_offset, min_scale=0.0)
                 created.append(gn_sparks)
+                for slot in range(3):
+                    trail_gn = _gn_trail_object(
+                        scene, "ALD FX GN Trail %d %d" % (index, slot),
+                        materials[slot],
+                        _gn_trail_particles(seed, index, config, birth, center,
+                                            spoke_count, slot),
+                        trail=config["trail"], age_offset=age_offset,
+                        radius=0.022 * size_scale)
+                    created.append(trail_gn)
+                gn_flash = _gn_points_object(
+                    scene, "ALD FX GN Flash %d" % index, materials[1],
+                    _gn_flash_particles(birth, config["core"], center,
+                                        size_scale),
+                    trail=0.0, age_offset=age_offset, min_scale=0.0,
+                    decay_power=0.5)
+                created.append(gn_flash)
                 # The Python meshes are replaced by the node group.
                 for python_obj in (head_obj, pistil_obj, pistil_bead_obj,
-                                   spark_obj):
+                                   spark_obj, trail_obj, core_obj):
                     bpy.data.objects.remove(python_obj, do_unlink=True)
                 for bead_obj, _bead_ranges, _spokes in bead_objects:
                     bpy.data.objects.remove(bead_obj, do_unlink=True)
@@ -559,6 +648,9 @@ def _build_fireworks(scene, count, seed, distance, family):
                 pistil_bead_ranges = []
                 spark_obj = None
                 spark_ranges = []
+                trail_obj = None
+                core_obj = None
+                core_ranges = []
                 # The replaced Python meshes must not survive as orphans.
                 _cleanup_orphans()
             except Exception:
@@ -569,11 +661,6 @@ def _build_fireworks(scene, count, seed, distance, family):
                 gn_beads = []
                 gn_pistil = None
                 gn_sparks = None
-        core_obj, core_ranges = _build_particle_mesh(
-            "ALD FX %s %d Flash" % (family_key, index), [center], [0.001],
-            materials[1])
-        _collection(scene).objects.link(core_obj)
-        core_obj["ald_fx_kind"] = kind
         bursts.append({
             "index": index, "family": family_key, "config": config,
             "center": center, "birth": birth, "seed": seed,
@@ -587,7 +674,8 @@ def _build_fireworks(scene, count, seed, distance, family):
             "sparks": spark_obj, "spark_ranges": spark_ranges,
             "core": core_obj, "core_ranges": core_ranges,
         })
-    return {"kind": "fireworks", "bursts": bursts, "time": None}
+    return {"kind": "fireworks", "bursts": bursts, "time": None,
+            "gn": all(burst.get("gn_heads") is not None for burst in bursts)}
 
 
 def _update_fireworks(system, time):
@@ -601,14 +689,14 @@ def _update_fireworks(system, time):
         gn_heads = burst.get("gn_heads")
         gn_pistil = burst.get("gn_pistil")
         gn_sparks = burst.get("gn_sparks")
-        trail_data = burst["trail"].data
+        trail_data = burst["trail"].data if burst["trail"] is not None else None
         head_centers = []
         head_radii = []
         spark_centers = []
         spark_radii = []
         bead_centers = [[], [], []]
         bead_radii = [[], [], []]
-        for spoke in range(spoke_count):
+        for spoke in range(spoke_count) if gn_heads is None else ():
             life = _hash_range(seed, index, spoke, 2, config["life"] * 0.6,
                                config["life"])
             direction = _fibonacci_direction(spoke, spoke_count, 0.35, seed,
@@ -617,7 +705,7 @@ def _update_fireworks(system, time):
                                 config["speed"] * 1.15)
             v0 = direction * speed
             alive = 0.0 <= age <= life
-            spline = trail_data.splines[spoke]
+            spline = trail_data.splines[spoke] if trail_data else None
             trail_time = min(age, config["trail"]) if alive else 0.0
             for step in range(SAMPLES):
                 tau = trail_time * (1.0 - step / (SAMPLES - 1.0))
@@ -626,8 +714,9 @@ def _update_fireworks(system, time):
                 profile = step / (SAMPLES - 1.0)
                 if not alive:
                     point = center + Vector((0.0, 0.0, 1000.0))
-                spline.points[step].co = (point.x, point.y, point.z, 1.0)
-                spline.points[step].radius = 0.25 + 0.9 * profile ** 1.4
+                if spline is not None:
+                    spline.points[step].co = (point.x, point.y, point.z, 1.0)
+                    spline.points[step].radius = 0.25 + 0.9 * profile ** 1.4
                 slot = spoke % 3
                 bead_centers[slot].append(point)
                 if alive:
@@ -729,46 +818,157 @@ def _update_fireworks(system, time):
             _write_particle_mesh(burst["sparks"].data, burst["spark_ranges"],
                                  spark_centers, spark_radii)
         # Central flash: bright for a fraction of a second only.
-        core_centers = [center]
-        core_radii = [0.001]
-        if 0.0 <= age < config["core"]:
-            energy = 1.0 - age / max(config["core"], 1e-3)
-            core_radii = [0.25 * burst["size_scale"] * energy ** 0.5]
-        else:
-            core_centers = [center + Vector((0.0, 0.0, 1000.0))]
-        _write_particle_mesh(burst["core"].data, burst["core_ranges"],
-                             core_centers, core_radii)
+        if burst["core"] is not None:
+            core_centers = [center]
+            core_radii = [0.001]
+            if 0.0 <= age < config["core"]:
+                energy = 1.0 - age / max(config["core"], 1e-3)
+                core_radii = [0.25 * burst["size_scale"] * energy ** 0.5]
+            else:
+                core_centers = [center + Vector((0.0, 0.0, 1000.0))]
+            _write_particle_mesh(burst["core"].data, burst["core_ranges"],
+                                 core_centers, core_radii)
 
 
 # ---------------------------------------------------------------------------
 # shooting stars
 # ---------------------------------------------------------------------------
 
+def _gn_meteor_particles(seed, index, life, start, v0, drag, size):
+    """Point data of one meteor head."""
+    return [{
+        "birth": 0.0, "life": life, "drag": drag, "radius": 0.18,
+        "vel": v0, "pos0": start, "tau": 0.0,
+        "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 0.0,
+    }]
+
+
+def _gn_meteor_train_particles(seed, index, start, v0, drag, train):
+    """Point data of the persistent train of one meteor."""
+    particles = []
+    for step in range(SAMPLES):
+        profile = step / (SAMPLES - 1.0)
+        particles.append({
+            "birth": 0.0, "life": 10.0, "drag": drag,
+            "radius": 0.2 + 0.8 * profile,
+            "vel": v0, "pos0": start,
+            "tau": train * (1.0 - profile),
+            "jitter": Vector((0.0, 0.0, 0.0)),
+            "curve_id": index, "weight": step,
+        })
+    return particles
+
+
+def _gn_meteor_fragment_particles(seed, index, life, start, v0, drag):
+    """Point data of the burning fragments of one meteor."""
+    particles = []
+    for fragment in range(3):
+        emit = _hash_range(seed, index, 30 + fragment, 7, 0.05, life * 0.8)
+        frag_life = _hash_range(seed, index, 30 + fragment, 8, 0.4, 1.4)
+        parent = _position(start, v0, drag, emit)
+        parent_vel = v0 * math.exp(-drag * emit)
+        push = Vector((
+            _hash_range(seed, index, 30 + fragment, 9, -2.4, 2.4),
+            _hash_range(seed, index, 30 + fragment, 10, -2.4, 2.4),
+            _hash_range(seed, index, 30 + fragment, 11, -3.2, 1.2),
+        ))
+        particles.append({
+            "birth": emit, "life": frag_life, "drag": 1.6, "radius": 0.05,
+            "vel": parent_vel * 0.25 + push, "pos0": parent,
+            "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
+        })
+    return particles
+
+
 def _build_meteors(scene, count, seed, distance):
     origin, forward, up, right = _camera_basis(scene)
     radiant = (forward * 0.86 + up * 0.42 + right * 0.28).normalized()
     material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0)
-    trail_obj = _build_curve(scene, "ALD FX Meteor Trails", max(1, count),
+    settings = getattr(scene, "ald", None)
+    use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
+        else False
+    age_offset = float(getattr(settings, "fx_age", 0.0)) if settings else 0.0
+    system = {"kind": "meteors", "count": count, "seed": seed,
+              "distance": distance, "radiant": radiant, "origin": origin,
+              "material": material, "gn": False, "trail": None,
+              "heads": None, "head_ranges": [], "fragments": None,
+              "fragment_ranges": []}
+    total = max(1, count)
+    if use_gn:
+        created = []
+        try:
+            head_points = []
+            train_points = []
+            fragment_points = []
+            for index in range(total):
+                life = _hash_range(seed, index, 0, 2, 0.55, 1.15)
+                spread = Vector((
+                    _hash_range(seed, index, 0, 3, -0.09, 0.09),
+                    _hash_range(seed, index, 0, 4, -0.06, 0.06),
+                    _hash_range(seed, index, 0, 5, -0.04, 0.04),
+                ))
+                direction = (radiant + spread).normalized()
+                start = origin + direction * distance * 0.9
+                speed = _hash_range(seed, index, 0, 6, 26.0, 38.0)
+                v0 = direction * speed
+                head_points.append({
+                    "birth": index * 0.9 + _hash_range(seed, index, 0, 1,
+                                                       0.0, 0.6),
+                    "life": life, "drag": 0.08, "radius": 0.18,
+                    "vel": v0, "pos0": start, "tau": 0.0,
+                    "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 0.0,
+                })
+                train_points.extend(_gn_meteor_train_particles(
+                    seed, index, start, v0, 0.08, 0.32))
+                fragment_points.extend(_gn_meteor_fragment_particles(
+                    seed, index, life, start, v0, 0.08))
+            gn_heads = _gn_points_object(
+                scene, "ALD FX GN Meteor Heads", material, head_points,
+                trail=0.0, age_offset=age_offset)
+            created.append(gn_heads)
+            gn_train = _gn_trail_object(
+                scene, "ALD FX GN Meteor Trails", material, train_points,
+                trail=0.32, age_offset=age_offset, radius=0.07,
+                fade_window=0.32)
+            created.append(gn_train)
+            gn_fragments = _gn_points_object(
+                scene, "ALD FX GN Meteor Fragments", material, fragment_points,
+                trail=0.0, age_offset=age_offset, min_scale=0.0)
+            created.append(gn_fragments)
+            for obj in created:
+                obj["ald_fx_kind"] = "meteors"
+            system["gn"] = True
+            return system
+        except Exception as exc:
+            print("ALD FX: geometry nodes meteors failed (%s)" % exc)
+            for obj in created:
+                if obj.name in bpy.data.objects:
+                    bpy.data.objects.remove(obj, do_unlink=True)
+            _cleanup_orphans()
+            # The material may have been purged with the failed objects.
+            material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0)
+    trail_obj = _build_curve(scene, "ALD FX Meteor Trails", total,
                              [material], 0.07)
     trail_obj["ald_fx_kind"] = "meteors"
     head_obj, head_ranges = _build_particle_mesh(
-        "ALD FX Meteor Heads", [origin] * max(1, count), [0.001] * max(1, count),
-        material)
+        "ALD FX Meteor Heads", [origin] * total, [0.001] * total, material)
     _collection(scene).objects.link(head_obj)
     head_obj["ald_fx_kind"] = "meteors"
     fragment_obj, fragment_ranges = _build_particle_mesh(
-        "ALD FX Meteor Fragments", [origin] * (max(1, count) * 3),
-        [0.001] * (max(1, count) * 3), material)
+        "ALD FX Meteor Fragments", [origin] * (total * 3),
+        [0.001] * (total * 3), material)
     _collection(scene).objects.link(fragment_obj)
     fragment_obj["ald_fx_kind"] = "meteors"
-    return {"kind": "meteors", "count": count, "seed": seed,
-            "distance": distance, "radiant": radiant, "origin": origin,
-            "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
-            "fragments": fragment_obj, "fragment_ranges": fragment_ranges,
-            "material": material}
+    system.update({"trail": trail_obj, "heads": head_obj,
+                   "head_ranges": head_ranges, "fragments": fragment_obj,
+                   "fragment_ranges": fragment_ranges})
+    return system
 
 
 def _update_meteors(system, time):
+    if system.get("gn"):
+        # The node group evaluates the meteors: no Python work per frame.
+        return
     count = system["count"]
     seed = system["seed"]
     origin = system["origin"]
@@ -846,6 +1046,10 @@ def _update_meteors(system, time):
 # ---------------------------------------------------------------------------
 
 def _update_system(system, time):
+    if system.get("gn"):
+        # Every particle is evaluated by the node group.
+        system["time"] = time
+        return
     if system["kind"] == "fireworks":
         _update_fireworks(system, time)
     else:

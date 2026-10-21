@@ -791,3 +791,24 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   within 1 mm (x_nodes.realized_centers).
 - The Python path stays available: GN Particles (Prototype) off rebuilds the
   system with the mesh writer.
+
+### v2.9.0 notes (trails, flash and meteors in Geometry Nodes)
+- New group ALD | FX Trail GN: Set Position -> Delete Geometry (samples that
+  are not born yet) -> Points to Curves (Curve Group ID = curve_id, Weight =
+  weight) -> Set Curve Radius -> Curve to Mesh (Curve Circle) -> Set
+  Material. The group inputs are Geometry, Gravity, Material, Trail,
+  Age Offset, Radius and Fade Window.
+- The train factor is now
+  	rain = max(0, min(age, trail) - max(0, age - life)): the tail retracts
+  when the body dies, exactly like the Python solver.
+- Fade Window > 0 keeps the train alive after the death and thins it out
+  (the persistent train of a meteor); with 0 the trail dies with the body and
+  the dead samples are deleted.
+- Decay Power on the burst group reproduces the sqrt falloff of the
+  central flash (min_scale + (1 - min_scale) * (1 - age / life) ** power).
+- The meteors are evaluated by the nodes too: head, persistent train and
+  burning fragments. The fragment origin is the parent position at the
+  emission instant.
+- The frame handler still exists for the Python fallback but it writes no
+  geometry in the Geometry Nodes path: measured 2.5 ms/frame against
+  121.7 ms/frame for the Python writer (4 bursts + 4 meteors).

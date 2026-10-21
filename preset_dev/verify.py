@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 8, 0)
+EXPECTED_VERSION = (2, 9, 0)
 TOLERANCE = 1e-4
 
 
@@ -1432,7 +1432,18 @@ def _fx_signature(scene):
     for obj in sorted(coll.objects, key=lambda item: item.name):
         if any(mod.type == "NODES" for mod in obj.modifiers):
             # Geometry Nodes objects are evaluated, not authored: their stored
-            # vertices carry no motion information.
+            # vertices carry no motion information. The deterministic data
+            # lives in the point attributes.
+            for name in sorted(obj.data.attributes.keys()):
+                attribute = obj.data.attributes[name]
+                for index in range(len(attribute.data)):
+                    item = attribute.data[index]
+                    if hasattr(item, "vector"):
+                        value = tuple(round(float(axis), 4)
+                                      for axis in item.vector)
+                    else:
+                        value = round(float(item.value), 4)
+                    points.append((name, index, value))
             continue
         if obj.type == "CURVE":
             for spline in obj.data.splines:
@@ -1702,6 +1713,7 @@ def check_fx_gn_parity(scene):
 
     fx_module.clear(scene)
     scene.frame_set(previous_frame)
+    check_fx_gn_meteors(scene)
 
     # The Python solver stays available as a fallback.
     scene.ald.fx_gn_prototype = False
@@ -1719,6 +1731,63 @@ def check_fx_gn_parity(scene):
           "python fallback did not write the particle geometry")
     fx_module.clear(scene)
     scene.ald.fx_gn_prototype = True
+
+
+def check_fx_gn_meteors(scene):
+    """The meteors must be evaluated by the node group as well."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    fx_module.clear(scene)
+    fx_module.create_meteors(scene, 3, seed=21, distance=40.0, time=0.6)
+    scene.frame_set(20)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    system = fx_module.SYSTEMS[fx_module._scene_id(scene)]["meteors"]
+    check(system.get("gn") is True, "the meteors are not evaluated by GN")
+    python_objects = [obj for obj in bpy.data.objects
+                      if obj.get("ald_fx") and obj.get("ald_fx_kind") == "meteors"
+                      and not any(mod.type == "NODES" for mod in obj.modifiers)]
+    check(not python_objects,
+          "the Python meteors are still in the scene: %s"
+          % [obj.name for obj in python_objects])
+
+    heads = bpy.data.objects.get("ALD FX GN Meteor Heads")
+    check(heads is not None, "geometry nodes meteor heads missing")
+    if heads is not None:
+        centers = fx_nodes.realized_centers(heads, depsgraph)
+        check(len(centers) == 3,
+              "geometry nodes meteors produced %d heads" % len(centers))
+        origin = system["origin"]
+        radiant = system["radiant"]
+        seed = system["seed"]
+        distance = system["distance"]
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        time = 20 / fps + float(scene.ald.fx_age)
+        worst = 0.0
+        for index in range(3):
+            life = fx_module._hash_range(seed, index, 0, 2, 0.55, 1.15)
+            birth = index * 0.9 + fx_module._hash_range(seed, index, 0, 1,
+                                                        0.0, 0.6)
+            age = time - birth
+            if not (0.0 < age <= life):
+                continue
+            spread = fx_module.Vector((
+                fx_module._hash_range(seed, index, 0, 3, -0.09, 0.09),
+                fx_module._hash_range(seed, index, 0, 4, -0.06, 0.06),
+                fx_module._hash_range(seed, index, 0, 5, -0.04, 0.04),
+            ))
+            direction = (radiant + spread).normalized()
+            start = origin + direction * distance * 0.9
+            speed = fx_module._hash_range(seed, index, 0, 6, 26.0, 38.0)
+            v0 = direction * speed
+            expected = fx_module._position(start, v0, 0.08, age)
+            worst = max(worst, (expected - centers[index]).length)
+        check(worst < 1e-3,
+              "geometry nodes meteors drift from the solver (%.6f m)" % worst)
+
+    fx_module.clear(scene)
+    scene.frame_set(previous_frame)
 
 
 def main():
