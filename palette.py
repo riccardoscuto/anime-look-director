@@ -3,6 +3,7 @@
 import math
 
 import bpy
+from bpy.app.handlers import persistent
 
 GRADIENT_GROUP = "ALD | World Gradient"
 AUTO_SUN_TAG = "ald_auto_sun"
@@ -3554,8 +3555,14 @@ def _apply_gradient(scene, settings, nt, background, p):
             nt.nodes.remove(node)
         for link in list(background.inputs["Color"].links):
             nt.links.remove(link)
-        background.inputs["Color"].default_value = _rgba(p["world_color"])
-        background.inputs["Strength"].default_value = p["world_strength"]
+        saved = scene.get("ald_world_bg_color")
+        if saved is not None:
+            background.inputs["Color"].default_value = tuple(saved)
+            background.inputs["Strength"].default_value = float(
+                scene.get("ald_world_bg_strength", 1.0))
+        else:
+            background.inputs["Color"].default_value = _rgba(p["world_color"])
+            background.inputs["Strength"].default_value = p["world_strength"]
         return
 
     group = _gradient_group()
@@ -3638,9 +3645,12 @@ def _apply_gradient(scene, settings, nt, background, p):
         (getattr(settings, "milky_way", 0.0)
          if getattr(settings, "stars", True) else 0.0)
         if settings else 0.0)
+    legacy_fx = (getattr(settings, "fx_backend", "FX3D") == "LEGACY"
+                 if settings else False)
     node.inputs["Shooting Star Amount"].default_value = (
         (getattr(settings, "shooting_star_amount", 0.65)
-         if getattr(settings, "shooting_stars", False) else 0.0)
+         if getattr(settings, "shooting_stars", False) and legacy_fx
+         else 0.0)
         if settings else 0.0)
     node.inputs["Shooting Star Length"].default_value = (
         getattr(settings, "shooting_star_length", 0.55) if settings else 0.55)
@@ -3653,7 +3663,7 @@ def _apply_gradient(scene, settings, nt, background, p):
     node.inputs["Shooting Star Phase"].default_value = phase
     node.inputs["Fireworks Amount"].default_value = (
         (getattr(settings, "fireworks_amount", 0.60)
-         if getattr(settings, "fireworks", False) else 0.0)
+         if getattr(settings, "fireworks", False) and legacy_fx else 0.0)
         if settings else 0.0)
     node.inputs["Fireworks Scale"].default_value = (
         getattr(settings, "fireworks_scale", 2.2) if settings else 2.2)
@@ -3661,6 +3671,13 @@ def _apply_gradient(scene, settings, nt, background, p):
         getattr(settings, "fireworks_phase", 0.80) if settings else 0.80)
     node.inputs["Cloud Offset"].default_value = _cloud_offset(scene, settings)
 
+    # Remember the original world background so disabling the gradient can
+    # restore an HDRI or the user's own color instead of a flat fill.
+    if "ald_world_bg_color" not in scene:
+        scene["ald_world_bg_color"] = tuple(
+            background.inputs["Color"].default_value)
+        scene["ald_world_bg_strength"] = float(
+            background.inputs["Strength"].default_value)
     for link in list(background.inputs["Color"].links):
         nt.links.remove(link)
     nt.links.new(node.outputs["Color"], background.inputs["Color"])
@@ -3741,6 +3758,7 @@ def update_sun_controls(scene):
         node.inputs["Sun Strength"].default_value = 0.0
 
 
+@persistent
 def _on_frame_change(scene, *_args):
     try:
         update_sun_controls(scene)

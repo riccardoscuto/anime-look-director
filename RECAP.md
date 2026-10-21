@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.0.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.1.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -287,4 +287,6 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **1.1.4** - Fuochi Hanabi a gusci sferici scorciati, scie a larghezza costante e teste hoshi HDR.
 - **2.0.0** - FX particellari 3D per fuochi d'artificio e stelle cadenti con profondità e gravità reali.
 - **2.0.1** - Scie particellari rastremate, gusci vuoti e gravita' piu' marcata nei fuochi FX.
+
+- **2.1.0** - Solver FX deterministico con drag analitico, ownership per scena e selettore del backend.
 

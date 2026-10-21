@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.0.0**).
+  (currently **2.1.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -142,6 +142,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - FX 2.0 particle objects live in `fx.py` and the `ALD | FX` collection:
   physical depth, gravity and overlap for fireworks/meteors, separate from the
   world shader's sky, clouds, stars and Milky Way.
+- FX 2.1 rules: particles are evaluated analytically (linear drag, stable
+  ballistic limit) from hashed per-particle data, so results are independent of
+  frame history and frame rate. FX collections are owned per scene; `clear()`
+  only touches the owner. `fx_backend` selects Disabled / Legacy World / FX 3D
+  and the two generators must never be active at the same time.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

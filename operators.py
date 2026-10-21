@@ -228,20 +228,36 @@ class ALD_OT_viewport_compositor(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def _scene_time(scene):
+    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+    return (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
+
+
 class ALD_OT_fx_fireworks(bpy.types.Operator):
     bl_idname = "ald.fx_fireworks"
     bl_label = "Create Fireworks"
     bl_description = "Create physically placed 3D fireworks particles in camera space"
     bl_options = {"REGISTER", "UNDO"}
 
-    count: bpy.props.IntProperty(name="Bursts", default=4, min=1, max=8)
+    count: bpy.props.IntProperty(name="Bursts", default=3, min=1, max=8)
     seed: bpy.props.IntProperty(name="Seed", default=7, min=0, max=99999)
-    distance: bpy.props.FloatProperty(name="Distance", default=30.0,
-                                      min=5.0, max=120.0)
+    distance: bpy.props.FloatProperty(name="Distance", default=110.0,
+                                      min=5.0, max=400.0)
+    family: bpy.props.EnumProperty(
+        name="Family", items=[(key, fx.FAMILY_LABELS[key], "")
+                              for key in fx.FAMILIES], default="CHRYSANTHEMUM")
+    age: bpy.props.FloatProperty(name="Age", default=0.8, min=0.0, max=6.0,
+                                 description="Seconds after the burst")
 
     def execute(self, context):
-        count = fx.create_fireworks(context.scene, self.count, self.seed,
-                                    self.distance)
+        scene = context.scene
+        time = _scene_time(scene) + self.age
+        count = fx.create_fireworks(scene, self.count, self.seed,
+                                    self.distance, time, family=self.family)
+        scene["ald_fx_config"] = {
+            "kind": "fireworks", "count": self.count, "seed": self.seed,
+            "distance": self.distance, "family": self.family, "age": self.age,
+        }
         self.report({"INFO"}, "Anime Look Director: %d fireworks created" %
                     count)
         return {"FINISHED"}
@@ -255,14 +271,48 @@ class ALD_OT_fx_meteors(bpy.types.Operator):
 
     count: bpy.props.IntProperty(name="Meteors", default=4, min=1, max=12)
     seed: bpy.props.IntProperty(name="Seed", default=21, min=0, max=99999)
-    distance: bpy.props.FloatProperty(name="Distance", default=34.0,
-                                      min=5.0, max=120.0)
+    distance: bpy.props.FloatProperty(name="Distance", default=140.0,
+                                      min=5.0, max=400.0)
+    age: bpy.props.FloatProperty(name="Age", default=0.6, min=0.0, max=6.0,
+                                 description="Seconds after the event")
 
     def execute(self, context):
-        count = fx.create_meteors(context.scene, self.count, self.seed,
-                                  self.distance)
+        scene = context.scene
+        time = _scene_time(scene) + self.age
+        count = fx.create_meteors(scene, self.count, self.seed, self.distance,
+                                  time)
+        scene["ald_fx_config"] = {
+            "kind": "meteors", "count": self.count, "seed": self.seed,
+            "distance": self.distance, "age": self.age,
+        }
         self.report({"INFO"}, "Anime Look Director: %d shooting stars created" %
                     count)
+        return {"FINISHED"}
+
+
+class ALD_OT_fx_update(bpy.types.Operator):
+    bl_idname = "ald.fx_update"
+    bl_label = "Update FX"
+    bl_description = "Re-evaluate the FX system at the current frame"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        scene = context.scene
+        config = scene.get("ald_fx_config")
+        if not config:
+            self.report({"WARNING"}, "Anime Look Director: no FX system")
+            return {"CANCELLED"}
+        fx.clear(scene)
+        time = _scene_time(scene) + float(config.get("age", 0.8))
+        if config.get("kind") == "meteors":
+            fx.create_meteors(scene, config.get("count", 4),
+                              config.get("seed", 21), config.get("distance", 140.0),
+                              time)
+        else:
+            fx.create_fireworks(scene, config.get("count", 3),
+                                config.get("seed", 7),
+                                config.get("distance", 110.0), time,
+                                family=config.get("family", "CHRYSANTHEMUM"))
         return {"FINISHED"}
 
 
@@ -273,7 +323,9 @@ class ALD_OT_fx_clear(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        count = fx.clear(context.scene)
+        scene = context.scene
+        count = fx.clear(scene)
+        scene["ald_fx_config"] = None
         self.report({"INFO"}, "Anime Look Director: %d FX objects removed" %
                     count)
         return {"FINISHED"}
@@ -283,7 +335,8 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_clear_shadow_tint, ALD_OT_toggle_exclude_material,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
-            ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_clear)
+            ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_update,
+            ALD_OT_fx_clear)
 
 
 def register():

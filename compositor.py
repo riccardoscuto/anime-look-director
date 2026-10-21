@@ -1,6 +1,7 @@
 """Non-destructive anime compositor stack (Blender 5.1 node-group compositor)."""
 
 import bpy
+from bpy.app.handlers import persistent
 
 GROUP_NAME = "ALD | Compositor Stack"
 SCENE_TAG = "ald_scene"
@@ -419,6 +420,7 @@ def update_params(scene):
         node.outputs[0].default_value = (*haze, 1.0)
 
 
+@persistent
 def _on_frame_change(scene, *_args):
     try:
         update_god_rays(scene)
@@ -756,9 +758,10 @@ def remove(scene):
     ng = scene.compositing_node_group
     if ng is None:
         return
-    scene.compositing_node_group = None
+    # Never detach a compositing tree that does not belong to ALD.
     if not _is_stack(ng):
         return
+    scene.compositing_node_group = None
     if any(other.compositing_node_group == ng for other in bpy.data.scenes):
         return
     bpy.data.node_groups.remove(ng)

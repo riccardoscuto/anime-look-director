@@ -707,3 +707,15 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - Operators: ld.fx_fireworks, ld.fx_meteors, ld.fx_clear; panel FX
   Particles exposes the buttons. World shader remains responsible for sky,
   clouds, stars and Milky Way.
+
+### v2.1.0 notes (deterministic FX solver and ownership)
+- fx.py evaluates every particle analytically: p(a) = p0 + v_inf a + (v0 - v_inf)(1-e^-ka)/k
+  with a stable ballistic limit for k ~ 0. Time is expressed in seconds.
+- Randomness comes from H(seed, burst, particle, channel), so results never
+  depend on the number of previous bursts or on the frame history.
+- Trails, child sparks and the central flash are separate subsystems; the
+  flash is ephemeral and the sparks keep living after the head dies.
+- FX data is owned per scene (scene id on the collection); clear() only removes
+  the owner's objects and its own orphan datablocks.
+- x_backend selects Disabled / Legacy World / FX 3D so both generators are
+  never active at the same time.

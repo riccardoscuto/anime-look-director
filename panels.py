@@ -428,9 +428,15 @@ class ALD_PT_fx(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
+        col.prop(context.scene.ald, "fx_backend")
         col.operator("ald.fx_fireworks", icon="LIGHT")
         col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
+        col.operator("ald.fx_update", icon="FILE_REFRESH")
         col.operator("ald.fx_clear", icon="TRASH")
+        config = context.scene.get("ald_fx_config")
+        if config:
+            layout.label(text="FX active: %s" % config.get("kind", "-"),
+                         icon="DOT")
 
 
 _classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor, ALD_PT_fx, ALD_PT_view3d)

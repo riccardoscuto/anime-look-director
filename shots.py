@@ -1,6 +1,7 @@
 """Timeline markers as per-shot palette overrides."""
 
 import bpy
+from bpy.app.handlers import persistent
 
 from .properties import PALETTES
 
@@ -43,6 +44,7 @@ def apply_for_frame(scene, force=False):
     return look.apply(scene, force=force)
 
 
+@persistent
 def _on_frame_change(scene, *_args):
     try:
         apply_for_frame(scene)

@@ -5,6 +5,7 @@ It is reversible: removing the node restores the previous link or color.
 """
 
 import bpy
+from bpy.app.handlers import persistent
 
 GROUP_NAME = "ALD | Shadow Tint"
 NODE_TAG = "ald_shadow_tint"
@@ -774,6 +775,7 @@ def update_sun(scene):
             _wire_emission(mat, node, look)
 
 
+@persistent
 def _on_frame_change(scene, *_args):
     try:
         update_sun(scene)

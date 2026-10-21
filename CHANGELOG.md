@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.1.0 - 2026-10-21
+### Added
+- Deterministic FX solver: analytic linear-drag motion in seconds, stable
+  zero-drag limit, hashed per-particle randomness, and frame-jump safety.
+- Firework families (Chrysanthemum, Peony, Willow) with tapered trails, child
+  sparks, an ephemeral central flash and configurable burst age.
+- Meteors sharing one radiant direction, as in a real shower.
+- FX Backend selector (Disabled / Legacy World / FX 3D) so the two generators
+  are never active at the same time.
+- Gate coverage for the FX system: per-scene ownership, clear isolation,
+  reproducibility, frame-rate independence and orphan control.
+### Fixed
+- FX collections are owned per scene and clearing one scene never touches
+  another; orphan ALD datablocks are cleaned without global purges.
+- Disabling the world gradient restores the original background colour.
+- `ald.remove` no longer detaches a compositing tree that does not belong to
+  ALD; frame and depsgraph handlers are now persistent.
+
 ## 2.0.1 - 2026-10-20
 ### Fixed
 - FX fireworks now use tapered trails, hollow shell starts, stronger droop and

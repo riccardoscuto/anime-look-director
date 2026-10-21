@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 0, 1)
+EXPECTED_VERSION = (2, 1, 0)
 TOLERANCE = 1e-4
 
 
@@ -281,6 +281,7 @@ def check_world_gradient(scene, settings):
     check(abs(node.inputs["Fireworks Scale"].default_value - 3.7) <= TOLERANCE,
           "fireworks scale slider not synced")
 
+    settings.fx_backend = "LEGACY"
     settings.shooting_stars = True
     settings.fireworks = True
     settings.god_rays = True
@@ -292,6 +293,13 @@ def check_world_gradient(scene, settings):
           "firework amount not enabled")
     check(abs(node.inputs["Sun Glow"].default_value) <= TOLERANCE,
           "sun glow toggle did not zero the glow")
+    settings.fx_backend = "FX3D"
+    bpy.ops.ald.apply_palette()
+    node = gradient_node(scene)
+    check(abs(node.inputs["Fireworks Amount"].default_value) <= TOLERANCE,
+          "legacy world fireworks not disabled in FX 3D mode")
+    check(abs(node.inputs["Shooting Star Amount"].default_value) <= TOLERANCE,
+          "legacy world meteors not disabled in FX 3D mode")
     bpy.ops.ald.apply_palette()
     node = gradient_node(scene)
     check(not settings.shooting_stars, "apply palette did not disable shooting stars")
@@ -427,12 +435,13 @@ def check_world_gradient(scene, settings):
     check(gradient_node(scene) is None, "gradient not removed when disabled")
     check(not background.inputs["Color"].is_linked,
           "background still linked after disabling the gradient")
-    check(close(background.inputs["Color"].default_value,
-                expected["world_color"] + (1.0,)),
-          "flat world color not restored")
+    saved_color = scene.get("ald_world_bg_color")
+    check(saved_color is not None, "original world background was not recorded")
+    check(close(background.inputs["Color"].default_value, tuple(saved_color)),
+          "original world background not restored")
     check(abs(background.inputs["Strength"].default_value
-              - expected["world_strength"]) <= TOLERANCE,
-          "flat world strength not restored")
+              - float(scene.get("ald_world_bg_strength", 1.0))) <= TOLERANCE,
+          "original world strength not restored")
 
     settings.world_gradient = True
     check(gradient_node(scene) is not None, "gradient not restored when enabled")
@@ -1400,6 +1409,99 @@ def check_render(scene):
           "render not produced")
 
 
+def _fx_signature(scene):
+    """Geometry fingerprint of the FX system owned by a scene."""
+    import hashlib
+    from anime_look_director import fx as fx_module
+    owner = fx_module._scene_id(scene)
+    coll = None
+    for candidate in bpy.data.collections:
+        if candidate.get(fx_module.OWNER_KEY) == owner:
+            coll = candidate
+            break
+    if coll is None:
+        return (0, "")
+    points = []
+    for obj in sorted(coll.objects, key=lambda item: item.name):
+        if obj.type == "CURVE":
+            for spline in obj.data.splines:
+                for point in spline.points:
+                    points.append(tuple(round(value, 4) for value in point.co))
+        elif obj.type == "MESH":
+            for vertex in obj.data.vertices:
+                points.append(tuple(round(value, 4) for value in vertex.co))
+        else:
+            points.append(tuple(round(value, 4) for value in obj.location))
+    digest = hashlib.sha1(repr(points).encode("utf-8")).hexdigest()
+    return (len(points), digest)
+
+
+def _fx_orphans():
+    count = 0
+    for datablocks in (bpy.data.meshes, bpy.data.curves, bpy.data.materials):
+        for block in datablocks:
+            if (block.get("ald_fx") or block.get("ald_fx_material")) \
+                    and block.users == 0:
+                count += 1
+    return count
+
+
+def check_fx(scene):
+    """Exercise the deterministic 3D FX architecture."""
+    from anime_look_director import compositor as compositor_module
+    from anime_look_director import fx as fx_module
+
+    other = bpy.data.scenes.new("ALD FX Gate B")
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    fx_module.create_fireworks(other, 2, seed=5, distance=30.0, time=0.6)
+
+    signature = _fx_signature(scene)
+    check(signature[0] > 0, "fx geometry not created")
+    check(_fx_signature(other)[0] > 0,
+          "fx system not created in the second scene")
+    check(fx_module._collection(scene) is not fx_module._collection(other),
+          "fx collections are shared between scenes")
+
+    before_clear = _fx_signature(scene)
+    fx_module.clear(other)
+    check(_fx_signature(scene) == before_clear,
+          "clearing one scene modified another scene")
+
+    orphans_before = _fx_orphans()
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    check(_fx_orphans() <= orphans_before + 2,
+          "fx datablocks are leaking between create/clear cycles")
+    check(_fx_signature(scene) == signature,
+          "fx geometry is not reproducible with the same seed")
+
+    # Same instant expressed in seconds must not depend on the frame rate.
+    fps24 = 24.0
+    fps30 = 30.0
+    time24 = 12 / fps24
+    time30 = 15 / fps30
+    check(abs(time24 - time30) < 1e-6,
+          "fps conversion is inconsistent")
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=time24)
+    first = _fx_signature(scene)
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=time30)
+    check(_fx_signature(scene) == first,
+          "fx state depends on the frame rate")
+
+    # The compositor stack must not delete the FX objects.
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    compositor_module.build(scene)
+    check(_fx_signature(scene)[0] > 0, "compositor rebuild removed the FX")
+
+    fx_module.clear(scene)
+    bpy.data.scenes.remove(other)
+
+
 def main():
     enable_addon()
     check_versions()
@@ -1425,6 +1527,7 @@ def main():
         check_material_presets(scene, settings, data)
         check_custom_colors(scene, settings, data)
         check_camera_override(scene, settings)
+        check_fx(scene)
 
         ng = scene.compositing_node_group
         check(ng is not None and ng.name == "ALD | Compositor Stack",

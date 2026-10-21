@@ -1,6 +1,7 @@
 """Per-camera palette overrides."""
 
 import bpy
+from bpy.app.handlers import persistent
 from bpy.props import BoolProperty, EnumProperty, PointerProperty
 
 from .properties import PALETTES
@@ -78,6 +79,7 @@ def update_transforms(scene, force=False):
     return True
 
 
+@persistent
 def _on_depsgraph(scene, depsgraph=None):
     try:
         camera = scene.camera

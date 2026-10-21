@@ -390,6 +390,13 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="Burst Phase", default=0.80, min=0.2, max=1.0,
         description="Expansion stage of the firework shells",
         update=_on_world)
+    fx_backend: EnumProperty(
+        name="FX Backend",
+        items=[("OFF", "Disabled", "No procedural fireworks in the sky shader"),
+               ("LEGACY", "Legacy World", "Procedural fireworks in the sky shader"),
+               ("FX3D", "FX 3D", "Physical particles created in the scene")],
+        default="FX3D",
+        description="Which fireworks backend stays active")
 
     # --- Shadow tint ----------------------------------------------------
     shadow_tint: BoolProperty(
