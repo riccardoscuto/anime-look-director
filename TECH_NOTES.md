@@ -676,3 +676,15 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   Shooting stars use 0.0007..0.0022 needle widths and zenith masking.
 - Hanabi chromatic layers use 2.4x while hot cores use a separate brighter
   term, preventing AgX whiteout.
+
+### v1.1.3 notes (stereographic hollow Hanabi)
+- Fireworks use true 2D stereographic Voronoi cells (Randomness 0.35), a cell
+  guard at r 0.31..0.36, hollow radial envelopes and crisp binary existence
+  thresholds. No 3D slicing or atan2 seam.
+- Fine spark trails, hoshi tips, inner 24-spoke pistils, detached embers and a
+  tiny center core replace the solid bicycle-wheel disc.
+- Colors select three analogous high-chroma families (gold/vermilion,
+  magenta/violet, emerald/cyan); each layer returns premultiplied RGB and the
+  layers sum directly instead of a 50/50 color mix.
+- Marker 26. Gate ratios: shadow 2.60 %, wrap 15.99 %, ink 3.34 %,
+  haze 62.95 %, toon 1.60 %, rim 7.32 %.

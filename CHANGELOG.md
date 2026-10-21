@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.3 - 2026-10-20
+### Fixed
+- Hanabi fireworks use true 2D stereographic Voronoi grids, low randomness and
+  a cell guard, eliminating 3D cell slicing, wallpaper repetition and hard
+  clipping at cell boundaries.
+- Fireworks are hollow expanding spark shells with fine beaded trails, hoshi
+  tips, contrasting pistils, embers and tiny center cores instead of solid
+  bicycle-wheel discs.
+- High-chroma analogous palette families replace complementary color mixing;
+  layers are summed as independent RGB vectors instead of a fixed 50/50 color
+  mix, preserving saturation through AgX.
+- World gradient marker 26.
+
 ## 1.1.2 - 2026-10-20
 ### Fixed
 - Milky Way socket is now connected to its mask and its star-density boost;

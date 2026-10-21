@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 1.1.2** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 1.1.3** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -283,3 +283,4 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **1.1.0** - Toggle Sun Beams/Sun Glow, stelle cadenti procedurali e fuochi d'artificio Hanabi.
 - **1.1.1** - Stelle cadenti stereografiche 2D, Via Lattea e fuochi Hanabi a raggi continui.
 - **1.1.2** - Piano tangente per meteore/fuochi, Milky Way cablata e colori Hanabi saturi.
+- **1.1.3** - Fuochi Hanabi 2D stereografici, gusci cavi e palette cromatiche pure.

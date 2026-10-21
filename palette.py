@@ -296,13 +296,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 25):
+                           or ng.get("ald_build") != 26):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 25
+        ng["ald_build"] = 26
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -316,7 +316,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 25
+        ng["ald_build"] = 26
     return ng
 
 
@@ -2534,480 +2534,609 @@ def _build_gradient_group(ng):
 
         layer_scale = n("ShaderNodeMath", 1880, -4400)
         layer_scale.operation = "MULTIPLY"
-        layer_scale.inputs[1].default_value = scale_mult
+        layer_scale.inputs[1].default_value = 1.35 * scale_mult
         links.new(group_in.outputs["Fireworks Scale"], layer_scale.inputs[0])
 
-        layer_scale_mapped = n("ShaderNodeMath", 1880, -4520)
-        layer_scale_mapped.operation = "MULTIPLY"
-        layer_scale_mapped.inputs[1].default_value = 0.12
-        links.new(layer_scale.outputs[0], layer_scale_mapped.inputs[0])
+        fw_u = n("ShaderNodeMath", 2060, -4400)
+        fw_u.operation = "MULTIPLY"
+        links.new(st_x.outputs[0], fw_u.inputs[0])
+        links.new(layer_scale.outputs[0], fw_u.inputs[1])
 
-        layer_scale_base = n("ShaderNodeMath", 2060, -4520)
-        layer_scale_base.operation = "ADD"
-        layer_scale_base.inputs[1].default_value = 0.75
-        links.new(layer_scale_mapped.outputs[0], layer_scale_base.inputs[0])
+        fw_v = n("ShaderNodeMath", 2060, -4560)
+        fw_v.operation = "MULTIPLY"
+        links.new(st_y.outputs[0], fw_v.inputs[0])
+        links.new(layer_scale.outputs[0], fw_v.inputs[1])
 
-        fw_pos_scaled = n("ShaderNodeVectorMath", 2240, -4400)
-        fw_pos_scaled.operation = "SCALE"
-        links.new(view_norm.outputs["Vector"], fw_pos_scaled.inputs[0])
-        links.new(layer_scale_base.outputs[0], fw_pos_scaled.inputs["Scale"])
+        fw_u2 = n("ShaderNodeMath", 2240, -4400)
+        fw_u2.operation = "ADD"
+        fw_u2.inputs[1].default_value = offset_x
+        links.new(fw_u.outputs[0], fw_u2.inputs[0])
 
-        fw_offset = n("ShaderNodeVectorMath", 2240, -4400)
-        fw_offset.operation = "ADD"
-        fw_offset.inputs[1].default_value = (offset_x, offset_y, offset_x * 0.5)
-        links.new(fw_pos_scaled.outputs["Vector"], fw_offset.inputs[0])
+        fw_v2 = n("ShaderNodeMath", 2240, -4560)
+        fw_v2.operation = "ADD"
+        fw_v2.inputs[1].default_value = offset_y
+        links.new(fw_v.outputs[0], fw_v2.inputs[0])
 
-        fw_vor = n("ShaderNodeTexVoronoi", 2420, -4480)
+        fw_uv = n("ShaderNodeCombineXYZ", 2420, -4480)
+        links.new(fw_u2.outputs[0], fw_uv.inputs["X"])
+        links.new(fw_v2.outputs[0], fw_uv.inputs["Y"])
+
+        fw_vor = n("ShaderNodeTexVoronoi", 2600, -4480)
+        fw_vor.voronoi_dimensions = "2D"
         fw_vor.inputs["Scale"].default_value = 1.0
-        fw_vor.inputs["Randomness"].default_value = 0.55
-        links.new(fw_offset.outputs["Vector"], fw_vor.inputs["Vector"])
+        fw_vor.inputs["Randomness"].default_value = 0.35
+        links.new(fw_uv.outputs["Vector"], fw_vor.inputs["Vector"])
 
-        fw_cell = n("ShaderNodeSeparateXYZ", 2600, -4480)
+        fw_cell = n("ShaderNodeSeparateXYZ", 2780, -4480)
         links.new(fw_vor.outputs["Position"], fw_cell.inputs["Vector"])
-        fw_rand = n("ShaderNodeSeparateXYZ", 2600, -4640)
+        fw_rand = n("ShaderNodeSeparateXYZ", 2780, -4640)
         links.new(fw_vor.outputs["Color"], fw_rand.inputs["Vector"])
 
-        fw_rel = n("ShaderNodeVectorMath", 2780, -4480)
-        fw_rel.operation = "SUBTRACT"
-        links.new(fw_offset.outputs["Vector"], fw_rel.inputs[0])
-        links.new(fw_vor.outputs["Position"], fw_rel.inputs[1])
+        du = n("ShaderNodeMath", 2960, -4480)
+        du.operation = "SUBTRACT"
+        links.new(fw_u2.outputs[0], du.inputs[0])
+        links.new(fw_cell.outputs["X"], du.inputs[1])
 
-        dx = n("ShaderNodeVectorMath", 2960, -4480)
-        dx.operation = "DOT_PRODUCT"
-        links.new(fw_rel.outputs["Vector"], dx.inputs[0])
-        links.new(tan_h.outputs["Vector"], dx.inputs[1])
+        dv = n("ShaderNodeMath", 2960, -4640)
+        dv.operation = "SUBTRACT"
+        links.new(fw_v2.outputs[0], dv.inputs[0])
+        links.new(fw_cell.outputs["Y"], dv.inputs[1])
 
-        dy = n("ShaderNodeVectorMath", 2960, -4640)
-        dy.operation = "DOT_PRODUCT"
-        links.new(fw_rel.outputs["Vector"], dy.inputs[0])
-        links.new(tan_v.outputs["Vector"], dy.inputs[1])
+        du_sq = n("ShaderNodeMath", 3140, -4480)
+        du_sq.operation = "MULTIPLY"
+        links.new(du.outputs[0], du_sq.inputs[0])
+        links.new(du.outputs[0], du_sq.inputs[1])
 
-        dx_sq = n("ShaderNodeMath", 3140, -4480)
-        dx_sq.operation = "MULTIPLY"
-        links.new(dx.outputs["Value"], dx_sq.inputs[0])
-        links.new(dx.outputs["Value"], dx_sq.inputs[1])
-
-        dy_sq = n("ShaderNodeMath", 3140, -4640)
-        dy_sq.operation = "MULTIPLY"
-        links.new(dy.outputs["Value"], dy_sq.inputs[0])
-        links.new(dy.outputs["Value"], dy_sq.inputs[1])
+        dv_sq = n("ShaderNodeMath", 3140, -4640)
+        dv_sq.operation = "MULTIPLY"
+        links.new(dv.outputs[0], dv_sq.inputs[0])
+        links.new(dv.outputs[0], dv_sq.inputs[1])
 
         r_sq = n("ShaderNodeMath", 3320, -4560)
         r_sq.operation = "ADD"
-        links.new(dx_sq.outputs[0], r_sq.inputs[0])
-        links.new(dy_sq.outputs[0], r_sq.inputs[1])
+        links.new(du_sq.outputs[0], r_sq.inputs[0])
+        links.new(dv_sq.outputs[0], r_sq.inputs[1])
 
         r = n("ShaderNodeMath", 3500, -4560)
         r.operation = "SQRT"
         links.new(r_sq.outputs[0], r.inputs[0])
 
+        guard = n("ShaderNodeMapRange", 3500, -4400)
+        guard.clamp = True
+        _smooth(guard)
+        guard.inputs["From Min"].default_value = 0.31
+        guard.inputs["From Max"].default_value = 0.36
+        guard.inputs["To Min"].default_value = 1.0
+        guard.inputs["To Max"].default_value = 0.0
+        links.new(r.outputs[0], guard.inputs["Value"])
+
         droop = n("ShaderNodeMath", 3320, -4720)
         droop.operation = "MULTIPLY"
-        droop.inputs[1].default_value = 0.34
+        droop.inputs[1].default_value = 0.85
         links.new(r_sq.outputs[0], droop.inputs[0])
 
         dy_droop = n("ShaderNodeMath", 3500, -4720)
         dy_droop.operation = "ADD"
-        links.new(dy.outputs["Value"], dy_droop.inputs[0])
+        links.new(dv.outputs[0], dy_droop.inputs[0])
         links.new(droop.outputs[0], dy_droop.inputs[1])
 
-        theta = n("ShaderNodeMath", 3680, -4640)
+        dy_droop_sq = n("ShaderNodeMath", 3680, -4720)
+        dy_droop_sq.operation = "MULTIPLY"
+        links.new(dy_droop.outputs[0], dy_droop_sq.inputs[0])
+        links.new(dy_droop.outputs[0], dy_droop_sq.inputs[1])
+
+        r_droop_sq = n("ShaderNodeMath", 3860, -4640)
+        r_droop_sq.operation = "ADD"
+        links.new(du_sq.outputs[0], r_droop_sq.inputs[0])
+        links.new(dy_droop_sq.outputs[0], r_droop_sq.inputs[1])
+
+        r_droop = n("ShaderNodeMath", 4040, -4640)
+        r_droop.operation = "SQRT"
+        links.new(r_droop_sq.outputs[0], r_droop.inputs[0])
+
+        theta = n("ShaderNodeMath", 3680, -4880)
         theta.operation = "ARCTAN2"
         links.new(dy_droop.outputs[0], theta.inputs[0])
-        links.new(dx.outputs["Value"], theta.inputs[1])
+        links.new(du.outputs[0], theta.inputs[1])
 
-        size_var = n("ShaderNodeMapRange", 3680, -4480)
+        size_var = n("ShaderNodeMapRange", 3680, -5040)
         size_var.clamp = True
         _smooth(size_var)
         size_var.inputs["From Min"].default_value = 0.0
         size_var.inputs["From Max"].default_value = 1.0
-        size_var.inputs["To Min"].default_value = 0.36
-        size_var.inputs["To Max"].default_value = 0.60
+        size_var.inputs["To Min"].default_value = 0.19
+        size_var.inputs["To Max"].default_value = 0.27
         links.new(fw_rand.outputs["Y"], size_var.inputs["Value"])
 
-        r_max = n("ShaderNodeMath", 3860, -4480)
+        r_max = n("ShaderNodeMath", 3860, -5040)
         r_max.operation = "MULTIPLY"
         links.new(size_var.outputs["Result"], r_max.inputs[0])
         links.new(group_in.outputs["Fireworks Phase"], r_max.inputs[1])
 
-        cos_t = n("ShaderNodeMath", 3860, -4640)
+        cos_t = n("ShaderNodeMath", 3860, -5200)
         cos_t.operation = "COSINE"
         links.new(theta.outputs[0], cos_t.inputs[0])
-        sin_t = n("ShaderNodeMath", 3860, -4800)
+        sin_t = n("ShaderNodeMath", 3860, -5360)
         sin_t.operation = "SINE"
         links.new(theta.outputs[0], sin_t.inputs[0])
 
-        rand_z = n("ShaderNodeMath", 3860, -4960)
+        rand_z = n("ShaderNodeMath", 3860, -5520)
         rand_z.operation = "MULTIPLY"
         rand_z.inputs[1].default_value = 10.0
         links.new(fw_rand.outputs["X"], rand_z.inputs[0])
 
-        ang_vec = n("ShaderNodeCombineXYZ", 4040, -4720)
+        ang_vec = n("ShaderNodeCombineXYZ", 4040, -5280)
         links.new(cos_t.outputs[0], ang_vec.inputs["X"])
         links.new(sin_t.outputs[0], ang_vec.inputs["Y"])
         links.new(rand_z.outputs[0], ang_vec.inputs["Z"])
 
-        ang_noise = n("ShaderNodeTexNoise", 4220, -4720)
-        ang_noise.inputs["Scale"].default_value = 4.5
+        ang_noise = n("ShaderNodeTexNoise", 4220, -5280)
+        ang_noise.inputs["Scale"].default_value = 11.0
         ang_noise.inputs["Detail"].default_value = 2.0
         links.new(ang_vec.outputs["Vector"], ang_noise.inputs["Vector"])
 
-        ang_scale = n("ShaderNodeMath", 4400, -4720)
+        ang_scale = n("ShaderNodeMath", 4400, -5200)
         ang_scale.operation = "MULTIPLY"
-        ang_scale.inputs[1].default_value = 0.36
+        ang_scale.inputs[1].default_value = 0.18
         links.new(ang_noise.outputs["Fac"], ang_scale.inputs[0])
 
-        ang_base = n("ShaderNodeMath", 4580, -4720)
+        ang_base = n("ShaderNodeMath", 4580, -5200)
         ang_base.operation = "ADD"
-        ang_base.inputs[1].default_value = 0.72
+        ang_base.inputs[1].default_value = 0.86
         links.new(ang_scale.outputs[0], ang_base.inputs[0])
 
-        r_ray_max = n("ShaderNodeMath", 4760, -4640)
+        r_ray_max = n("ShaderNodeMath", 4760, -5040)
         r_ray_max.operation = "MULTIPLY"
         links.new(r_max.outputs[0], r_ray_max.inputs[0])
         links.new(ang_base.outputs[0], r_ray_max.inputs[1])
 
         norm_r = n("ShaderNodeMath", 4940, -4640)
         norm_r.operation = "DIVIDE"
-        links.new(r.outputs[0], norm_r.inputs[0])
+        links.new(r_droop.outputs[0], norm_r.inputs[0])
         links.new(r_ray_max.outputs[0], norm_r.inputs[1])
 
-        spoke1_phase = n("ShaderNodeMath", 4400, -4880)
-        spoke1_phase.operation = "MULTIPLY"
-        spoke1_phase.inputs[1].default_value = 36.0 / (2.0 * math.pi)
-        links.new(theta.outputs[0], spoke1_phase.inputs[0])
+        # Curl the spokes organically instead of keeping rigid radii.
+        r_sq_curl = n("ShaderNodeMath", 4220, -5680)
+        r_sq_curl.operation = "MULTIPLY"
+        links.new(norm_r.outputs[0], r_sq_curl.inputs[0])
+        links.new(norm_r.outputs[0], r_sq_curl.inputs[1])
 
-        spoke1_wave = n("ShaderNodeMath", 4580, -4880)
+        curl_amt = n("ShaderNodeMath", 4400, -5680)
+        curl_amt.operation = "SUBTRACT"
+        curl_amt.inputs[1].default_value = 0.5
+        links.new(fw_rand.outputs["Y"], curl_amt.inputs[0])
+
+        curl = n("ShaderNodeMath", 4580, -5680)
+        curl.operation = "MULTIPLY"
+        curl.inputs[1].default_value = 0.10
+        links.new(r_sq_curl.outputs[0], curl.inputs[0])
+        curl2 = n("ShaderNodeMath", 4760, -5680)
+        curl2.operation = "MULTIPLY"
+        links.new(curl.outputs[0], curl2.inputs[0])
+        links.new(curl_amt.outputs[0], curl2.inputs[1])
+
+        theta_curled = n("ShaderNodeMath", 4940, -5680)
+        theta_curled.operation = "ADD"
+        links.new(theta.outputs[0], theta_curled.inputs[0])
+        links.new(curl2.outputs[0], theta_curled.inputs[1])
+
+        spoke1_phase = n("ShaderNodeMath", 4400, -5840)
+        spoke1_phase.operation = "MULTIPLY"
+        spoke1_phase.inputs[1].default_value = 42.0 / (2.0 * math.pi)
+        links.new(theta_curled.outputs[0], spoke1_phase.inputs[0])
+        spoke1_offset = n("ShaderNodeMath", 4580, -5840)
+        spoke1_offset.operation = "MULTIPLY"
+        spoke1_offset.inputs[1].default_value = 6.0
+        links.new(fw_rand.outputs["X"], spoke1_offset.inputs[0])
+        spoke1_sum = n("ShaderNodeMath", 4760, -5840)
+        spoke1_sum.operation = "ADD"
+        links.new(spoke1_phase.outputs[0], spoke1_sum.inputs[0])
+        links.new(spoke1_offset.outputs[0], spoke1_sum.inputs[1])
+
+        spoke1_wave = n("ShaderNodeMath", 4940, -5840)
         spoke1_wave.operation = "PINGPONG"
         spoke1_wave.inputs[1].default_value = 0.5
-        links.new(spoke1_phase.outputs[0], spoke1_wave.inputs[0])
+        links.new(spoke1_sum.outputs[0], spoke1_wave.inputs[0])
 
-        spoke1_core = n("ShaderNodeMapRange", 4760, -4880)
+        spoke1_core = n("ShaderNodeMapRange", 5120, -5840)
         spoke1_core.clamp = True
         _smooth(spoke1_core)
         spoke1_core.inputs["From Min"].default_value = 0.0
-        spoke1_core.inputs["From Max"].default_value = 0.24
+        spoke1_core.inputs["From Max"].default_value = 0.075
         spoke1_core.inputs["To Min"].default_value = 1.0
         spoke1_core.inputs["To Max"].default_value = 0.0
         links.new(spoke1_wave.outputs[0], spoke1_core.inputs["Value"])
 
-        spoke1_sharp = n("ShaderNodeMath", 4940, -4880)
+        spoke1_sharp = n("ShaderNodeMath", 5300, -5840)
         spoke1_sharp.operation = "POWER"
-        spoke1_sharp.inputs[1].default_value = 1.6
+        spoke1_sharp.inputs[1].default_value = 2.2
         links.new(spoke1_core.outputs["Result"], spoke1_sharp.inputs[0])
 
-        spoke2_phase = n("ShaderNodeMath", 4400, -5040)
-        spoke2_phase.operation = "MULTIPLY"
-        spoke2_phase.inputs[1].default_value = 22.0 / (2.0 * math.pi)
-        links.new(theta.outputs[0], spoke2_phase.inputs[0])
+        spark_phase = n("ShaderNodeMath", 4400, -6000)
+        spark_phase.operation = "MULTIPLY"
+        spark_phase.inputs[1].default_value = 16.0
+        links.new(norm_r.outputs[0], spark_phase.inputs[0])
+        spark_offset = n("ShaderNodeMath", 4580, -6000)
+        spark_offset.operation = "MULTIPLY"
+        spark_offset.inputs[1].default_value = 3.0
+        links.new(ang_noise.outputs["Fac"], spark_offset.inputs[0])
+        spark_sum = n("ShaderNodeMath", 4760, -6000)
+        spark_sum.operation = "ADD"
+        links.new(spark_phase.outputs[0], spark_sum.inputs[0])
+        links.new(spark_offset.outputs[0], spark_sum.inputs[1])
+        spark_wave = n("ShaderNodeMath", 4940, -6000)
+        spark_wave.operation = "PINGPONG"
+        spark_wave.inputs[1].default_value = 0.5
+        links.new(spark_sum.outputs[0], spark_wave.inputs[0])
+        spark_mod = n("ShaderNodeMapRange", 5120, -6000)
+        spark_mod.clamp = True
+        _smooth(spark_mod)
+        spark_mod.inputs["From Min"].default_value = 0.0
+        spark_mod.inputs["From Max"].default_value = 0.5
+        spark_mod.inputs["To Min"].default_value = 0.55
+        spark_mod.inputs["To Max"].default_value = 1.0
+        links.new(spark_wave.outputs[0], spark_mod.inputs["Value"])
 
-        spoke2_wave = n("ShaderNodeMath", 4580, -5040)
-        spoke2_wave.operation = "PINGPONG"
-        spoke2_wave.inputs[1].default_value = 0.5
-        links.new(spoke2_phase.outputs[0], spoke2_wave.inputs[0])
-
-        spoke2_core = n("ShaderNodeMapRange", 4760, -5040)
-        spoke2_core.clamp = True
-        _smooth(spoke2_core)
-        spoke2_core.inputs["From Min"].default_value = 0.0
-        spoke2_core.inputs["From Max"].default_value = 0.24
-        spoke2_core.inputs["To Min"].default_value = 1.0
-        spoke2_core.inputs["To Max"].default_value = 0.0
-        links.new(spoke2_wave.outputs[0], spoke2_core.inputs["Value"])
-
-        trail_in = n("ShaderNodeMapRange", 4400, -5200)
+        trail_in = n("ShaderNodeMapRange", 4400, -6160)
         trail_in.clamp = True
         _smooth(trail_in)
-        trail_in.inputs["From Min"].default_value = 0.03
-        trail_in.inputs["From Max"].default_value = 0.18
-        trail_in.inputs["To Min"].default_value = 0.2
+        trail_in.inputs["From Min"].default_value = 0.22
+        trail_in.inputs["From Max"].default_value = 0.72
+        trail_in.inputs["To Min"].default_value = 0.0
         trail_in.inputs["To Max"].default_value = 1.0
         links.new(norm_r.outputs[0], trail_in.inputs["Value"])
+        trail_in_pow = n("ShaderNodeMath", 4580, -6160)
+        trail_in_pow.operation = "POWER"
+        trail_in_pow.inputs[1].default_value = 1.6
+        links.new(trail_in.outputs["Result"], trail_in_pow.inputs[0])
 
-        trail_out = n("ShaderNodeMapRange", 4400, -5360)
+        trail_out = n("ShaderNodeMapRange", 4400, -6320)
         trail_out.clamp = True
         _smooth(trail_out)
-        trail_out.inputs["From Min"].default_value = 0.88
+        trail_out.inputs["From Min"].default_value = 0.92
         trail_out.inputs["From Max"].default_value = 1.02
         trail_out.inputs["To Min"].default_value = 1.0
         trail_out.inputs["To Max"].default_value = 0.0
         links.new(norm_r.outputs[0], trail_out.inputs["Value"])
 
-        trail_env = n("ShaderNodeMath", 4580, -5280)
-        trail_env.operation = "MULTIPLY"
-        trail_env.use_clamp = True
-        links.new(trail_in.outputs["Result"], trail_env.inputs[0])
-        links.new(trail_out.outputs["Result"], trail_env.inputs[1])
+        env_a = n("ShaderNodeMath", 4580, -6280)
+        env_a.operation = "MULTIPLY"
+        links.new(trail_in_pow.outputs[0], env_a.inputs[0])
+        links.new(trail_out.outputs["Result"], env_a.inputs[1])
+        env = n("ShaderNodeMath", 4760, -6280)
+        env.operation = "MULTIPLY"
+        env.use_clamp = True
+        links.new(env_a.outputs[0], env.inputs[0])
+        links.new(spark_mod.outputs["Result"], env.inputs[1])
 
-        ribbon = n("ShaderNodeMath", 4760, -5200)
+        ribbon = n("ShaderNodeMath", 4940, -6280)
         ribbon.operation = "MULTIPLY"
         ribbon.use_clamp = True
+        ribbon.inputs[1].default_value = 0.85
         links.new(spoke1_sharp.outputs[0], ribbon.inputs[0])
-        links.new(trail_env.outputs[0], ribbon.inputs[1])
+        links.new(env.outputs[0], ribbon.inputs[1])
 
-        tip_dist = n("ShaderNodeMath", 4400, -5520)
+        tip_dist = n("ShaderNodeMath", 4400, -6480)
         tip_dist.operation = "SUBTRACT"
-        tip_dist.inputs[1].default_value = 0.90
+        tip_dist.inputs[1].default_value = 0.92
         links.new(norm_r.outputs[0], tip_dist.inputs[0])
-
-        tip_abs = n("ShaderNodeMath", 4580, -5520)
+        tip_abs = n("ShaderNodeMath", 4580, -6480)
         tip_abs.operation = "ABSOLUTE"
         links.new(tip_dist.outputs[0], tip_abs.inputs[0])
-
-        tip_env = n("ShaderNodeMapRange", 4760, -5520)
+        tip_env = n("ShaderNodeMapRange", 4760, -6480)
         tip_env.clamp = True
         _smooth(tip_env)
         tip_env.inputs["From Min"].default_value = 0.0
-        tip_env.inputs["From Max"].default_value = 0.08
-        tip_env.inputs["To Min"].default_value = 1.2
+        tip_env.inputs["From Max"].default_value = 0.045
+        tip_env.inputs["To Min"].default_value = 1.35
         tip_env.inputs["To Max"].default_value = 0.0
         links.new(tip_abs.outputs[0], tip_env.inputs["Value"])
-
-        tips = n("ShaderNodeMath", 4940, -5520)
+        tips = n("ShaderNodeMath", 4940, -6480)
         tips.operation = "MULTIPLY"
         tips.use_clamp = True
-        links.new(spoke1_core.outputs["Result"], tips.inputs[0])
+        links.new(spoke1_sharp.outputs[0], tips.inputs[0])
         links.new(tip_env.outputs["Result"], tips.inputs[1])
 
-        pistil_out = n("ShaderNodeMapRange", 4400, -5680)
+        spoke2_phase = n("ShaderNodeMath", 4400, -6640)
+        spoke2_phase.operation = "MULTIPLY"
+        spoke2_phase.inputs[1].default_value = 24.0 / (2.0 * math.pi)
+        links.new(theta.outputs[0], spoke2_phase.inputs[0])
+        spoke2_offset = n("ShaderNodeMath", 4580, -6640)
+        spoke2_offset.operation = "MULTIPLY"
+        spoke2_offset.inputs[1].default_value = 5.0
+        links.new(fw_rand.outputs["Z"], spoke2_offset.inputs[0])
+        spoke2_sum = n("ShaderNodeMath", 4760, -6640)
+        spoke2_sum.operation = "ADD"
+        links.new(spoke2_phase.outputs[0], spoke2_sum.inputs[0])
+        links.new(spoke2_offset.outputs[0], spoke2_sum.inputs[1])
+        spoke2_wave = n("ShaderNodeMath", 4940, -6640)
+        spoke2_wave.operation = "PINGPONG"
+        spoke2_wave.inputs[1].default_value = 0.5
+        links.new(spoke2_sum.outputs[0], spoke2_wave.inputs[0])
+        spoke2_core = n("ShaderNodeMapRange", 5120, -6640)
+        spoke2_core.clamp = True
+        _smooth(spoke2_core)
+        spoke2_core.inputs["From Min"].default_value = 0.0
+        spoke2_core.inputs["From Max"].default_value = 0.085
+        spoke2_core.inputs["To Min"].default_value = 1.0
+        spoke2_core.inputs["To Max"].default_value = 0.0
+        links.new(spoke2_wave.outputs[0], spoke2_core.inputs["Value"])
+        spoke2_sharp = n("ShaderNodeMath", 5300, -6640)
+        spoke2_sharp.operation = "POWER"
+        spoke2_sharp.inputs[1].default_value = 2.0
+        links.new(spoke2_core.outputs["Result"], spoke2_sharp.inputs[0])
+
+        pistil_in = n("ShaderNodeMapRange", 4400, -6800)
+        pistil_in.clamp = True
+        _smooth(pistil_in)
+        pistil_in.inputs["From Min"].default_value = 0.14
+        pistil_in.inputs["From Max"].default_value = 0.36
+        pistil_in.inputs["To Min"].default_value = 0.0
+        pistil_in.inputs["To Max"].default_value = 1.0
+        links.new(norm_r.outputs[0], pistil_in.inputs["Value"])
+        pistil_out = n("ShaderNodeMapRange", 4400, -6960)
         pistil_out.clamp = True
         _smooth(pistil_out)
-        pistil_out.inputs["From Min"].default_value = 0.48
-        pistil_out.inputs["From Max"].default_value = 0.62
+        pistil_out.inputs["From Min"].default_value = 0.42
+        pistil_out.inputs["From Max"].default_value = 0.50
         pistil_out.inputs["To Min"].default_value = 1.0
         pistil_out.inputs["To Max"].default_value = 0.0
         links.new(norm_r.outputs[0], pistil_out.inputs["Value"])
-
-        pistil_env = n("ShaderNodeMath", 4580, -5680)
+        pistil_env = n("ShaderNodeMath", 4580, -6880)
         pistil_env.operation = "MULTIPLY"
         pistil_env.use_clamp = True
-        links.new(trail_in.outputs["Result"], pistil_env.inputs[0])
+        links.new(pistil_in.outputs["Result"], pistil_env.inputs[0])
         links.new(pistil_out.outputs["Result"], pistil_env.inputs[1])
-
-        pistil = n("ShaderNodeMath", 4760, -5680)
+        pistil_scaled = n("ShaderNodeMath", 4760, -6880)
+        pistil_scaled.operation = "MULTIPLY"
+        pistil_scaled.inputs[1].default_value = 0.65
+        links.new(pistil_env.outputs[0], pistil_scaled.inputs[0])
+        pistil = n("ShaderNodeMath", 5120, -6800)
         pistil.operation = "MULTIPLY"
         pistil.use_clamp = True
-        pistil.inputs[1].default_value = 0.75
-        links.new(spoke2_core.outputs["Result"], pistil.inputs[0])
-        links.new(pistil_env.outputs[0], pistil.inputs[1])
+        links.new(spoke2_sharp.outputs[0], pistil.inputs[0])
+        links.new(pistil_scaled.outputs[0], pistil.inputs[1])
 
-        core_curve = n("ShaderNodeMapRange", 4400, -5840)
-        core_curve.clamp = True
-        _smooth(core_curve)
-        core_curve.inputs["From Min"].default_value = 0.0
-        core_curve.inputs["From Max"].default_value = 0.22
-        core_curve.inputs["To Min"].default_value = 1.0
-        core_curve.inputs["To Max"].default_value = 0.0
-        links.new(norm_r.outputs[0], core_curve.inputs["Value"])
-
-        core_flash = n("ShaderNodeMath", 4580, -5840)
-        core_flash.operation = "POWER"
-        core_flash.inputs[1].default_value = 2.2
-        links.new(core_curve.outputs["Result"], core_flash.inputs[0])
-
-        ember_uv = n("ShaderNodeCombineXYZ", 4400, -6000)
-        ember_dx = n("ShaderNodeMath", 4220, -6000)
+        # Embers
+        ember_dx = n("ShaderNodeMath", 4400, -7120)
         ember_dx.operation = "MULTIPLY"
-        ember_dx.inputs[1].default_value = 28.0
-        links.new(dx.outputs["Value"], ember_dx.inputs[0])
-        ember_dy = n("ShaderNodeMath", 4220, -6160)
+        ember_dx.inputs[1].default_value = 38.0
+        links.new(du.outputs[0], ember_dx.inputs[0])
+        ember_dy = n("ShaderNodeMath", 4400, -7280)
         ember_dy.operation = "MULTIPLY"
-        ember_dy.inputs[1].default_value = 28.0
+        ember_dy.inputs[1].default_value = 38.0
         links.new(dy_droop.outputs[0], ember_dy.inputs[0])
+        ember_uv = n("ShaderNodeCombineXYZ", 4580, -7200)
         links.new(ember_dx.outputs[0], ember_uv.inputs["X"])
         links.new(ember_dy.outputs[0], ember_uv.inputs["Y"])
-        ember_vor = n("ShaderNodeTexVoronoi", 4580, -6000)
+        ember_vor = n("ShaderNodeTexVoronoi", 4760, -7200)
         ember_vor.voronoi_dimensions = "2D"
         ember_vor.inputs["Scale"].default_value = 1.0
         links.new(ember_uv.outputs["Vector"], ember_vor.inputs["Vector"])
-        ember_dot = n("ShaderNodeMapRange", 4760, -6000)
+        ember_dot = n("ShaderNodeMapRange", 4940, -7200)
         ember_dot.clamp = True
         _smooth(ember_dot)
         ember_dot.inputs["From Min"].default_value = 0.0
-        ember_dot.inputs["From Max"].default_value = 0.14
+        ember_dot.inputs["From Max"].default_value = 0.11
         ember_dot.inputs["To Min"].default_value = 1.0
         ember_dot.inputs["To Max"].default_value = 0.0
         links.new(ember_vor.outputs["Distance"], ember_dot.inputs["Value"])
-
-        ember_cull = n("ShaderNodeMapRange", 4760, -6160)
+        ember_rand = n("ShaderNodeSeparateXYZ", 4760, -7360)
+        links.new(ember_vor.outputs["Color"], ember_rand.inputs["Vector"])
+        ember_cull = n("ShaderNodeMapRange", 4940, -7360)
         ember_cull.clamp = True
         _smooth(ember_cull)
-        ember_cull.inputs["From Min"].default_value = 0.78
-        ember_cull.inputs["From Max"].default_value = 0.85
+        ember_cull.inputs["From Min"].default_value = 0.82
+        ember_cull.inputs["From Max"].default_value = 0.86
         ember_cull.inputs["To Min"].default_value = 0.0
         ember_cull.inputs["To Max"].default_value = 1.0
-        ember_rand = n("ShaderNodeSeparateXYZ", 4580, -6160)
-        links.new(ember_vor.outputs["Color"], ember_rand.inputs["Vector"])
         links.new(ember_rand.outputs["X"], ember_cull.inputs["Value"])
-
-        ember_zone_a = n("ShaderNodeMapRange", 4400, -6320)
+        ember_zone_a = n("ShaderNodeMapRange", 4400, -7440)
         ember_zone_a.clamp = True
         _smooth(ember_zone_a)
-        ember_zone_a.inputs["From Min"].default_value = 0.25
-        ember_zone_a.inputs["From Max"].default_value = 0.55
+        ember_zone_a.inputs["From Min"].default_value = 0.55
+        ember_zone_a.inputs["From Max"].default_value = 0.78
         ember_zone_a.inputs["To Min"].default_value = 0.0
         ember_zone_a.inputs["To Max"].default_value = 1.0
         links.new(norm_r.outputs[0], ember_zone_a.inputs["Value"])
-
-        ember_zone_b = n("ShaderNodeMapRange", 4400, -6480)
+        ember_zone_b = n("ShaderNodeMapRange", 4400, -7600)
         ember_zone_b.clamp = True
         _smooth(ember_zone_b)
-        ember_zone_b.inputs["From Min"].default_value = 0.95
-        ember_zone_b.inputs["From Max"].default_value = 1.35
+        ember_zone_b.inputs["From Min"].default_value = 0.98
+        ember_zone_b.inputs["From Max"].default_value = 1.18
         ember_zone_b.inputs["To Min"].default_value = 1.0
         ember_zone_b.inputs["To Max"].default_value = 0.0
         links.new(norm_r.outputs[0], ember_zone_b.inputs["Value"])
-
-        ember_zone = n("ShaderNodeMath", 4580, -6400)
+        ember_zone = n("ShaderNodeMath", 4580, -7520)
         ember_zone.operation = "MULTIPLY"
         ember_zone.use_clamp = True
         links.new(ember_zone_a.outputs["Result"], ember_zone.inputs[0])
         links.new(ember_zone_b.outputs["Result"], ember_zone.inputs[1])
-
-        embers = n("ShaderNodeMath", 4940, -6080)
+        embers = n("ShaderNodeMath", 5120, -7280)
         embers.operation = "MULTIPLY"
         embers.use_clamp = True
         links.new(ember_dot.outputs["Result"], embers.inputs[0])
         links.new(ember_cull.outputs["Result"], embers.inputs[1])
-
-        embers2 = n("ShaderNodeMath", 5120, -6080)
+        embers2 = n("ShaderNodeMath", 5300, -7280)
         embers2.operation = "MULTIPLY"
         embers2.use_clamp = True
         links.new(embers.outputs[0], embers2.inputs[0])
         links.new(ember_zone.outputs[0], embers2.inputs[1])
+        embers3 = n("ShaderNodeMath", 5480, -7280)
+        embers3.operation = "MULTIPLY"
+        embers3.use_clamp = True
+        embers3.inputs[1].default_value = 0.9
+        links.new(embers2.outputs[0], embers3.inputs[0])
 
-        glow_curve = n("ShaderNodeMapRange", 4400, -6640)
+        # Tiny center and subtle colored aura.
+        core_curve = n("ShaderNodeMapRange", 4400, -7760)
+        core_curve.clamp = True
+        _smooth(core_curve)
+        core_curve.inputs["From Min"].default_value = 0.0
+        core_curve.inputs["From Max"].default_value = 0.045
+        core_curve.inputs["To Min"].default_value = 0.45
+        core_curve.inputs["To Max"].default_value = 0.0
+        links.new(norm_r.outputs[0], core_curve.inputs["Value"])
+        glow_curve = n("ShaderNodeMapRange", 4400, -7920)
         glow_curve.clamp = True
         _smooth(glow_curve)
-        glow_curve.inputs["From Min"].default_value = 0.0
-        glow_curve.inputs["From Max"].default_value = 1.25
-        glow_curve.inputs["To Min"].default_value = 0.22
+        glow_curve.inputs["From Min"].default_value = 0.15
+        glow_curve.inputs["From Max"].default_value = 1.0
+        glow_curve.inputs["To Min"].default_value = 0.04
         glow_curve.inputs["To Max"].default_value = 0.0
         links.new(norm_r.outputs[0], glow_curve.inputs["Value"])
 
-        glow = n("ShaderNodeMath", 4580, -6640)
-        glow.operation = "POWER"
-        glow.inputs[1].default_value = 1.8
-        links.new(glow_curve.outputs["Result"], glow.inputs[0])
+        outer_a = n("ShaderNodeMath", 5300, -6480)
+        outer_a.operation = "MAXIMUM"
+        outer_a.use_clamp = True
+        links.new(ribbon.outputs[0], outer_a.inputs[0])
+        links.new(tips.outputs[0], outer_a.inputs[1])
+        outer_b = n("ShaderNodeMath", 5480, -6480)
+        outer_b.operation = "ADD"
+        outer_b.use_clamp = True
+        links.new(outer_a.outputs[0], outer_b.inputs[0])
+        links.new(embers3.outputs[0], outer_b.inputs[1])
+        outer_c = n("ShaderNodeMath", 5660, -6480)
+        outer_c.operation = "ADD"
+        outer_c.use_clamp = True
+        links.new(outer_b.outputs[0], outer_c.inputs[0])
+        links.new(glow_curve.outputs["Result"], outer_c.inputs[1])
+        outer_guard = n("ShaderNodeMath", 5840, -6480)
+        outer_guard.operation = "MULTIPLY"
+        outer_guard.use_clamp = True
+        links.new(outer_c.outputs[0], outer_guard.inputs[0])
+        links.new(guard.outputs["Result"], outer_guard.inputs[1])
 
-        fw_max1 = n("ShaderNodeMath", 5300, -5200)
-        fw_max1.operation = "MAXIMUM"
-        fw_max1.use_clamp = True
-        links.new(ribbon.outputs[0], fw_max1.inputs[0])
-        links.new(tips.outputs[0], fw_max1.inputs[1])
+        inner_a = n("ShaderNodeMath", 5480, -6800)
+        inner_a.operation = "ADD"
+        inner_a.use_clamp = True
+        links.new(pistil.outputs[0], inner_a.inputs[0])
+        links.new(core_curve.outputs["Result"], inner_a.inputs[1])
+        inner_guard = n("ShaderNodeMath", 5660, -6800)
+        inner_guard.operation = "MULTIPLY"
+        inner_guard.use_clamp = True
+        links.new(inner_a.outputs[0], inner_guard.inputs[0])
+        links.new(guard.outputs["Result"], inner_guard.inputs[1])
 
-        fw_extra = n("ShaderNodeMath", 5300, -5680)
-        fw_extra.operation = "ADD"
-        fw_extra.use_clamp = True
-        links.new(pistil.outputs[0], fw_extra.inputs[0])
-        links.new(core_flash.outputs[0], fw_extra.inputs[1])
+        # High-chroma analogous palettes per cell.
+        pal_12 = n("ShaderNodeMapRange", 4400, -8080)
+        pal_12.clamp = True
+        _smooth(pal_12)
+        pal_12.inputs["From Min"].default_value = 0.30
+        pal_12.inputs["From Max"].default_value = 0.36
+        pal_12.inputs["To Min"].default_value = 0.0
+        pal_12.inputs["To Max"].default_value = 1.0
+        links.new(fw_rand.outputs["Z"], pal_12.inputs["Value"])
+        pal_23 = n("ShaderNodeMapRange", 4400, -8240)
+        pal_23.clamp = True
+        _smooth(pal_23)
+        pal_23.inputs["From Min"].default_value = 0.64
+        pal_23.inputs["From Max"].default_value = 0.70
+        pal_23.inputs["To Min"].default_value = 0.0
+        pal_23.inputs["To Max"].default_value = 1.0
+        links.new(fw_rand.outputs["Z"], pal_23.inputs["Value"])
 
-        fw_extra2 = n("ShaderNodeMath", 5480, -5680)
-        fw_extra2.operation = "ADD"
-        fw_extra2.use_clamp = True
-        links.new(fw_extra.outputs[0], fw_extra2.inputs[0])
-        links.new(embers2.outputs[0], fw_extra2.inputs[1])
+        inner1 = n("ShaderNodeRGB", 4580, -8080)
+        inner1.outputs[0].default_value = (2.4, 0.78, 0.04, 1.0)
+        inner2 = n("ShaderNodeRGB", 4580, -8240)
+        inner2.outputs[0].default_value = (2.4, 0.06, 0.88, 1.0)
+        inner3 = n("ShaderNodeRGB", 4580, -8400)
+        inner3.outputs[0].default_value = (0.04, 2.2, 0.95, 1.0)
+        outer1 = n("ShaderNodeRGB", 4580, -8560)
+        outer1.outputs[0].default_value = (2.6, 0.14, 0.03, 1.0)
+        outer2 = n("ShaderNodeRGB", 4580, -8720)
+        outer2.outputs[0].default_value = (0.75, 0.08, 2.6, 1.0)
+        outer3 = n("ShaderNodeRGB", 4580, -8880)
+        outer3.outputs[0].default_value = (0.05, 0.72, 2.6, 1.0)
+        pist1 = n("ShaderNodeRGB", 4580, -9040)
+        pist1.outputs[0].default_value = (0.05, 1.9, 1.2, 1.0)
+        pist2 = n("ShaderNodeRGB", 4580, -9200)
+        pist2.outputs[0].default_value = (2.2, 0.85, 0.05, 1.0)
+        pist3 = n("ShaderNodeRGB", 4580, -9360)
+        pist3.outputs[0].default_value = (2.2, 0.12, 0.95, 1.0)
 
-        fw_shape = n("ShaderNodeMath", 5660, -5440)
-        fw_shape.operation = "ADD"
-        fw_shape.use_clamp = True
-        links.new(fw_max1.outputs[0], fw_shape.inputs[0])
-        links.new(fw_extra2.outputs[0], fw_shape.inputs[1])
+        def three_way(a, b, c, fac12, fac23, x, y):
+            m1 = n("ShaderNodeMix", x, y)
+            m1.data_type = "RGBA"
+            m1.blend_type = "MIX"
+            aa, bb, rr = _rgba_sockets(m1)
+            links.new(a, aa)
+            links.new(b, bb)
+            links.new(fac12, m1.inputs["Factor"])
+            m2 = n("ShaderNodeMix", x + 180, y - 120)
+            m2.data_type = "RGBA"
+            m2.blend_type = "MIX"
+            aa, bb, rr = _rgba_sockets(m2)
+            links.new(m1.outputs["Result"], aa)
+            links.new(c, bb)
+            links.new(fac23, m2.inputs["Factor"])
+            return m2.outputs["Result"]
 
-        fw_shape2 = n("ShaderNodeMath", 5840, -5440)
-        fw_shape2.operation = "ADD"
-        fw_shape2.use_clamp = True
-        links.new(fw_shape.outputs[0], fw_shape2.inputs[0])
-        links.new(glow.outputs[0], fw_shape2.inputs[1])
+        col_inner = three_way(inner1.outputs[0], inner2.outputs[0],
+                              inner3.outputs[0], pal_12.outputs["Result"],
+                              pal_23.outputs["Result"], 5120, -8080)
+        col_outer = three_way(outer1.outputs[0], outer2.outputs[0],
+                              outer3.outputs[0], pal_12.outputs["Result"],
+                              pal_23.outputs["Result"], 5120, -8560)
+        col_pistil = three_way(pist1.outputs[0], pist2.outputs[0],
+                               pist3.outputs[0], pal_12.outputs["Result"],
+                               pal_23.outputs["Result"], 5120, -9040)
 
-        color_core = n("ShaderNodeRGB", 5300, -6000)
-        color_core.outputs[0].default_value = (1.0, 0.42, 0.08, 1.0)
-        color_amber = n("ShaderNodeRGB", 5300, -6160)
-        color_amber.outputs[0].default_value = (1.0, 0.32, 0.12, 1.0)
-        color_magenta = n("ShaderNodeRGB", 5300, -6320)
-        color_magenta.outputs[0].default_value = (1.0, 0.16, 0.58, 1.0)
-        color_cyan = n("ShaderNodeRGB", 5300, -6480)
-        color_cyan.outputs[0].default_value = (0.15, 0.92, 1.0, 1.0)
+        radial_t = n("ShaderNodeMapRange", 5480, -8320)
+        radial_t.clamp = True
+        _smooth(radial_t)
+        radial_t.inputs["From Min"].default_value = 0.45
+        radial_t.inputs["From Max"].default_value = 0.95
+        radial_t.inputs["To Min"].default_value = 0.0
+        radial_t.inputs["To Max"].default_value = 1.0
+        links.new(norm_r.outputs[0], radial_t.inputs["Value"])
+        outer_mix = n("ShaderNodeMix", 5660, -8320)
+        outer_mix.data_type = "RGBA"
+        outer_mix.blend_type = "MIX"
+        aa, bb, rr = _rgba_sockets(outer_mix)
+        links.new(col_inner, aa)
+        links.new(col_outer, bb)
+        links.new(radial_t.outputs["Result"], outer_mix.inputs["Factor"])
 
-        mid_mix = n("ShaderNodeMix", 5480, -6160)
-        mid_mix.data_type = "RGBA"
-        mid_mix.blend_type = "MIX"
-        a_sock, b_sock, result_sock = _rgba_sockets(mid_mix)
-        links.new(color_amber.outputs[0], a_sock)
-        links.new(color_magenta.outputs[0], b_sock)
-        links.new(fw_rand.outputs["Z"], mid_mix.inputs["Factor"])
+        outer_scale = n("ShaderNodeVectorMath", 5840, -8320)
+        outer_scale.operation = "SCALE"
+        links.new(outer_mix.outputs["Result"], outer_scale.inputs["Vector"])
+        links.new(outer_guard.outputs[0], outer_scale.inputs["Scale"])
 
-        color_mid = n("ShaderNodeMapRange", 5480, -6320)
-        color_mid.clamp = True
-        _smooth(color_mid)
-        color_mid.inputs["From Min"].default_value = 0.35
-        color_mid.inputs["From Max"].default_value = 0.85
-        color_mid.inputs["To Min"].default_value = 0.0
-        color_mid.inputs["To Max"].default_value = 1.0
-        links.new(norm_r.outputs[0], color_mid.inputs["Value"])
+        inner_scale = n("ShaderNodeVectorMath", 5840, -9040)
+        inner_scale.operation = "SCALE"
+        links.new(col_pistil, inner_scale.inputs["Vector"])
+        links.new(inner_guard.outputs[0], inner_scale.inputs["Scale"])
 
-        color_mix_a = n("ShaderNodeMix", 5660, -6160)
-        color_mix_a.data_type = "RGBA"
-        color_mix_a.blend_type = "MIX"
-        a_sock, b_sock, result_sock = _rgba_sockets(color_mix_a)
-        links.new(color_core.outputs[0], a_sock)
-        links.new(mid_mix.outputs["Result"], b_sock)
-        links.new(color_mid.outputs["Result"], color_mix_a.inputs["Factor"])
+        burst_rgb = n("ShaderNodeVectorMath", 6020, -8600)
+        burst_rgb.operation = "ADD"
+        links.new(outer_scale.outputs["Vector"], burst_rgb.inputs[0])
+        links.new(inner_scale.outputs["Vector"], burst_rgb.inputs[1])
 
-        color_tip = n("ShaderNodeMapRange", 5660, -6320)
-        color_tip.clamp = True
-        _smooth(color_tip)
-        color_tip.inputs["From Min"].default_value = 0.80
-        color_tip.inputs["From Max"].default_value = 1.10
-        color_tip.inputs["To Min"].default_value = 0.0
-        color_tip.inputs["To Max"].default_value = 1.0
-        links.new(norm_r.outputs[0], color_tip.inputs["Value"])
-
-        color_mix_b = n("ShaderNodeMix", 5840, -6160)
-        color_mix_b.data_type = "RGBA"
-        color_mix_b.blend_type = "MIX"
-        a_sock, b_sock, result_sock = _rgba_sockets(color_mix_b)
-        links.new(color_mix_a.outputs["Result"], a_sock)
-        links.new(color_cyan.outputs[0], b_sock)
-        links.new(color_tip.outputs["Result"], color_mix_b.inputs["Factor"])
-
-        color_scale = n("ShaderNodeVectorMath", 6020, -6160)
-        color_scale.operation = "SCALE"
-        color_scale.inputs["Scale"].default_value = 1.0
-        links.new(color_mix_b.outputs["Result"], color_scale.inputs["Vector"])
-
-        thresh_span = n("ShaderNodeMath", 5300, -6640)
+        thresh_span = n("ShaderNodeMath", 5300, -9520)
         thresh_span.operation = "MULTIPLY"
-        thresh_span.inputs[1].default_value = 0.35
+        thresh_span.inputs[1].default_value = 0.52
         links.new(group_in.outputs["Fireworks Amount"], thresh_span.inputs[0])
-
-        thresh_base = n("ShaderNodeMath", 5480, -6640)
-        thresh_base.operation = "ADD"
-        thresh_base.inputs[1].default_value = 0.02
-        links.new(thresh_span.outputs[0], thresh_base.inputs[0])
-
-        thresh = n("ShaderNodeMath", 5660, -6640)
+        thresh = n("ShaderNodeMath", 5480, -9520)
         thresh.operation = "SUBTRACT"
         thresh.use_clamp = True
-        thresh.inputs[0].default_value = 1.0
-        links.new(thresh_base.outputs[0], thresh.inputs[1])
-
-        thresh_top = n("ShaderNodeMath", 5660, -6640)
+        thresh.inputs[0].default_value = 0.98
+        links.new(thresh_span.outputs[0], thresh.inputs[1])
+        thresh_top = n("ShaderNodeMath", 5660, -9520)
         thresh_top.operation = "ADD"
         thresh_top.use_clamp = True
-        thresh_top.inputs[1].default_value = 0.35
+        thresh_top.inputs[1].default_value = 0.025
         links.new(thresh.outputs[0], thresh_top.inputs[0])
-
-        exist = n("ShaderNodeMapRange", 5840, -6640)
+        exist = n("ShaderNodeMapRange", 5840, -9520)
         exist.clamp = True
         _smooth(exist)
+        exist.inputs["To Min"].default_value = 0.0
+        exist.inputs["To Max"].default_value = 1.0
         links.new(fw_rand.outputs["X"], exist.inputs["Value"])
         links.new(thresh.outputs[0], exist.inputs["From Min"])
         links.new(thresh_top.outputs[0], exist.inputs["From Max"])
-        exist.inputs["To Min"].default_value = 0.0
-        exist.inputs["To Max"].default_value = 1.0
 
-        gate = n("ShaderNodeMapRange", 5480, -6800)
+        gate = n("ShaderNodeMapRange", 5300, -9680)
         gate.clamp = True
         _smooth(gate)
         gate.inputs["From Min"].default_value = 0.0
@@ -3016,86 +3145,67 @@ def _build_gradient_group(ng):
         gate.inputs["To Max"].default_value = 1.0
         links.new(group_in.outputs["Fireworks Amount"], gate.inputs["Value"])
 
-        layer = n("ShaderNodeMath", 6020, -6640)
-        layer.operation = "MULTIPLY"
-        layer.use_clamp = True
-        links.new(fw_shape2.outputs[0], layer.inputs[0])
-        links.new(exist.outputs["Result"], layer.inputs[1])
-        layer_gate = n("ShaderNodeMath", 6200, -6640)
-        layer_gate.operation = "MULTIPLY"
-        layer_gate.use_clamp = True
-        links.new(layer.outputs[0], layer_gate.inputs[0])
-        links.new(gate.outputs["Result"], layer_gate.inputs[1])
-        return layer_gate.outputs[0], color_scale.outputs["Vector"]
+        layer_weight = n("ShaderNodeMath", 6020, -9520)
+        layer_weight.operation = "MULTIPLY"
+        layer_weight.use_clamp = True
+        links.new(exist.outputs["Result"], layer_weight.inputs[0])
+        links.new(gate.outputs["Result"], layer_weight.inputs[1])
 
-    fw1_shape, fw1_color = hanabi_layer("FW1", 1.0, 0.0, 0.0, 0.0)
-    fw2_shape, fw2_color = hanabi_layer("FW2", 1.55, 1.37, 0.61, -300.0)
+        layer_rgb = n("ShaderNodeVectorMath", 6200, -8600)
+        layer_rgb.operation = "SCALE"
+        links.new(burst_rgb.outputs["Vector"], layer_rgb.inputs["Vector"])
+        links.new(layer_weight.outputs[0], layer_rgb.inputs["Scale"])
+        return layer_rgb.outputs["Vector"]
+
+    fw1_rgb = hanabi_layer("FW1", 1.0, 0.15, -0.20, 0.0)
+    fw2_rgb = hanabi_layer("FW2", 1.48, 1.73, 0.89, -300.0)
+    fw_total_rgb = nodes.new("ShaderNodeVectorMath")
+    fw_total_rgb.location = (6460, -8600)
+    fw_total_rgb.operation = "ADD"
+    links.new(fw1_rgb, fw_total_rgb.inputs[0])
+    links.new(fw2_rgb, fw_total_rgb.inputs[1])
 
     fw_alt_low = nodes.new("ShaderNodeMapRange")
-    fw_alt_low.location = (6200, -2040)
+    fw_alt_low.location = (6460, -2040)
     fw_alt_low.clamp = True
     _smooth(fw_alt_low)
     fw_alt_low.inputs["From Min"].default_value = 0.02
-    fw_alt_low.inputs["From Max"].default_value = 0.10
+    fw_alt_low.inputs["From Max"].default_value = 0.09
     fw_alt_low.inputs["To Min"].default_value = 0.0
     fw_alt_low.inputs["To Max"].default_value = 1.0
     links.new(shifted_z.outputs[0], fw_alt_low.inputs["Value"])
 
     fw_alt_high = nodes.new("ShaderNodeMapRange")
-    fw_alt_high.location = (6380, -2040)
+    fw_alt_high.location = (6640, -2040)
     fw_alt_high.clamp = True
     _smooth(fw_alt_high)
-    fw_alt_high.inputs["From Min"].default_value = 0.38
-    fw_alt_high.inputs["From Max"].default_value = 0.58
+    fw_alt_high.inputs["From Min"].default_value = 0.36
+    fw_alt_high.inputs["From Max"].default_value = 0.54
     fw_alt_high.inputs["To Min"].default_value = 1.0
     fw_alt_high.inputs["To Max"].default_value = 0.0
     links.new(shifted_z.outputs[0], fw_alt_high.inputs["Value"])
 
     fw_alt = nodes.new("ShaderNodeMath")
-    fw_alt.location = (6560, -2040)
+    fw_alt.location = (6820, -2040)
     fw_alt.operation = "MULTIPLY"
     fw_alt.use_clamp = True
     links.new(fw_alt_low.outputs["Result"], fw_alt.inputs[0])
     links.new(fw_alt_high.outputs["Result"], fw_alt.inputs[1])
-
-    fw_shapes = nodes.new("ShaderNodeMath")
-    fw_shapes.location = (6380, -2200)
-    fw_shapes.operation = "ADD"
-    fw_shapes.use_clamp = True
-    links.new(fw1_shape, fw_shapes.inputs[0])
-    links.new(fw2_shape, fw_shapes.inputs[1])
-
-    fw_shape_final = nodes.new("ShaderNodeMath")
-    fw_shape_final.location = (6560, -2200)
-    fw_shape_final.operation = "MULTIPLY"
-    fw_shape_final.use_clamp = True
-    links.new(fw_shapes.outputs[0], fw_shape_final.inputs[0])
-    links.new(fw_alt.outputs[0], fw_shape_final.inputs[1])
-
-    fw_shape_cloud = nodes.new("ShaderNodeMath")
-    fw_shape_cloud.location = (6740, -2200)
-    fw_shape_cloud.operation = "MULTIPLY"
-    fw_shape_cloud.use_clamp = True
-    links.new(fw_shape_final.outputs[0], fw_shape_cloud.inputs[0])
-    links.new(cloud_hide.outputs[0], fw_shape_cloud.inputs[1])
-
-    fw_color_mix = nodes.new("ShaderNodeMix")
-    fw_color_mix.location = (6560, -2360)
-    fw_color_mix.data_type = "RGBA"
-    fw_color_mix.blend_type = "MIX"
-    fw_color_mix.inputs["Factor"].default_value = 0.5
-    a_sock, b_sock, result_sock = _rgba_sockets(fw_color_mix)
-    links.new(fw1_color, a_sock)
-    links.new(fw2_color, b_sock)
+    fw_env = nodes.new("ShaderNodeMath")
+    fw_env.location = (7000, -2040)
+    fw_env.operation = "MULTIPLY"
+    fw_env.use_clamp = True
+    links.new(fw_alt.outputs[0], fw_env.inputs[0])
+    links.new(cloud_hide.outputs[0], fw_env.inputs[1])
 
     fw_mix = nodes.new("ShaderNodeMix")
-    fw_mix.location = (6740, -200)
+    fw_mix.location = (7000, -200)
     fw_mix.data_type = "RGBA"
     fw_mix.blend_type = "ADD"
     a_sock, b_sock, result_sock = _rgba_sockets(fw_mix)
-    links.new(meteor_mix.outputs["Result"], a_sock)
-    links.new(fw_color_mix.outputs["Result"], b_sock)
-    links.new(fw_shape_cloud.outputs[0], fw_mix.inputs["Factor"])
+    links.new(sky_color, a_sock)
+    links.new(fw_total_rgb.outputs["Vector"], b_sock)
+    links.new(fw_env.outputs[0], fw_mix.inputs["Factor"])
     sky_color = fw_mix.outputs["Result"]
 
     # Visible sky stays vivid; ambient light is scaled by World Strength.
