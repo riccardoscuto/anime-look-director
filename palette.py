@@ -289,13 +289,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 21):
+                           or ng.get("ald_build") != 22):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 21
+        ng["ald_build"] = 22
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -309,13 +309,13 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 21
+        ng["ald_build"] = 22
     return ng
 
 
 def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
                           flat_inv, y_offset=0.0):
-    """Sample the organic v1.0.0 fBm cloud density for a sky-dome ray."""
+    """Sample Perlin-Worley cloud density and its low-frequency envelope."""
     def node(idname, x, y):
         item = nodes.new(idname)
         item.location = (x, y + y_offset)
@@ -404,15 +404,24 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     links.new(group_in.outputs["Cloud Scale"], macro_scale.inputs[0])
 
     macro_noise = node("ShaderNodeTexNoise", 800, 420)
-    macro_noise.inputs["Detail"].default_value = 6.0
-    macro_noise.inputs["Roughness"].default_value = 0.58
+    macro_noise.inputs["Detail"].default_value = 5.5
+    macro_noise.inputs["Roughness"].default_value = 0.56
     macro_noise.inputs["Distortion"].default_value = 0.18
     links.new(warped_pos.outputs["Vector"], macro_noise.inputs["Vector"])
     links.new(macro_scale.outputs[0], macro_noise.inputs["Scale"])
 
+    macro_env = node("ShaderNodeMapRange", 980, 300)
+    macro_env.clamp = True
+    _smooth(macro_env)
+    macro_env.inputs["From Min"].default_value = 0.28
+    macro_env.inputs["From Max"].default_value = 0.56
+    macro_env.inputs["To Min"].default_value = 0.20
+    macro_env.inputs["To Max"].default_value = 1.0
+    links.new(macro_noise.outputs["Fac"], macro_env.inputs["Value"])
+
     macro_weight = node("ShaderNodeMath", 980, 420)
     macro_weight.operation = "MULTIPLY"
-    macro_weight.inputs[1].default_value = 0.66
+    macro_weight.inputs[1].default_value = 0.62
     links.new(macro_noise.outputs["Fac"], macro_weight.inputs[0])
 
     billow_scale = node("ShaderNodeMath", 620, 600)
@@ -434,7 +443,7 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
 
     puff_scale = node("ShaderNodeMath", 620, 780)
     puff_scale.operation = "MULTIPLY"
-    puff_scale.inputs[1].default_value = 1.60
+    puff_scale.inputs[1].default_value = 1.55
     links.new(group_in.outputs["Cloud Scale"], puff_scale.inputs[0])
 
     puff = node("ShaderNodeTexVoronoi", 800, 780)
@@ -445,27 +454,33 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     puff_range.clamp = True
     _smooth(puff_range)
     puff_range.inputs["From Min"].default_value = 0.0
-    puff_range.inputs["From Max"].default_value = 0.65
+    puff_range.inputs["From Max"].default_value = 0.68
     puff_range.inputs["To Min"].default_value = 1.0
     puff_range.inputs["To Max"].default_value = 0.0
     links.new(puff.outputs["Distance"], puff_range.inputs["Value"])
 
     puff_weight = node("ShaderNodeMath", 1160, 780)
     puff_weight.operation = "MULTIPLY"
-    puff_weight.inputs[1].default_value = 0.12
+    puff_weight.inputs[1].default_value = 0.16
     links.new(puff_range.outputs["Result"], puff_weight.inputs[0])
 
-    macro_billow = node("ShaderNodeMath", 1160, 500)
-    macro_billow.operation = "ADD"
-    macro_billow.use_clamp = True
-    links.new(macro_weight.outputs[0], macro_billow.inputs[0])
-    links.new(billow_weight.outputs[0], macro_billow.inputs[1])
+    detail_lobes = node("ShaderNodeMath", 1340, 560)
+    detail_lobes.operation = "ADD"
+    detail_lobes.use_clamp = True
+    links.new(billow_weight.outputs[0], detail_lobes.inputs[0])
+    links.new(puff_weight.outputs[0], detail_lobes.inputs[1])
 
-    rho = node("ShaderNodeMath", 1340, 620)
+    gated_lobes = node("ShaderNodeMath", 1520, 560)
+    gated_lobes.operation = "MULTIPLY"
+    gated_lobes.use_clamp = True
+    links.new(detail_lobes.outputs[0], gated_lobes.inputs[0])
+    links.new(macro_env.outputs["Result"], gated_lobes.inputs[1])
+
+    rho = node("ShaderNodeMath", 1700, 620)
     rho.operation = "ADD"
     rho.use_clamp = True
-    links.new(macro_billow.outputs[0], rho.inputs[0])
-    links.new(puff_weight.outputs[0], rho.inputs[1])
+    links.new(macro_weight.outputs[0], rho.inputs[0])
+    links.new(gated_lobes.outputs[0], rho.inputs[1])
 
     # Low-frequency envelope for the solar derivative. The silhouette above
     # stays pixel-identical to v1.0.2; this noise only drives body shading.
@@ -1512,8 +1527,8 @@ def _build_gradient_group(ng):
     links.new(cloud_glow_add.outputs["Result"], b_sock)
     links.new(cloud_amount_node.outputs[0], cloud_mix.inputs["Factor"])
 
-    # Pinpoint Poisson starfield: two independent Voronoi tiers sampled on
-    # pure view direction. No domain warp, so stars stay round and sharp.
+    # Anti-aliased pinpoint starfield: existence, magnitude and temperature
+    # use independent Voronoi Color channels, so no star is sub-pixel or dim.
     cluster_noise = nodes.new("ShaderNodeTexNoise")
     cluster_noise.location = (1880, -360)
     cluster_noise.inputs["Scale"].default_value = 2.2
@@ -1526,17 +1541,17 @@ def _build_gradient_group(ng):
     cluster_mask.location = (2060, -360)
     cluster_mask.clamp = True
     _smooth(cluster_mask)
-    cluster_mask.inputs["From Min"].default_value = 0.32
+    cluster_mask.inputs["From Min"].default_value = 0.28
     cluster_mask.inputs["From Max"].default_value = 0.65
-    cluster_mask.inputs["To Min"].default_value = 0.15
+    cluster_mask.inputs["To Min"].default_value = 0.55
     cluster_mask.inputs["To Max"].default_value = 1.0
     links.new(cluster_noise.outputs["Fac"], cluster_mask.inputs["Value"])
 
-    # Tier 1: sparse pinpoint stardust.
+    # Tier 1: anti-subpixel stardust with guaranteed magnitude.
     star1_scale = nodes.new("ShaderNodeMath")
     star1_scale.location = (1880, -560)
     star1_scale.operation = "MULTIPLY"
-    star1_scale.inputs[1].default_value = 2.6
+    star1_scale.inputs[1].default_value = 1.30
     links.new(group_in.outputs["Star Density"], star1_scale.inputs[0])
 
     vor1 = nodes.new("ShaderNodeTexVoronoi")
@@ -1553,7 +1568,7 @@ def _build_gradient_group(ng):
     star1_spot.clamp = True
     _smooth(star1_spot)
     star1_spot.inputs["From Min"].default_value = 0.0
-    star1_spot.inputs["From Max"].default_value = 0.042
+    star1_spot.inputs["From Max"].default_value = 0.115
     star1_spot.inputs["To Min"].default_value = 1.0
     star1_spot.inputs["To Max"].default_value = 0.0
     links.new(vor1.outputs["Distance"], star1_spot.inputs["Value"])
@@ -1561,31 +1576,42 @@ def _build_gradient_group(ng):
     star1_sharp = nodes.new("ShaderNodeMath")
     star1_sharp.location = (2600, -560)
     star1_sharp.operation = "POWER"
-    star1_sharp.inputs[1].default_value = 3.0
+    star1_sharp.inputs[1].default_value = 1.8
     links.new(star1_spot.outputs["Result"], star1_sharp.inputs[0])
 
-    star1_cull = nodes.new("ShaderNodeMapRange")
-    star1_cull.location = (2420, -720)
-    star1_cull.clamp = True
-    _smooth(star1_cull)
-    star1_cull.inputs["From Min"].default_value = 0.78
-    star1_cull.inputs["From Max"].default_value = 0.99
-    star1_cull.inputs["To Min"].default_value = 0.0
-    star1_cull.inputs["To Max"].default_value = 1.0
-    links.new(vor1_rand.outputs["X"], star1_cull.inputs["Value"])
+    star1_exist = nodes.new("ShaderNodeMapRange")
+    star1_exist.location = (2420, -720)
+    star1_exist.clamp = True
+    _smooth(star1_exist)
+    star1_exist.inputs["From Min"].default_value = 0.68
+    star1_exist.inputs["From Max"].default_value = 0.73
+    star1_exist.inputs["To Min"].default_value = 0.0
+    star1_exist.inputs["To Max"].default_value = 1.0
+    links.new(vor1_rand.outputs["X"], star1_exist.inputs["Value"])
 
-    star1_mag = nodes.new("ShaderNodeMath")
-    star1_mag.location = (2600, -720)
-    star1_mag.operation = "POWER"
-    star1_mag.inputs[1].default_value = 2.2
-    links.new(star1_cull.outputs["Result"], star1_mag.inputs[0])
+    star1_mag = nodes.new("ShaderNodeMapRange")
+    star1_mag.location = (2420, -880)
+    star1_mag.clamp = True
+    _smooth(star1_mag)
+    star1_mag.inputs["From Min"].default_value = 0.0
+    star1_mag.inputs["From Max"].default_value = 1.0
+    star1_mag.inputs["To Min"].default_value = 0.35
+    star1_mag.inputs["To Max"].default_value = 0.85
+    links.new(vor1_rand.outputs["Y"], star1_mag.inputs["Value"])
+
+    tier1_exist_mag = nodes.new("ShaderNodeMath")
+    tier1_exist_mag.location = (2600, -800)
+    tier1_exist_mag.operation = "MULTIPLY"
+    tier1_exist_mag.use_clamp = True
+    links.new(star1_exist.outputs["Result"], tier1_exist_mag.inputs[0])
+    links.new(star1_mag.outputs["Result"], tier1_exist_mag.inputs[1])
 
     tier1_raw = nodes.new("ShaderNodeMath")
     tier1_raw.location = (2780, -620)
     tier1_raw.operation = "MULTIPLY"
     tier1_raw.use_clamp = True
     links.new(star1_sharp.outputs[0], tier1_raw.inputs[0])
-    links.new(star1_mag.outputs[0], tier1_raw.inputs[1])
+    links.new(tier1_exist_mag.outputs[0], tier1_raw.inputs[1])
 
     tier1_stars = nodes.new("ShaderNodeMath")
     tier1_stars.location = (2960, -620)
@@ -1594,7 +1620,7 @@ def _build_gradient_group(ng):
     links.new(tier1_raw.outputs[0], tier1_stars.inputs[0])
     links.new(cluster_mask.outputs["Result"], tier1_stars.inputs[1])
 
-    # Tier 2: brighter sharp stars on a translated grid.
+    # Tier 2: brighter constellation stars on a translated grid.
     view_offset_2 = nodes.new("ShaderNodeVectorMath")
     view_offset_2.location = (1880, -900)
     view_offset_2.operation = "ADD"
@@ -1604,7 +1630,7 @@ def _build_gradient_group(ng):
     star2_scale = nodes.new("ShaderNodeMath")
     star2_scale.location = (1880, -1060)
     star2_scale.operation = "MULTIPLY"
-    star2_scale.inputs[1].default_value = 1.45
+    star2_scale.inputs[1].default_value = 0.72
     links.new(group_in.outputs["Star Density"], star2_scale.inputs[0])
 
     vor2 = nodes.new("ShaderNodeTexVoronoi")
@@ -1621,7 +1647,7 @@ def _build_gradient_group(ng):
     star2_spot.clamp = True
     _smooth(star2_spot)
     star2_spot.inputs["From Min"].default_value = 0.0
-    star2_spot.inputs["From Max"].default_value = 0.048
+    star2_spot.inputs["From Max"].default_value = 0.105
     star2_spot.inputs["To Min"].default_value = 1.0
     star2_spot.inputs["To Max"].default_value = 0.0
     links.new(vor2.outputs["Distance"], star2_spot.inputs["Value"])
@@ -1629,25 +1655,42 @@ def _build_gradient_group(ng):
     star2_sharp = nodes.new("ShaderNodeMath")
     star2_sharp.location = (2600, -900)
     star2_sharp.operation = "POWER"
-    star2_sharp.inputs[1].default_value = 3.2
+    star2_sharp.inputs[1].default_value = 1.8
     links.new(star2_spot.outputs["Result"], star2_sharp.inputs[0])
 
-    star2_cull = nodes.new("ShaderNodeMapRange")
-    star2_cull.location = (2420, -1060)
-    star2_cull.clamp = True
-    _smooth(star2_cull)
-    star2_cull.inputs["From Min"].default_value = 0.88
-    star2_cull.inputs["From Max"].default_value = 0.995
-    star2_cull.inputs["To Min"].default_value = 0.0
-    star2_cull.inputs["To Max"].default_value = 1.0
-    links.new(vor2_rand.outputs["X"], star2_cull.inputs["Value"])
+    star2_exist = nodes.new("ShaderNodeMapRange")
+    star2_exist.location = (2420, -1060)
+    star2_exist.clamp = True
+    _smooth(star2_exist)
+    star2_exist.inputs["From Min"].default_value = 0.76
+    star2_exist.inputs["From Max"].default_value = 0.80
+    star2_exist.inputs["To Min"].default_value = 0.0
+    star2_exist.inputs["To Max"].default_value = 1.0
+    links.new(vor2_rand.outputs["X"], star2_exist.inputs["Value"])
+
+    star2_mag = nodes.new("ShaderNodeMapRange")
+    star2_mag.location = (2420, -1220)
+    star2_mag.clamp = True
+    _smooth(star2_mag)
+    star2_mag.inputs["From Min"].default_value = 0.0
+    star2_mag.inputs["From Max"].default_value = 1.0
+    star2_mag.inputs["To Min"].default_value = 0.60
+    star2_mag.inputs["To Max"].default_value = 1.0
+    links.new(vor2_rand.outputs["Y"], star2_mag.inputs["Value"])
+
+    tier2_exist_mag = nodes.new("ShaderNodeMath")
+    tier2_exist_mag.location = (2600, -1140)
+    tier2_exist_mag.operation = "MULTIPLY"
+    tier2_exist_mag.use_clamp = True
+    links.new(star2_exist.outputs["Result"], tier2_exist_mag.inputs[0])
+    links.new(star2_mag.outputs["Result"], tier2_exist_mag.inputs[1])
 
     tier2_raw = nodes.new("ShaderNodeMath")
     tier2_raw.location = (2780, -960)
     tier2_raw.operation = "MULTIPLY"
     tier2_raw.use_clamp = True
     links.new(star2_sharp.outputs[0], tier2_raw.inputs[0])
-    links.new(star2_cull.outputs["Result"], tier2_raw.inputs[1])
+    links.new(tier2_exist_mag.outputs[0], tier2_raw.inputs[1])
 
     tier2_stars = nodes.new("ShaderNodeMath")
     tier2_stars.location = (2960, -960)
@@ -1656,12 +1699,91 @@ def _build_gradient_group(ng):
     links.new(tier2_raw.outputs[0], tier2_stars.inputs[0])
     links.new(cluster_mask.outputs["Result"], tier2_stars.inputs[1])
 
+    # Tier 3: hero stars with a tight Airy skirt.
+    view_offset_3 = nodes.new("ShaderNodeVectorMath")
+    view_offset_3.location = (1880, -1400)
+    view_offset_3.operation = "ADD"
+    view_offset_3.inputs[1].default_value = (-3.14, 1.17, 2.65)
+    links.new(view_norm.outputs["Vector"], view_offset_3.inputs[0])
+
+    star3_scale = nodes.new("ShaderNodeMath")
+    star3_scale.location = (1880, -1560)
+    star3_scale.operation = "MULTIPLY"
+    star3_scale.inputs[1].default_value = 0.36
+    links.new(group_in.outputs["Star Density"], star3_scale.inputs[0])
+
+    vor3 = nodes.new("ShaderNodeTexVoronoi")
+    vor3.location = (2060, -1400)
+    links.new(view_offset_3.outputs["Vector"], vor3.inputs["Vector"])
+    links.new(star3_scale.outputs[0], vor3.inputs["Scale"])
+
+    vor3_rand = nodes.new("ShaderNodeSeparateXYZ")
+    vor3_rand.location = (2240, -1400)
+    links.new(vor3.outputs["Color"], vor3_rand.inputs["Vector"])
+
+    hero_core = nodes.new("ShaderNodeMapRange")
+    hero_core.location = (2420, -1400)
+    hero_core.clamp = True
+    _smooth(hero_core)
+    hero_core.inputs["From Min"].default_value = 0.0
+    hero_core.inputs["From Max"].default_value = 0.085
+    hero_core.inputs["To Min"].default_value = 1.0
+    hero_core.inputs["To Max"].default_value = 0.0
+    links.new(vor3.outputs["Distance"], hero_core.inputs["Value"])
+
+    hero_core_sharp = nodes.new("ShaderNodeMath")
+    hero_core_sharp.location = (2600, -1400)
+    hero_core_sharp.operation = "POWER"
+    hero_core_sharp.inputs[1].default_value = 1.7
+    links.new(hero_core.outputs["Result"], hero_core_sharp.inputs[0])
+
+    hero_skirt = nodes.new("ShaderNodeMapRange")
+    hero_skirt.location = (2420, -1560)
+    hero_skirt.clamp = True
+    _smooth(hero_skirt)
+    hero_skirt.inputs["From Min"].default_value = 0.0
+    hero_skirt.inputs["From Max"].default_value = 0.16
+    hero_skirt.inputs["To Min"].default_value = 0.14
+    hero_skirt.inputs["To Max"].default_value = 0.0
+    links.new(vor3.outputs["Distance"], hero_skirt.inputs["Value"])
+
+    hero_shape = nodes.new("ShaderNodeMath")
+    hero_shape.location = (2780, -1480)
+    hero_shape.operation = "ADD"
+    hero_shape.use_clamp = True
+    links.new(hero_core_sharp.outputs[0], hero_shape.inputs[0])
+    links.new(hero_skirt.outputs["Result"], hero_shape.inputs[1])
+
+    hero_exist = nodes.new("ShaderNodeMapRange")
+    hero_exist.location = (2420, -1720)
+    hero_exist.clamp = True
+    _smooth(hero_exist)
+    hero_exist.inputs["From Min"].default_value = 0.84
+    hero_exist.inputs["From Max"].default_value = 0.88
+    hero_exist.inputs["To Min"].default_value = 0.0
+    hero_exist.inputs["To Max"].default_value = 1.0
+    links.new(vor3_rand.outputs["X"], hero_exist.inputs["Value"])
+
+    tier3_stars = nodes.new("ShaderNodeMath")
+    tier3_stars.location = (2960, -1560)
+    tier3_stars.operation = "MULTIPLY"
+    tier3_stars.use_clamp = True
+    links.new(hero_shape.outputs[0], tier3_stars.inputs[0])
+    links.new(hero_exist.outputs["Result"], tier3_stars.inputs[1])
+
+    star_sum_12 = nodes.new("ShaderNodeMath")
+    star_sum_12.location = (3140, -760)
+    star_sum_12.operation = "MAXIMUM"
+    star_sum_12.use_clamp = True
+    links.new(tier1_stars.outputs[0], star_sum_12.inputs[0])
+    links.new(tier2_stars.outputs[0], star_sum_12.inputs[1])
+
     star_total = nodes.new("ShaderNodeMath")
-    star_total.location = (3140, -760)
-    star_total.operation = "ADD"
+    star_total.location = (3320, -760)
+    star_total.operation = "MAXIMUM"
     star_total.use_clamp = True
-    links.new(tier1_stars.outputs[0], star_total.inputs[0])
-    links.new(tier2_stars.outputs[0], star_total.inputs[1])
+    links.new(star_sum_12.outputs[0], star_total.inputs[0])
+    links.new(tier3_stars.outputs[0], star_total.inputs[1])
 
     # Atmospheric masks: zenith, solar disk, and cloud coverage.
     zenith = nodes.new("ShaderNodeMapRange")
@@ -1747,7 +1869,7 @@ def _build_gradient_group(ng):
     star_tint_scale = nodes.new("ShaderNodeVectorMath")
     star_tint_scale.location = (3680, -1220)
     star_tint_scale.operation = "SCALE"
-    star_tint_scale.inputs["Scale"].default_value = 3.8
+    star_tint_scale.inputs["Scale"].default_value = 12.0
     links.new(star_tint_mix.outputs["Result"], star_tint_scale.inputs["Vector"])
 
     star_mix = nodes.new("ShaderNodeMix")

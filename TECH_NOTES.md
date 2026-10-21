@@ -636,3 +636,13 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   colors. Contrails mix white with Cloud Light at 45% and default to 0.0.
 - Marker 21. Gate ratios: shadow 2.62 %, wrap 15.78 %, ink 3.39 %,
   haze 62.96 %, toon 1.62 %, rim 7.31 %.
+
+### v1.0.8 notes (PSF stars, Perlin-Worley clouds)
+- Star existence, magnitude and temperature use independent Voronoi Color
+  channels X/Y/Z. Tier scales are density*1.30, *0.72 and *0.36 with radii
+  0.115, 0.105 and core/skirt 0.085/0.16. `star_tint_scale` is 12.0.
+- `_sample_cloud_density()` gates billow and Voronoi lobes with a macro
+  envelope (`0.28..0.56 -> 0.20..1.0`); macro weight 0.62, puff 0.16 at
+  `Cloud Scale * 1.55`, billow 0.22. Open sky stays clean.
+- Marker 22. Gate ratios: shadow 2.60 %, wrap 15.99 %, ink 3.34 %,
+  haze 62.95 %, toon 1.60 %, rim 7.32 %.

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.8 - 2026-10-20
+### Fixed
+- Stars are now anti-aliased PSF points: existence, magnitude and temperature
+  use independent Voronoi Color channels (X/Y/Z), with two tiers at
+  `Star Density * 1.30` and `* 0.72`, plus Airy hero stars at `* 0.36`.
+  Magnitudes have a guaranteed floor and the final tint is 12x HDR.
+- Cloud morphology uses Perlin-Worley coupling: macro envelope gates billow and
+  Voronoi lobes so open sky stays clean and cumuli gain rounded edge lobes.
+- World gradient marker 22.
+
 ## 1.0.7 - 2026-10-20
 ### Fixed
 - Kuwahara Painterly is masked by geometry, so the sky and stars stay sharp
