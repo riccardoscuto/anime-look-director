@@ -726,3 +726,14 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   the environment stays painterly while the fireworks stay sharp.
 - ALD | FX Glow blooms the emission pass only, with independent strength,
   size and threshold, instead of the sun-tinted atmospheric halation.
+
+### v2.3.0 notes (animated in-place FX)
+- FX geometry is created once and updated in place: the frame handler
+  re-evaluates the analytic solver for the current time (frame time plus the
+  configured age offset), so the timeline animates without object churn.
+- Fireworks and meteors are independent systems per scene and can be created,
+  updated and cleared separately.
+- Burst composition assigns roles (hero, secondary, distant) with staggered
+  birth times and rotating families.
+- The camera basis is read from the local transform, so bursts placed right
+  after moving the camera land in frame.

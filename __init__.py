@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Anime Look Director",
     "author": "Riccardo",
-    "version": (2, 2, 0),
+    "version": (2, 3, 0),
     "blender": (5, 1, 0),
     "location": "Scene Properties > Anime Look Director",
     "description": "Atmospheric palettes and a non-destructive anime compositor stack",
@@ -9,11 +9,11 @@ bl_info = {
 }
 
 from . import (properties, cameras, compositor, palette, materials, shots,
-               look, operators, panels)
+               look, operators, panels, fx)
 
-# cameras, shots, palette, compositor and materials register handlers.
+# cameras, shots, palette, compositor, materials and fx register handlers.
 _modules = (properties, cameras, shots, palette, compositor, materials,
-            operators, panels)
+            operators, panels, fx)
 
 
 def register():

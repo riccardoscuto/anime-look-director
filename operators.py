@@ -302,17 +302,10 @@ class ALD_OT_fx_update(bpy.types.Operator):
         if not config:
             self.report({"WARNING"}, "Anime Look Director: no FX system")
             return {"CANCELLED"}
-        fx.clear(scene)
-        time = _scene_time(scene) + float(config.get("age", 0.8))
-        if config.get("kind") == "meteors":
-            fx.create_meteors(scene, config.get("count", 4),
-                              config.get("seed", 21), config.get("distance", 140.0),
-                              time)
-        else:
-            fx.create_fireworks(scene, config.get("count", 3),
-                                config.get("seed", 7),
-                                config.get("distance", 110.0), time,
-                                family=config.get("family", "CHRYSANTHEMUM"))
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        time = ((scene.frame_current + scene.frame_subframe)
+                / max(fps, 1e-6) + float(config.get("age", 0.8)))
+        fx.update(scene, time)
         return {"FINISHED"}
 
 

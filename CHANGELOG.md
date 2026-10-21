@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.3.0 - 2026-10-22
+### Added
+- Animated FX: geometry is allocated once and updated in place from the
+  analytic solver, so the fireworks and meteors evolve over the timeline
+  without recreating objects every frame.
+- Burst composition with roles: the first burst is the hero, the others are
+  secondary or distant, with staggered birth times and different families
+  (Chrysanthemum, Peony, Willow).
+- Fireworks and meteors now live in independent per-scene systems and can be
+  created, updated and cleared separately.
+### Fixed
+- FX placement no longer reads a stale camera matrix, so bursts land in frame
+  when the camera has just been moved.
+- Dead particles are parked with a non-zero radius, avoiding degenerate
+  faces that crashed EEVEE.
+
 ## 2.2.0 - 2026-10-21
 ### Added
 - Compositor separation for the 3D FX: an emission-pass mask restores the

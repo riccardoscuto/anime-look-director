@@ -1,25 +1,23 @@
 """Deterministic 3D FX: fireworks and shooting stars with real physics.
 
-Design (see Anime_Look_Director_Guida_Tecnica_v2.0.1.md):
+The system is evaluated analytically (see the technical guide):
 
-* every particle is evaluated analytically from its own data, so the result
-  never depends on the frame history (frame jumps are safe);
-* time is expressed in seconds, not frames;
-* motion uses a linear drag model with a stable zero-drag limit;
-* the primary stars, their trails, the secondary sparks and the central flash
-  are four distinct subsystems;
-* FX data is owned per scene, so clearing one scene never touches another.
-
-The system is evaluated at an explicit instant (``time`` in seconds). Use
-``ald.fx_update`` to rebuild the system at the current frame.
+* every particle state is a pure function of (seed, burst, particle, time),
+  so frame jumps and re-renders are reproducible;
+* time is expressed in seconds and the motion uses a linear drag model with a
+  stable ballistic limit;
+* trails, child sparks and the central flash are separate subsystems;
+* geometry is allocated once and updated in place, so animation does not
+  create or destroy objects every frame;
+* FX data is owned per scene.
 """
 
 import hashlib
 import math
-import random
 
 import bmesh
 import bpy
+from bpy.app.handlers import persistent
 from mathutils import Vector
 
 FX_COLLECTION = "ALD | FX"
@@ -33,7 +31,6 @@ FAMILY_LABELS = {
     "WILLOW": "Willow",
 }
 
-# Family configuration: primary stars, speed, drag, lifetime, trail and sparks.
 FAMILY_CONFIG = {
     "CHRYSANTHEMUM": {
         "spokes": 110, "speed": 26.0, "drag": 1.3, "life": 2.6,
@@ -56,6 +53,8 @@ PALETTES = (
 )
 
 GRAVITY = Vector((0.0, 0.0, -9.81))
+SAMPLES = 10
+SYSTEMS = {}
 
 
 # ---------------------------------------------------------------------------
@@ -91,8 +90,7 @@ def _material(name, color, strength):
     mat = bpy.data.materials.new(key)
     mat["ald_fx_material"] = True
     mat.use_nodes = True
-    nodes = mat.node_tree.nodes
-    bsdf = nodes.get("Principled BSDF")
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
     if bsdf is not None:
         rgba = (*color, 1.0)
         bsdf.inputs["Base Color"].default_value = rgba
@@ -107,7 +105,7 @@ def _material(name, color, strength):
 
 
 # ---------------------------------------------------------------------------
-# deterministic randomness
+# deterministic randomness and motion
 # ---------------------------------------------------------------------------
 
 def _hash_unit(seed, burst, particle, channel):
@@ -129,10 +127,6 @@ def _fibonacci_direction(index, count, jitter, seed, burst):
     theta += _hash_range(seed, burst, index, 7, -jitter, jitter)
     return Vector((math.cos(theta) * radius, math.sin(theta) * radius, z))
 
-
-# ---------------------------------------------------------------------------
-# analytic motion
-# ---------------------------------------------------------------------------
 
 def _position(p0, v0, drag, age):
     """Position at ``age`` seconds with linear drag and world gravity."""
@@ -157,46 +151,76 @@ def _velocity(v0, drag, age):
 # geometry helpers
 # ---------------------------------------------------------------------------
 
-def _multicurve(scene, name, splines, materials, width):
-    """One curve object with several splines and per-spline materials."""
+_SPHERE = None
+
+
+def _unit_sphere():
+    global _SPHERE
+    if _SPHERE is None:
+        bm = bmesh.new()
+        bmesh.ops.create_icosphere(bm, subdivisions=1, radius=1.0)
+        bm.verts.ensure_lookup_table()
+        bm.verts.index_update()
+        verts = [tuple(v.co) for v in bm.verts]
+        faces = [tuple(v.index for v in face.verts) for face in bm.faces]
+        bm.free()
+        _SPHERE = (verts, faces)
+    return _SPHERE
+
+
+def _build_particle_mesh(name, centers, radii, material):
+    """One mesh holding every particle; returns (object, ranges)."""
+    verts, faces = _unit_sphere()
+    vertices = []
+    all_faces = []
+    for index, (center, radius) in enumerate(zip(centers, radii)):
+        for vx, vy, vz in verts:
+            vertices.append((center.x + vx * radius, center.y + vy * radius,
+                             center.z + vz * radius))
+        offset = index * len(verts)
+        for face in faces:
+            all_faces.append(tuple(vertex + offset for vertex in face))
+    mesh = bpy.data.meshes.new(name)
+    mesh["ald_fx"] = True
+    mesh.from_pydata(vertices, [], all_faces)
+    mesh.update()
+    mesh.materials.append(material)
+    obj = bpy.data.objects.new(name, mesh)
+    obj["ald_fx"] = True
+    ranges = [(index * len(verts), len(verts))
+              for index in range(len(centers))]
+    return obj, ranges
+
+
+def _write_particle_mesh(mesh, ranges, centers, radii):
+    verts, _faces = _unit_sphere()
+    count = len(verts)
+    data = []
+    for index, (center, radius) in enumerate(zip(centers, radii)):
+        start = ranges[index][0]
+        for vx, vy, vz in verts:
+            data.append(center.x + vx * radius)
+            data.append(center.y + vy * radius)
+            data.append(center.z + vz * radius)
+    if data:
+        mesh.vertices.foreach_set("co", data)
+        mesh.update()
+
+
+def _build_curve(scene, name, spline_count, materials, width):
     curve = bpy.data.curves.new(name, type="CURVE")
+    curve["ald_fx"] = True
     curve.dimensions = "3D"
     curve.bevel_depth = width
     curve.bevel_resolution = 2
     curve.resolution_u = 2
-    curve["ald_fx"] = True
     for mat in materials:
         curve.materials.append(mat)
-    for points, material_index in splines:
-        if len(points) < 2:
-            continue
+    for index in range(spline_count):
         spline = curve.splines.new("POLY")
-        spline.points.add(len(points) - 1)
-        spline.material_index = material_index
-        for i, point in enumerate(points):
-            spline.points[i].co = (point.x, point.y, point.z, 1.0)
-            # Oldest sample first: the head is the brightest and widest.
-            t = i / (len(points) - 1)
-            spline.points[i].radius = 0.25 + 0.9 * (t ** 1.4)
+        spline.points.add(SAMPLES - 1)
+        spline.material_index = index % max(len(materials), 1)
     obj = bpy.data.objects.new(name, curve)
-    obj["ald_fx"] = True
-    _collection(scene).objects.link(obj)
-    return obj
-
-
-def _points_mesh(scene, name, points, radii, material):
-    mesh = bpy.data.meshes.new(name)
-    bm = bmesh.new()
-    for point, radius in zip(points, radii):
-        res = bmesh.ops.create_icosphere(bm, subdivisions=1,
-                                         radius=max(radius, 0.004))
-        for vertex in res["verts"]:
-            vertex.co += point
-    bm.to_mesh(mesh)
-    bm.free()
-    mesh["ald_fx"] = True
-    mesh.materials.append(material)
-    obj = bpy.data.objects.new(name, mesh)
     obj["ald_fx"] = True
     _collection(scene).objects.link(obj)
     return obj
@@ -207,17 +231,24 @@ def _camera_basis(scene):
     if camera is None:
         return (Vector((0.0, -8.0, 1.5)), Vector((0.0, 1.0, 0.0)),
                 Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)))
-    matrix = camera.matrix_world
-    rotation = matrix.to_quaternion()
-    return (matrix.translation,
+    if camera.parent is None:
+        # Read the local transform directly: matrix_world can be stale when the
+        # FX are created right after moving the camera.
+        origin = camera.location.copy()
+        rotation = camera.rotation_euler.to_quaternion()
+    else:
+        matrix = camera.matrix_world
+        origin = matrix.translation
+        rotation = matrix.to_quaternion()
+    return (origin,
             (rotation @ Vector((0.0, 0.0, -1.0))).normalized(),
             (rotation @ Vector((0.0, 1.0, 0.0))).normalized(),
             (rotation @ Vector((1.0, 0.0, 0.0))).normalized())
 
 
 def _burst_center(origin, forward, up, right, index, total, distance):
-    spread_x = -0.24 + 0.48 * (index + 0.5) / max(total, 1)
-    spread_y = 0.16 + 0.07 * math.sin(index * 1.7)
+    spread_x = -0.18 + 0.36 * (index + 0.5) / max(total, 1)
+    spread_y = 0.05 + 0.05 * math.sin(index * 1.7)
     return (origin + forward * distance + right * distance * spread_x
             + up * distance * spread_y)
 
@@ -226,73 +257,115 @@ def _burst_center(origin, forward, up, right, index, total, distance):
 # fireworks
 # ---------------------------------------------------------------------------
 
-def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
-                     fps=24.0, family="CHRYSANTHEMUM"):
-    """Evaluate a deterministic multi-burst firework system at ``time``."""
-    family = family if family in FAMILY_CONFIG else "CHRYSANTHEMUM"
-    config = FAMILY_CONFIG[family]
+def _build_fireworks(scene, count, seed, distance, family):
     origin, forward, up, right = _camera_basis(scene)
+    kind = "fireworks"
     size_scale = max(0.6, min(2.0, distance / 60.0))
+    bursts = []
     for index in range(max(1, count)):
+        # Composition: the first burst is the hero, the others are secondary
+        # and staggered in time so the sky is never a uniform field.
+        role = index % 3
+        family_key = family if index == 0 else FAMILIES[(index - 1) % len(FAMILIES)]
+        config = FAMILY_CONFIG[family_key]
+        family_distance = distance * (1.0 if index == 0 else
+                                      (0.78 if role == 1 else 0.58))
         center = _burst_center(origin, forward, up, right, index, count,
-                                distance * (0.85 + 0.25 *
-                                           _hash_unit(seed, index, 0, 1)))
-        birth = index * 0.32
-        age = time - birth
-        if age < 0.0:
-            continue
+                                family_distance * (0.85 + 0.25 *
+                                                   _hash_unit(seed, index, 0, 1)))
+        birth = 0.0 if index == 0 else (0.25 if role == 1 else 0.85)
         family_colors = PALETTES[index % len(PALETTES)]
         materials = [
-            _material("ALD FX %s %d A" % (family, index), family_colors[0],
+            _material("ALD FX %s %d A" % (family_key, index), family_colors[0],
                       6.0),
-            _material("ALD FX %s %d B" % (family, index), family_colors[1],
+            _material("ALD FX %s %d B" % (family_key, index), family_colors[1],
                       6.0),
-            _material("ALD FX %s %d C" % (family, index), family_colors[2],
+            _material("ALD FX %s %d C" % (family_key, index), family_colors[2],
                       6.0),
         ]
-        trail_splines = []
-        head_points = [[], [], []]
-        head_radii = [[], [], []]
-        spark_points = [[], [], []]
-        spark_radii = [[], [], []]
         spoke_count = config["spokes"]
+        trail_obj = _build_curve(scene, "ALD FX %s %d Trails" % (family_key, index),
+                                 spoke_count, materials, 0.075 * size_scale)
+        trail_obj["ald_fx_kind"] = kind
+        head_obj, head_ranges = _build_particle_mesh(
+            "ALD FX %s %d Heads" % (family_key, index),
+            [center] * spoke_count, [0.001] * spoke_count, materials[0])
+        _collection(scene).objects.link(head_obj)
+        head_obj["ald_fx_kind"] = kind
+        spark_total = spoke_count * config["sparks"]
+        spark_obj, spark_ranges = _build_particle_mesh(
+            "ALD FX %s %d Sparks" % (family_key, index),
+            [center] * spark_total, [0.001] * spark_total, materials[2])
+        _collection(scene).objects.link(spark_obj)
+        spark_obj["ald_fx_kind"] = kind
+        core_obj, core_ranges = _build_particle_mesh(
+            "ALD FX %s %d Flash" % (family_key, index), [center], [0.001],
+            materials[1])
+        _collection(scene).objects.link(core_obj)
+        core_obj["ald_fx_kind"] = kind
+        bursts.append({
+            "index": index, "family": family_key, "config": config,
+            "center": center, "birth": birth, "seed": seed,
+            "size_scale": size_scale, "materials": materials,
+            "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
+            "sparks": spark_obj, "spark_ranges": spark_ranges,
+            "core": core_obj, "core_ranges": core_ranges,
+        })
+    return {"kind": "fireworks", "bursts": bursts, "time": None}
+
+
+def _update_fireworks(system, time):
+    for burst in system["bursts"]:
+        config = burst["config"]
+        center = burst["center"]
+        seed = burst["seed"]
+        index = burst["index"]
+        age = time - burst["birth"]
+        spoke_count = config["spokes"]
+        trail_data = burst["trail"].data
+        head_centers = []
+        head_radii = []
+        spark_centers = []
+        spark_radii = []
         for spoke in range(spoke_count):
             life = _hash_range(seed, index, spoke, 2, config["life"] * 0.6,
                                config["life"])
-            if age > life:
-                continue
             direction = _fibonacci_direction(spoke, spoke_count, 0.35, seed,
                                              index)
             speed = _hash_range(seed, index, spoke, 3, config["speed"] * 0.75,
                                 config["speed"] * 1.15)
             v0 = direction * speed
-            p0 = center
-            color_index = spoke % 3
-            # Trail: samples of the same analytic trajectory in the past.
-            trail_time = min(age, config["trail"])
-            if trail_time > 0.02:
-                samples = 10
-                points = []
-                for step in range(samples):
-                    tau = trail_time * (1.0 - step / (samples - 1.0))
-                    points.append(_position(p0, v0, config["drag"], age - tau))
-                trail_splines.append((points, color_index))
-            # Head.
-            head_points[color_index].append(_position(p0, v0, config["drag"],
-                                                      age))
-            head_radii[color_index].append(
-                0.030 * size_scale * (0.35 + 0.65 * (1.0 - age / max(life, 1e-3))))
-            # Secondary sparks emitted by the star.
+            alive = 0.0 <= age <= life
+            spline = trail_data.splines[spoke]
+            trail_time = min(age, config["trail"]) if alive else 0.0
+            for step in range(SAMPLES):
+                tau = trail_time * (1.0 - step / (SAMPLES - 1.0))
+                sample_age = max(0.0, age - tau)
+                point = _position(center, v0, config["drag"], sample_age)
+                if not alive:
+                    point = center + Vector((0.0, 0.0, 1000.0))
+                spline.points[step].co = (point.x, point.y, point.z, 1.0)
+                spline.points[step].radius = 0.25 + 0.9 * (step / (SAMPLES - 1.0)) ** 1.4
+            head = _position(center, v0, config["drag"], max(0.0, age))
+            radius = 0.13 * burst["size_scale"]
+            if not alive:
+                head = center + Vector((0.0, 0.0, 1000.0))
+                radius = 0.0001
+            else:
+                radius *= 0.35 + 0.65 * (1.0 - age / max(life, 1e-3))
+            head_centers.append(head)
+            head_radii.append(radius)
             for child in range(config["sparks"]):
-                emit = _hash_range(seed, index, spoke, 4, 0.05, life * 0.55)
+                emit = _hash_range(seed, index, spoke * 8 + child, 4, 0.05,
+                                  life * 0.55)
                 child_age = age - emit
-                if child_age <= 0.0:
-                    continue
                 child_life = _hash_range(seed, index, spoke * 8 + child, 5,
                                          0.45, 1.5)
-                if child_age > child_life:
+                if child_age <= 0.0 or child_age > child_life:
+                    spark_centers.append(center + Vector((0.0, 0.0, 1000.0)))
+                    spark_radii.append(0.0001)
                     continue
-                parent_pos = _position(p0, v0, config["drag"], age - emit)
+                parent_pos = _position(center, v0, config["drag"], age - emit)
                 parent_vel = _velocity(v0, config["drag"], age - emit)
                 perturb = Vector((
                     _hash_range(seed, index, spoke * 8 + child, 6, -1.6, 1.6),
@@ -300,83 +373,163 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
                     _hash_range(seed, index, spoke * 8 + child, 8, -1.6, 1.6),
                 )) * 1.2
                 child_v0 = parent_vel * 0.35 + perturb
-                spark_points[color_index].append(
-                    _position(parent_pos, child_v0, 2.4, child_age))
-                spark_radii[color_index].append(
-                    0.010 * size_scale * (1.0 - child_age / max(child_life, 1e-3)))
-        if trail_splines:
-            _multicurve(scene, "ALD FX %s %d Trails" % (family, index),
-                         trail_splines, materials, 0.011 * size_scale)
-        for slot in range(3):
-            if head_points[slot]:
-                _points_mesh(scene, "ALD FX %s %d Heads" % (family, index),
-                             head_points[slot], head_radii[slot], materials[slot])
-            if spark_points[slot]:
-                _points_mesh(scene, "ALD FX %s %d Sparks" % (family, index),
-                             spark_points[slot], spark_radii[slot],
-                             materials[slot])
-        # Ephemeral central flash.
-        if age < config["core"]:
+                spark_centers.append(_position(parent_pos, child_v0, 2.4,
+                                              child_age))
+                spark_radii.append(0.045 * burst["size_scale"]
+                                   * (1.0 - child_age / max(child_life, 1e-3)))
+        _write_particle_mesh(burst["heads"].data, burst["head_ranges"],
+                             head_centers, head_radii)
+        if spark_centers:
+            _write_particle_mesh(burst["sparks"].data, burst["spark_ranges"],
+                                 spark_centers, spark_radii)
+        # Central flash: bright for a fraction of a second only.
+        core_centers = [center]
+        core_radii = [0.001]
+        if 0.0 <= age < config["core"]:
             energy = 1.0 - age / max(config["core"], 1e-3)
-            _points_mesh(scene, "ALD FX %s %d Flash" % (family, index),
-                         [center], [0.16 * size_scale * energy ** 0.5],
-                         materials[1])
-    return count
+            core_radii = [0.25 * burst["size_scale"] * energy ** 0.5]
+        else:
+            core_centers = [center + Vector((0.0, 0.0, 1000.0))]
+        _write_particle_mesh(burst["core"].data, burst["core_ranges"],
+                             core_centers, core_radii)
 
 
 # ---------------------------------------------------------------------------
 # shooting stars
 # ---------------------------------------------------------------------------
 
-def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
-                   fps=24.0):
-    """Meteors sharing one radiant direction, as in a real shower."""
+def _build_meteors(scene, count, seed, distance):
     origin, forward, up, right = _camera_basis(scene)
-    # Shared radiant: a single world direction for the whole shower.
-    radiant_dir = (forward * 0.86 + up * 0.42 + right * 0.28).normalized()
+    radiant = (forward * 0.86 + up * 0.42 + right * 0.28).normalized()
     material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0)
-    splines = []
-    heads = []
-    radii = []
+    trail_obj = _build_curve(scene, "ALD FX Meteor Trails", max(1, count),
+                             [material], 0.07)
+    trail_obj["ald_fx_kind"] = "meteors"
+    head_obj, head_ranges = _build_particle_mesh(
+        "ALD FX Meteor Heads", [origin] * max(1, count), [0.001] * max(1, count),
+        material)
+    _collection(scene).objects.link(head_obj)
+    head_obj["ald_fx_kind"] = "meteors"
+    return {"kind": "meteors", "count": count, "seed": seed,
+            "distance": distance, "radiant": radiant, "origin": origin,
+            "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
+            "material": material}
+
+
+def _update_meteors(system, time):
+    count = system["count"]
+    seed = system["seed"]
+    origin = system["origin"]
+    radiant = system["radiant"]
+    distance = system["distance"]
+    trail_data = system["trail"].data
+    head_centers = []
+    head_radii = []
     for index in range(max(1, count)):
         birth = index * 0.9 + _hash_range(seed, index, 0, 1, 0.0, 0.6)
         age = time - birth
         life = _hash_range(seed, index, 0, 2, 0.55, 1.15)
-        if age <= 0.0 or age > life:
-            continue
-        # Small angular dispersion around the shared radiant.
+        spline = trail_data.splines[index]
+        alive = 0.0 < age <= life
+        trail = min(age, 0.32) if alive else 0.0
         spread = Vector((
             _hash_range(seed, index, 0, 3, -0.09, 0.09),
             _hash_range(seed, index, 0, 4, -0.06, 0.06),
             _hash_range(seed, index, 0, 5, -0.04, 0.04),
         ))
-        direction = (radiant_dir + spread).normalized()
+        direction = (radiant + spread).normalized()
         start = origin + direction * distance * 0.9
         speed = _hash_range(seed, index, 0, 6, 26.0, 38.0)
         v0 = direction * speed
-        points = []
-        samples = 14
-        trail = min(age, 0.32)
-        for step in range(samples):
-            tau = trail * (1.0 - step / (samples - 1.0))
-            points.append(_position(start, v0, 0.08, age - tau))
-        splines.append((points, 0))
-        heads.append(_position(start, v0, 0.08, age))
-        radii.append(0.026 * (1.0 - 0.5 * age / max(life, 1e-3)))
-    if splines:
-        _multicurve(scene, "ALD FX Meteor Trails", splines, [material],
-                     0.007)
-    if heads:
-        _points_mesh(scene, "ALD FX Meteor Heads", heads, radii, material)
+        for step in range(SAMPLES):
+            tau = trail * (1.0 - step / (SAMPLES - 1.0))
+            point = _position(start, v0, 0.08, max(0.0, age - tau))
+            if not alive:
+                point = origin + Vector((0.0, 0.0, 1000.0))
+            spline.points[step].co = (point.x, point.y, point.z, 1.0)
+            spline.points[step].radius = 0.2 + 0.8 * (step / (SAMPLES - 1.0))
+        head = _position(start, v0, 0.08, max(0.0, age))
+        radius = 0.18
+        if not alive:
+            head = origin + Vector((0.0, 0.0, 1000.0))
+            radius = 0.0001
+        head_centers.append(head)
+        head_radii.append(radius)
+    _write_particle_mesh(system["heads"].data, system["head_ranges"],
+                         head_centers, head_radii)
+
+
+# ---------------------------------------------------------------------------
+# public API
+# ---------------------------------------------------------------------------
+
+def _update_system(system, time):
+    if system["kind"] == "fireworks":
+        _update_fireworks(system, time)
+    else:
+        _update_meteors(system, time)
+    system["time"] = time
+
+
+def _registry(scene):
+    return SYSTEMS.setdefault(_scene_id(scene), {})
+
+
+def _cleanup_orphans():
+    for datablocks in (bpy.data.meshes, bpy.data.curves, bpy.data.materials):
+        for block in list(datablocks):
+            if (block.get("ald_fx") or block.get("ald_fx_material")) \
+                    and block.users == 0:
+                datablocks.remove(block)
+
+
+def _remove_kind(scene, kind):
+    owner = _scene_id(scene)
+    for coll in bpy.data.collections:
+        if coll.get(OWNER_KEY) != owner:
+            continue
+        for obj in list(coll.objects):
+            if obj.get("ald_fx") and obj.get("ald_fx_kind") == kind:
+                bpy.data.objects.remove(obj, do_unlink=True)
+    _cleanup_orphans()
+
+
+def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
+                     fps=24.0, family="CHRYSANTHEMUM"):
+    """Create (or replace) a deterministic multi-burst firework system."""
+    _remove_kind(scene, "fireworks")
+    system = _build_fireworks(scene, count, seed, distance, family)
+    _update_system(system, time)
+    _registry(scene)["fireworks"] = system
     return count
 
 
-# ---------------------------------------------------------------------------
-# cleanup
-# ---------------------------------------------------------------------------
+def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
+                   fps=24.0):
+    """Create (or replace) a deterministic meteor shower."""
+    _remove_kind(scene, "meteors")
+    system = _build_meteors(scene, count, seed, distance)
+    _update_system(system, time)
+    _registry(scene)["meteors"] = system
+    return count
 
-def clear(scene):
-    """Remove only the FX system owned by ``scene`` and its orphan data."""
+
+def update(scene, time=None):
+    """Re-evaluate every FX system of a scene at the given time."""
+    registry = SYSTEMS.get(_scene_id(scene))
+    if not registry:
+        return False
+    if time is None:
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
+    for system in registry.values():
+        if system:
+            _update_system(system, time)
+    return True
+
+
+def clear(scene, keep_system=False):
+    """Remove the FX systems owned by ``scene`` and their orphan data."""
     owner = _scene_id(scene)
     removed = 0
     coll = None
@@ -384,16 +537,49 @@ def clear(scene):
         if candidate.get(OWNER_KEY) == owner:
             coll = candidate
             break
-    if coll is None:
-        return 0
-    for obj in list(coll.objects):
-        if obj.get("ald_fx"):
-            bpy.data.objects.remove(obj, do_unlink=True)
-            removed += 1
-    # Only clean ALD-owned datablocks without users.
-    for datablocks in (bpy.data.meshes, bpy.data.curves, bpy.data.materials):
-        for block in list(datablocks):
-            if block.get("ald_fx_material") or block.get("ald_fx"):
-                if block.users == 0:
-                    datablocks.remove(block)
+    if coll is not None:
+        for obj in list(coll.objects):
+            if obj.get("ald_fx"):
+                bpy.data.objects.remove(obj, do_unlink=True)
+                removed += 1
+    if not keep_system:
+        SYSTEMS.pop(owner, None)
+    _cleanup_orphans()
     return removed
+
+
+# ---------------------------------------------------------------------------
+# handlers
+# ---------------------------------------------------------------------------
+
+@persistent
+def _on_frame_change(scene, *_args):
+    registry = SYSTEMS.get(_scene_id(scene))
+    if not registry:
+        return
+    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+    config = scene.get("ald_fx_config") or {}
+    age_offset = float(config.get("age", 0.0)) if isinstance(config, dict) else 0.0
+    time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
+    time += age_offset
+    for system in registry.values():
+        if not system:
+            continue
+        if system.get("time") is not None \
+                and abs(time - system["time"]) < 1e-6:
+            continue
+        try:
+            _update_system(system, time)
+        except Exception:
+            pass
+
+
+def register():
+    if _on_frame_change not in bpy.app.handlers.frame_change_post:
+        bpy.app.handlers.frame_change_post.append(_on_frame_change)
+
+
+def unregister():
+    if _on_frame_change in bpy.app.handlers.frame_change_post:
+        bpy.app.handlers.frame_change_post.remove(_on_frame_change)
+    SYSTEMS.clear()
