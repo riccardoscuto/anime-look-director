@@ -761,3 +761,15 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   while after the head is gone.
 - x_burst_spread and x_composition_offset let the user frame the group
   by hand; changing them rebuilds the system with the new placement.
+
+### v2.7.0 notes (Geometry Nodes prototype)
+- x_nodes.py builds ALD | FX Burst GN: the Python side writes the
+  deterministic data as point attributes (birth, life, vel, drag, radius,
+  pos0) and the node group evaluates the analytic motion every frame
+  (Scene Time -> Set Position -> Instance on Points) with the same linear drag
+  solution and the 1/k guard.
+- The prototype runs on one burst (GN Heads (Prototype) toggle) and is
+  verified by the gate: the group must exist, contain Set Position / Instance on
+  Points / Scene Time, and be attached to a real FX object.
+- Next step: move the trail beads to Points to Curves (Curve Group ID = parent
+  id, Weight = sample time) and then convert the whole system.

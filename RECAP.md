@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.6.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.7.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -299,4 +299,6 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.5.0** - Pistil interno, editor dei sistemi FX e occlusione verificata con render.
 
 - **2.6.0** - Scie granulari a 16 campioni, frammenti e persistent train delle meteore, controlli di composizione.
+
+- **2.7.0** - Prototipo Geometry Nodes per le teste dei fuochi (dati su attributi, moto valutato da Scene Time).
 

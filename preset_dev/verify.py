@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 6, 0)
+EXPECTED_VERSION = (2, 7, 0)
 TOLERANCE = 1e-4
 
 
@@ -1430,6 +1430,10 @@ def _fx_signature(scene):
         return (0, "")
     points = []
     for obj in sorted(coll.objects, key=lambda item: item.name):
+        if any(mod.type == "NODES" for mod in obj.modifiers):
+            # Geometry Nodes objects are evaluated, not authored: their stored
+            # vertices carry no motion information.
+            continue
         if obj.type == "CURVE":
             for spline in obj.data.splines:
                 for point in spline.points:
@@ -1517,6 +1521,23 @@ def check_fx(scene):
 
     fx_module.clear(scene)
     bpy.data.scenes.remove(other)
+
+    # The Geometry Nodes prototype must exist and be attached to a real burst.
+    from anime_look_director import fx_nodes
+    group = bpy.data.node_groups.get(fx_nodes.GROUP_NAME)
+    check(group is not None, "FX burst node group missing")
+    if group is not None:
+        types = {node.bl_idname for node in group.nodes}
+        for required in ("GeometryNodeSetPosition",
+                         "GeometryNodeInstanceOnPoints",
+                         "GeometryNodeInputSceneTime"):
+            check(required in types, "FX node group missing " + required)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    gn_objects = [obj for obj in bpy.data.objects
+                  if obj.type == "MESH"
+                  and any(mod.type == "NODES" for mod in obj.modifiers)]
+    check(gn_objects, "no FX object uses the Geometry Nodes burst")
+    fx_module.clear(scene)
 
 
 def main():

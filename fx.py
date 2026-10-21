@@ -128,6 +128,38 @@ def _fibonacci_direction(index, count, jitter, seed, burst):
     return Vector((math.cos(theta) * radius, math.sin(theta) * radius, z))
 
 
+def _gn_head_object(scene, name, material, particles, radius):
+    """Build a points object whose motion is evaluated by Geometry Nodes."""
+    from . import fx_nodes
+    count = len(particles)
+    mesh = bpy.data.meshes.new(name)
+    mesh["ald_fx"] = True
+    mesh.from_pydata([(0.0, 0.0, 0.0)] * count, [], [])
+    mesh.update()
+    for attr_name, attr_type, values in (
+            ("birth", "FLOAT", [p["birth"] for p in particles]),
+            ("life", "FLOAT", [p["life"] for p in particles]),
+            ("drag", "FLOAT", [p["drag"] for p in particles]),
+            ("radius", "FLOAT", [p["radius"] for p in particles]),
+            ("vel", "FLOAT_VECTOR", [p["vel"] for p in particles]),
+            ("pos0", "FLOAT_VECTOR", [p["pos0"] for p in particles])):
+        attribute = mesh.attributes.new(attr_name, attr_type, "POINT")
+        if attr_type == "FLOAT":
+            attribute.data.foreach_set("value", values)
+        else:
+            flat = []
+            for vector in values:
+                flat.extend(vector)
+            attribute.data.foreach_set("vector", flat)
+    obj = bpy.data.objects.new(name, mesh)
+    obj["ald_fx"] = True
+    _collection(scene).objects.link(obj)
+    group, sockets = fx_nodes.build_burst_group()
+    fx_nodes.attach_burst_modifier(obj, group, sockets, GRAVITY, material,
+                                   radius)
+    return obj
+
+
 def _star_state(seed, index, spoke, count, config, age, speed_scale=1.0,
                 life_scale=1.0, hash_offset=0):
     """Deterministic state of one primary star at a given age."""
@@ -325,6 +357,34 @@ def _build_fireworks(scene, count, seed, distance, family):
             [center] * spoke_count, [0.001] * spoke_count, materials[0])
         _collection(scene).objects.link(head_obj)
         head_obj["ald_fx_kind"] = kind
+        # Geometry Nodes prototype: the hero burst heads are evaluated by GN.
+        gn_heads = None
+        use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
+            else False
+        if use_gn and index == 1:
+            particles = []
+            for spoke in range(spoke_count):
+                life = _hash_range(seed, index, spoke, 2, config["life"] * 0.6,
+                                   config["life"])
+                direction = _fibonacci_direction(spoke, spoke_count, 0.35,
+                                                 seed, index)
+                speed = _hash_range(seed, index, spoke, 3,
+                                    config["speed"] * 0.75,
+                                    config["speed"] * 1.15)
+                particles.append({
+                    "birth": birth, "life": life, "drag": config["drag"],
+                    "radius": 0.13 * size_scale, "vel": direction * speed,
+                    "pos0": center,
+                })
+            try:
+                gn_heads = _gn_head_object(
+                    scene, "ALD FX GN Heads %d" % index, materials[0],
+                    particles, 1.0)
+                bpy.data.objects.remove(head_obj, do_unlink=True)
+                head_obj = None
+                head_ranges = []
+            except Exception:
+                gn_heads = None
         # Inner contrasting pistil population (the classic Hanabi core).
         pistil_count = config["pistil"]
         pistil_obj, pistil_ranges = _build_particle_mesh(
@@ -354,6 +414,7 @@ def _build_fireworks(scene, count, seed, distance, family):
             "center": center, "birth": birth, "seed": seed,
             "size_scale": size_scale, "materials": materials,
             "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
+            "gn_heads": gn_heads,
             "beads": bead_objects,
             "pistil": (pistil_obj, pistil_ranges, pistil_bead_obj,
                        pistil_bead_ranges, pistil_count),
@@ -484,8 +545,9 @@ def _update_fireworks(system, time):
                 else:
                     pistil_bead_radii.append(0.0001)
 
-        _write_particle_mesh(burst["heads"].data, burst["head_ranges"],
-                             head_centers, head_radii)
+        if burst.get("gn_heads") is None:
+            _write_particle_mesh(burst["heads"].data, burst["head_ranges"],
+                                 head_centers, head_radii)
         _write_particle_mesh(pistil_obj.data, pistil_ranges, pistil_centers,
                              pistil_radii)
         _write_particle_mesh(pistil_bead_obj.data, pistil_bead_ranges,

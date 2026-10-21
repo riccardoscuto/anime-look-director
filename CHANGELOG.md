@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.7.0 - 2026-10-22
+### Added
+- Geometry Nodes prototype for the burst heads: the deterministic data
+  (birth, lifetime, velocity, drag, radius) lives in point attributes and the
+  analytic motion is evaluated every frame by `ALD | FX Burst GN`
+  (Scene Time, Set Position, Instance on Points) instead of Python.
+- `GN Heads (Prototype)` toggle in the FX panel; the gate now verifies that the
+  node group exists, contains the expected nodes and is attached to a burst.
+
 ## 2.6.0 - 2026-10-22
 ### Added
 - Denser, more granular spark trails: 16 samples per star with per-grain
