@@ -239,13 +239,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 16):
+                           or ng.get("ald_build") != 17):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 16
+        ng["ald_build"] = 17
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -259,7 +259,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 16
+        ng["ald_build"] = 17
     return ng
 
 
@@ -417,7 +417,17 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     links.new(macro_billow.outputs[0], rho.inputs[0])
     links.new(puff_weight.outputs[0], rho.inputs[1])
 
-    return rho.outputs[0], warped_pos.outputs["Vector"]
+    # Low-frequency envelope for the solar derivative. The silhouette above
+    # stays pixel-identical to v1.0.2; this noise only drives body shading.
+    envelope_noise = node("ShaderNodeTexNoise", 980, 1000)
+    envelope_noise.inputs["Detail"].default_value = 2.0
+    envelope_noise.inputs["Roughness"].default_value = 0.45
+    envelope_noise.inputs["Distortion"].default_value = 0.15
+    links.new(warped_pos.outputs["Vector"], envelope_noise.inputs["Vector"])
+    links.new(macro_scale.outputs[0], envelope_noise.inputs["Scale"])
+
+    return (rho.outputs[0], envelope_noise.outputs["Fac"],
+            warped_pos.outputs["Vector"])
 
 
 def _build_gradient_group(ng):
@@ -1109,7 +1119,7 @@ def _build_gradient_group(ng):
     links.new(contrail_factor.outputs[0], contrail_add.inputs["Factor"])
     sky_color = result_sock
 
-    rho_here, warped_pos = _sample_cloud_density(
+    rho_here, env_here, warped_pos = _sample_cloud_density(
         nodes, links, view_norm.outputs["Vector"], group_in,
         flat_scale, flat_inv, y_offset=0.0)
 
@@ -1130,7 +1140,7 @@ def _build_gradient_group(ng):
     sun_ray_step.location = (1900, -720)
     sun_ray_step.operation = "SCALE"
     links.new(light_dir.outputs["Vector"], sun_ray_step.inputs["Vector"])
-    sun_ray_step.inputs["Scale"].default_value = 0.045
+    sun_ray_step.inputs["Scale"].default_value = 0.055
 
     view_sun_raw = nodes.new("ShaderNodeVectorMath")
     view_sun_raw.location = (2080, -720)
@@ -1143,15 +1153,15 @@ def _build_gradient_group(ng):
     view_sun_norm.operation = "NORMALIZE"
     links.new(view_sun_raw.outputs["Vector"], view_sun_norm.inputs[0])
 
-    rho_sun, _warped_sun = _sample_cloud_density(
+    rho_sun, env_sun, _warped_sun = _sample_cloud_density(
         nodes, links, view_sun_norm.outputs["Vector"], group_in,
         flat_scale, flat_inv, y_offset=-1200.0)
 
     delta = nodes.new("ShaderNodeMath")
     delta.location = (2440, -900)
     delta.operation = "SUBTRACT"
-    links.new(rho_here, delta.inputs[0])
-    links.new(rho_sun, delta.inputs[1])
+    links.new(env_here, delta.inputs[0])
+    links.new(env_sun, delta.inputs[1])
 
     delta_used = nodes.new("ShaderNodeMath")
     delta_used.location = (2620, -900)
@@ -1187,7 +1197,7 @@ def _build_gradient_group(ng):
     detail_body = nodes.new("ShaderNodeMath")
     detail_body.location = (2980, -1260)
     detail_body.operation = "MULTIPLY"
-    detail_body.inputs[1].default_value = 0.016
+    detail_body.inputs[1].default_value = 0.010
     links.new(detail_center.outputs[0], detail_body.inputs[0])
 
     rho_sculpted = nodes.new("ShaderNodeMath")
@@ -1223,7 +1233,7 @@ def _build_gradient_group(ng):
     fringe_top = nodes.new("ShaderNodeMath")
     fringe_top.location = (2620, -380)
     fringe_top.operation = "ADD"
-    fringe_top.inputs[1].default_value = 0.038
+    fringe_top.inputs[1].default_value = 0.022
     links.new(coverage_center.outputs["Result"], fringe_top.inputs[0])
 
     # Crisp anime silhouette + directional body / silver lining.
@@ -1257,8 +1267,8 @@ def _build_gradient_group(ng):
     body_mix.location = (2620, -720)
     body_mix.clamp = True
     _smooth(body_mix)
-    body_mix.inputs["From Min"].default_value = -0.018
-    body_mix.inputs["From Max"].default_value = 0.008
+    body_mix.inputs["From Min"].default_value = -0.022
+    body_mix.inputs["From Max"].default_value = 0.006
     body_mix.inputs["To Min"].default_value = 0.0
     body_mix.inputs["To Max"].default_value = 1.0
     links.new(body_signal.outputs[0], body_mix.inputs["Value"])
@@ -1277,20 +1287,26 @@ def _build_gradient_group(ng):
     sun_edge.location = (2440, -900)
     sun_edge.clamp = True
     _smooth(sun_edge)
-    sun_edge.inputs["From Min"].default_value = -0.005
-    sun_edge.inputs["From Max"].default_value = 0.025
+    sun_edge.inputs["From Min"].default_value = 0.000
+    sun_edge.inputs["From Max"].default_value = 0.022
     sun_edge.inputs["To Min"].default_value = 0.0
     sun_edge.inputs["To Max"].default_value = 1.0
     links.new(delta_used.outputs[0], sun_edge.inputs["Value"])
 
+    fringe_sharp = nodes.new("ShaderNodeMath")
+    fringe_sharp.location = (2620, -540)
+    fringe_sharp.operation = "POWER"
+    fringe_sharp.inputs[1].default_value = 2.0
+    links.new(fringe.outputs["Result"], fringe_sharp.inputs[0])
+
     fringe_weight = nodes.new("ShaderNodeMath")
-    fringe_weight.location = (2620, -540)
+    fringe_weight.location = (2800, -540)
     fringe_weight.operation = "MULTIPLY"
-    fringe_weight.inputs[1].default_value = 0.92
-    links.new(fringe.outputs["Result"], fringe_weight.inputs[0])
+    fringe_weight.inputs[1].default_value = 0.95
+    links.new(fringe_sharp.outputs[0], fringe_weight.inputs[0])
 
     fringe_add = nodes.new("ShaderNodeMath")
-    fringe_add.location = (2800, -540)
+    fringe_add.location = (2980, -540)
     fringe_add.operation = "ADD"
     # No body base at all: Cloud Light is strictly the sun-facing fringe.
     # The old 0.35 (then 0.08) still washed the opaque body toward beige.
@@ -1329,11 +1345,28 @@ def _build_gradient_group(ng):
     links.new(rim_edge.outputs[0], rim_factor.inputs[0])
     links.new(gamma_add.outputs[0], rim_factor.inputs[1])
 
+    # The silver lining must occur only on the outer silhouette. Coverage
+    # suppresses holes, while the low-frequency envelope gate suppresses
+    # thin internal transitions where the dense fBm still has a lit edge.
+    rim_presence = nodes.new("ShaderNodeMath")
+    rim_presence.location = (3160, -760)
+    rim_presence.operation = "MULTIPLY"
+    rim_presence.use_clamp = True
+    rim_presence.inputs[1].default_value = 2.0
+    links.new(coverage.outputs["Result"], rim_presence.inputs[0])
+
+    rim_masked = nodes.new("ShaderNodeMath")
+    rim_masked.location = (3700, -900)
+    rim_masked.operation = "MULTIPLY"
+    rim_masked.use_clamp = True
+    links.new(rim_factor.outputs[0], rim_masked.inputs[0])
+    links.new(rim_presence.outputs[0], rim_masked.inputs[1])
+
     rim_boosted = nodes.new("ShaderNodeMath")
-    rim_boosted.location = (3400, -900)
+    rim_boosted.location = (3880, -900)
     rim_boosted.operation = "MULTIPLY"
     rim_boosted.use_clamp = True
-    links.new(rim_factor.outputs[0], rim_boosted.inputs[0])
+    links.new(rim_masked.outputs[0], rim_boosted.inputs[0])
     links.new(group_in.outputs["Cloud Rim Boost"], rim_boosted.inputs[1])
 
     mix_body = nodes.new("ShaderNodeMix")
@@ -1683,6 +1716,11 @@ def apply_preset_style(scene, p):
         settings.cloud_delta_gain = p.get("cloud_delta_gain", 1.0)
         settings.sun_glow = p.get("sun_glow", 0.45)
         settings.sky_accent_amount = p.get("sky_accent_amount", 0.0)
+        settings.horizon_offset = p.get("horizon_offset", 0.0)
+        settings.horizon_softness = p.get("horizon_softness", 0.5)
+        settings.contrails = p.get("contrails", 0.0)
+        settings.star_strength = p.get("star_strength", 1.0)
+        settings.star_density = p.get("star_density", 180.0)
     finally:
         _syncing_style = False
 

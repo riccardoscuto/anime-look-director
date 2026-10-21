@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.3 - 2026-10-20
+### Fixed
+- `_sample_cloud_density()` now returns `(rho, envelope, warped_pos)`. The rho
+  path is unchanged from v1.0.2, so the silhouette is pixel-identical. A
+  low-frequency envelope (`Detail 2.0`, `Roughness 0.45`, `Distortion 0.15`,
+  macro scale) drives the solar derivative, eliminating internal Cloud Light
+  speckles caused by sixth-octave density wobble.
+- Solar ray step is 0.055 rad; body detail is 0.010 and the Shadow -> Mid step
+  is -0.022..0.006.
+- Silver lining is restricted to the outer edge: fringe top +0.022, fringe
+  squared and scaled by 0.95, sun edge 0.000..0.022, plus a coverage presence
+  gate. Internal concavities are no longer filled by Cloud Light.
+- Apply Palette now resets `horizon_offset`, `horizon_softness`, `contrails`,
+  `star_strength`, `star_density` as well as the cloud/glow controls.
+- World gradient marker 17.
+
 ## 1.0.2 - 2026-10-20
 ### Fixed
 - Restored the organic v1.0.0 cloud morphology: `_sample_cloud_density` returns

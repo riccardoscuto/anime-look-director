@@ -563,3 +563,18 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   and accent amount; same-key Apply is handled in the operator.
 - Marker 16. Gate ratios: shadow 2.63 %, wrap 15.86 %, ink 3.47 %,
   haze 63.04 %, toon 1.61 %, rim 7.02 %.
+
+### v1.0.3 notes (envelope shading, outer fringe, atmosphere resets)
+- The helper is now `(rho, envelope, warped_pos)`. The rho graph is unchanged
+  from v1.0.2. The envelope is a second Noise Texture at `macro_scale` with
+  Detail 2.0, Roughness 0.45 and Distortion 0.15.
+- The solar derivative is `env_here - env_sun` with a 0.055 rad view-ray step;
+  this removes the internal Cloud Light speckles caused by sixth-octave density
+  wobble while keeping the silhouette pixel-identical.
+- Body detail is 0.010; Shadow/Mid is -0.022..0.006. Fringe top is +0.022,
+  fringe is squared and scaled by 0.95, sun edge maps 0.000..0.022, and a
+  coverage presence gate keeps the rim on the cloud rather than in empty sky.
+- Apply Palette now also resets horizon offset/softness, contrails, star
+  strength and star density.
+- Marker 17. Gate ratios: shadow 2.65 %, wrap 15.93 %, ink 3.48 %,
+  haze 63.06 %, toon 1.62 %, rim 7.07 %.

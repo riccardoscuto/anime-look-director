@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 1.0.2** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 1.0.3** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -272,3 +272,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **1.0.2** - Ripristino della morfologia fBm organica v1.0.0; Cloud Light
   confinato al bordo solare, senza crown_curve, e reset di Cloud Scale/Delta
   Gain/Rim Boost su Apply Palette.
+- **1.0.3** - Derivata solare su envelope a bassa frequenza, fringe esterno
+  più stretto e reset di orizzonte, contrail e stelle su Apply Palette.

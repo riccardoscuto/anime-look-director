@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 0, 2)
+EXPECTED_VERSION = (1, 0, 3)
 TOLERANCE = 1e-4
 
 
@@ -305,6 +305,8 @@ def check_world_gradient(scene, settings):
     settings.cloud_delta_gain = 3.46
     settings.sun_glow = 0.0
     settings.sky_accent_amount = 1.0
+    settings.horizon_softness = 0.02
+    settings.star_density = 50.0
     bpy.ops.ald.apply_palette()
     check(abs(settings.cloud_scale - after["cloud_scale"]) <= TOLERANCE,
           "apply palette did not reset cloud scale")
@@ -317,6 +319,10 @@ def check_world_gradient(scene, settings):
           "apply palette did not reset sun glow")
     check(abs(settings.sky_accent_amount) <= TOLERANCE,
           "apply palette did not reset accent amount")
+    check(abs(settings.horizon_softness - 0.5) <= TOLERANCE,
+          "apply palette did not reset horizon softness")
+    check(abs(settings.star_density - 180.0) <= TOLERANCE,
+          "apply palette did not reset star density")
     settings.palette = "GOLDEN_HOUR"
     bpy.ops.ald.apply_palette()
 

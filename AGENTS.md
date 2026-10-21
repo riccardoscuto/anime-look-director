@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **1.0.2**).
+  (currently **1.0.3**).
 
 ## Verify (run after every change)
 ```powershell
@@ -101,7 +101,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Normal pass by 1.5 px, subtracts, takes vector length, curves 0.01..0.14 and
   multiplies by the normal sensitivity and geometry mask. Combine with the depth
   edge via `MAXIMUM`.
-- World gradient group marker is **16**. Inputs include `Star Amount`, `Star
+- World gradient group marker is **17**. Inputs include `Star Amount`, `Star
   Density` (Voronoi scale, default 180), `Cloud Flatness` and `Cloud Offset`
   (vector). Exact shell point is `(Vx*t, Vy*t, Vz)` with
   `t=0.55/(max(Z,0.015)+0.18)`, then Mapping
@@ -122,16 +122,20 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   `gamma+^3.5 * smoothstep(0.75,0,abs(Vz)) * 0.45`; sum scaled by
   `Sun Glow/0.45`, tinted by Sun Color, ADDed before clouds.
 - Cloud Amount drives coverage, not alpha: tau0 maps `0.58..0.40`; coverage
-  top +0.018, fringe +0.038, plus a 0..0.03 empty gate. Do not multiply final
+  top +0.018, fringe +0.022, plus a 0..0.03 empty gate. Do not multiply final
   cloud opacity by Cloud Amount.
-- `_sample_cloud_density()` returns `(rho, warped_pos)` and owns the organic
-  v1.0.0 fBm: soft warp 0.85*Scale at 0.28; macro Detail 6.0/Roughness 0.58 at
-  0.55*Scale weighted 0.66; billow Detail 5.0/Roughness 0.54 at 1.35*Scale
-  weighted 0.22; Voronoi puff 1.60*Scale remapped 0..0.65 weighted 0.12.
-- Solar derivative uses the full density and a 0.045 rad view-ray step on the
-  dome. Detail is contour 0.018 and body 0.016. Shadow/Mid is a single
-  `-0.018..0.008` step. There is no crown: Cloud Light comes only from the
-  sunward fringe (`fringe * 0.92 * sun_edge * gamma`) times Rim Boost.
+- `_sample_cloud_density()` returns `(rho, envelope, warped_pos)` and owns the
+  organic v1.0.2 fBm: soft warp 0.85*Scale at 0.28; macro Detail 6.0/Roughness
+  0.58 at 0.55*Scale weighted 0.66; billow Detail 5.0/Roughness 0.54 at
+  1.35*Scale weighted 0.22; Voronoi puff 1.60*Scale remapped 0..0.65 weighted
+  0.12. The second value is a `Detail 2.0 / Roughness 0.45 / Distortion 0.15`
+  envelope at the same macro scale.
+- Solar derivative uses that envelope and a 0.055 rad view-ray step on the
+  dome; the rho path remains untouched. Detail is contour 0.018 and body 0.010.
+  Shadow/Mid is a single `-0.022..0.006` step. There is no crown: Cloud Light
+  comes only from the sunward fringe (`fringe * 0.95 * sun_edge * gamma`) times
+  Rim Boost. Fringe top is +0.022, the fringe is squared before the 0.95
+  weight, and the sun edge maps 0.000..0.022.
 - `Cloud Delta Gain` and `Cloud Rim Boost` are explicit group inputs
   (default 1.0), not hidden multipliers. Low clouds mix toward Horizon Color by
   `(1-horizon)*0.65`.
@@ -153,8 +157,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   respected by `sync_scene`, `sync_one` and material preset apply.
 - Rim Bias maps Sun=1, Contour=0, Backlight=-1. Terminator Warmth is an additive
   `Sun Color * smoothstep(0..0.12, abs(N.L))` band; Skin is boosted to 0.35.
-- Gate pixel ratios: shadow ~2.63 %, wrap ~15.86 %, ink ~3.47 %, haze ~63.04 %
-  (gate plane fills the frame), toon ~1.61 %, rim ~7.02 %.
+- Gate pixel ratios: shadow ~2.65 %, wrap ~15.93 %, ink ~3.48 %, haze ~63.06 %
+  (gate plane fills the frame), toon ~1.62 %, rim ~7.07 %.
 - Shadow tint uses a `MULTIPLY` Mix on Base Color; palette `shadow_tint` colors are
   normalized (max component 1) so textures keep their detail in shadows.
 - Material presets include `EMISSION`; set `Emission Color` / `Emission Strength`,
@@ -165,7 +169,7 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Panel code must read the module version from `sys.modules[__package__]`;
   `bpy.context.preferences.addons[...].module` is a **path string** in 5.1,
   and accessing `.bl_info` on it kills the whole panel draw.
-- World gradient (`ald_build = 16`) also hosts the sun disk, stars and clouds. Inputs:
+- World gradient (`ald_build = 17`) also hosts the sun disk, stars and clouds. Inputs:
   `Sun Direction` (toward the sun, i.e. `-light_direction`), `Sun Inner/Outer`
   (cosine thresholds), `Sun Color/Strength`, `Cloud Shadow/Mid/Light`,
   `Cloud Amount/Scale`. Palette colors are wired through these sockets, never
@@ -173,11 +177,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Create/tint the sun **before** applying the world gradient, otherwise the first
   apply sees no sun and writes a zero sun direction. Sun/cloud frame updates run
   on `frame_change_post` so matrices are evaluated.
-- Anime clouds: restore the v1.0.0 organic fBm (macro 0.66 + billow 0.22 +
-  puff 0.12). The solar sample displaces the view ray 0.045 rad, not the mapped
-  point. Body is a single Shadow -> Mid step; Cloud Light is only the sunward
-  fringe. Do not reintroduce an unmasked crown, put Cloud Light at the dense
-  center, or add a `Vz` body term.
+- Anime clouds: keep the v1.0.2 organic fBm (macro 0.66 + billow 0.22 +
+  puff 0.12); only the shading envelope is new. The solar sample displaces the
+  view ray 0.055 rad, not the mapped point. Body is a single Shadow -> Mid step;
+  Cloud Light is only the squared sunward fringe. Do not reintroduce an
+  unmasked crown, put Cloud Light at the dense center, or add a `Vz` body term.
 - Ink lines reuse `_depth_edges(..., band_size=0, edge_size=ink_size)`, multiply
   the image by a dark `shadow_tint * 0.25` color; the gate pixel ratio is ~2.5 %.
 - Custom colors: `palette.effective(scene, key)` applies overrides and
@@ -246,8 +250,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   tint × combined). `_wire_emission` links it to Principled Emission Color, stores
   `ald_em_color`/`ald_em_strength`, skips materials with existing emission, and
   restores on clear.
-- Gate pixel ratios: ink ~3.47 %, rim ~7.02 % (edge-local);
-  shadow ~2.63 %, toon ~1.61 %.
+- Gate pixel ratios: ink ~3.48 %, rim ~7.07 % (edge-local);
+  shadow ~2.65 %, toon ~1.62 %.
 - UI sub-panels use `bl_parent_id`; the parent keeps the actions and stack status.
 - ColorRamp element colors are static; palette colors must be wired through group
   sockets (Mix nodes), not baked into ramp stops.
