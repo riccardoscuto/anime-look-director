@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 0, 6)
+EXPECTED_VERSION = (1, 0, 7)
 TOLERANCE = 1e-4
 
 
@@ -342,8 +342,17 @@ def check_world_gradient(scene, settings):
     check(abs(settings.star_density - after["star_density"]) <= TOLERANCE,
           "apply palette did not reset star density")
     settings.clouds = False
+    settings.sun_disk_size = 0.2
+    settings.sun_disk_strength = 1.0
+    settings.cloud_wind = 1.0
     bpy.ops.ald.apply_palette()
     check(settings.clouds, "apply palette did not re-enable clouds")
+    check(abs(settings.sun_disk_size - 1.5) <= TOLERANCE,
+          "apply palette did not reset sun size")
+    check(abs(settings.sun_disk_strength - 6.0) <= TOLERANCE,
+          "apply palette did not reset sun strength")
+    check(abs(settings.cloud_wind) <= TOLERANCE,
+          "apply palette did not reset cloud wind")
     settings.palette = "GOLDEN_HOUR"
     bpy.ops.ald.apply_palette()
 
@@ -910,6 +919,8 @@ def check_param_updates(scene, settings):
     check(node is not None, "Kuwahara node name missing")
     check(abs(node.inputs["Size"].default_value - 9.0) <= TOLERANCE,
           "Kuwahara size not updated in place")
+    check(ng.nodes.get("ALD | Kuwahara Geometry") is not None,
+          "Kuwahara geometry mask missing")
     check(len(ng.nodes) == count, "Kuwahara slider rebuilt the stack")
 
     settings.halation_strength = 0.4
@@ -1197,11 +1208,11 @@ def check_custom_colors(scene, settings, data):
     from anime_look_director import palette as palette_module
 
     settings.custom_colors = True
+    bpy.ops.ald.apply_palette()
     settings.custom_sky = (0.9, 0.1, 0.2)
     settings.custom_horizon = (0.1, 0.9, 0.2)
     settings.custom_sun = (0.2, 0.1, 0.9)
     settings.custom_shadow = (0.3, 0.6, 0.9)
-    bpy.ops.ald.apply_palette()
 
     node = gradient_node(scene)
     check(node is not None
@@ -1218,7 +1229,6 @@ def check_custom_colors(scene, settings, data):
     settings.custom_cloud_shadow = (0.21, 0.31, 0.41)
     settings.custom_cloud_mid = (0.52, 0.62, 0.72)
     settings.custom_cloud_light = (1.11, 1.02, 0.93)
-    bpy.ops.ald.apply_palette()
     node = gradient_node(scene)
     for name, value in (("Cloud Shadow", settings.custom_cloud_shadow),
                         ("Cloud Mid", settings.custom_cloud_mid),
@@ -1236,7 +1246,6 @@ def check_custom_colors(scene, settings, data):
         check(close(node.inputs[name].default_value, before),
               "custom sun repainted " + name)
     settings.custom_sun = (0.2, 0.1, 0.9)
-    bpy.ops.ald.apply_palette()
 
     settings.custom_horizon = (0.9, 0.1, 0.8)
     node = gradient_node(scene)
@@ -1244,7 +1253,6 @@ def check_custom_colors(scene, settings, data):
         check(close(node.inputs[name].default_value, before),
               "custom horizon repainted " + name)
     settings.custom_horizon = (0.1, 0.9, 0.2)
-    bpy.ops.ald.apply_palette()
 
     tint = tint_node(data["plain"])
     check(tint is not None

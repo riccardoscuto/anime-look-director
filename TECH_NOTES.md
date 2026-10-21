@@ -623,3 +623,16 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - Sidebar now matches Scene panel: Sun Disk Size/Strength and shadow-tint X.
 - Marker 20. Gate ratios: shadow 2.64 %, wrap 15.75 %, ink 3.51 %,
   haze 63.04 %, toon 1.61 %, rim 7.01 %.
+
+### v1.0.7 notes (sharp sky, pinpoint stars, horizon shift)
+- Kuwahara now multiplies its depth factor by the geometry silhouette mask, so
+  the procedural sky and stars are excluded from the painterly filter.
+- Stars are pure `view_norm` Poisson points: two Voronoi tiers at density*2.6
+  and *1.45, tight 0.042/0.048 radii, POWER 3.0/3.2 and Color-hash culling.
+  Star tint is 25% Cloud Light at 3.8x; no domain warp or giant halos.
+- Horizon Offset shifts `shifted_z` by `0.22 * Horizon Offset` for ground,
+  sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
+- Apply Palette resets sun_disk_size/strength/cloud_wind and realigns custom
+  colors. Contrails mix white with Cloud Light at 45% and default to 0.0.
+- Marker 21. Gate ratios: shadow 2.62 %, wrap 15.78 %, ink 3.39 %,
+  haze 62.96 %, toon 1.62 %, rim 7.31 %.

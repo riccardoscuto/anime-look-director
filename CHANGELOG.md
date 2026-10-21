@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.7 - 2026-10-20
+### Fixed
+- Kuwahara Painterly is masked by geometry, so the sky and stars stay sharp
+  instead of being smeared by the anisotropic filter.
+- Pinpoint Poisson stars: no domain warp, two sharp Voronoi tiers with tight
+  radii, severe per-cell hash culling and a 3.8x tint; no more oval blobs.
+- Horizon Offset now truly shifts the horizon line, sky gradient, cloud fade
+  and star zenith masks.
+- Apply Palette resets Sun Size, Sun Strength and Cloud Wind and realigns
+  Custom Colors to the preset.
+- Contrails are tinted by Cloud Light and default to 0.0 in all presets.
+- Removed the obsolete micro-star specification from AGENTS.md.
+- World gradient marker 21.
+
 ## 1.0.6 - 2026-10-20
 ### Fixed
 - Apply Palette now re-enables `world_gradient`, `sun_disk`, `clouds` and

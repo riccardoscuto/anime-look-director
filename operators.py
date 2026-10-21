@@ -61,6 +61,8 @@ class ALD_OT_apply_palette(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         key, _source = look.effective_palette(scene)
+        if scene.ald.custom_colors:
+            palette.sync_custom_colors(scene.ald, palette.preset(key))
         palette.apply_preset_style(scene, palette.effective(scene, key))
         key = look.apply(scene, force=True)
         self.report({"INFO"},

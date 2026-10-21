@@ -663,6 +663,12 @@ def build(scene):
         links.new(current, beams.inputs["Image"])
         current = beams.outputs["Image"]
 
+    if (settings.painterly or settings.light_wrap or settings.ink_lines
+            or settings.aerial_haze):
+        geometry = _silhouette_mask(nodes, links, rl, clip_end)
+    else:
+        geometry = None
+
     if settings.painterly:
         kuwahara = nodes.new("CompositorNodeKuwahara")
         kuwahara.location = (-1000, -220)
@@ -693,16 +699,21 @@ def build(scene):
             depth_range.inputs["To Min"].default_value = 0.0
             depth_range.inputs["To Max"].default_value = 1.0
             links.new(depth, depth_range.inputs["Value"])
-            links.new(depth_range.outputs["Result"], factor)
+            if geometry is not None:
+                kuwahara_factor = nodes.new("ShaderNodeMath")
+                kuwahara_factor.location = (-880, -500)
+                kuwahara_factor.name = "ALD | Kuwahara Geometry"
+                kuwahara_factor.operation = "MULTIPLY"
+                kuwahara_factor.use_clamp = True
+                links.new(depth_range.outputs["Result"],
+                          kuwahara_factor.inputs[0])
+                links.new(geometry, kuwahara_factor.inputs[1])
+                links.new(kuwahara_factor.outputs[0], factor)
+            else:
+                links.new(depth_range.outputs["Result"], factor)
         else:
             factor.default_value = 1.0
         current = result_sock
-
-    if (settings.light_wrap or settings.ink_lines
-            or settings.aerial_haze):
-        geometry = _silhouette_mask(nodes, links, rl, clip_end)
-    else:
-        geometry = None
 
     if settings.light_wrap:
         current = _light_wrap(nodes, links, current, rl, settings, clip_end,
