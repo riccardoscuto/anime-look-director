@@ -140,7 +140,7 @@ PRESETS = {
         "cloud_amount": 0.65,
         "star_amount": 0.85,
         "star_density": 160.0,
-        "milky_way": 0.65,
+        "milky_way": 0.0,
         "contrails": 0.0,
         "sun_glow": 0.50,
         "sky_accent": (0.05, 0.72, 0.88),
@@ -198,7 +198,7 @@ PRESETS = {
         "cloud_amount": 0.65,
         "star_amount": 0.75,
         "star_density": 165.0,
-        "milky_way": 0.75,
+        "milky_way": 0.55,
         "contrails": 0.0,
         "sun_glow": 0.58,
         "sky_accent": (0.08, 0.35, 0.52),
@@ -296,13 +296,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 24):
+                           or ng.get("ald_build") != 25):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 24
+        ng["ald_build"] = 25
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -316,7 +316,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 24
+        ng["ald_build"] = 25
     return ng
 
 
@@ -1932,6 +1932,34 @@ def _build_gradient_group(ng):
     links.new(star_amount.outputs[0], star_mix.inputs["Factor"])
     sky_color = star_mix.outputs["Result"]
 
+    # Local tangent basis on the sky sphere: continuous at 360 degrees.
+    neg_vy = nodes.new("ShaderNodeMath")
+    neg_vy.location = (1700, -1880)
+    neg_vy.operation = "MULTIPLY"
+    neg_vy.inputs[1].default_value = -1.0
+    links.new(separate.outputs["Y"], neg_vy.inputs[0])
+
+    tan_h_raw = nodes.new("ShaderNodeCombineXYZ")
+    tan_h_raw.location = (1880, -1880)
+    links.new(neg_vy.outputs[0], tan_h_raw.inputs["X"])
+    links.new(separate.outputs["X"], tan_h_raw.inputs["Y"])
+
+    tan_h = nodes.new("ShaderNodeVectorMath")
+    tan_h.location = (2060, -1880)
+    tan_h.operation = "NORMALIZE"
+    links.new(tan_h_raw.outputs["Vector"], tan_h.inputs[0])
+
+    tan_v_raw = nodes.new("ShaderNodeVectorMath")
+    tan_v_raw.location = (2240, -1880)
+    tan_v_raw.operation = "CROSS_PRODUCT"
+    links.new(tan_h.outputs["Vector"], tan_v_raw.inputs[0])
+    links.new(view_norm.outputs["Vector"], tan_v_raw.inputs[1])
+
+    tan_v = nodes.new("ShaderNodeVectorMath")
+    tan_v.location = (2420, -1880)
+    tan_v.operation = "NORMALIZE"
+    links.new(tan_v_raw.outputs["Vector"], tan_v.inputs[0])
+
     # Milky Way: a diagonal galactic river with a dark dust rift.
     mw_axis = nodes.new("ShaderNodeVectorMath")
     mw_axis.location = (1880, -1880)
@@ -2042,13 +2070,47 @@ def _build_gradient_group(ng):
     links.new(mw_mask1.outputs[0], mw_mask.inputs[0])
     links.new(cloud_hide.outputs[0], mw_mask.inputs[1])
 
+    mw_mask_amt = nodes.new("ShaderNodeMath")
+    mw_mask_amt.location = (4040, -2040)
+    mw_mask_amt.operation = "MULTIPLY"
+    mw_mask_amt.use_clamp = True
+    links.new(mw_mask.outputs[0], mw_mask_amt.inputs[0])
+    links.new(group_in.outputs["Milky Way"], mw_mask_amt.inputs[1])
+
+    mw_star_boost = nodes.new("ShaderNodeMath")
+    mw_star_boost.location = (4040, -2200)
+    mw_star_boost.operation = "MULTIPLY"
+    mw_star_boost.use_clamp = True
+    mw_star_boost.inputs[1].default_value = 0.65
+    links.new(mw_outer.outputs["Result"], mw_star_boost.inputs[0])
+
+    mw_star_boost2 = nodes.new("ShaderNodeMath")
+    mw_star_boost2.location = (4220, -2200)
+    mw_star_boost2.operation = "MULTIPLY"
+    mw_star_boost2.use_clamp = True
+    links.new(mw_star_boost.outputs[0], mw_star_boost2.inputs[0])
+    links.new(group_in.outputs["Milky Way"], mw_star_boost2.inputs[1])
+
+    cluster_total = nodes.new("ShaderNodeMath")
+    cluster_total.location = (4400, -2200)
+    cluster_total.operation = "ADD"
+    cluster_total.use_clamp = True
+    links.new(cluster_mask.outputs["Result"], cluster_total.inputs[0])
+    links.new(mw_star_boost2.outputs[0], cluster_total.inputs[1])
+    for link in list(tier1_stars.inputs[1].links):
+        links.remove(link)
+    links.new(cluster_total.outputs[0], tier1_stars.inputs[1])
+    for link in list(tier2_stars.inputs[1].links):
+        links.remove(link)
+    links.new(cluster_total.outputs[0], tier2_stars.inputs[1])
+
     mw_cyan = nodes.new("ShaderNodeRGB")
     mw_cyan.location = (3320, -2280)
-    mw_cyan.outputs[0].default_value = (0.12, 0.78, 1.0, 1.0)
+    mw_cyan.outputs[0].default_value = (0.06, 0.58, 0.95, 1.0)
 
     mw_violet = nodes.new("ShaderNodeRGB")
     mw_violet.location = (3320, -2440)
-    mw_violet.outputs[0].default_value = (0.28, 0.18, 0.85, 1.0)
+    mw_violet.outputs[0].default_value = (0.16, 0.08, 0.52, 1.0)
 
     mw_color_mix = nodes.new("ShaderNodeMix")
     mw_color_mix.location = (3500, -2360)
@@ -2071,7 +2133,7 @@ def _build_gradient_group(ng):
     mw_color_scale = nodes.new("ShaderNodeVectorMath")
     mw_color_scale.location = (3860, -2360)
     mw_color_scale.operation = "SCALE"
-    mw_color_scale.inputs["Scale"].default_value = 1.35
+    mw_color_scale.inputs["Scale"].default_value = 0.85
     links.new(mw_color_tint.outputs["Result"], mw_color_scale.inputs["Vector"])
 
     mw_mix = nodes.new("ShaderNodeMix")
@@ -2081,7 +2143,7 @@ def _build_gradient_group(ng):
     a_sock, b_sock, result_sock = _rgba_sockets(mw_mix)
     links.new(sky_color, a_sock)
     links.new(mw_color_scale.outputs["Vector"], b_sock)
-    links.new(mw_mask.outputs[0], mw_mix.inputs["Factor"])
+    links.new(mw_mask_amt.outputs[0], mw_mix.inputs["Factor"])
     sky_color = mw_mix.outputs["Result"]
 
     # Shooting stars: stereographic 2D plane with anisotropic Voronoi cells.
@@ -2295,8 +2357,8 @@ def _build_gradient_group(ng):
     width_at_dv.clamp = True
     width_at_dv.inputs["From Min"].default_value = 0.0
     width_at_dv.inputs["From Max"].default_value = 1.0
-    width_at_dv.inputs["To Min"].default_value = 0.008
-    width_at_dv.inputs["To Max"].default_value = 0.038
+    width_at_dv.inputs["To Min"].default_value = 0.0007
+    width_at_dv.inputs["To Max"].default_value = 0.0022
     links.new(tail_ramp.outputs["Result"], width_at_dv.inputs["Value"])
 
     line_ratio = nodes.new("ShaderNodeMath")
@@ -2339,7 +2401,7 @@ def _build_gradient_group(ng):
     head_core_v.clamp = True
     _smooth(head_core_v)
     head_core_v.inputs["From Min"].default_value = 0.0
-    head_core_v.inputs["From Max"].default_value = 0.018
+    head_core_v.inputs["From Max"].default_value = 0.0035
     head_core_v.inputs["To Min"].default_value = 1.0
     head_core_v.inputs["To Max"].default_value = 0.0
     links.new(dv_abs.outputs[0], head_core_v.inputs["Value"])
@@ -2349,7 +2411,7 @@ def _build_gradient_group(ng):
     head_core_u.clamp = True
     _smooth(head_core_u)
     head_core_u.inputs["From Min"].default_value = 0.0
-    head_core_u.inputs["From Max"].default_value = 0.065
+    head_core_u.inputs["From Max"].default_value = 0.012
     head_core_u.inputs["To Min"].default_value = 1.0
     head_core_u.inputs["To Max"].default_value = 0.0
     links.new(d_perp.outputs[0], head_core_u.inputs["Value"])
@@ -2427,7 +2489,14 @@ def _build_gradient_group(ng):
     meteor_final_masked.operation = "MULTIPLY"
     meteor_final_masked.use_clamp = True
     links.new(meteor_final_gate.outputs[0], meteor_final_masked.inputs[0])
-    links.new(cloud_hide.outputs[0], meteor_final_masked.inputs[1])
+    links.new(zenith.outputs["Result"], meteor_final_masked.inputs[1])
+
+    meteor_final_cloud = nodes.new("ShaderNodeMath")
+    meteor_final_cloud.location = (5660, -3720)
+    meteor_final_cloud.operation = "MULTIPLY"
+    meteor_final_cloud.use_clamp = True
+    links.new(meteor_final_masked.outputs[0], meteor_final_cloud.inputs[0])
+    links.new(cloud_hide.outputs[0], meteor_final_cloud.inputs[1])
 
     meteor_color_mix = nodes.new("ShaderNodeMix")
     meteor_color_mix.location = (5120, -3960)
@@ -2451,7 +2520,7 @@ def _build_gradient_group(ng):
     a_sock, b_sock, result_sock = _rgba_sockets(meteor_mix)
     links.new(sky_color, a_sock)
     links.new(meteor_color_scale.outputs["Vector"], b_sock)
-    links.new(meteor_final_masked.outputs[0], meteor_mix.inputs["Factor"])
+    links.new(meteor_final_cloud.outputs[0], meteor_mix.inputs["Factor"])
     sky_color = meteor_mix.outputs["Result"]
 
     # Hanabi fireworks: two cylindrical 2D layers with radial chrysanthemum
@@ -2463,65 +2532,55 @@ def _build_gradient_group(ng):
             item.name = tag + " " + item.name
             return item
 
-        az = n("ShaderNodeMath", 1880, -4400)
-        az.operation = "ARCTAN2"
-        links.new(separate.outputs["X"], az.inputs[0])
-        links.new(separate.outputs["Y"], az.inputs[1])
+        layer_scale = n("ShaderNodeMath", 1880, -4400)
+        layer_scale.operation = "MULTIPLY"
+        layer_scale.inputs[1].default_value = scale_mult
+        links.new(group_in.outputs["Fireworks Scale"], layer_scale.inputs[0])
 
-        uv_x = n("ShaderNodeMath", 2060, -4400)
-        uv_x.operation = "MULTIPLY"
-        uv_x.inputs[1].default_value = scale_mult
-        links.new(az.outputs[0], uv_x.inputs[0])
+        fw_pos_scaled = n("ShaderNodeVectorMath", 2060, -4400)
+        fw_pos_scaled.operation = "SCALE"
+        links.new(view_norm.outputs["Vector"], fw_pos_scaled.inputs[0])
+        links.new(layer_scale.outputs[0], fw_pos_scaled.inputs["Scale"])
 
-        uv_y = n("ShaderNodeMath", 2060, -4560)
-        uv_y.operation = "MULTIPLY"
-        uv_y.inputs[1].default_value = 2.1 * scale_mult
-        links.new(shifted_z.outputs[0], uv_y.inputs[0])
+        fw_offset = n("ShaderNodeVectorMath", 2240, -4400)
+        fw_offset.operation = "ADD"
+        fw_offset.inputs[1].default_value = (offset_x, offset_y, offset_x * 0.5)
+        links.new(fw_pos_scaled.outputs["Vector"], fw_offset.inputs[0])
 
-        uv_xo = n("ShaderNodeMath", 2240, -4400)
-        uv_xo.operation = "ADD"
-        uv_xo.inputs[1].default_value = offset_x
-        links.new(uv_x.outputs[0], uv_xo.inputs[0])
-
-        uv_yo = n("ShaderNodeMath", 2240, -4560)
-        uv_yo.operation = "ADD"
-        uv_yo.inputs[1].default_value = offset_y
-        links.new(uv_y.outputs[0], uv_yo.inputs[0])
-
-        fw_uv = n("ShaderNodeCombineXYZ", 2420, -4480)
-        links.new(uv_xo.outputs[0], fw_uv.inputs["X"])
-        links.new(uv_yo.outputs[0], fw_uv.inputs["Y"])
-
-        fw_vor = n("ShaderNodeTexVoronoi", 2600, -4480)
-        fw_vor.voronoi_dimensions = "2D"
+        fw_vor = n("ShaderNodeTexVoronoi", 2420, -4480)
         fw_vor.inputs["Scale"].default_value = 1.0
-        fw_vor.inputs["Randomness"].default_value = 0.75
-        links.new(fw_uv.outputs["Vector"], fw_vor.inputs["Vector"])
+        fw_vor.inputs["Randomness"].default_value = 0.55
+        links.new(fw_offset.outputs["Vector"], fw_vor.inputs["Vector"])
 
-        fw_cell = n("ShaderNodeSeparateXYZ", 2780, -4480)
+        fw_cell = n("ShaderNodeSeparateXYZ", 2600, -4480)
         links.new(fw_vor.outputs["Position"], fw_cell.inputs["Vector"])
-        fw_rand = n("ShaderNodeSeparateXYZ", 2780, -4640)
+        fw_rand = n("ShaderNodeSeparateXYZ", 2600, -4640)
         links.new(fw_vor.outputs["Color"], fw_rand.inputs["Vector"])
 
-        dx = n("ShaderNodeMath", 2960, -4480)
-        dx.operation = "SUBTRACT"
-        links.new(uv_xo.outputs[0], dx.inputs[0])
-        links.new(fw_cell.outputs["X"], dx.inputs[1])
+        fw_rel = n("ShaderNodeVectorMath", 2780, -4480)
+        fw_rel.operation = "SUBTRACT"
+        links.new(fw_offset.outputs["Vector"], fw_rel.inputs[0])
+        links.new(fw_vor.outputs["Position"], fw_rel.inputs[1])
 
-        dy = n("ShaderNodeMath", 2960, -4640)
-        dy.operation = "SUBTRACT"
-        links.new(uv_yo.outputs[0], dy.inputs[0])
-        links.new(fw_cell.outputs["Y"], dy.inputs[1])
+        dx = n("ShaderNodeVectorMath", 2960, -4480)
+        dx.operation = "DOT_PRODUCT"
+        links.new(fw_rel.outputs["Vector"], dx.inputs[0])
+        links.new(tan_h.outputs["Vector"], dx.inputs[1])
+
+        dy = n("ShaderNodeVectorMath", 2960, -4640)
+        dy.operation = "DOT_PRODUCT"
+        links.new(fw_rel.outputs["Vector"], dy.inputs[0])
+        links.new(tan_v.outputs["Vector"], dy.inputs[1])
 
         dx_sq = n("ShaderNodeMath", 3140, -4480)
         dx_sq.operation = "MULTIPLY"
-        links.new(dx.outputs[0], dx_sq.inputs[0])
-        links.new(dx.outputs[0], dx_sq.inputs[1])
+        links.new(dx.outputs["Value"], dx_sq.inputs[0])
+        links.new(dx.outputs["Value"], dx_sq.inputs[1])
 
         dy_sq = n("ShaderNodeMath", 3140, -4640)
         dy_sq.operation = "MULTIPLY"
-        links.new(dy.outputs[0], dy_sq.inputs[0])
-        links.new(dy.outputs[0], dy_sq.inputs[1])
+        links.new(dy.outputs["Value"], dy_sq.inputs[0])
+        links.new(dy.outputs["Value"], dy_sq.inputs[1])
 
         r_sq = n("ShaderNodeMath", 3320, -4560)
         r_sq.operation = "ADD"
@@ -2539,13 +2598,13 @@ def _build_gradient_group(ng):
 
         dy_droop = n("ShaderNodeMath", 3500, -4720)
         dy_droop.operation = "ADD"
-        links.new(dy.outputs[0], dy_droop.inputs[0])
+        links.new(dy.outputs["Value"], dy_droop.inputs[0])
         links.new(droop.outputs[0], dy_droop.inputs[1])
 
         theta = n("ShaderNodeMath", 3680, -4640)
         theta.operation = "ARCTAN2"
         links.new(dy_droop.outputs[0], theta.inputs[0])
-        links.new(dx.outputs[0], theta.inputs[1])
+        links.new(dx.outputs["Value"], theta.inputs[1])
 
         size_var = n("ShaderNodeMapRange", 3680, -4480)
         size_var.clamp = True
@@ -2740,7 +2799,7 @@ def _build_gradient_group(ng):
         ember_dx = n("ShaderNodeMath", 4220, -6000)
         ember_dx.operation = "MULTIPLY"
         ember_dx.inputs[1].default_value = 28.0
-        links.new(dx.outputs[0], ember_dx.inputs[0])
+        links.new(dx.outputs["Value"], ember_dx.inputs[0])
         ember_dy = n("ShaderNodeMath", 4220, -6160)
         ember_dy.operation = "MULTIPLY"
         ember_dy.inputs[1].default_value = 28.0
@@ -2904,7 +2963,7 @@ def _build_gradient_group(ng):
 
         color_scale = n("ShaderNodeVectorMath", 6020, -6160)
         color_scale.operation = "SCALE"
-        color_scale.inputs["Scale"].default_value = 18.0
+        color_scale.inputs["Scale"].default_value = 2.4
         links.new(color_mix_b.outputs["Result"], color_scale.inputs["Vector"])
 
         thresh_span = n("ShaderNodeMath", 5300, -6640)

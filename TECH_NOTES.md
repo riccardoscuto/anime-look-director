@@ -667,3 +667,12 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   Beams threshold is 3.5.
 - Marker 24. Gate ratios: shadow 2.63 %, wrap 15.70 %, ink 3.41 %,
   haze 62.85 %, toon 1.57 %, rim 7.21 %.
+
+### v1.1.2 notes (tangent plane, vivid Hanabi)
+- `tan_h = normalize(-Vy, Vx, 0)` and `tan_v = normalize(tan_h x V)` form the
+  local tangent basis; 3D Voronoi cell centers projected into it remove radial
+  error and atan2 seams. Fireworks Scale is wired into both layers.
+- Milky Way is multiplied by its socket and boosts the cluster mask for stars.
+  Shooting stars use 0.0007..0.0022 needle widths and zenith masking.
+- Hanabi chromatic layers use 2.4x while hot cores use a separate brighter
+  term, preventing AgX whiteout.

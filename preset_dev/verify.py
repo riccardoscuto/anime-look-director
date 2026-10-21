@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 1, 1)
+EXPECTED_VERSION = (1, 1, 2)
 TOLERANCE = 1e-4
 
 
@@ -273,6 +273,13 @@ def check_world_gradient(scene, settings):
     check(abs(node.inputs["Star Density"].default_value
               - settings.star_density) <= TOLERANCE,
           "star density not synced")
+    settings.milky_way = 0.9
+    settings.fireworks_scale = 3.7
+    node = gradient_node(scene)
+    check(abs(node.inputs["Milky Way"].default_value - 0.9) <= TOLERANCE,
+          "milky way slider not synced")
+    check(abs(node.inputs["Fireworks Scale"].default_value - 3.7) <= TOLERANCE,
+          "fireworks scale slider not synced")
 
     settings.shooting_stars = True
     settings.fireworks = True
@@ -393,7 +400,7 @@ def check_world_gradient(scene, settings):
     check(abs(node.inputs["Star Amount"].default_value
               - settings.star_strength) <= TOLERANCE,
           "neon night stars not enabled")
-    check(settings.milky_way > 0.0, "neon milky way not enabled")
+    check(settings.milky_way <= TOLERANCE, "neon milky way should be off")
     settings.palette = "TWILIGHT_DUSK"
     bpy.ops.ald.apply_palette()
     check(settings.milky_way > 0.0, "twilight milky way not enabled")

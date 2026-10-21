@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.2 - 2026-10-20
+### Fixed
+- Milky Way socket is now connected to its mask and its star-density boost;
+  the Milky Way toggle really controls the galactic river.
+- Fireworks use continuous 3D Voronoi cell centers projected onto the local
+  tangent plane, eliminating the atan2 seam and tying Fireworks Scale to the
+  cell geometry.
+- Shooting stars are needle-thin with a small diffraction cross and zenith
+  masking, eliminating horizon tadpoles.
+- Fireworks color is separated into a hot core and saturated colored
+  filaments/embers, avoiding AgX whiteout.
+- World gradient marker 25.
+
 ## 1.1.1 - 2026-10-20
 ### Fixed
 - Shooting stars and Hanabi fireworks now use true 2D Voronoi cells on
