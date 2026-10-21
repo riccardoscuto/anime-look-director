@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1 - 2026-10-20
+### Fixed
+- FX fireworks now use tapered trails, hollow shell starts, stronger droop and
+  compact spark clouds for more physically legible bursts.
+
 ## 2.0.0 - 2026-10-20
 ### Added
 - FX particle architecture in `fx.py`: physically placed 3D fireworks and

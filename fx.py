@@ -65,14 +65,35 @@ def _curve_object(scene, name, points, material, width=0.012):
     curve = bpy.data.curves.new(name, type="CURVE")
     curve.dimensions = "3D"
     curve.bevel_depth = width
-    curve.bevel_resolution = 2
+    curve.bevel_resolution = 3
     curve.resolution_u = 2
     curve.materials.append(material)
     spline = curve.splines.new("POLY")
     spline.points.add(len(points) - 1)
     for index, point in enumerate(points):
         spline.points[index].co = (point.x, point.y, point.z, 1.0)
+        spline.points[index].radius = 1.25 - 0.9 * (index / max(len(points) - 1, 1))
     obj = bpy.data.objects.new(name, curve)
+    obj["ald_fx"] = True
+    _collection(scene).objects.link(obj)
+    return obj
+
+
+def _spark_cloud(scene, name, points, material, rng, count=18, radius=0.012):
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    for _ in range(count):
+        base = points[rng.randrange(max(len(points) - 2, 1))]
+        offset = Vector((rng.uniform(-0.10, 0.10), rng.uniform(-0.10, 0.10),
+                         rng.uniform(-0.10, 0.10)))
+        res = bmesh.ops.create_icosphere(
+            bm, subdivisions=1, radius=radius * rng.uniform(0.45, 1.35))
+        for vertex in res["verts"]:
+            vertex.co += base + offset
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.materials.append(material)
+    obj = bpy.data.objects.new(name, mesh)
     obj["ald_fx"] = True
     _collection(scene).objects.link(obj)
     return obj
@@ -122,9 +143,9 @@ def create_fireworks(scene, count=4, seed=7, distance=30.0):
                                  distance * (0.78 + 0.20 * rng.random()))
         family = palette[index % len(palette)]
         materials = [
-            _material("ALD FX Firework %d A" % index, family[0], 7.0),
-            _material("ALD FX Firework %d B" % index, family[1], 7.0),
-            _material("ALD FX Firework %d C" % index, family[2], 7.0),
+            _material("ALD FX Firework %d A" % index, family[0], 12.0),
+            _material("ALD FX Firework %d B" % index, family[1], 12.0),
+            _material("ALD FX Firework %d C" % index, family[2], 12.0),
         ]
         shells = (
             (1.0, 34, materials[0], 0.010),
@@ -133,14 +154,16 @@ def create_fireworks(scene, count=4, seed=7, distance=30.0):
         )
         shell_radius = distance * (0.18 + 0.12 * rng.random())
         for shell_index, (scale, spokes, material, width) in enumerate(shells):
+            spark_points = []
             for spoke in range(spokes):
                 direction = _random_unit(rng)
                 length = shell_radius * scale * rng.uniform(0.62, 1.12)
                 gravity = Vector((0.0, 0.0, -1.0)) * length * rng.uniform(
-                    0.18 if shell_index == 2 else 0.10, 0.34)
+                    0.22 if shell_index == 2 else 0.12, 0.58)
                 points = []
-                for step in range(7):
-                    t = step / 6.0
+                start_t = (0.22, 0.34, 0.46)[shell_index]
+                for step in range(11):
+                    t = start_t + (1.0 - start_t) * step / 10.0
                     # Parabolic weeping-willow trajectory.
                     point = center + direction * length * t + gravity * (t * t)
                     points.append(point)
@@ -148,9 +171,13 @@ def create_fireworks(scene, count=4, seed=7, distance=30.0):
                               material, width)
                 head = points[-1]
                 _sphere_object(scene, "ALD FX Burst %d Head" % index, head,
-                               0.022 if shell_index else 0.032, material)
+                               0.030 if shell_index else 0.045, material)
+                spark_points.extend(points[2:-1])
+            _spark_cloud(scene, "ALD FX Burst %d Sparks" % index,
+                         spark_points, material, rng, count=spokes * 3,
+                         radius=0.016)
         core = materials[1]
-        _sphere_object(scene, "ALD FX Burst %d Core" % index, center, 0.055,
+        _sphere_object(scene, "ALD FX Burst %d Core" % index, center, 0.085,
                        core)
     return count
 
