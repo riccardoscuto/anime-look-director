@@ -2,16 +2,16 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v1.0.3)
-- Seven atmosphere presets (Shinkai Golden Hour, **After School Sunset**, Ghibli
-  Summer Noon, Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
+## What it does (v1.0.4)
+- Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
+  Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
 - **Four-zone sky**: ground → horizon → mid-sky bridge → zenith, with a dedicated
   mid color that avoids muddy sunset midpoints.
 - **Perspective planar anime clouds**: the view ray is projected onto a curved
   atmospheric deck, so clouds stretch into layered bands near the horizon.
-  The **Cloud Flatness** control blends billowy Ghibli cumuli (0) and flat
-  Persona strata (1). Perlin-Worley density gives compact lobes, while a solar
+  The **Cloud Flatness** control blends billowy cumuli (0) and flat horizontal
+  strata (1). Perlin-Worley density gives compact lobes, while a solar
   finite difference drives violet/mauve cores and a thin silver-lining rim.
   **Delta Gain** and **Rim Boost** expose the painterly transfers; low clouds
   absorb the horizon tint and an optional **Sky Accent** paints a turquoise or
@@ -31,9 +31,10 @@ Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.
 - **Anime clouds**: Perlin-Worley procedural clouds in palette colors, with
   amount, scale, **Cloud Flatness**, **Cloud Wind** animation and optional
   **Contrails**.
-- **Micro starfield**: Voronoi points with magnitude variation, noise culling
-  and a faint halo, masked by clouds and the sun disk, with Star Amount and Star
-  Density; Golden Hour, After School, Neon Night and Twilight Dusk enable them.
+- **Clustered painterly starfield**: sparse background micro-stars plus soft
+  gouache hero stars with halos, grouped by low-frequency constellation noise,
+  tinted from the scene's Cloud Light and masked by clouds and the sun disk;
+  Golden Hour, After School, Neon Night and Twilight Dusk enable it.
 - **Custom palette colors** for sky, horizon, sun and shadow (per scene).
   The custom Sun only drives the sun disk/light; cloud light stays on the preset.
 - **Shadow tint** on scene materials: a reversible **multiplicative** node group
@@ -117,9 +118,10 @@ Expected output: `ALD GATE: PASS`.
 - v0.9.8 - domain-warped Perlin-Worley clouds, per-cloud lighting, planar contrails
 - v0.9.9 - straight gnomonic contrails + group rebuild marker 13
 - v1.0.0 - dome-sampled cloud density, fBm morphology, 3-band cel shading
-- v1.0.1 - Ghibli cauliflower clouds, 4-band gouache, Apply Palette slider reset
+- v1.0.1 - cauliflower clouds, 4-band gouache, Apply Palette slider reset
 - v1.0.2 - restored organic fBm clouds; Cloud Light confined to the sun fringe
-- v1.0.3 - envelope-driven shading, internal Cloud Light suppression, atmosphere resets (current)
+- v1.0.3 - envelope-driven shading, internal Cloud Light suppression, atmosphere resets
+- v1.0.4 - cloud/horizon decoupling, clustered painterly stars, richer presets, neutral UI names (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

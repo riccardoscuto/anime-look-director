@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.4 - 2026-10-20
+### Changed
+- Cloud color is fully independent from Horizon Color: removed the aerial
+  fade/mix, linked the cloud glow directly into the cloud layer, removed the
+  custom-color overrides for Cloud Shadow/Mid, and made the Cloud Mid fallback
+  neutral `(0.6, 0.6, 0.7)`.
+- New clustered painterly starfield: low-frequency constellation mask, sparse
+  background micro-stars, soft gouache hero stars with halo, zenith/sun/cloud
+  masks, and a palette-tinted star glow based on Cloud Light.
+- All seven presets now carry explicit contrail, sun glow, sky accent, horizon
+  offset/softness, star amount and star density values; Apply Palette syncs
+  Sky Accent and the atmosphere controls.
+- Removed franchise names from the UI and documentation preset labels; Cloud
+  Flatness now reads "0 = billowy cumuli, 1 = flat horizontal strata".
+- World gradient marker 18.
+
 ## 1.0.3 - 2026-10-20
 ### Fixed
 - `_sample_cloud_density()` now returns `(rho, envelope, warped_pos)`. The rho

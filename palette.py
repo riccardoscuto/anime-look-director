@@ -23,6 +23,13 @@ PRESETS = {
         "cloud_rim_boost": 1.2,
         "cloud_amount": 0.65,
         "star_amount": 0.25,
+        "star_density": 150.0,
+        "contrails": 0.45,
+        "sun_glow": 0.60,
+        "sky_accent": (0.10, 0.42, 0.52),
+        "sky_accent_amount": 0.22,
+        "horizon_offset": 0.0,
+        "horizon_softness": 0.52,
         "sun_color": (1.0, 0.48, 0.18),
         "sun_energy": 4.2,
         "sun_rotation": (1.28, 0.12, -0.55),
@@ -44,6 +51,13 @@ PRESETS = {
         "cloud_rim_boost": 2.0,
         "cloud_amount": 0.90,
         "star_amount": 0.15,
+        "star_density": 140.0,
+        "contrails": 0.30,
+        "sun_glow": 0.55,
+        "sky_accent": (0.28, 0.22, 0.48),
+        "sky_accent_amount": 0.18,
+        "horizon_offset": 0.02,
+        "horizon_softness": 0.56,
         "sun_color": (1.0, 0.56, 0.38),
         "sun_energy": 3.8,
         "sun_rotation": (1.32, 0.10, -0.50),
@@ -65,6 +79,13 @@ PRESETS = {
         "cloud_rim_boost": 1.0,
         "cloud_amount": 0.70,
         "star_amount": 0.0,
+        "star_density": 180.0,
+        "contrails": 0.35,
+        "sun_glow": 0.35,
+        "sky_accent": (0.18, 0.62, 0.95),
+        "sky_accent_amount": 0.15,
+        "horizon_offset": -0.04,
+        "horizon_softness": 0.48,
         "sun_color": (1.0, 0.93, 0.80),
         "sun_energy": 4.8,
         "sun_rotation": (0.68, 0.15, -0.65),
@@ -86,6 +107,13 @@ PRESETS = {
         "cloud_rim_boost": 1.0,
         "cloud_amount": 0.60,
         "star_amount": 0.0,
+        "star_density": 180.0,
+        "contrails": 0.0,
+        "sun_glow": 0.20,
+        "sky_accent": (0.08, 0.18, 0.28),
+        "sky_accent_amount": 0.15,
+        "horizon_offset": -0.05,
+        "horizon_softness": 0.65,
         "sun_color": (0.58, 0.76, 0.95),
         "sun_energy": 1.4,
         "sun_rotation": (0.85, 0.20, -0.45),
@@ -107,6 +135,13 @@ PRESETS = {
         "cloud_rim_boost": 1.5,
         "cloud_amount": 0.65,
         "star_amount": 0.85,
+        "star_density": 160.0,
+        "contrails": 0.0,
+        "sun_glow": 0.50,
+        "sky_accent": (0.05, 0.72, 0.88),
+        "sky_accent_amount": 0.28,
+        "horizon_offset": 0.0,
+        "horizon_softness": 0.48,
         "sun_color": (1.0, 0.16, 0.52),
         "sun_energy": 2.4,
         "sun_rotation": (1.05, -0.18, -0.75),
@@ -128,6 +163,13 @@ PRESETS = {
         "cloud_rim_boost": 1.0,
         "cloud_amount": 0.55,
         "star_amount": 0.0,
+        "star_density": 180.0,
+        "contrails": 0.25,
+        "sun_glow": 0.45,
+        "sky_accent": (0.65, 0.42, 0.68),
+        "sky_accent_amount": 0.20,
+        "horizon_offset": 0.0,
+        "horizon_softness": 0.55,
         "sun_color": (1.0, 0.78, 0.72),
         "sun_energy": 4.0,
         "sun_rotation": (0.88, 0.14, -0.52),
@@ -149,6 +191,13 @@ PRESETS = {
         "cloud_rim_boost": 2.0,
         "cloud_amount": 0.65,
         "star_amount": 0.75,
+        "star_density": 165.0,
+        "contrails": 0.35,
+        "sun_glow": 0.58,
+        "sky_accent": (0.08, 0.35, 0.52),
+        "sky_accent_amount": 0.30,
+        "horizon_offset": -0.02,
+        "horizon_softness": 0.50,
         "sun_color": (1.0, 0.38, 0.15),
         "sun_energy": 3.2,
         "sun_rotation": (1.30, 0.10, -0.60),
@@ -193,10 +242,8 @@ def effective(scene, key):
         p["horizon_color"] = horizon
         p["sun_color"] = sun
         p["shadow_tint"] = shadow
-        p["cloud_shadow"] = tuple(c * 0.35 for c in shadow)
-        p["cloud_mid"] = horizon
-        # Keep the preset cloud light: changing the custom sun color must only
-        # affect the sun disk/light, not repaint the clouds.
+        # Cloud Shadow/Mid/Light stay exactly on the palette preset: custom
+        # horizon and shadow colors must not repaint the clouds.
     return p
 
 
@@ -239,13 +286,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 17):
+                           or ng.get("ald_build") != 18):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 17
+        ng["ald_build"] = 18
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -259,7 +306,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 17
+        ng["ald_build"] = 18
     return ng
 
 
@@ -877,7 +924,7 @@ def _build_gradient_group(ng):
 
     # Perspective planar cloud projection: projects view ray onto a curved
     # horizontal cloud deck so clouds stretch into horizontal bands near the
-    # horizon (Persona 3 / Shinkai anime background style).
+    # horizon (anime background style).
     z_clamp = nodes.new("ShaderNodeMath")
     z_clamp.location = (680, -140)
     z_clamp.operation = "MAXIMUM"
@@ -914,8 +961,8 @@ def _build_gradient_group(ng):
     links.new(planar_sep.outputs["Y"], planar_shell.inputs["Y"])
     links.new(separate.outputs["Z"], planar_shell.inputs["Z"])
 
-    # Cloud Flatness: 0 = billowy Ghibli cumuli, 0.65 = current strata,
-    # 1 = strongly stretched Persona bands. At 0.65 this is exactly 3.2.
+    # Cloud Flatness: 0 = billowy cumuli, 0.65 = current strata,
+    # 1 = strongly flat horizontal bands. At 0.65 this is exactly 3.2.
     flat_z = nodes.new("ShaderNodeMath")
     flat_z.location = (1000, -360)
     flat_z.operation = "MULTIPLY"
@@ -1439,189 +1486,247 @@ def _build_gradient_group(ng):
     links.new(cloud_glow_color.outputs["Vector"], b_sock)
     cloud_glow_add.inputs["Factor"].default_value = 1.0
 
-    # Atmospheric aerial blending: low clouds absorb the horizon tint before
-    # they are composited and faded into the sky.
-    aerial_fade = nodes.new("ShaderNodeMath")
-    aerial_fade.location = (2760, 760)
-    aerial_fade.operation = "SUBTRACT"
-    aerial_fade.use_clamp = True
-    aerial_fade.inputs[0].default_value = 1.0
-    links.new(horizon.outputs["Result"], aerial_fade.inputs[1])
-
-    aerial_factor = nodes.new("ShaderNodeMath")
-    aerial_factor.location = (2940, 760)
-    aerial_factor.operation = "MULTIPLY"
-    aerial_factor.use_clamp = True
-    aerial_factor.inputs[1].default_value = 0.65
-    links.new(aerial_fade.outputs[0], aerial_factor.inputs[0])
-
-    aerial_mix = nodes.new("ShaderNodeMix")
-    aerial_mix.location = (3120, 760)
-    aerial_mix.data_type = "RGBA"
-    aerial_mix.blend_type = "MIX"
-    a_sock, b_sock, result_sock = _rgba_sockets(aerial_mix)
-    links.new(cloud_glow_add.outputs["Result"], a_sock)
-    links.new(group_in.outputs["Horizon Color"], b_sock)
-    links.new(aerial_factor.outputs[0], aerial_mix.inputs["Factor"])
-
     cloud_mix = nodes.new("ShaderNodeMix")
     cloud_mix.location = (2040, 0)
     cloud_mix.data_type = "RGBA"
     cloud_mix.blend_type = "MIX"
     a_sock, b_sock, result_sock = _rgba_sockets(cloud_mix)
     links.new(sky_color, a_sock)
-    links.new(aerial_mix.outputs["Result"], b_sock)
+    links.new(cloud_glow_add.outputs["Result"], b_sock)
     links.new(cloud_amount_node.outputs[0], cloud_mix.inputs["Factor"])
 
-    # Starfield: high-frequency Voronoi points, hidden by the zenith mask,
-    # the sun disk and the cloud coverage.
-    # Pinpoint Anime Starfield with random magnitude culling (no snowball dots)
+    # Clustered painterly anime starfield: a sparse background layer plus a
+    # handful of soft gouache hero stars, grouped into broad constellations.
+    cluster_noise = nodes.new("ShaderNodeTexNoise")
+    cluster_noise.location = (1880, -360)
+    cluster_noise.inputs["Scale"].default_value = 3.2
+    cluster_noise.inputs["Detail"].default_value = 3.0
+    cluster_noise.inputs["Roughness"].default_value = 0.55
+    cluster_noise.inputs["Distortion"].default_value = 0.25
+    links.new(view_norm.outputs["Vector"], cluster_noise.inputs["Vector"])
+
+    cluster_mask = nodes.new("ShaderNodeMapRange")
+    cluster_mask.location = (2060, -360)
+    cluster_mask.clamp = True
+    _smooth(cluster_mask)
+    cluster_mask.inputs["From Min"].default_value = 0.36
+    cluster_mask.inputs["From Max"].default_value = 0.68
+    cluster_mask.inputs["To Min"].default_value = 0.08
+    cluster_mask.inputs["To Max"].default_value = 1.0
+    links.new(cluster_noise.outputs["Fac"], cluster_mask.inputs["Value"])
+
+    # Background micro-stars: sparse, soft, and always subordinate.
     star_scale = nodes.new("ShaderNodeMath")
-    star_scale.location = (1880, -420)
+    star_scale.location = (1880, -560)
     star_scale.operation = "MULTIPLY"
-    star_scale.inputs[1].default_value = 2.5
+    star_scale.inputs[1].default_value = 1.6
     links.new(group_in.outputs["Star Density"], star_scale.inputs[0])
 
     voronoi = nodes.new("ShaderNodeTexVoronoi")
-    voronoi.location = (2040, -420)
+    voronoi.location = (2060, -560)
     links.new(view_norm.outputs["Vector"], voronoi.inputs["Vector"])
     links.new(star_scale.outputs[0], voronoi.inputs["Scale"])
 
     star_curve = nodes.new("ShaderNodeMapRange")
-    star_curve.location = (2200, -420)
+    star_curve.location = (2240, -560)
     star_curve.clamp = True
+    _smooth(star_curve)
     star_curve.inputs["From Min"].default_value = 0.0
-    # Pinpoint core; the 2.5x density multiplier keeps enough cells visible.
-    star_curve.inputs["From Max"].default_value = 0.040
+    star_curve.inputs["From Max"].default_value = 0.055
     star_curve.inputs["To Min"].default_value = 1.0
     star_curve.inputs["To Max"].default_value = 0.0
     links.new(voronoi.outputs["Distance"], star_curve.inputs["Value"])
 
-    star_sharp = nodes.new("ShaderNodeMath")
-    star_sharp.location = (2340, -420)
-    star_sharp.operation = "POWER"
-    star_sharp.inputs[1].default_value = 2.5
-    links.new(star_curve.outputs["Result"], star_sharp.inputs[0])
-
-    # Noise variation culls ~65% of cells and varies star brightness naturally
     star_noise = nodes.new("ShaderNodeTexNoise")
-    star_noise.location = (2040, -980)
-    star_noise.inputs["Scale"].default_value = 45.0
-    star_noise.inputs["Detail"].default_value = 2.0
+    star_noise.location = (2060, -760)
+    star_noise.inputs["Scale"].default_value = 95.0
+    star_noise.inputs["Detail"].default_value = 1.0
     links.new(view_norm.outputs["Vector"], star_noise.inputs["Vector"])
 
     star_mag = nodes.new("ShaderNodeMapRange")
-    star_mag.location = (2200, -980)
+    star_mag.location = (2240, -760)
     star_mag.clamp = True
     _smooth(star_mag)
-    star_mag.inputs["From Min"].default_value = 0.48
-    star_mag.inputs["From Max"].default_value = 0.78
+    star_mag.inputs["From Min"].default_value = 0.60
+    star_mag.inputs["From Max"].default_value = 0.86
+    star_mag.inputs["To Min"].default_value = 0.0
+    star_mag.inputs["To Max"].default_value = 1.0
     links.new(star_noise.outputs["Fac"], star_mag.inputs["Value"])
 
-    star_varied = nodes.new("ShaderNodeMath")
-    star_varied.location = (2340, -980)
-    star_varied.operation = "MULTIPLY"
-    links.new(star_sharp.outputs[0], star_varied.inputs[0])
-    links.new(star_mag.outputs["Result"], star_varied.inputs[1])
+    star_bg = nodes.new("ShaderNodeMath")
+    star_bg.location = (2420, -620)
+    star_bg.operation = "MULTIPLY"
+    star_bg.use_clamp = True
+    links.new(star_curve.outputs["Result"], star_bg.inputs[0])
+    links.new(star_mag.outputs["Result"], star_bg.inputs[1])
 
-    # A very low-intensity halo keeps the 0.040 core legible at 1080p without
-    # turning the star into a snowball.
-    star_halo_curve = nodes.new("ShaderNodeMapRange")
-    star_halo_curve.location = (2340, -1180)
-    star_halo_curve.clamp = True
-    _smooth(star_halo_curve)
-    star_halo_curve.inputs["From Min"].default_value = 0.0
-    star_halo_curve.inputs["From Max"].default_value = 0.24
-    star_halo_curve.inputs["To Min"].default_value = 1.0
-    star_halo_curve.inputs["To Max"].default_value = 0.0
-    links.new(voronoi.outputs["Distance"], star_halo_curve.inputs["Value"])
+    star_bg_clustered = nodes.new("ShaderNodeMath")
+    star_bg_clustered.location = (2600, -620)
+    star_bg_clustered.operation = "MULTIPLY"
+    star_bg_clustered.use_clamp = True
+    links.new(star_bg.outputs[0], star_bg_clustered.inputs[0])
+    links.new(cluster_mask.outputs["Result"], star_bg_clustered.inputs[1])
 
-    star_halo = nodes.new("ShaderNodeMath")
-    star_halo.location = (2520, -1180)
-    star_halo.operation = "MULTIPLY"
-    links.new(star_halo_curve.outputs["Result"], star_halo.inputs[0])
-    links.new(star_mag.outputs["Result"], star_halo.inputs[1])
+    star_bg_scaled = nodes.new("ShaderNodeMath")
+    star_bg_scaled.location = (2780, -620)
+    star_bg_scaled.operation = "MULTIPLY"
+    star_bg_scaled.use_clamp = True
+    star_bg_scaled.inputs[1].default_value = 0.42
+    links.new(star_bg_clustered.outputs[0], star_bg_scaled.inputs[0])
 
-    star_halo_scale = nodes.new("ShaderNodeMath")
-    star_halo_scale.location = (2700, -1180)
-    star_halo_scale.operation = "MULTIPLY"
-    star_halo_scale.inputs[1].default_value = 0.22
-    links.new(star_halo.outputs[0], star_halo_scale.inputs[0])
+    # Hero stars: a few larger cores with a very soft gouache halo.
+    hero_scale = nodes.new("ShaderNodeMath")
+    hero_scale.location = (1880, -960)
+    hero_scale.operation = "MULTIPLY"
+    hero_scale.inputs[1].default_value = 0.42
+    links.new(group_in.outputs["Star Density"], hero_scale.inputs[0])
+
+    hero_voronoi = nodes.new("ShaderNodeTexVoronoi")
+    hero_voronoi.location = (2060, -960)
+    links.new(view_norm.outputs["Vector"], hero_voronoi.inputs["Vector"])
+    links.new(hero_scale.outputs[0], hero_voronoi.inputs["Scale"])
+
+    hero_core = nodes.new("ShaderNodeMapRange")
+    hero_core.location = (2240, -960)
+    hero_core.clamp = True
+    _smooth(hero_core)
+    hero_core.inputs["From Min"].default_value = 0.0
+    hero_core.inputs["From Max"].default_value = 0.048
+    hero_core.inputs["To Min"].default_value = 1.0
+    hero_core.inputs["To Max"].default_value = 0.0
+    links.new(hero_voronoi.outputs["Distance"], hero_core.inputs["Value"])
+
+    hero_halo = nodes.new("ShaderNodeMapRange")
+    hero_halo.location = (2240, -1120)
+    hero_halo.clamp = True
+    _smooth(hero_halo)
+    hero_halo.inputs["From Min"].default_value = 0.0
+    hero_halo.inputs["From Max"].default_value = 0.18
+    hero_halo.inputs["To Min"].default_value = 0.35
+    hero_halo.inputs["To Max"].default_value = 0.0
+    links.new(hero_voronoi.outputs["Distance"], hero_halo.inputs["Value"])
+
+    hero_shape = nodes.new("ShaderNodeMath")
+    hero_shape.location = (2420, -1020)
+    hero_shape.operation = "ADD"
+    hero_shape.use_clamp = True
+    links.new(hero_core.outputs["Result"], hero_shape.inputs[0])
+    links.new(hero_halo.outputs["Result"], hero_shape.inputs[1])
+
+    hero_noise = nodes.new("ShaderNodeTexNoise")
+    hero_noise.location = (2060, -1280)
+    hero_noise.inputs["Scale"].default_value = 38.0
+    hero_noise.inputs["Detail"].default_value = 1.0
+    links.new(view_norm.outputs["Vector"], hero_noise.inputs["Vector"])
+
+    hero_cull = nodes.new("ShaderNodeMapRange")
+    hero_cull.location = (2240, -1280)
+    hero_cull.clamp = True
+    _smooth(hero_cull)
+    hero_cull.inputs["From Min"].default_value = 0.68
+    hero_cull.inputs["From Max"].default_value = 0.88
+    hero_cull.inputs["To Min"].default_value = 0.0
+    hero_cull.inputs["To Max"].default_value = 1.0
+    links.new(hero_noise.outputs["Fac"], hero_cull.inputs["Value"])
+
+    hero_stars = nodes.new("ShaderNodeMath")
+    hero_stars.location = (2600, -1080)
+    hero_stars.operation = "MULTIPLY"
+    hero_stars.use_clamp = True
+    links.new(hero_shape.outputs[0], hero_stars.inputs[0])
+    links.new(hero_cull.outputs["Result"], hero_stars.inputs[1])
 
     star_total = nodes.new("ShaderNodeMath")
-    star_total.location = (2520, -980)
+    star_total.location = (2780, -820)
     star_total.operation = "ADD"
     star_total.use_clamp = True
-    links.new(star_varied.outputs[0], star_total.inputs[0])
-    links.new(star_halo_scale.outputs[0], star_total.inputs[1])
+    links.new(star_bg_scaled.outputs[0], star_total.inputs[0])
+    links.new(hero_stars.outputs[0], star_total.inputs[1])
 
+    # Atmospheric masks: zenith, solar disk, and cloud coverage.
     zenith = nodes.new("ShaderNodeMapRange")
-    zenith.location = (2040, -620)
+    zenith.location = (1880, -520)
     zenith.clamp = True
     _smooth(zenith)
-    zenith.inputs["From Min"].default_value = 0.06
-    zenith.inputs["From Max"].default_value = 0.28
+    zenith.inputs["From Min"].default_value = 0.08
+    zenith.inputs["From Max"].default_value = 0.32
     links.new(separate.outputs["Z"], zenith.inputs["Value"])
 
     sun_hide = nodes.new("ShaderNodeMapRange")
-    sun_hide.location = (2220, -620)
+    sun_hide.location = (2060, -520)
     sun_hide.clamp = True
     _smooth(sun_hide)
-    sun_hide.inputs["From Min"].default_value = 0.96
+    sun_hide.inputs["From Min"].default_value = 0.95
     sun_hide.inputs["From Max"].default_value = 0.995
     sun_hide.inputs["To Min"].default_value = 1.0
     sun_hide.inputs["To Max"].default_value = 0.0
     links.new(dot.outputs["Value"], sun_hide.inputs["Value"])
 
     star_mask_a = nodes.new("ShaderNodeMath")
-    star_mask_a.location = (2380, -500)
+    star_mask_a.location = (2960, -760)
     star_mask_a.operation = "MULTIPLY"
     star_mask_a.use_clamp = True
     links.new(star_total.outputs[0], star_mask_a.inputs[0])
     links.new(zenith.outputs["Result"], star_mask_a.inputs[1])
 
     star_mask_b = nodes.new("ShaderNodeMath")
-    star_mask_b.location = (2380, -660)
+    star_mask_b.location = (3140, -760)
     star_mask_b.operation = "MULTIPLY"
     star_mask_b.use_clamp = True
     links.new(star_mask_a.outputs[0], star_mask_b.inputs[0])
     links.new(sun_hide.outputs["Result"], star_mask_b.inputs[1])
 
     cloud_hide = nodes.new("ShaderNodeMath")
-    cloud_hide.location = (2380, -820)
+    cloud_hide.location = (2960, -1000)
     cloud_hide.operation = "SUBTRACT"
     cloud_hide.use_clamp = True
     cloud_hide.inputs[0].default_value = 1.0
     links.new(cloud_amount_node.outputs[0], cloud_hide.inputs[1])
 
     star_mask_c = nodes.new("ShaderNodeMath")
-    star_mask_c.location = (2500, -740)
+    star_mask_c.location = (3320, -760)
     star_mask_c.operation = "MULTIPLY"
     star_mask_c.use_clamp = True
     links.new(star_mask_b.outputs[0], star_mask_c.inputs[0])
     links.new(cloud_hide.outputs[0], star_mask_c.inputs[1])
 
     star_amount = nodes.new("ShaderNodeMath")
-    star_amount.location = (2500, -580)
+    star_amount.location = (3500, -760)
     star_amount.operation = "MULTIPLY"
     star_amount.use_clamp = True
     links.new(star_mask_c.outputs[0], star_amount.inputs[0])
     links.new(group_in.outputs["Star Amount"], star_amount.inputs[1])
 
-    star_color = nodes.new("ShaderNodeRGB")
-    star_color.location = (2500, -400)
-    star_color.outputs[0].default_value = (12.0, 12.5, 15.0, 1.0)
+    # Painterly tint: warm starlight blended 38% toward Cloud Light, scaled to
+    # a soft glow rather than the old clipped white (15.0) points.
+    star_base_rgb = nodes.new("ShaderNodeRGB")
+    star_base_rgb.location = (2960, -1180)
+    star_base_rgb.outputs[0].default_value = (1.0, 0.98, 0.94, 1.0)
+
+    star_tint_mix = nodes.new("ShaderNodeMix")
+    star_tint_mix.location = (3140, -1180)
+    star_tint_mix.data_type = "RGBA"
+    star_tint_mix.blend_type = "MIX"
+    star_tint_mix.inputs["Factor"].default_value = 0.38
+    a_sock, b_sock, result_sock = _rgba_sockets(star_tint_mix)
+    links.new(star_base_rgb.outputs[0], a_sock)
+    links.new(group_in.outputs["Cloud Light"], b_sock)
+
+    star_tint_scale = nodes.new("ShaderNodeVectorMath")
+    star_tint_scale.location = (3320, -1180)
+    star_tint_scale.operation = "SCALE"
+    star_tint_scale.inputs["Scale"].default_value = 2.6
+    links.new(star_tint_mix.outputs["Result"], star_tint_scale.inputs["Vector"])
 
     star_mix = nodes.new("ShaderNodeMix")
-    star_mix.location = (2680, -200)
+    star_mix.location = (3500, -200)
     star_mix.data_type = "RGBA"
     star_mix.blend_type = "ADD"
     a_sock, b_sock, result_sock = _rgba_sockets(star_mix)
     links.new(cloud_mix.outputs["Result"], a_sock)
-    links.new(star_color.outputs[0], b_sock)
+    links.new(star_tint_scale.outputs["Vector"], b_sock)
     links.new(star_amount.outputs[0], star_mix.inputs["Factor"])
     sky_color = star_mix.outputs["Result"]
-
 
     # Visible sky stays vivid; ambient light is scaled by World Strength.
     light_path = nodes.new("ShaderNodeLightPath")
@@ -1715,6 +1820,7 @@ def apply_preset_style(scene, p):
         settings.cloud_amount = p.get("cloud_amount", 0.6)
         settings.cloud_delta_gain = p.get("cloud_delta_gain", 1.0)
         settings.sun_glow = p.get("sun_glow", 0.45)
+        settings.sky_accent = p.get("sky_accent", (0.05, 0.32, 0.42))
         settings.sky_accent_amount = p.get("sky_accent_amount", 0.0)
         settings.horizon_offset = p.get("horizon_offset", 0.0)
         settings.horizon_softness = p.get("horizon_softness", 0.5)
@@ -1806,7 +1912,7 @@ def _apply_gradient(scene, settings, nt, background, p):
         p["sky_color"], p["horizon_color"])
     cloud_sh = p.get("cloud_shadow") or tuple(
         c * 0.45 for c in p["shadow_tint"])
-    cloud_md = p.get("cloud_mid") or p["horizon_color"]
+    cloud_md = p.get("cloud_mid") or (0.6, 0.6, 0.7)
     cloud_lt = p.get("cloud_light") or p["sun_color"]
 
     node.inputs["Sky Color"].default_value = _rgba(p["sky_color"])

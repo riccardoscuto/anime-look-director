@@ -3,9 +3,9 @@ from bpy.props import (BoolProperty, EnumProperty, FloatProperty,
                        FloatVectorProperty, PointerProperty)
 
 PALETTES = [
-    ("GOLDEN_HOUR", "Shinkai Golden Hour", "Warm backlight, cobalt zenith and golden clouds"),
-    ("AFTER_SCHOOL", "After School Sunset", "Persona-style salmon-pink sky with backlit violet cloud bands"),
-    ("SUMMER_NOON", "Ghibli Summer Noon", "Deep cerulean sky, crisp white cumulus with lavender shadows"),
+    ("GOLDEN_HOUR", "Golden Hour", "Warm backlight, cobalt zenith and golden clouds"),
+    ("AFTER_SCHOOL", "After School Sunset", "Salmon-pink sunset sky with backlit violet cloud bands"),
+    ("SUMMER_NOON", "Summer Noon", "Deep cerulean sky, crisp white cumulus with lavender shadows"),
     ("RAINY_TOKYO", "Rainy Tokyo Night", "Cool rain-soaked slate night"),
     ("NEON_NIGHT", "Cyberpunk Neon", "Deep night sky with magenta-cyan rim-lit clouds"),
     ("SAKURA_SPRING", "Sakura Spring", "Cornflower sky, warm sakura horizon and soft lilac clouds"),
@@ -288,7 +288,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         update=_on_world)
     cloud_flatness: FloatProperty(
         name="Cloud Flatness", default=0.65, min=0.0, max=1.0,
-        description="0 = billowy Ghibli cumuli, 1 = flat Persona strata",
+        description="0 = billowy cumuli, 1 = flat horizontal strata",
         update=_on_world)
     contrails: FloatProperty(
         name="Contrails", default=0.0, min=0.0, max=1.0,

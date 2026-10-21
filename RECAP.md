@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 1.0.3** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 1.0.4** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -123,9 +123,9 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 
 | Palette | Carattere |
 | --- | --- |
-| Shinkai Golden Hour | controluce caldo, alone arancione, cielo lavanda |
+| Golden Hour | controluce caldo, alone arancione, cielo lavanda |
 | After School Sunset | cielo salmone, nuvole viola in controluce con bordi dorati |
-| Ghibli Summer Noon | luce alta e pulita, cielo azzurro, ombre fresche |
+| Summer Noon | luce alta e pulita, cielo azzurro, ombre fresche |
 | Rainy Tokyo Night | notte piovosa, blu freddo, contrasto medio |
 | Cyberpunk Neon | magenta/ciano, zenit blu-viola, ombre colorate |
 | Sakura Spring | cielo azzurro, orizzonte rosa, luce calda e morbida |
@@ -267,10 +267,12 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
   marker World Group 13.
 - **1.0.0** - Densità nuvole campionata sulla cupola con helper dedicato,
   morfologia fBm, derivata solare 2D e 3 fasce cel-shaded nette.
-- **1.0.1** - Nuvole Ghibli a cupole Voronoi mascherate, derivata su volume
+- **1.0.1** - Nuvole a cupole Voronoi mascherate, derivata su volume
   liscio, 4 fasce gouache e reset degli slider su Apply Palette.
 - **1.0.2** - Ripristino della morfologia fBm organica v1.0.0; Cloud Light
   confinato al bordo solare, senza crown_curve, e reset di Cloud Scale/Delta
   Gain/Rim Boost su Apply Palette.
 - **1.0.3** - Derivata solare su envelope a bassa frequenza, fringe esterno
   più stretto e reset di orizzonte, contrail e stelle su Apply Palette.
+- **1.0.4** - Colore nuvole indipendente dall'orizzonte, starfield a cluster
+  con hero stars, preset atmosferici completi e nomi UI neutri.

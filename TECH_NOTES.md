@@ -578,3 +578,19 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   strength and star density.
 - Marker 17. Gate ratios: shadow 2.65 %, wrap 15.93 %, ink 3.48 %,
   haze 63.06 %, toon 1.62 %, rim 7.07 %.
+
+### v1.0.4 notes (cloud/horizon decoupling, clustered stars, presets)
+- Removed the `aerial_fade`/`aerial_factor`/`aerial_mix` branch. `cloud_mix`
+  receives `cloud_glow_add.Result` directly; Horizon Color only enters through
+  the alpha/altitude cloud mask.
+- Custom colors no longer overwrite Cloud Shadow/Mid; Cloud Mid falls back to
+  neutral `(0.6, 0.6, 0.7)`.
+- Stars use a low-frequency 3.2-scale cluster mask, background micro-stars at
+  `Star Density * 1.6`, hero stars at `Star Density * 0.42` with a soft halo,
+  zenith 0.08..0.32, sun hide 0.95..0.995 and cloud coverage masks. The additive
+  tint is `mix((1.0,0.98,0.94), Cloud Light, 0.38) * 2.6`.
+- Every preset now carries contrails, sun glow, sky accent, horizon controls,
+  star amount and star density; Apply Palette resets all of them.
+- UI preset labels no longer contain franchise names.
+- Marker 18. Gate ratios: shadow 2.62 %, wrap 15.81 %, ink 3.49 %,
+  haze 63.04 %, toon 1.61 %, rim 7.05 %.

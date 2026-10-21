@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 0, 3)
+EXPECTED_VERSION = (1, 0, 4)
 TOLERANCE = 1e-4
 
 
@@ -299,13 +299,20 @@ def check_world_gradient(scene, settings):
           "after school rim boost not applied")
     check(abs(settings.cloud_amount - after["cloud_amount"]) <= TOLERANCE,
           "after school cloud amount not applied")
+    check(close(settings.sky_accent, after["sky_accent"]),
+          "after school sky accent not applied")
+    check(close(node.inputs["Sky Accent"].default_value, after["sky_accent"]),
+          "after school sky accent not synced")
 
     settings.cloud_scale = 12.0
     settings.cloud_rim_boost = 4.0
     settings.cloud_delta_gain = 3.46
     settings.sun_glow = 0.0
+    settings.sky_accent = (0.0, 0.0, 0.0)
     settings.sky_accent_amount = 1.0
+    settings.horizon_offset = 0.5
     settings.horizon_softness = 0.02
+    settings.contrails = 0.9
     settings.star_density = 50.0
     bpy.ops.ald.apply_palette()
     check(abs(settings.cloud_scale - after["cloud_scale"]) <= TOLERANCE,
@@ -315,13 +322,22 @@ def check_world_gradient(scene, settings):
           "apply palette did not reset rim boost")
     check(abs(settings.cloud_delta_gain - 1.0) <= TOLERANCE,
           "apply palette did not reset delta gain")
-    check(abs(settings.sun_glow - 0.45) <= TOLERANCE,
-          "apply palette did not reset sun glow")
-    check(abs(settings.sky_accent_amount) <= TOLERANCE,
-          "apply palette did not reset accent amount")
-    check(abs(settings.horizon_softness - 0.5) <= TOLERANCE,
+    check(abs(settings.sun_glow - after["sun_glow"]) <= TOLERANCE,
+          "apply palette did not reset sun glow to preset")
+    check(abs(settings.sky_accent_amount
+              - after["sky_accent_amount"]) <= TOLERANCE,
+          "apply palette did not reset accent amount to preset")
+    check(close(settings.sky_accent, after["sky_accent"]),
+          "apply palette did not reset sky accent color")
+    check(abs(settings.horizon_offset
+              - after["horizon_offset"]) <= TOLERANCE,
+          "apply palette did not reset horizon offset")
+    check(abs(settings.horizon_softness
+              - after["horizon_softness"]) <= TOLERANCE,
           "apply palette did not reset horizon softness")
-    check(abs(settings.star_density - 180.0) <= TOLERANCE,
+    check(abs(settings.contrails - after["contrails"]) <= TOLERANCE,
+          "apply palette did not reset contrails")
+    check(abs(settings.star_density - after["star_density"]) <= TOLERANCE,
           "apply palette did not reset star density")
     settings.palette = "GOLDEN_HOUR"
     bpy.ops.ald.apply_palette()
@@ -1202,6 +1218,14 @@ def check_custom_colors(scene, settings, data):
         check(close(node.inputs[name].default_value, before),
               "custom sun repainted " + name)
     settings.custom_sun = (0.2, 0.1, 0.9)
+    bpy.ops.ald.apply_palette()
+
+    settings.custom_horizon = (0.9, 0.1, 0.8)
+    node = gradient_node(scene)
+    for name, before in cloud_colors.items():
+        check(close(node.inputs[name].default_value, before),
+              "custom horizon repainted " + name)
+    settings.custom_horizon = (0.1, 0.9, 0.2)
     bpy.ops.ald.apply_palette()
 
     tint = tint_node(data["plain"])
