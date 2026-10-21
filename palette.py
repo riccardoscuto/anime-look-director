@@ -1345,9 +1345,9 @@ def _build_gradient_group(ng):
     links.new(rim_edge.outputs[0], rim_factor.inputs[0])
     links.new(gamma_add.outputs[0], rim_factor.inputs[1])
 
-    # The silver lining must occur only on the outer silhouette. Coverage
-    # suppresses holes, while the low-frequency envelope gate suppresses
-    # thin internal transitions where the dense fBm still has a lit edge.
+    # The silver lining must occur only where the cloud exists. This presence
+    # gate suppresses rims around low-density holes while keeping the outer
+    # silhouette edge, where coverage is about 0.5.
     rim_presence = nodes.new("ShaderNodeMath")
     rim_presence.location = (3160, -760)
     rim_presence.operation = "MULTIPLY"
@@ -1356,7 +1356,7 @@ def _build_gradient_group(ng):
     links.new(coverage.outputs["Result"], rim_presence.inputs[0])
 
     rim_masked = nodes.new("ShaderNodeMath")
-    rim_masked.location = (3700, -900)
+    rim_masked.location = (3400, -900)
     rim_masked.operation = "MULTIPLY"
     rim_masked.use_clamp = True
     links.new(rim_factor.outputs[0], rim_masked.inputs[0])
