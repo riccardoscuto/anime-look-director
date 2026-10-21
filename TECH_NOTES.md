@@ -594,3 +594,17 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - UI preset labels no longer contain franchise names.
 - Marker 18. Gate ratios: shadow 2.62 %, wrap 15.81 %, ink 3.49 %,
   haze 63.04 %, toon 1.61 %, rim 7.05 %.
+
+### v1.0.5 notes (cloud color overrides, hash-based stars)
+- Custom Colors adds `custom_cloud_shadow`, `custom_cloud_mid` and
+  `custom_cloud_light`. They sync from the selected preset when Custom Colors is
+  enabled or the palette changes, and `effective()` applies them directly.
+- The v1.0.4 one-octave Noise culling was replaced by per-cell Voronoi Color
+  hashes. Three Voronoi tiers: density*2.2 (spot width .085, cull .35...98 to
+  0...55), density*0.90 (translated by (1.73,-2.41,0.89), width .075, cull
+  .55...98 to 0...85) and density*0.38 (translated by (-3.14,1.17,2.65),
+  core .068, halo .22 at .30, cull .70...96).
+- Star temperature mixes warm (1.0,0.91,0.78) and cool (0.78,0.91,1.0) by
+  `vor1.Color.Z`, then mixes 25% Cloud Light and scales by 6.0.
+- Marker 19. Gate ratios: shadow 2.63 %, wrap 15.81 %, ink 3.51 %,
+  haze 63.03 %, toon 1.61 %, rim 7.01 %.

@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 1.0.4** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 1.0.5** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -276,3 +276,4 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
   più stretto e reset di orizzonte, contrail e stelle su Apply Palette.
 - **1.0.4** - Colore nuvole indipendente dall'orizzonte, starfield a cluster
   con hero stars, preset atmosferici completi e nomi UI neutri.
+- **1.0.5** - Selettori Cloud Shadow/Mid/Light in Custom Colors e starfield a 3 livelli con hash Voronoi, temperature casuali e glow 6x.

@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v1.0.4)
+## What it does (v1.0.5)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -31,10 +31,12 @@ Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.
 - **Anime clouds**: Perlin-Worley procedural clouds in palette colors, with
   amount, scale, **Cloud Flatness**, **Cloud Wind** animation and optional
   **Contrails**.
-- **Clustered painterly starfield**: sparse background micro-stars plus soft
-  gouache hero stars with halos, grouped by low-frequency constellation noise,
-  tinted from the scene's Cloud Light and masked by clouds and the sun disk;
-  Golden Hour, After School, Neon Night and Twilight Dusk enable it.
+- **Three-tier clustered painterly starfield**: dense stardust, medium
+  constellation stars and soft gouache hero stars with halos, using per-cell
+  Voronoi Color hashes, translated grids, warm/cool temperatures and a
+  palette-tinted glow; masked by clouds and the sun disk.
+- **Custom cloud colors**: dedicated Cloud Shadow, Cloud Mid and Cloud Light
+  controls in Custom Colors, independent from Horizon, Sun and Shadow.
 - **Custom palette colors** for sky, horizon, sun and shadow (per scene).
   The custom Sun only drives the sun disk/light; cloud light stays on the preset.
 - **Shadow tint** on scene materials: a reversible **multiplicative** node group
@@ -121,7 +123,8 @@ Expected output: `ALD GATE: PASS`.
 - v1.0.1 - cauliflower clouds, 4-band gouache, Apply Palette slider reset
 - v1.0.2 - restored organic fBm clouds; Cloud Light confined to the sun fringe
 - v1.0.3 - envelope-driven shading, internal Cloud Light suppression, atmosphere resets
-- v1.0.4 - cloud/horizon decoupling, clustered painterly stars, richer presets, neutral UI names (current)
+- v1.0.4 - cloud/horizon decoupling, clustered painterly stars, richer presets, neutral UI names
+- v1.0.5 - dedicated cloud color controls and three-tier hash-based starfield (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (1, 0, 4)
+EXPECTED_VERSION = (1, 0, 5)
 TOLERANCE = 1e-4
 
 
@@ -1208,6 +1208,17 @@ def check_custom_colors(scene, settings, data):
     check(close(palette_module.shadow_tint_for(scene), (0.3, 0.6, 0.9)),
           "custom shadow color not applied")
 
+    settings.custom_cloud_shadow = (0.21, 0.31, 0.41)
+    settings.custom_cloud_mid = (0.52, 0.62, 0.72)
+    settings.custom_cloud_light = (1.11, 1.02, 0.93)
+    bpy.ops.ald.apply_palette()
+    node = gradient_node(scene)
+    for name, value in (("Cloud Shadow", settings.custom_cloud_shadow),
+                        ("Cloud Mid", settings.custom_cloud_mid),
+                        ("Cloud Light", settings.custom_cloud_light)):
+        check(close(node.inputs[name].default_value, value),
+              "custom " + name + " not applied")
+
     cloud_colors = {name: tuple(node.inputs[name].default_value)
                     for name in ("Cloud Shadow", "Cloud Mid", "Cloud Light")}
     settings.custom_sun = (0.95, 0.85, 0.05)
@@ -1252,6 +1263,16 @@ def check_custom_colors(scene, settings, data):
           "custom colors not refreshed on palette switch")
     check(close(settings.custom_horizon, neon["horizon_color"]),
           "custom horizon not refreshed on palette switch")
+    node = gradient_node(scene)
+    for name, key in (("Cloud Shadow", "cloud_shadow"),
+                      ("Cloud Mid", "cloud_mid"),
+                      ("Cloud Light", "cloud_light")):
+        check(close(settings.custom_cloud_shadow if name == "Cloud Shadow"
+                    else settings.custom_cloud_mid if name == "Cloud Mid"
+                    else settings.custom_cloud_light, neon[key]),
+              "custom cloud not refreshed on palette switch: " + name)
+        check(close(node.inputs[name].default_value, neon[key]),
+              "cloud socket not refreshed on palette switch: " + name)
     settings.palette = "GOLDEN_HOUR"
     golden = palette_module.preset("GOLDEN_HOUR")
     check(close(settings.custom_sky, golden["sky_color"]),

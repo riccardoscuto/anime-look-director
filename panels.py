@@ -124,6 +124,10 @@ class ALD_PT_world(bpy.types.Panel):
             col.prop(s, "custom_horizon")
             col.prop(s, "custom_sun")
             col.prop(s, "custom_shadow")
+            col.separator()
+            col.prop(s, "custom_cloud_shadow")
+            col.prop(s, "custom_cloud_mid")
+            col.prop(s, "custom_cloud_light")
 
         box.separator()
         row = box.row(align=True)
@@ -284,6 +288,10 @@ class ALD_PT_view3d(bpy.types.Panel):
             col.prop(s, "custom_horizon")
             col.prop(s, "custom_sun")
             col.prop(s, "custom_shadow")
+            col.separator()
+            col.prop(s, "custom_cloud_shadow")
+            col.prop(s, "custom_cloud_mid")
+            col.prop(s, "custom_cloud_light")
 
         box = layout.box()
         row = box.row(align=True)

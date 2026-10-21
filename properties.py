@@ -33,6 +33,9 @@ def _on_palette(self, context):
             self.custom_horizon = p["horizon_color"]
             self.custom_sun = p["sun_color"]
             self.custom_shadow = p["shadow_tint"]
+            self.custom_cloud_shadow = p["cloud_shadow"]
+            self.custom_cloud_mid = p["cloud_mid"]
+            self.custom_cloud_light = p["cloud_light"]
         look.apply(scene, force=True)
     except Exception:
         pass
@@ -59,6 +62,9 @@ def _on_custom(self, context):
             self.custom_horizon = p["horizon_color"]
             self.custom_sun = p["sun_color"]
             self.custom_shadow = p["shadow_tint"]
+            self.custom_cloud_shadow = p["cloud_shadow"]
+            self.custom_cloud_mid = p["cloud_mid"]
+            self.custom_cloud_light = p["cloud_light"]
         _on_custom_color(self, context)
     except Exception:
         pass
@@ -182,7 +188,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
     custom_colors: BoolProperty(
         name="Custom Colors",
         default=False,
-        description="Override sky, horizon, sun and shadow colors",
+        description="Override sky, horizon, sun, shadow and cloud colors",
         update=_on_custom,
     )
     custom_sky: FloatVectorProperty(
@@ -219,6 +225,33 @@ class ALD_Settings(bpy.types.PropertyGroup):
         min=0.0,
         max=1.0,
         default=(0.44, 0.53, 1.0),
+        update=_on_custom_color,
+    )
+    custom_cloud_shadow: FloatVectorProperty(
+        name="Cloud Shadow",
+        subtype="COLOR",
+        size=3,
+        min=0.0,
+        max=2.0,
+        default=(0.09, 0.07, 0.22),
+        update=_on_custom_color,
+    )
+    custom_cloud_mid: FloatVectorProperty(
+        name="Cloud Mid",
+        subtype="COLOR",
+        size=3,
+        min=0.0,
+        max=2.0,
+        default=(0.38, 0.15, 0.24),
+        update=_on_custom_color,
+    )
+    custom_cloud_light: FloatVectorProperty(
+        name="Cloud Light",
+        subtype="COLOR",
+        size=3,
+        min=0.0,
+        max=2.0,
+        default=(1.30, 0.58, 0.16),
         update=_on_custom_color,
     )
     horizon_offset: FloatProperty(

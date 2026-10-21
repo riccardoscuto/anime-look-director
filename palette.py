@@ -242,8 +242,11 @@ def effective(scene, key):
         p["horizon_color"] = horizon
         p["sun_color"] = sun
         p["shadow_tint"] = shadow
-        # Cloud Shadow/Mid/Light stay exactly on the palette preset: custom
-        # horizon and shadow colors must not repaint the clouds.
+        # Cloud colors have their own overrides; Horizon/Shadow/Sun never
+        # repaint the clouds implicitly.
+        p["cloud_shadow"] = tuple(settings.custom_cloud_shadow)
+        p["cloud_mid"] = tuple(settings.custom_cloud_mid)
+        p["cloud_light"] = tuple(settings.custom_cloud_light)
     return p
 
 
@@ -286,13 +289,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 18):
+                           or ng.get("ald_build") != 19):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 18
+        ng["ald_build"] = 19
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -306,7 +309,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 18
+        ng["ald_build"] = 19
     return ng
 
 
@@ -1495,165 +1498,225 @@ def _build_gradient_group(ng):
     links.new(cloud_glow_add.outputs["Result"], b_sock)
     links.new(cloud_amount_node.outputs[0], cloud_mix.inputs["Factor"])
 
-    # Clustered painterly anime starfield: a sparse background layer plus a
-    # handful of soft gouache hero stars, grouped into broad constellations.
+    # Clustered painterly starfield: three independent Voronoi tiers, each
+    # using the per-cell Color hash instead of a low-frequency Perlin cull.
+    # This avoids the invisible-star thresholds of v1.0.4 and breaks any
+    # regular cell grid by offsetting the medium and hero layers.
     cluster_noise = nodes.new("ShaderNodeTexNoise")
     cluster_noise.location = (1880, -360)
-    cluster_noise.inputs["Scale"].default_value = 3.2
+    cluster_noise.inputs["Scale"].default_value = 2.6
     cluster_noise.inputs["Detail"].default_value = 3.0
     cluster_noise.inputs["Roughness"].default_value = 0.55
-    cluster_noise.inputs["Distortion"].default_value = 0.25
+    cluster_noise.inputs["Distortion"].default_value = 0.35
     links.new(view_norm.outputs["Vector"], cluster_noise.inputs["Vector"])
 
     cluster_mask = nodes.new("ShaderNodeMapRange")
     cluster_mask.location = (2060, -360)
     cluster_mask.clamp = True
     _smooth(cluster_mask)
-    cluster_mask.inputs["From Min"].default_value = 0.36
-    cluster_mask.inputs["From Max"].default_value = 0.68
-    cluster_mask.inputs["To Min"].default_value = 0.08
+    cluster_mask.inputs["From Min"].default_value = 0.30
+    cluster_mask.inputs["From Max"].default_value = 0.62
+    cluster_mask.inputs["To Min"].default_value = 0.25
     cluster_mask.inputs["To Max"].default_value = 1.0
     links.new(cluster_noise.outputs["Fac"], cluster_mask.inputs["Value"])
 
-    # Background micro-stars: sparse, soft, and always subordinate.
-    star_scale = nodes.new("ShaderNodeMath")
-    star_scale.location = (1880, -560)
-    star_scale.operation = "MULTIPLY"
-    star_scale.inputs[1].default_value = 1.6
-    links.new(group_in.outputs["Star Density"], star_scale.inputs[0])
+    # Tier 1: painted stardust, dense but subordinate.
+    star1_scale = nodes.new("ShaderNodeMath")
+    star1_scale.location = (1880, -560)
+    star1_scale.operation = "MULTIPLY"
+    star1_scale.inputs[1].default_value = 2.2
+    links.new(group_in.outputs["Star Density"], star1_scale.inputs[0])
 
-    voronoi = nodes.new("ShaderNodeTexVoronoi")
-    voronoi.location = (2060, -560)
-    links.new(view_norm.outputs["Vector"], voronoi.inputs["Vector"])
-    links.new(star_scale.outputs[0], voronoi.inputs["Scale"])
+    vor1 = nodes.new("ShaderNodeTexVoronoi")
+    vor1.location = (2060, -560)
+    links.new(view_norm.outputs["Vector"], vor1.inputs["Vector"])
+    links.new(star1_scale.outputs[0], vor1.inputs["Scale"])
 
-    star_curve = nodes.new("ShaderNodeMapRange")
-    star_curve.location = (2240, -560)
-    star_curve.clamp = True
-    _smooth(star_curve)
-    star_curve.inputs["From Min"].default_value = 0.0
-    star_curve.inputs["From Max"].default_value = 0.055
-    star_curve.inputs["To Min"].default_value = 1.0
-    star_curve.inputs["To Max"].default_value = 0.0
-    links.new(voronoi.outputs["Distance"], star_curve.inputs["Value"])
+    vor1_rand = nodes.new("ShaderNodeSeparateXYZ")
+    vor1_rand.location = (2240, -560)
+    links.new(vor1.outputs["Color"], vor1_rand.inputs["Vector"])
 
-    star_noise = nodes.new("ShaderNodeTexNoise")
-    star_noise.location = (2060, -760)
-    star_noise.inputs["Scale"].default_value = 95.0
-    star_noise.inputs["Detail"].default_value = 1.0
-    links.new(view_norm.outputs["Vector"], star_noise.inputs["Vector"])
+    star1_spot = nodes.new("ShaderNodeMapRange")
+    star1_spot.location = (2420, -560)
+    star1_spot.clamp = True
+    _smooth(star1_spot)
+    star1_spot.inputs["From Min"].default_value = 0.0
+    star1_spot.inputs["From Max"].default_value = 0.085
+    star1_spot.inputs["To Min"].default_value = 1.0
+    star1_spot.inputs["To Max"].default_value = 0.0
+    links.new(vor1.outputs["Distance"], star1_spot.inputs["Value"])
 
-    star_mag = nodes.new("ShaderNodeMapRange")
-    star_mag.location = (2240, -760)
-    star_mag.clamp = True
-    _smooth(star_mag)
-    star_mag.inputs["From Min"].default_value = 0.60
-    star_mag.inputs["From Max"].default_value = 0.86
-    star_mag.inputs["To Min"].default_value = 0.0
-    star_mag.inputs["To Max"].default_value = 1.0
-    links.new(star_noise.outputs["Fac"], star_mag.inputs["Value"])
+    star1_cull = nodes.new("ShaderNodeMapRange")
+    star1_cull.location = (2420, -720)
+    star1_cull.clamp = True
+    _smooth(star1_cull)
+    star1_cull.inputs["From Min"].default_value = 0.35
+    star1_cull.inputs["From Max"].default_value = 0.98
+    star1_cull.inputs["To Min"].default_value = 0.0
+    star1_cull.inputs["To Max"].default_value = 0.55
+    links.new(vor1_rand.outputs["X"], star1_cull.inputs["Value"])
 
-    star_bg = nodes.new("ShaderNodeMath")
-    star_bg.location = (2420, -620)
-    star_bg.operation = "MULTIPLY"
-    star_bg.use_clamp = True
-    links.new(star_curve.outputs["Result"], star_bg.inputs[0])
-    links.new(star_mag.outputs["Result"], star_bg.inputs[1])
+    tier1_raw = nodes.new("ShaderNodeMath")
+    tier1_raw.location = (2600, -620)
+    tier1_raw.operation = "MULTIPLY"
+    tier1_raw.use_clamp = True
+    links.new(star1_spot.outputs["Result"], tier1_raw.inputs[0])
+    links.new(star1_cull.outputs["Result"], tier1_raw.inputs[1])
 
-    star_bg_clustered = nodes.new("ShaderNodeMath")
-    star_bg_clustered.location = (2600, -620)
-    star_bg_clustered.operation = "MULTIPLY"
-    star_bg_clustered.use_clamp = True
-    links.new(star_bg.outputs[0], star_bg_clustered.inputs[0])
-    links.new(cluster_mask.outputs["Result"], star_bg_clustered.inputs[1])
+    tier1_stars = nodes.new("ShaderNodeMath")
+    tier1_stars.location = (2780, -620)
+    tier1_stars.operation = "MULTIPLY"
+    tier1_stars.use_clamp = True
+    links.new(tier1_raw.outputs[0], tier1_stars.inputs[0])
+    links.new(cluster_mask.outputs["Result"], tier1_stars.inputs[1])
 
-    star_bg_scaled = nodes.new("ShaderNodeMath")
-    star_bg_scaled.location = (2780, -620)
-    star_bg_scaled.operation = "MULTIPLY"
-    star_bg_scaled.use_clamp = True
-    star_bg_scaled.inputs[1].default_value = 0.42
-    links.new(star_bg_clustered.outputs[0], star_bg_scaled.inputs[0])
+    # Tier 2: medium constellation stars on a translated grid.
+    view_offset_2 = nodes.new("ShaderNodeVectorMath")
+    view_offset_2.location = (1880, -900)
+    view_offset_2.operation = "ADD"
+    view_offset_2.inputs[1].default_value = (1.73, -2.41, 0.89)
+    links.new(view_norm.outputs["Vector"], view_offset_2.inputs[0])
 
-    # Hero stars: a few larger cores with a very soft gouache halo.
-    hero_scale = nodes.new("ShaderNodeMath")
-    hero_scale.location = (1880, -960)
-    hero_scale.operation = "MULTIPLY"
-    hero_scale.inputs[1].default_value = 0.42
-    links.new(group_in.outputs["Star Density"], hero_scale.inputs[0])
+    star2_scale = nodes.new("ShaderNodeMath")
+    star2_scale.location = (1880, -1060)
+    star2_scale.operation = "MULTIPLY"
+    star2_scale.inputs[1].default_value = 0.90
+    links.new(group_in.outputs["Star Density"], star2_scale.inputs[0])
 
-    hero_voronoi = nodes.new("ShaderNodeTexVoronoi")
-    hero_voronoi.location = (2060, -960)
-    links.new(view_norm.outputs["Vector"], hero_voronoi.inputs["Vector"])
-    links.new(hero_scale.outputs[0], hero_voronoi.inputs["Scale"])
+    vor2 = nodes.new("ShaderNodeTexVoronoi")
+    vor2.location = (2060, -900)
+    links.new(view_offset_2.outputs["Vector"], vor2.inputs["Vector"])
+    links.new(star2_scale.outputs[0], vor2.inputs["Scale"])
+
+    vor2_rand = nodes.new("ShaderNodeSeparateXYZ")
+    vor2_rand.location = (2240, -900)
+    links.new(vor2.outputs["Color"], vor2_rand.inputs["Vector"])
+
+    star2_spot = nodes.new("ShaderNodeMapRange")
+    star2_spot.location = (2420, -900)
+    star2_spot.clamp = True
+    _smooth(star2_spot)
+    star2_spot.inputs["From Min"].default_value = 0.0
+    star2_spot.inputs["From Max"].default_value = 0.075
+    star2_spot.inputs["To Min"].default_value = 1.0
+    star2_spot.inputs["To Max"].default_value = 0.0
+    links.new(vor2.outputs["Distance"], star2_spot.inputs["Value"])
+
+    star2_cull = nodes.new("ShaderNodeMapRange")
+    star2_cull.location = (2420, -1060)
+    star2_cull.clamp = True
+    _smooth(star2_cull)
+    star2_cull.inputs["From Min"].default_value = 0.55
+    star2_cull.inputs["From Max"].default_value = 0.98
+    star2_cull.inputs["To Min"].default_value = 0.0
+    star2_cull.inputs["To Max"].default_value = 0.85
+    links.new(vor2_rand.outputs["X"], star2_cull.inputs["Value"])
+
+    tier2_raw = nodes.new("ShaderNodeMath")
+    tier2_raw.location = (2600, -960)
+    tier2_raw.operation = "MULTIPLY"
+    tier2_raw.use_clamp = True
+    links.new(star2_spot.outputs["Result"], tier2_raw.inputs[0])
+    links.new(star2_cull.outputs["Result"], tier2_raw.inputs[1])
+
+    tier2_stars = nodes.new("ShaderNodeMath")
+    tier2_stars.location = (2780, -960)
+    tier2_stars.operation = "MULTIPLY"
+    tier2_stars.use_clamp = True
+    links.new(tier2_raw.outputs[0], tier2_stars.inputs[0])
+    links.new(cluster_mask.outputs["Result"], tier2_stars.inputs[1])
+
+    # Tier 3: hero stars with a soft gouache halo.
+    view_offset_3 = nodes.new("ShaderNodeVectorMath")
+    view_offset_3.location = (1880, -1240)
+    view_offset_3.operation = "ADD"
+    view_offset_3.inputs[1].default_value = (-3.14, 1.17, 2.65)
+    links.new(view_norm.outputs["Vector"], view_offset_3.inputs[0])
+
+    star3_scale = nodes.new("ShaderNodeMath")
+    star3_scale.location = (1880, -1400)
+    star3_scale.operation = "MULTIPLY"
+    star3_scale.inputs[1].default_value = 0.38
+    links.new(group_in.outputs["Star Density"], star3_scale.inputs[0])
+
+    vor3 = nodes.new("ShaderNodeTexVoronoi")
+    vor3.location = (2060, -1240)
+    links.new(view_offset_3.outputs["Vector"], vor3.inputs["Vector"])
+    links.new(star3_scale.outputs[0], vor3.inputs["Scale"])
+
+    vor3_rand = nodes.new("ShaderNodeSeparateXYZ")
+    vor3_rand.location = (2240, -1240)
+    links.new(vor3.outputs["Color"], vor3_rand.inputs["Vector"])
 
     hero_core = nodes.new("ShaderNodeMapRange")
-    hero_core.location = (2240, -960)
+    hero_core.location = (2420, -1240)
     hero_core.clamp = True
     _smooth(hero_core)
     hero_core.inputs["From Min"].default_value = 0.0
-    hero_core.inputs["From Max"].default_value = 0.048
+    hero_core.inputs["From Max"].default_value = 0.068
     hero_core.inputs["To Min"].default_value = 1.0
     hero_core.inputs["To Max"].default_value = 0.0
-    links.new(hero_voronoi.outputs["Distance"], hero_core.inputs["Value"])
+    links.new(vor3.outputs["Distance"], hero_core.inputs["Value"])
 
     hero_halo = nodes.new("ShaderNodeMapRange")
-    hero_halo.location = (2240, -1120)
+    hero_halo.location = (2420, -1400)
     hero_halo.clamp = True
     _smooth(hero_halo)
     hero_halo.inputs["From Min"].default_value = 0.0
-    hero_halo.inputs["From Max"].default_value = 0.18
-    hero_halo.inputs["To Min"].default_value = 0.35
+    hero_halo.inputs["From Max"].default_value = 0.22
+    hero_halo.inputs["To Min"].default_value = 0.30
     hero_halo.inputs["To Max"].default_value = 0.0
-    links.new(hero_voronoi.outputs["Distance"], hero_halo.inputs["Value"])
+    links.new(vor3.outputs["Distance"], hero_halo.inputs["Value"])
 
     hero_shape = nodes.new("ShaderNodeMath")
-    hero_shape.location = (2420, -1020)
+    hero_shape.location = (2600, -1320)
     hero_shape.operation = "ADD"
     hero_shape.use_clamp = True
     links.new(hero_core.outputs["Result"], hero_shape.inputs[0])
     links.new(hero_halo.outputs["Result"], hero_shape.inputs[1])
 
-    hero_noise = nodes.new("ShaderNodeTexNoise")
-    hero_noise.location = (2060, -1280)
-    hero_noise.inputs["Scale"].default_value = 38.0
-    hero_noise.inputs["Detail"].default_value = 1.0
-    links.new(view_norm.outputs["Vector"], hero_noise.inputs["Vector"])
-
     hero_cull = nodes.new("ShaderNodeMapRange")
-    hero_cull.location = (2240, -1280)
+    hero_cull.location = (2600, -1480)
     hero_cull.clamp = True
     _smooth(hero_cull)
-    hero_cull.inputs["From Min"].default_value = 0.68
-    hero_cull.inputs["From Max"].default_value = 0.88
+    hero_cull.inputs["From Min"].default_value = 0.70
+    hero_cull.inputs["From Max"].default_value = 0.96
     hero_cull.inputs["To Min"].default_value = 0.0
     hero_cull.inputs["To Max"].default_value = 1.0
-    links.new(hero_noise.outputs["Fac"], hero_cull.inputs["Value"])
+    links.new(vor3_rand.outputs["X"], hero_cull.inputs["Value"])
 
-    hero_stars = nodes.new("ShaderNodeMath")
-    hero_stars.location = (2600, -1080)
-    hero_stars.operation = "MULTIPLY"
-    hero_stars.use_clamp = True
-    links.new(hero_shape.outputs[0], hero_stars.inputs[0])
-    links.new(hero_cull.outputs["Result"], hero_stars.inputs[1])
+    tier3_stars = nodes.new("ShaderNodeMath")
+    tier3_stars.location = (2780, -1320)
+    tier3_stars.operation = "MULTIPLY"
+    tier3_stars.use_clamp = True
+    links.new(hero_shape.outputs[0], tier3_stars.inputs[0])
+    links.new(hero_cull.outputs["Result"], tier3_stars.inputs[1])
+
+    star_sum_12 = nodes.new("ShaderNodeMath")
+    star_sum_12.location = (2960, -760)
+    star_sum_12.operation = "ADD"
+    star_sum_12.use_clamp = True
+    links.new(tier1_stars.outputs[0], star_sum_12.inputs[0])
+    links.new(tier2_stars.outputs[0], star_sum_12.inputs[1])
 
     star_total = nodes.new("ShaderNodeMath")
-    star_total.location = (2780, -820)
+    star_total.location = (3140, -760)
     star_total.operation = "ADD"
     star_total.use_clamp = True
-    links.new(star_bg_scaled.outputs[0], star_total.inputs[0])
-    links.new(hero_stars.outputs[0], star_total.inputs[1])
+    links.new(star_sum_12.outputs[0], star_total.inputs[0])
+    links.new(tier3_stars.outputs[0], star_total.inputs[1])
 
     # Atmospheric masks: zenith, solar disk, and cloud coverage.
     zenith = nodes.new("ShaderNodeMapRange")
-    zenith.location = (1880, -520)
+    zenith.location = (2060, -400)
     zenith.clamp = True
     _smooth(zenith)
-    zenith.inputs["From Min"].default_value = 0.08
-    zenith.inputs["From Max"].default_value = 0.32
+    zenith.inputs["From Min"].default_value = 0.06
+    zenith.inputs["From Max"].default_value = 0.28
     links.new(separate.outputs["Z"], zenith.inputs["Value"])
 
     sun_hide = nodes.new("ShaderNodeMapRange")
-    sun_hide.location = (2060, -520)
+    sun_hide.location = (2240, -400)
     sun_hide.clamp = True
     _smooth(sun_hide)
     sun_hide.inputs["From Min"].default_value = 0.95
@@ -1663,63 +1726,75 @@ def _build_gradient_group(ng):
     links.new(dot.outputs["Value"], sun_hide.inputs["Value"])
 
     star_mask_a = nodes.new("ShaderNodeMath")
-    star_mask_a.location = (2960, -760)
+    star_mask_a.location = (3320, -760)
     star_mask_a.operation = "MULTIPLY"
     star_mask_a.use_clamp = True
     links.new(star_total.outputs[0], star_mask_a.inputs[0])
     links.new(zenith.outputs["Result"], star_mask_a.inputs[1])
 
     star_mask_b = nodes.new("ShaderNodeMath")
-    star_mask_b.location = (3140, -760)
+    star_mask_b.location = (3500, -760)
     star_mask_b.operation = "MULTIPLY"
     star_mask_b.use_clamp = True
     links.new(star_mask_a.outputs[0], star_mask_b.inputs[0])
     links.new(sun_hide.outputs["Result"], star_mask_b.inputs[1])
 
     cloud_hide = nodes.new("ShaderNodeMath")
-    cloud_hide.location = (2960, -1000)
+    cloud_hide.location = (3320, -980)
     cloud_hide.operation = "SUBTRACT"
     cloud_hide.use_clamp = True
     cloud_hide.inputs[0].default_value = 1.0
     links.new(cloud_amount_node.outputs[0], cloud_hide.inputs[1])
 
     star_mask_c = nodes.new("ShaderNodeMath")
-    star_mask_c.location = (3320, -760)
+    star_mask_c.location = (3680, -760)
     star_mask_c.operation = "MULTIPLY"
     star_mask_c.use_clamp = True
     links.new(star_mask_b.outputs[0], star_mask_c.inputs[0])
     links.new(cloud_hide.outputs[0], star_mask_c.inputs[1])
 
     star_amount = nodes.new("ShaderNodeMath")
-    star_amount.location = (3500, -760)
+    star_amount.location = (3860, -760)
     star_amount.operation = "MULTIPLY"
     star_amount.use_clamp = True
     links.new(star_mask_c.outputs[0], star_amount.inputs[0])
     links.new(group_in.outputs["Star Amount"], star_amount.inputs[1])
 
-    # Painterly tint: warm starlight blended 38% toward Cloud Light, scaled to
-    # a soft glow rather than the old clipped white (15.0) points.
-    star_base_rgb = nodes.new("ShaderNodeRGB")
-    star_base_rgb.location = (2960, -1180)
-    star_base_rgb.outputs[0].default_value = (1.0, 0.98, 0.94, 1.0)
+    # Per-cell temperature: warm gold to cool ice, then 25% Cloud Light tint.
+    star_warm_rgb = nodes.new("ShaderNodeRGB")
+    star_warm_rgb.location = (2960, -1160)
+    star_warm_rgb.outputs[0].default_value = (1.0, 0.91, 0.78, 1.0)
+
+    star_cool_rgb = nodes.new("ShaderNodeRGB")
+    star_cool_rgb.location = (2960, -1300)
+    star_cool_rgb.outputs[0].default_value = (0.78, 0.91, 1.0, 1.0)
+
+    star_temp_mix = nodes.new("ShaderNodeMix")
+    star_temp_mix.location = (3140, -1220)
+    star_temp_mix.data_type = "RGBA"
+    star_temp_mix.blend_type = "MIX"
+    a_sock, b_sock, result_sock = _rgba_sockets(star_temp_mix)
+    links.new(star_warm_rgb.outputs[0], a_sock)
+    links.new(star_cool_rgb.outputs[0], b_sock)
+    links.new(vor1_rand.outputs["Z"], star_temp_mix.inputs["Factor"])
 
     star_tint_mix = nodes.new("ShaderNodeMix")
-    star_tint_mix.location = (3140, -1180)
+    star_tint_mix.location = (3320, -1220)
     star_tint_mix.data_type = "RGBA"
     star_tint_mix.blend_type = "MIX"
-    star_tint_mix.inputs["Factor"].default_value = 0.38
+    star_tint_mix.inputs["Factor"].default_value = 0.25
     a_sock, b_sock, result_sock = _rgba_sockets(star_tint_mix)
-    links.new(star_base_rgb.outputs[0], a_sock)
+    links.new(star_temp_mix.outputs["Result"], a_sock)
     links.new(group_in.outputs["Cloud Light"], b_sock)
 
     star_tint_scale = nodes.new("ShaderNodeVectorMath")
-    star_tint_scale.location = (3320, -1180)
+    star_tint_scale.location = (3500, -1220)
     star_tint_scale.operation = "SCALE"
-    star_tint_scale.inputs["Scale"].default_value = 2.6
+    star_tint_scale.inputs["Scale"].default_value = 6.0
     links.new(star_tint_mix.outputs["Result"], star_tint_scale.inputs["Vector"])
 
     star_mix = nodes.new("ShaderNodeMix")
-    star_mix.location = (3500, -200)
+    star_mix.location = (4040, -200)
     star_mix.data_type = "RGBA"
     star_mix.blend_type = "ADD"
     a_sock, b_sock, result_sock = _rgba_sockets(star_mix)

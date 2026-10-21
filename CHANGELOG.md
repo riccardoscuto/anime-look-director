@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.5 - 2026-10-20
+### Added
+- Dedicated Custom Colors entries for Cloud Shadow, Cloud Mid and Cloud Light.
+  They synchronize to the active preset when Custom Colors is enabled or the
+  palette changes, and they update the world shader independently of Horizon,
+  Sun and Shadow.
+- Three-tier clustered starfield driven by per-cell Voronoi Color hashes:
+  dense stardust (`Star Density * 2.2`), medium constellation stars (`* 0.90`)
+  and soft hero stars (`* 0.38`), with translated grids, random warm/cool
+  temperatures and a 6.0x palette-tinted glow. This fixes the near-invisible
+  v1.0.4 stars caused by one-octave Perlin culling thresholds.
+- World gradient marker 19.
+
 ## 1.0.4 - 2026-10-20
 ### Changed
 - Cloud color is fully independent from Horizon Color: removed the aerial
