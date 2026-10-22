@@ -1,5 +1,48 @@
 # Changelog
 
+## 2.23.0 - 2026-10-22
+The audit plan of the user is applied: the events drive the geometry, the
+clock of a system is real and the diagnostics say why an effect is not
+visible.
+
+### Added
+- `diagnostics.py`: the report of the FX. Every event has a state:
+  `OK`, `NO_GEOMETRY`, `DISABLED`, `MISSING_ATTRIBUTE`, `NON_EMISSIVE`,
+  `HIDDEN`, `FUTURE`, `ENDED`, `OFF_CAMERA`, `OFF_CLIPPING`. The panel shows
+  it in the "Diagnostics" section of the selected event.
+- `preset_dev/fixtures.py` and `preset_dev/diagnose.py`: the temporary
+  fixtures (one meteor, one firework, a scene with an HDRI, a custom
+  compositor and an emissive material) and the report of the FX.
+
+### Changed
+- **The persistent events are the source of truth**. The creation writes the
+  events, the geometry is compiled from them and an update never rewrites
+  them. The identity of a system and of its events is stable.
+- The runtime registry is keyed by the identity of the system: two systems
+  of the same kind never collide.
+- The clock of a system is real: `Timeline` reads the origin frame,
+  `Preview` is independent of the frame and the Burst Age is the director
+  control. The two backends read the same clock.
+- The launchers are the manipulators of the events: they are found by their
+  identity and they survive the rebuild of the geometry.
+- The counts of an event are three different numbers: the primary stars, the
+  stars of the pistil and the child sparks.
+
+### Fixed
+- The velocity was not the derivative of the position: the series of the
+  small drag was wrong.
+- The child sparks did not inherit the trajectory of the parent: they were
+  born away from the star that emitted them.
+- The train of a particle continued to travel along the trajectory of the
+  head after its death. The front of the train is now the last position of
+  the body.
+- The trails did not write the `energy` attribute the material reads: the
+  curves were dark and did not feed the glow.
+- A negative age moved the particles backwards along the trajectory before
+  their birth.
+- The gravity of the scene did not reach the solver: the position and the
+  velocity used the global constant.
+
 ## 2.22.1 - 2026-10-22
 The add-on survives a reload of Blender, and the compliance with the
 operational plan is now a script that can be run at any time.

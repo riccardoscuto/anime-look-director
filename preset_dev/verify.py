@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 22, 1)
+EXPECTED_VERSION = (2, 23, 0)
 TOLERANCE = 1e-4
 
 
@@ -1544,6 +1544,29 @@ def _fx_orphans():
     return count
 
 
+def fx_runtime(scene, kind="fireworks"):
+    """The runtime state of the first system of a kind.
+
+    The registry is keyed by the identity of the system: two systems of the
+    same kind never collide.
+    """
+    from anime_look_director import fx as fx_module
+
+    registry = fx_module.SYSTEMS.get(fx_module._scene_id(scene)) or {}
+    for runtime in registry.values():
+        if runtime and runtime.get("kind") == kind:
+            return runtime
+    return None
+
+
+def fx_runtime_by_uid(scene, uid):
+    """The runtime state of a system, by identity."""
+    from anime_look_director import fx as fx_module
+
+    registry = fx_module.SYSTEMS.get(fx_module._scene_id(scene)) or {}
+    return registry.get(uid)
+
+
 def check_fx(scene):
     """Exercise the deterministic 3D FX architecture."""
     from anime_look_director import compositor as compositor_module
@@ -1663,14 +1686,14 @@ def check_fx_gn_parity(scene):
     fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
     scene.frame_set(12)
     depsgraph = bpy.context.evaluated_depsgraph_get()
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    burst = registry["fireworks"]["bursts"][1]
+    runtime = fx_runtime(scene, "fireworks")
+    burst = runtime["bursts"][1]
     population = burst["population"]
     fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
     time = 12 / fps + float(scene.ald.fx_age)
     powers = fx_module._energy_powers(scene)
     fade = fx_module._atmospheric_fade(scene)
-    camera = registry["fireworks"].get("camera")
+    camera = runtime.get("camera")
 
     def compare(name, particles, label):
         obj = bpy.data.objects.get(name)
@@ -1713,7 +1736,7 @@ def check_fx_gn_meteors(scene):
     fx_module.create_meteors(scene, 3, seed=21, distance=40.0, time=0.6)
     scene.frame_set(20)
     depsgraph = bpy.context.evaluated_depsgraph_get()
-    system = fx_module.SYSTEMS[fx_module._scene_id(scene)]["meteors"]
+    system = fx_runtime(scene, "meteors")
     check(system.get("gn") is True, "the meteors are not evaluated by GN")
     python_objects = [obj for obj in bpy.data.objects
                       if obj.get("ald_fx") and obj.get("ald_fx_kind") == "meteors"
@@ -2116,8 +2139,8 @@ def check_fx_burst_centers(scene):
         fx_module.clear(scene)
         fx_module.create_fireworks(scene, burst_count, seed=3, distance=60.0,
                                    time=0.0)
-        registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-        bursts = registry["fireworks"]["bursts"]
+        runtime = fx_runtime(scene, "fireworks")
+        bursts = runtime["bursts"]
         check(len(bursts) == burst_count,
               "the system holds %d bursts instead of %d"
               % (len(bursts), burst_count))
@@ -2150,8 +2173,8 @@ def check_fx_meteor_timing(scene):
     scene.ald.fx_age = 0.0
     fx_module.clear(scene)
     fx_module.create_meteors(scene, 3, seed=21, distance=40.0, time=0.0)
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    populations = registry["meteors"]["populations"]
+    runtime = fx_runtime(scene, "meteors")
+    populations = runtime["populations"]
     # The components share the same event birth.
     for population in populations:
         head_birth = population["head"]["birth"]
@@ -2467,8 +2490,8 @@ def check_fx_camera_evaluated(scene):
     constraint.target = target
     try:
         fx_module.create_fireworks(scene, 1, seed=3, distance=50.0, time=0.0)
-        registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-        burst = registry["fireworks"]["bursts"][0]
+        runtime = fx_runtime(scene, "fireworks")
+        burst = runtime["bursts"][0]
         origin, forward, up, right = fx_module._camera_basis(scene)
         # The burst point is on the view axis of the evaluated camera.
         delta = Vector(burst["target"]) - origin
@@ -2528,8 +2551,8 @@ def check_fx_kamuro(scene):
     fx_module.clear(scene)
     fx_module.create_fireworks(scene, 1, seed=3, distance=60.0, time=0.0,
                                family="KAMURO")
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    burst = registry["fireworks"]["bursts"][0]
+    runtime = fx_runtime(scene, "fireworks")
+    burst = runtime["bursts"][0]
     check(burst["family"] == "KAMURO", "the Kamuro family was not used")
     check(burst["config"]["spokes"] == fx_module.FAMILY_CONFIG["KAMURO"]
           ["spokes"], "the Kamuro uses another configuration")
@@ -2672,8 +2695,8 @@ def check_fx_event_continuity(scene):
     previous_frame = scene.frame_current
     fx_module.clear(scene)
     fx_module.create_fireworks(scene, 1, seed=9, distance=60.0, time=0.0)
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    burst = registry["fireworks"]["bursts"][0]
+    runtime = fx_runtime(scene, "fireworks")
+    burst = runtime["bursts"][0]
     population = burst["population"]
     gravity = fx_module._gravity(scene)
     launch = Vector(burst["launch"])
@@ -2746,8 +2769,7 @@ def check_fx_bolide(scene):
     previous_frame = scene.frame_current
     fx_module.clear(scene)
     fx_module.create_meteors(scene, 2, seed=21, distance=40.0, time=0.6)
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    normal = registry["meteors"]
+    normal = fx_runtime(scene, "meteors")
     normal_population = normal["populations"][0]
     normal_radius = normal_population["head"]["radius"]
     normal_life = normal_population["head"]["life"]
@@ -2757,8 +2779,7 @@ def check_fx_bolide(scene):
 
     fx_module.create_meteors(scene, 2, seed=21, distance=40.0, time=0.6,
                              kind="BOLIDE")
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    bolide = registry["meteors"]
+    bolide = fx_runtime(scene, "meteors")
     population = bolide["populations"][0]
     check(bolide.get("preset") == "BOLIDE",
           "the bolide preset is not recorded")
@@ -2905,8 +2926,7 @@ def check_fx_meteor_travel(scene):
     previous_frame = scene.frame_current
     fx_module.clear(scene)
     fx_module.create_meteors(scene, 3, seed=21, distance=40.0, time=0.0)
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    system = registry["meteors"]
+    system = fx_runtime(scene, "meteors")
     origin, forward, up, right = fx_module._camera_basis(scene)
     # The movement is mostly lateral: the meteor crosses the frame.
     for population in system["populations"]:

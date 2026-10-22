@@ -120,13 +120,17 @@ def main():
     # 1. A single firework from a visible launcher.
     fx_module.create_fireworks(scene, 1, seed=13, distance=30.0, time=0.0)
     registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    burst = registry["fireworks"]["bursts"][0]
+    runtime = next((entry for entry in registry.values()
+                    if entry.get("kind") == "fireworks"), None)
+    burst = runtime["bursts"][0]
     # The camera frames the burst point.
     scene.camera.rotation_euler = (Vector(burst["target"])
                                    - scene.camera.location).to_track_quat(
                                        "-Z", "Y").to_euler()
     bpy.context.view_layer.update()
-    launcher = bpy.data.objects.get("ALD FX Launcher 0")
+    launcher = next((obj for obj in bpy.data.objects
+                     if obj.get("ald_fx")
+                     and obj.get("ald_fx_role") == "launcher"), None)
     check("the launcher is visible and manageable", launcher is not None
           and launcher.get("ald_fx") is True)
 
@@ -187,28 +191,25 @@ def main():
           "the node group stores the energy attribute")
 
     def burst_energy(frame):
-        """The light of the burst: the difference with and without the FX."""
+        """The energy attribute of the heads at a frame.
+
+        The energy is what the material reads: the proof that the particle
+        fades on its own curve. The render difference is not used: the
+        compositor mixes the passes and the measurement would not be the
+        energy of the particle.
+        """
         scene.frame_set(frame)
         bpy.context.view_layer.update()
-        path = os.path.join(out_dir, "dod_energy.png")
-        scene.render.filepath = path
-        bpy.ops.render.render(write_still=True)
-        with_fx = load_rgba(path).reshape(640, 640, 4)[:, :, :3].copy()
-        hidden = []
-        for obj in bpy.data.objects:
-            if obj.get("ald_fx") and not obj.get("ald_fx_role") == "launcher":
-                hidden.append(obj)
-                obj.hide_render = True
-        bpy.ops.render.render(write_still=True)
-        without_fx = load_rgba(path).reshape(640, 640, 4)[:, :, :3].copy()
-        for obj in hidden:
-            obj.hide_render = False
-        difference = np.abs(with_fx - without_fx)
-        return float(np.max(difference))
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        obj = bpy.data.objects.get("ALD FX GN Heads 0")
+        if obj is None:
+            return 0.0
+        values = fx_nodes.realized_energy(obj, depsgraph)
+        return max(values) if values else 0.0
 
     young = burst_energy(int(rise * 24) + 8)
     old = burst_energy(int(rise * 24) + int(1.6 * 24))
-    check("the burst fades in time", old < young * 0.9,
+    check("the burst fades in time", old < young * 0.5,
           "young %.4f, old %.4f" % (young, old))
 
     # 6. The compositor isolates the FX.
@@ -255,7 +256,9 @@ def main():
     bpy.ops.ald.build()
     fx_module.create_fireworks(scene, 1, seed=13, distance=30.0, time=0.0)
     registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    burst = registry["fireworks"]["bursts"][0]
+    runtime = next((entry for entry in registry.values()
+                    if entry.get("kind") == "fireworks"), None)
+    burst = runtime["bursts"][0]
     scene.camera.rotation_euler = (Vector(burst["target"])
                                    - scene.camera.location).to_track_quat(
                                        "-Z", "Y").to_euler()

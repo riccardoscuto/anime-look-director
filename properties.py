@@ -231,28 +231,21 @@ def _on_fx_backend(self, context):
 
 
 def _on_fx_rebuild(self, context):
-    """Rebuild the FX systems when the composition changes."""
+    """Recompile the FX systems when the composition changes.
+
+    The persistent events are not touched: only the geometry is rebuilt from
+    them.
+    """
     try:
         from . import fx
+        if _in_maintenance(context):
+            return
         scene = context.scene
         config = scene.get("ald_fx_config")
-        if not isinstance(config, dict):
-            fx.update(scene)
-            return
-        config["age"] = self.fx_age
-        scene["ald_fx_config"] = config
-        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
-        time = ((scene.frame_current + scene.frame_subframe)
-                / max(fps, 1e-6) + self.fx_age)
-        if config.get("kind") == "meteors":
-            fx.create_meteors(scene, config.get("count", 4),
-                              config.get("seed", 21),
-                              config.get("distance", 140.0), time)
-        else:
-            fx.create_fireworks(scene, config.get("count", 3),
-                                config.get("seed", 7),
-                                config.get("distance", 110.0), time,
-                                family=config.get("family", "CHRYSANTHEMUM"))
+        if isinstance(config, dict):
+            config["age"] = self.fx_age
+            scene["ald_fx_config"] = config
+        fx.update_all(scene)
     except Exception:
         pass
 
@@ -300,8 +293,12 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
         name="Size", default=1.0, min=0.1, max=4.0,
         description="Scale of the event")
     count: IntProperty(
-        name="Count", default=1, min=1, max=16,
+        name="Bursts", default=1, min=1, max=16,
         description="Number of bursts of the event")
+    spokes: IntProperty(
+        name="Primary Stars", default=0, min=0, max=400,
+        description=("Number of primary stars of the burst. Zero means the "
+                     "default of the family"))
     pistil: IntProperty(
         name="Pistil", default=0, min=0, max=64,
         description="Number of stars of the inner pistil")

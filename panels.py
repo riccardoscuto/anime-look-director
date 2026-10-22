@@ -297,7 +297,7 @@ def draw_fx_launch(layout, context):
         box.label(text="No event selected", icon="INFO")
         return
     col = box.column(align=True)
-    if event.kind == "METEOR":
+    if event.kind in ("METEOR", "BOLIDE"):
         col.prop(event, "direction")
         col.prop(event, "speed")
         col.prop(event, "life")
@@ -324,7 +324,10 @@ def draw_fx_explosion(layout, context):
         col.prop(event, "family")
     col.prop(event, "seed")
     col.prop(event, "size")
-    col.prop(event, "count", text="Primary Count")
+    # The counts are three different numbers: the primary stars, the stars of
+    # the pistil and the child sparks. The burst count is the number of
+    # bursts of the event.
+    col.prop(event, "spokes", text="Primary Stars")
     col.prop(event, "pistil")
     col.prop(event, "sparks")
 
@@ -388,6 +391,31 @@ def draw_scene_actions(layout, context):
         box.label(text="Detached: the look is kept", icon="INFO")
 
 
+def draw_fx_diagnostics(layout, context):
+    """The state of the selected event: why it is or it is not visible."""
+    from . import diagnostics
+
+    system, event = _selected_system(context)
+    box = layout.box()
+    box.label(text="Diagnostics", icon="INFO")
+    if system is None or event is None:
+        box.label(text="No event selected", icon="INFO")
+        return
+    state = diagnostics.event_state(context.scene, system, event)
+    row = box.row(align=True)
+    row.label(text=state["state"], icon="CHECKMARK" if state["state"] == "OK"
+              else "ERROR")
+    if state["reason"]:
+        box.label(text=state["reason"])
+    col = box.column(align=True)
+    col.label(text="Local time %.3f s" % state["local_time"])
+    if state["projected"]:
+        col.label(text="Frame %.2f, %.2f (depth %.1f m)"
+                  % (state["projected"][0], state["projected"][1],
+                     state["projected"][2]))
+    col.label(text="Objects %d" % state["objects"])
+
+
 def draw_fx_actions(layout, context):
     """The FX actions."""
     box = layout.box()
@@ -409,6 +437,7 @@ def draw_fx(layout, context):
     draw_fx_launch(layout, context)
     draw_fx_explosion(layout, context)
     draw_fx_look(layout, context)
+    draw_fx_diagnostics(layout, context)
     draw_fx_advanced(layout, context)
     draw_fx_actions(layout, context)
     draw_scene_actions(layout, context)

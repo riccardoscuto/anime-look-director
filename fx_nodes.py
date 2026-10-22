@@ -37,7 +37,8 @@ TRAIL_GROUP_NAME = "ALD | FX Trail GN"
 
 #: Build marker of the node groups: a group saved with an older marker is
 #: rebuilt and the modifiers are remapped on the new structure.
-SCHEMA = 2
+#: 3: the clock accepts a time override (the preview mode of a system).
+SCHEMA = 3
 
 
 def _math(nodes, links, operation, x, y, location):
@@ -92,11 +93,18 @@ BURST_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
                           "decay_power": "Socket_6", "energy_power": "Socket_7",
                           "camera_position": "Socket_8",
                           "atmospheric_fade": "Socket_9",
-                          "role_energy": "Socket_10"}
+                          "role_energy": "Socket_10",
+                          "time_override": "Socket_11",
+                          "use_time_override": "Socket_12",
+                          "fade_window": "Socket_13"}
 TRAIL_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
                           "material": "Socket_2", "trail": "Socket_3",
                           "age_offset": "Socket_4", "radius": "Socket_5",
-                          "fade_window": "Socket_6"}
+                          "fade_window": "Socket_6",
+                          "time_override": "Socket_7",
+                          "use_time_override": "Socket_8",
+                          "energy_power": "Socket_9",
+                          "role_energy": "Socket_10"}
 
 
 def _motion(nodes, links, group_in):
@@ -116,36 +124,66 @@ def _motion(nodes, links, group_in):
     clock = nodes.new("GeometryNodeInputSceneTime")
     clock.location = (-1700, -140)
 
-    # head_age = scene seconds + age offset - birth
-    time_offset = _math(nodes, links, "ADD", clock.outputs["Seconds"],
-                        group_in.outputs["Age Offset"], (-1520, -180))
-    head_age = _math(nodes, links, "SUBTRACT", time_offset.outputs[0],
-                     birth.outputs["Attribute"], (-1360, -200))
+    # The clock of the system: the scene time, unless the system is in
+    # preview mode: then the time is a fixed value chosen by the user.
+    #   clock = scene_seconds * (1 - use_override) + override * use_override
+    use_override = _math(nodes, links, "MINIMUM", group_in.outputs[
+        "Use Time Override"], None, (-1700, -40))
+    use_override.inputs[1].default_value = 1.0
+    inverse_override = _math(nodes, links, "SUBTRACT", None,
+                             use_override.outputs[0], (-1540, -40))
+    inverse_override.inputs[0].default_value = 1.0
+    scene_seconds = _math(nodes, links, "MULTIPLY", clock.outputs["Seconds"],
+                           inverse_override.outputs[0], (-1380, -100))
+    override_value = _math(nodes, links, "MULTIPLY",
+                            group_in.outputs["Time Override"],
+                            use_override.outputs[0], (-1380, 20))
+    clock_value = _math(nodes, links, "ADD", scene_seconds.outputs[0],
+                        override_value.outputs[0], (-1220, -60))
 
-    # The trail scales with the age, exactly like the Python solver:
-    # trail_time = min(age, trail). Once the body dies the train retracts:
-    # train_time = max(0, min(age, trail) - (age - life)).
+    # head_age = the clock of the system + age offset - birth
+    time_offset = _math(nodes, links, "ADD", clock_value.outputs[0],
+                        group_in.outputs["Age Offset"], (-1060, -180))
+    head_age = _math(nodes, links, "SUBTRACT", time_offset.outputs[0],
+                     birth.outputs["Attribute"], (-900, -200))
+
+    # The train never runs ahead of the body: the front of the train is the
+    # last position of the body, not the current time. After the body dies
+    # no new sample is born along the trajectory: the residuals fade, they
+    # do not travel.
+    #   front   = clamp(head_age, 0, life - fade_window)
+    #   train   = min(front, trail)
+    #   tau_eff = tau * train / trail
+    #   sample_age = front - tau_eff
     trail_safe = _math(nodes, links, "MAXIMUM", group_in.outputs["Trail"], None,
                        (-1360, -320))
     trail_safe.inputs[1].default_value = 0.0001
-    trail_clamped = _math(nodes, links, "MINIMUM", head_age.outputs[0],
-                          group_in.outputs["Trail"], (-1200, -320))
-    overshoot = _math(nodes, links, "SUBTRACT", head_age.outputs[0],
-                      life.outputs["Attribute"], (-1200, -440))
-    overshoot_pos = _math(nodes, links, "MAXIMUM", overshoot.outputs[0], None,
-                          (-1040, -440))
-    overshoot_pos.inputs[1].default_value = 0.0
-    train_time = _math(nodes, links, "SUBTRACT", trail_clamped.outputs[0],
-                       overshoot_pos.outputs[0], (-880, -360))
-    train_time_pos = _math(nodes, links, "MAXIMUM", train_time.outputs[0], None,
-                           (-760, -360))
-    train_time_pos.inputs[1].default_value = 0.0
-    trail_scale = _math(nodes, links, "DIVIDE", train_time_pos.outputs[0],
+    fade_window = _math(nodes, links, "MAXIMUM", group_in.outputs[
+        "Fade Window"], None, (-1360, -420))
+    fade_window.inputs[1].default_value = 0.0
+    burn_life = _math(nodes, links, "SUBTRACT", life.outputs["Attribute"],
+                      fade_window.outputs[0], (-1360, -500))
+    head_age_pos = _math(nodes, links, "MAXIMUM", head_age.outputs[0], None,
+                         (-1200, -240))
+    head_age_pos.inputs[1].default_value = 0.0
+    front = _math(nodes, links, "MINIMUM", head_age_pos.outputs[0],
+                  burn_life.outputs[0], (-1040, -280))
+    front_pos = _math(nodes, links, "MAXIMUM", front.outputs[0], None,
+                      (-880, -280))
+    front_pos.inputs[1].default_value = 0.0
+    train_time = _math(nodes, links, "MINIMUM", front_pos.outputs[0],
+                       trail_safe.outputs[0], (-760, -360))
+    trail_scale = _math(nodes, links, "DIVIDE", train_time.outputs[0],
                         trail_safe.outputs[0], (-620, -360))
     tau_eff = _math(nodes, links, "MULTIPLY", tau.outputs["Attribute"],
                     trail_scale.outputs[0], (-460, -380))
-    sample_age = _math(nodes, links, "SUBTRACT", head_age.outputs[0],
+    sample_age = _math(nodes, links, "SUBTRACT", front_pos.outputs[0],
                        tau_eff.outputs[0], (-300, -280))
+    # A negative age is a sample that is not born yet: the evaluation is
+    # clamped, so the position never leaves the trajectory.
+    sample_age_pos = _math(nodes, links, "MAXIMUM", sample_age.outputs[0],
+                           None, (-140, -280))
+    sample_age_pos.inputs[1].default_value = 0.0
 
     k = _math(nodes, links, "MAXIMUM", drag.outputs["Attribute"], None,
               (-560, -520))
@@ -154,8 +192,8 @@ def _motion(nodes, links, group_in):
     inv_k.inputs[0].default_value = 1.0
     links.new(k.outputs[0], inv_k.inputs[1])
 
-    k_age = _math(nodes, links, "MULTIPLY", k.outputs[0], sample_age.outputs[0],
-                  (-240, -500))
+    k_age = _math(nodes, links, "MULTIPLY", k.outputs[0],
+                  sample_age_pos.outputs[0], (-240, -500))
     neg_k_age = _math(nodes, links, "MULTIPLY", k_age.outputs[0], None,
                       (-80, -500))
     neg_k_age.inputs[1].default_value = -1.0
@@ -188,13 +226,13 @@ def _motion(nodes, links, group_in):
     ballistic = _math(nodes, links, "LESS_THAN", drag.outputs["Attribute"],
                       None, (240, -1040))
     ballistic.inputs[1].default_value = 0.0001
-    age_squared = _math(nodes, links, "MULTIPLY", sample_age.outputs[0],
-                        sample_age.outputs[0], (240, -1160))
+    age_squared = _math(nodes, links, "MULTIPLY", sample_age_pos.outputs[0],
+                        sample_age_pos.outputs[0], (240, -1160))
     half_gravity = _math(nodes, links, "MULTIPLY", age_squared.outputs[0], None,
                          (400, -1160))
     half_gravity.inputs[1].default_value = 0.5
     vel_age = _vector(nodes, links, "SCALE", vel.outputs["Attribute"], None,
-                      (400, -1280), scale=sample_age.outputs[0])
+                      (400, -1280), scale=sample_age_pos.outputs[0])
     gravity_term = _vector(nodes, links, "SCALE", group_in.outputs["Gravity"],
                            None, (560, -1160), scale=half_gravity.outputs[0])
     ballistic_offset = _vector(nodes, links, "ADD", vel_age.outputs["Vector"],
@@ -215,7 +253,7 @@ def _motion(nodes, links, group_in):
     position_jitter = _vector(nodes, links, "ADD", mixed_position.outputs["Vector"],
                               jitter.outputs["Attribute"], (1000, -860))
     return {"position": position_jitter.outputs["Vector"],
-            "sample_age": sample_age.outputs[0],
+            "sample_age": sample_age_pos.outputs[0],
             "head_age": head_age.outputs[0],
             "life": life.outputs["Attribute"]}
 
@@ -282,6 +320,9 @@ def _create_burst_group():
         ("Camera Position", "NodeSocketVector", None),
         ("Atmospheric Fade", "NodeSocketFloat", 0.0),
         ("Role Energy", "NodeSocketFloat", 1.0),
+        ("Time Override", "NodeSocketFloat", 0.0),
+        ("Use Time Override", "NodeSocketFloat", 0.0),
+        ("Fade Window", "NodeSocketFloat", 0.0),
     ))
     ng["ald_fx"] = True
     nodes = ng.nodes
@@ -451,6 +492,10 @@ def _create_trail_group():
         ("Age Offset", "NodeSocketFloat", 0.0),
         ("Radius", "NodeSocketFloat", 0.02),
         ("Fade Window", "NodeSocketFloat", 0.0),
+        ("Time Override", "NodeSocketFloat", 0.0),
+        ("Use Time Override", "NodeSocketFloat", 0.0),
+        ("Energy Power", "NodeSocketFloat", 1.0),
+        ("Role Energy", "NodeSocketFloat", 1.0),
     ))
     ng["ald_fx"] = True
     nodes = ng.nodes
@@ -465,6 +510,7 @@ def _create_trail_group():
     rad = _attribute(nodes, links, "radius", "FLOAT", (-1700, -760))
     curve_id = _attribute(nodes, links, "curve_id", "INT", (-1700, -1160))
     weight = _attribute(nodes, links, "weight", "FLOAT", (-1700, -1260))
+    tau_attr = _attribute(nodes, links, "tau", "FLOAT", (-1700, -860))
 
     set_pos = nodes.new("GeometryNodeSetPosition")
     set_pos.location = (420, -200)
@@ -476,7 +522,9 @@ def _create_trail_group():
     unborn = _math(nodes, links, "LESS_THAN", motion["sample_age"], None,
                    (420, -420))
     unborn.inputs[1].default_value = 0.0
-    dead = _math(nodes, links, "GREATER_THAN", motion["sample_age"],
+    # The train dies with the body: the front of the train is frozen when
+    # the body is dead, the residuals only fade.
+    dead = _math(nodes, links, "GREATER_THAN", motion["head_age"],
                  motion["life"], (420, -520))
     no_fade = _math(nodes, links, "LESS_THAN", group_in.outputs["Fade Window"],
                     None, (420, -620))
@@ -525,6 +573,56 @@ def _create_trail_group():
     links.new(to_curves.outputs["Curves"], set_radius.inputs["Curve"])
     links.new(radius_scaled.outputs[0], set_radius.inputs["Radius"])
 
+    # The energy of the trail: the material reads the attribute, so the
+    # curve must write it. Without it the shader reads nothing and the
+    # train stays dark.
+    head_frac = _math(nodes, links, "DIVIDE", motion["head_age"],
+                      motion["life"], (620, -960))
+    head_frac_low = _math(nodes, links, "MAXIMUM", head_frac.outputs[0], None,
+                          (780, -960))
+    head_frac_low.inputs[1].default_value = 0.0
+    head_frac_clamped = _math(nodes, links, "MINIMUM", head_frac_low.outputs[0],
+                              None, (940, -960))
+    head_frac_clamped.inputs[1].default_value = 1.0
+    one_minus = _math(nodes, links, "SUBTRACT", None,
+                      head_frac_clamped.outputs[0], (1100, -960))
+    one_minus.inputs[0].default_value = 1.0
+    energy = _math(nodes, links, "POWER", one_minus.outputs[0],
+                   group_in.outputs["Energy Power"], (1260, -960))
+    role_energy = _math(nodes, links, "MULTIPLY", energy.outputs[0],
+                         group_in.outputs["Role Energy"], (1420, -960))
+    energy_store = nodes.new("GeometryNodeStoreNamedAttribute")
+    energy_store.location = (1240, -200)
+    energy_store.data_type = "FLOAT"
+    energy_store.domain = "POINT"
+    energy_store.inputs["Name"].default_value = "energy"
+    links.new(set_radius.outputs["Curve"], energy_store.inputs["Geometry"])
+    links.new(role_energy.outputs[0], energy_store.inputs["Value"])
+
+    age_store = nodes.new("GeometryNodeStoreNamedAttribute")
+    age_store.location = (1400, -140)
+    age_store.data_type = "FLOAT"
+    age_store.domain = "POINT"
+    age_store.inputs["Name"].default_value = "age_norm"
+    links.new(energy_store.outputs["Geometry"], age_store.inputs["Geometry"])
+    links.new(head_frac_clamped.outputs[0], age_store.inputs["Value"])
+
+    trail_ratio = _math(nodes, links, "DIVIDE", tau_attr.outputs["Attribute"],
+                        group_in.outputs["Trail"], (620, -1360))
+    trail_profile = _math(nodes, links, "SUBTRACT", None,
+                          trail_ratio.outputs[0], (780, -1360))
+    trail_profile.inputs[0].default_value = 1.0
+    trail_clamped = _math(nodes, links, "MAXIMUM", trail_profile.outputs[0], None,
+                          (940, -1360))
+    trail_clamped.inputs[1].default_value = 0.0
+    trail_store = nodes.new("GeometryNodeStoreNamedAttribute")
+    trail_store.location = (1560, -200)
+    trail_store.data_type = "FLOAT"
+    trail_store.domain = "POINT"
+    trail_store.inputs["Name"].default_value = "trail_u"
+    links.new(age_store.outputs["Geometry"], trail_store.inputs["Geometry"])
+    links.new(trail_clamped.outputs[0], trail_store.inputs["Value"])
+
     circle = nodes.new("GeometryNodeCurvePrimitiveCircle")
     circle.location = (1420, -520)
     if "Resolution" in circle.inputs:
@@ -532,14 +630,14 @@ def _create_trail_group():
     links.new(group_in.outputs["Radius"], circle.inputs["Radius"])
 
     curve_to_mesh = nodes.new("GeometryNodeCurveToMesh")
-    curve_to_mesh.location = (1600, -200)
-    links.new(set_radius.outputs["Curve"], curve_to_mesh.inputs["Curve"])
+    curve_to_mesh.location = (1720, -200)
+    links.new(trail_store.outputs["Geometry"], curve_to_mesh.inputs["Curve"])
     links.new(circle.outputs["Curve"], curve_to_mesh.inputs["Profile Curve"])
     if "Fill Caps" in curve_to_mesh.inputs:
         curve_to_mesh.inputs["Fill Caps"].default_value = True
 
     set_material = nodes.new("GeometryNodeSetMaterial")
-    set_material.location = (1760, -200)
+    set_material.location = (1880, -200)
     links.new(curve_to_mesh.outputs["Mesh"], set_material.inputs["Geometry"])
     links.new(group_in.outputs["Material"], set_material.inputs["Material"])
 
@@ -550,7 +648,8 @@ def _create_trail_group():
 def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
                           age_offset=0.0, min_scale=0.35, decay_power=1.0,
                           energy_power=1.0, camera_position=None,
-                          atmospheric_fade=0.0, role_energy=1.0):
+                          atmospheric_fade=0.0, role_energy=1.0,
+                          time_override=0.0, use_time_override=0.0):
     """Add the burst modifier to a points object and set its inputs."""
     modifier = obj.modifiers.new("ALD FX Burst", "NODES")
     modifier.node_group = group
@@ -565,6 +664,8 @@ def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
                                                  (0.0, 0.0, 0.0))
     modifier[sockets["atmospheric_fade"]] = float(atmospheric_fade)
     modifier[sockets["role_energy"]] = float(role_energy)
+    modifier[sockets["time_override"]] = float(time_override)
+    modifier[sockets["use_time_override"]] = float(use_time_override)
     return modifier
 
 
@@ -594,7 +695,9 @@ def set_look(obj, energy_power=None, camera_position=None,
 
 
 def attach_trail_modifier(obj, group, sockets, gravity, material, trail=0.0,
-                          age_offset=0.0, radius=0.02, fade_window=0.0):
+                          age_offset=0.0, radius=0.02, fade_window=0.0,
+                          time_override=0.0, use_time_override=0.0,
+                          energy_power=1.0, role_energy=1.0):
     """Add the trail modifier to a points object and set its inputs."""
     modifier = obj.modifiers.new("ALD FX Trail", "NODES")
     modifier.node_group = group
@@ -604,6 +707,10 @@ def attach_trail_modifier(obj, group, sockets, gravity, material, trail=0.0,
     modifier[sockets["age_offset"]] = float(age_offset)
     modifier[sockets["radius"]] = float(radius)
     modifier[sockets["fade_window"]] = float(fade_window)
+    modifier[sockets["time_override"]] = float(time_override)
+    modifier[sockets["use_time_override"]] = float(use_time_override)
+    modifier[sockets["energy_power"]] = float(energy_power)
+    modifier[sockets["role_energy"]] = float(role_energy)
     return modifier
 
 
@@ -625,6 +732,34 @@ def set_age_offset(obj, age):
         identifier = _socket_ids(group, defaults)["age_offset"]
         if identifier in modifier:
             modifier[identifier] = float(age)
+    return True
+
+
+def set_clock(obj, age_offset, time_override=None, use_time_override=None):
+    """Write the clock of a system on the modifiers of an object.
+
+    The geometry is not rebuilt: the node group reads the clock every frame.
+    """
+    for modifier in obj.modifiers:
+        if modifier.type != "NODES" or modifier.node_group is None:
+            continue
+        group = modifier.node_group
+        if group.name == GROUP_NAME:
+            defaults = BURST_SOCKET_DEFAULTS
+        elif group.name == TRAIL_GROUP_NAME:
+            defaults = TRAIL_SOCKET_DEFAULTS
+        else:
+            continue
+        identifiers = _socket_ids(group, defaults)
+        if identifiers["age_offset"] in modifier:
+            modifier[identifiers["age_offset"]] = float(age_offset)
+        if time_override is not None:
+            if identifiers["time_override"] in modifier:
+                modifier[identifiers["time_override"]] = float(time_override)
+        if use_time_override is not None:
+            if identifiers["use_time_override"] in modifier:
+                modifier[identifiers["use_time_override"]] = float(
+                    use_time_override)
     return True
 
 
@@ -678,3 +813,40 @@ def realized_instances(obj, depsgraph):
 def realized_centers(obj, depsgraph):
     """Evaluate the group and return the centre of every instance."""
     return [center for center, _radius in realized_instances(obj, depsgraph)]
+
+
+def realized_energy(obj, depsgraph):
+    """Evaluate the group and return the energy attribute of every instance.
+
+    The energy is the attribute the material reads: it is the proof that the
+    particle fades on its own curve and not only with its size.
+    """
+    group = bpy.data.node_groups.get(GROUP_NAME)
+    if group is None:
+        return []
+    output = next((node for node in group.nodes
+                   if node.bl_idname == "NodeGroupOutput"), None)
+    if output is None:
+        return []
+    socket = output.inputs["Geometry"]
+    source = socket.links[0].from_socket if socket.links else None
+    if source is None:
+        return []
+    realize = group.nodes.new("GeometryNodeRealizeInstances")
+    group.links.new(source, realize.inputs["Geometry"])
+    group.links.new(realize.outputs["Geometry"], socket)
+    try:
+        obj.update_tag()
+        depsgraph.update()
+        evaluated = obj.evaluated_get(depsgraph)
+        mesh = evaluated.to_mesh()
+        attribute = mesh.attributes.get("energy")
+        values = []
+        if attribute is not None:
+            for index in range(len(attribute.data)):
+                values.append(float(attribute.data[index].value))
+        evaluated.to_mesh_clear()
+        return values
+    finally:
+        group.nodes.remove(realize)
+        group.links.new(source, socket)

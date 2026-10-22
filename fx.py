@@ -192,9 +192,18 @@ def _collection(scene):
     return coll
 
 
-def _material(name, color, strength):
-    key = "%s|%.3f|%.3f|%.3f|%.2f" % (name, color[0], color[1], color[2],
-                                        strength)
+def _material(name, color, strength, instancer=False):
+    """The material of the particles.
+
+    The energy is read from an attribute. The type of the attribute was
+    verified in the runtime: the point attributes of the instancer reach the
+    instances as geometry attributes, and the geometry lookup is the one
+    that returns the value in both backends (the instancer lookup returns a
+    constant). The flag is kept for the experiments.
+    """
+    suffix = ""
+    key = "%s%s|%.3f|%.3f|%.3f|%.2f" % (name, suffix, color[0], color[1],
+                                         color[2], strength)
     mat = bpy.data.materials.get(key)
     if mat is not None:
         return mat
@@ -208,16 +217,16 @@ def _material(name, color, strength):
         if "Emission Color" in bsdf.inputs:
             bsdf.inputs["Emission Color"].default_value = rgba
             bsdf.inputs["Emission Strength"].default_value = strength
-            _bind_energy(mat, bsdf, strength)
+            _bind_energy(mat, bsdf, strength, instancer)
         elif "Emission" in bsdf.inputs:
             bsdf.inputs["Emission"].default_value = rgba
             bsdf.inputs["Emission Strength"].default_value = strength
-            _bind_energy(mat, bsdf, strength)
+            _bind_energy(mat, bsdf, strength, instancer)
         bsdf.inputs["Roughness"].default_value = 0.4
     return mat
 
 
-def _bind_energy(mat, bsdf, strength):
+def _bind_energy(mat, bsdf, strength, instancer=False):
     """Drive the emission strength with the per particle energy attribute.
 
     The geometry scale and the emissive energy are two different curves: the
@@ -226,6 +235,8 @@ def _bind_energy(mat, bsdf, strength):
     node_tree = mat.node_tree
     attribute = node_tree.nodes.new("ShaderNodeAttribute")
     attribute.attribute_name = "energy"
+    if hasattr(attribute, "attribute_type"):
+        attribute.attribute_type = "GEOMETRY"
     attribute.location = (-520, -160)
     multiply = node_tree.nodes.new("ShaderNodeMath")
     multiply.operation = "MULTIPLY"
@@ -276,7 +287,8 @@ def _event_color(particle):
 def _gn_points_object(scene, name, material, particles, trail=0.0,
                       age_offset=0.0, min_scale=0.35, decay_power=1.0,
                       energy_power=1.0, gravity=None, camera_position=None,
-                      atmospheric_fade=0.0, role_energy=1.0):
+                      atmospheric_fade=0.0, role_energy=1.0,
+                      time_override=0.0, use_time_override=0.0):
     """Build a points object whose motion is evaluated by Geometry Nodes."""
     from . import fx_nodes
     count = len(particles)
@@ -321,7 +333,9 @@ def _gn_points_object(scene, name, material, particles, trail=0.0,
                                    energy_power=energy_power,
                                    camera_position=camera_position,
                                    atmospheric_fade=atmospheric_fade,
-                                   role_energy=role_energy)
+                                   role_energy=role_energy,
+                                   time_override=time_override,
+                                   use_time_override=use_time_override)
     return obj
 
 
@@ -337,7 +351,8 @@ def _gn_star_data(seed, index, config, spoke, spoke_count):
 
 def _particle(birth, life, drag, radius, vel, pos0, tau=0.0, jitter=None,
               use_decay=1.0, min_scale=0.35, decay_power=1.0, energy_power=1.0,
-              role="head", spoke=0, trail=0.0, color=None):
+              role="head", spoke=0, trail=0.0, color=None, gravity=None,
+              persistence=0.0):
     """One deterministic particle: the data shared by both backends."""
     return {
         "birth": float(birth), "life": float(life), "drag": float(drag),
@@ -347,6 +362,8 @@ def _particle(birth, life, drag, radius, vel, pos0, tau=0.0, jitter=None,
         "decay_power": float(decay_power),
         "energy_power": float(energy_power), "role": role, "spoke": int(spoke),
         "trail": float(trail), "color": tuple(color) if color else None,
+        "gravity": Vector(gravity) if gravity is not None else GRAVITY.copy(),
+        "persistence": float(persistence),
     }
 
 
@@ -366,7 +383,8 @@ def shell_population(launch, v0, drag, birth, rise_time, size_scale,
 
 
 def burst_population(seed, index, config, birth, center, size_scale,
-                     spoke_count, shell_velocity=None, colors=None):
+                     spoke_count, shell_velocity=None, colors=None,
+                     gravity=None):
     """Deterministic initial conditions of one burst.
 
     The same data feeds the Geometry Nodes attributes and the Python writer:
@@ -377,6 +395,7 @@ def burst_population(seed, index, config, birth, center, size_scale,
     palette = colors or ((1.0, 1.0, 1.0),) * 3
     inherit = Vector(shell_velocity) if shell_velocity is not None \
         else Vector((0.0, 0.0, 0.0))
+    gravity = GRAVITY if gravity is None else Vector(gravity)
     heads = []
     grains = []
     trail = []
@@ -386,7 +405,7 @@ def burst_population(seed, index, config, birth, center, size_scale,
         slot = spoke % 3
         heads.append(_particle(birth, life, config["drag"],
                                0.13 * size_scale, v0, center, role="head",
-                               spoke=spoke, color=palette[0]))
+                               spoke=spoke, color=palette[0], gravity=gravity))
         for step in range(SAMPLES):
             profile = step / (SAMPLES - 1.0)
             tau = config["trail"] * (1.0 - profile)
@@ -404,12 +423,14 @@ def burst_population(seed, index, config, birth, center, size_scale,
                 birth, life, config["drag"],
                 0.05 * size_scale * (0.25 + 0.75 * profile) * grain, v0, center,
                 tau=tau, jitter=jitter, use_decay=0.0, role="grain",
-                spoke=spoke, trail=config["trail"], color=palette[slot]))
+                spoke=spoke, trail=config["trail"], color=palette[slot],
+                gravity=gravity))
             trail.append(_particle(
                 birth, life, config["drag"],
                 0.25 + 0.9 * profile ** 1.4, v0, center, tau=tau,
                 use_decay=0.0, role="filament", spoke=spoke,
-                trail=config["trail"], color=palette[slot]))
+                trail=config["trail"], color=palette[slot],
+                gravity=gravity))
 
     pistil = []
     pistil_grains = []
@@ -425,7 +446,8 @@ def burst_population(seed, index, config, birth, center, size_scale,
         v0 = v0 + inherit
         drag = config["drag"] * 1.2
         pistil.append(_particle(birth, life, drag, 0.10 * size_scale, v0, center,
-                                role="pistil", color=palette[1]))
+                                role="pistil", color=palette[1],
+                                gravity=gravity))
         for step in range(SAMPLES):
             profile = step / (SAMPLES - 1.0)
             pistil_grains.append(_particle(
@@ -433,20 +455,26 @@ def burst_population(seed, index, config, birth, center, size_scale,
                 0.028 * size_scale * (0.25 + 0.75 * profile), v0, center,
                 tau=config["trail"] * 0.6 * (1.0 - profile), use_decay=0.0,
                 role="pistil_grain", trail=config["trail"] * 0.6,
-                color=palette[1]))
+                color=palette[1], gravity=gravity))
 
     sparks = []
     for spoke in range(spoke_count):
         life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
+        # The star inherits the residual velocity of the rising shell: the
+        # child sparks inherit the same one, so the whole burst continues
+        # the motion of the shell.
+        star_v0 = v0 + inherit
         for child in range(config["sparks"]):
             emit = _hash_range(seed, index, spoke * 8 + child, 4, 0.05,
                                life * 0.55)
             child_life = _hash_range(seed, index, spoke * 8 + child, 5, 0.45,
                                      1.5)
             # The origin is fixed at the emission instant: the spark is a
-            # body of its own, not a particle of a moving source.
-            parent_pos = _position(center, v0, config["drag"], emit)
-            parent_vel = _velocity(v0, config["drag"], emit)
+            # body of its own, not a particle of a moving source. The
+            # position and the velocity of the parent are the ones of the
+            # star, with the residual velocity of the shell.
+            parent_pos = _position(center, star_v0, config["drag"], emit)
+            parent_vel = _velocity(star_v0, config["drag"], emit)
             perturb = Vector((
                 _hash_range(seed, index, spoke * 8 + child, 6, -1.6, 1.6),
                 _hash_range(seed, index, spoke * 8 + child, 7, -1.6, 1.6),
@@ -455,11 +483,12 @@ def burst_population(seed, index, config, birth, center, size_scale,
             sparks.append(_particle(
                 birth + emit, child_life, 2.4, 0.045 * size_scale,
                 parent_vel * 0.35 + perturb, parent_pos, min_scale=0.0,
-                role="spark", color=palette[2]))
+                role="spark", color=palette[2], gravity=gravity))
 
     flash = [_particle(birth, config["core"], 100.0, 0.25 * size_scale,
                         Vector((0.0, 0.0, 0.0)), center, min_scale=0.0,
-                        decay_power=0.5, role="flash", color=palette[1])]
+                        decay_power=0.5, role="flash", color=palette[1],
+                        gravity=gravity)]
     return {"heads": heads, "grains": grains, "trail": trail,
             "pistil": pistil, "pistil_grains": pistil_grains,
             "sparks": sparks, "flash": flash}
@@ -489,22 +518,26 @@ def _particle_state(particle, time, powers=None, fade=0.0, camera=None):
     """Evaluate one particle: position, scale, energy and alive flag."""
     age = time - particle["birth"]
     life = max(particle["life"], 1e-3)
-    # The trail window: the sample is an older point of the same trajectory.
+    gravity = particle.get("gravity", GRAVITY)
+    # The train never runs ahead of the body: the front of the train is the
+    # last position of the body. After the body dies no new sample is born
+    # along the trajectory: the residuals fade, they do not travel.
+    persistence = float(particle.get("persistence", 0.0))
+    front = min(max(age, 0.0), max(life - persistence, 0.0))
     window = particle.get("trail", 0.0)
     if window > 0.0:
-        train = max(0.0, min(max(age, 0.0), window)
-                    - max(0.0, age - particle["life"]))
+        train = min(front, window)
         tau = particle["tau"] * (train / window)
     else:
         tau = 0.0
-    sample_age = age - tau
+    sample_age = front - tau
     alive = 0.0 <= age <= particle["life"] and sample_age >= 0.0
     u = min(max(age / life, 0.0), 1.0)
     if sample_age <= 0.0:
         position = particle["pos0"].copy()
     else:
         position = _position(particle["pos0"], particle["vel"],
-                             particle["drag"], sample_age)
+                             particle["drag"], sample_age, gravity)
     position = position + particle["jitter"]
     minimum = particle["min_scale"]
     shape = minimum + (1.0 - minimum) * (1.0 - u) ** particle["decay_power"]
@@ -542,7 +575,9 @@ def _population_trail(population, role, slot=None):
 
 
 def _gn_trail_object(scene, name, material, particles, trail=0.0,
-                     age_offset=0.0, radius=0.02, fade_window=0.0):
+                     age_offset=0.0, radius=0.02, fade_window=0.0,
+                     time_override=0.0, use_time_override=0.0,
+                     energy_power=1.0, role_energy=1.0):
     """Build a curve object whose motion is evaluated by Geometry Nodes."""
     from . import fx_nodes
     count = len(particles)
@@ -578,7 +613,11 @@ def _gn_trail_object(scene, name, material, particles, trail=0.0,
     group, sockets = fx_nodes.build_trail_group()
     fx_nodes.attach_trail_modifier(obj, group, sockets, GRAVITY, material,
                                    trail=trail, age_offset=age_offset,
-                                   radius=radius, fade_window=fade_window)
+                                   radius=radius, fade_window=fade_window,
+                                   time_override=time_override,
+                                   use_time_override=use_time_override,
+                                   energy_power=energy_power,
+                                   role_energy=role_energy)
     return obj
 
 
@@ -627,15 +666,30 @@ def _launch_point(origin, forward, up, right, target):
     return Vector(target) - Vector((0.0, 0.0, 26.0))
 
 
-def _launcher_empty(scene, index, position):
+def _launcher_empty(scene, index, position, system=None, event=None):
     """The visible launcher of a burst: an empty the user can grab.
 
-    The position of the empty is the origin of the shell: moving it moves the
-    shot, and the build reads it back.
+    The empty is the manipulator of the persistent event: it carries the
+    identity of the system and of the event, so it is never searched by a
+    global name (two scenes, two systems: the same name would collide) and
+    it is never removed by an update of the geometry.
     """
-    name = "ALD FX Launcher %d" % index
-    empty = bpy.data.objects.get(name)
+    empty = None
+    system_uid = system.uid if system is not None else ""
+    event_uid = event.uid if event is not None else ""
+    for candidate in _collection(scene).objects:
+        if not candidate.get("ald_fx"):
+            continue
+        if candidate.get("ald_fx_role") != "launcher":
+            continue
+        if candidate.get("ald_fx_system") != system_uid:
+            continue
+        if candidate.get("ald_fx_event") != event_uid:
+            continue
+        empty = candidate
+        break
     if empty is None:
+        name = "ALD FX Launcher %s %d" % (system_uid[:6] or "new", index)
         empty = bpy.data.objects.new(name, None)
         empty.empty_display_type = "SPHERE"
         empty.empty_display_size = 1.2
@@ -644,8 +698,61 @@ def _launcher_empty(scene, index, position):
     empty["ald_fx_kind"] = "fireworks"
     empty["ald_fx_role"] = "launcher"
     empty["ald_fx_index"] = index
-    empty.location = position
+    if system is not None:
+        empty["ald_fx_system"] = system_uid
+    if event is not None:
+        empty["ald_fx_event"] = event_uid
+    if position is not None:
+        empty.location = Vector(position)
     return empty
+
+
+def _empty_position(empty):
+    """The world position of a manipulator.
+
+    The local transform is always up to date, the matrix is not.
+    """
+    if empty is None:
+        return None
+    if empty.parent is None:
+        return empty.location.copy()
+    return empty.matrix_world.translation.copy()
+
+
+def _fps(scene):
+    """The effective frame rate of the scene."""
+    return max(scene.render.fps / max(scene.render.fps_base, 1e-6), 1e-6)
+
+
+def system_clock(scene, system=None):
+    """The clock of a system: the offset and the override of the group.
+
+    Timeline: the local time is ``(frame - origin_frame) / fps``.
+    Preview: the local time is the value chosen by the user and it does not
+    depend on the frame.
+    The Burst Age is the director control: it shifts every system.
+    """
+    age = _age_offset(scene)
+    mode = getattr(system, "timing_mode", "TIMELINE") if system else "TIMELINE"
+    if mode == "PREVIEW":
+        return {"age_offset": 0.0,
+                "override": float(getattr(system, "origin_time", 0.0)) + age,
+                "use_override": 1.0}
+    origin_frame = float(getattr(system, "origin_frame", 1.0)) if system else 1.0
+    # The Scene Time node counts the frames from the first one: the offset
+    # of the group compensates the origin frame of the system.
+    return {"age_offset": age - origin_frame / _fps(scene),
+            "override": 0.0, "use_override": 0.0}
+
+
+def system_time(scene, system=None):
+    """The local time of a system, in seconds."""
+    clock = system_clock(scene, system)
+    if clock["use_override"] > 0.5:
+        return clock["override"]
+    origin_frame = float(getattr(system, "origin_frame", 1.0)) if system else 1.0
+    return (scene.frame_current + scene.frame_subframe - origin_frame) \
+        / _fps(scene) + _age_offset(scene)
 
 
 def _rise_time(scene, index):
@@ -745,7 +852,7 @@ def _star_state(seed, index, spoke, count, config, age, speed_scale=1.0,
     return direction, life, v0, alive
 
 
-def _position(p0, v0, drag, age):
+def _position(p0, v0, drag, age, gravity=None):
     """Position at ``age`` seconds with linear drag and world gravity.
 
     The closed form ``p0 + v_inf a + (v0 - v_inf) A`` cancels two large
@@ -753,32 +860,41 @@ def _position(p0, v0, drag, age):
 
         p = p0 + v0 A + g (a - A) / k,  A = (1 - e^(-k a)) / k
 
-    with a series expansion of A for the small ``k a``.
+    with a series expansion of A for the small ``k a``. The gravity is the
+    one of the context: the scene and the event must not disagree.
     """
+    gravity = GRAVITY if gravity is None else Vector(gravity)
     if age <= 0.0:
         return p0.copy()
     if drag < 1e-6:
-        return p0 + v0 * age + 0.5 * GRAVITY * (age * age)
+        return p0 + v0 * age + 0.5 * gravity * (age * age)
     x = drag * age
     if x < 1e-3:
         # A = a (1 - x/2 + x^2/6 - x^3/24) and (a - A)/k = a^2 (1/2 - x/6).
         factor = age * (1.0 - x * (0.5 - x * (1.0 / 6.0 - x / 24.0)))
         gravity_term = age * age * (0.5 - x * (1.0 / 6.0 - x / 24.0))
-        return p0 + v0 * factor + GRAVITY * gravity_term
+        return p0 + v0 * factor + gravity * gravity_term
     factor = -math.expm1(-x) / drag
-    return p0 + v0 * factor + GRAVITY * (age - factor) / drag
+    return p0 + v0 * factor + gravity * (age - factor) / drag
 
 
-def _velocity(v0, drag, age):
-    """The velocity at ``age`` seconds, in the stable form."""
+def _velocity(v0, drag, age, gravity=None):
+    """The velocity at ``age`` seconds, in the stable form.
+
+    The velocity is the derivative of the position: the decay of the initial
+    velocity is ``exp(-x)``, not the expansion of A. The series is
+
+        exp(-x) = 1 - x + x^2/2 - x^3/6
+    """
+    gravity = GRAVITY if gravity is None else Vector(gravity)
     if drag < 1e-6:
-        return v0 + GRAVITY * age
+        return v0 + gravity * age
     x = drag * age
     if x < 1e-3:
-        decay = 1.0 - x * (0.5 - x * (1.0 / 6.0))
-        return v0 * decay + GRAVITY * age * (1.0 - x * 0.5)
+        decay = 1.0 - x * (1.0 - x * 0.5)
+        return v0 * decay + gravity * age * (1.0 - x * 0.5)
     decay = math.exp(-x)
-    return v0 * decay + GRAVITY * (-math.expm1(-x) / drag)
+    return v0 * decay + gravity * (-math.expm1(-x) / drag)
 
 
 # ---------------------------------------------------------------------------
@@ -962,69 +1078,82 @@ def _build_python_objects(scene, kind, family_key, index, population, config,
             "core_ranges": core_ranges}
 
 
-def _build_fireworks(scene, count, seed, distance, family):
-    origin, forward, up, right = _camera_basis(scene)
-    kind = "fireworks"
-    size_scale = max(0.6, min(2.0, distance / 60.0))
+def _event_config(event):
+    """The configuration of a family, with the overrides of the event."""
+    config = dict(FAMILY_CONFIG[event.family])
+    if int(event.spokes) > 0:
+        config["spokes"] = int(event.spokes)
+    if int(event.pistil) >= 0 and int(event.pistil) != FAMILY_CONFIG[
+            event.family]["pistil"]:
+        config["pistil"] = int(event.pistil)
+    if int(event.sparks) >= 0 and int(event.sparks) != FAMILY_CONFIG[
+            event.family]["sparks"]:
+        config["sparks"] = int(event.sparks)
+    return config
+
+
+def _build_fireworks(scene, system):
+    """Build the geometry of the firework events of a system.
+
+    The persistent events are the source of truth: the camera is not read
+    here, the world positions were written in the events when they were
+    created. Moving the camera never moves an event.
+    """
     settings = getattr(scene, "ald", None)
-    spread = float(getattr(settings, "fx_burst_spread", 1.0)) if settings else 1.0
-    offset = Vector(getattr(settings, "fx_composition_offset", (0.0, 0.0, 0.0))) \
-        if settings else Vector((0.0, 0.0, 0.0))
-    # The number of bursts never changes during the construction.
-    burst_count = max(1, int(count))
+    clock = system_clock(scene, system)
+    age_offset = clock["age_offset"]
+    gravity = _gravity(scene)
     bursts = []
-    for index in range(burst_count):
-        # Composition: the first burst is the hero, the others are secondary
-        # and staggered in time so the sky is never a uniform field.
-        role = index % 3
-        family_key = family if index == 0 else FAMILIES[(index - 1) % len(FAMILIES)]
-        config = FAMILY_CONFIG[family_key]
-        family_distance = distance * (1.0 if index == 0 else
-                                      (0.78 if role == 1 else 0.58))
-        center = _burst_center(origin, forward, up, right, index, burst_count,
-                                family_distance * (0.85 + 0.25 *
-                                                   _hash_unit(seed, index, 0, 1)),
-                                spread) + offset
-        birth = 0.0 if index == 0 else (0.25 if role == 1 else 0.85)
+    events = [event for event in system.events if event.enabled]
+    total = len(events)
+    for index, event in enumerate(events):
+        family_key = event.family
+        config = _event_config(event)
         spoke_count = config["spokes"]
-        sample_count = SAMPLES
         pistil_count = config["pistil"]
-        # The complete event: a launcher, a rising shell and a burst point.
-        gravity = _gravity(scene)
-        launch = _launch_point(origin, forward, up, right, center)
-        # The launcher of the scene wins: the user can grab it.
-        empty = bpy.data.objects.get("ALD FX Launcher %d" % index)
-        if empty is not None and empty.get("ald_fx"):
-            if empty.parent is None:
-                # The local transform is always up to date, the matrix is not.
-                launch = empty.location.copy()
-            else:
-                launch = empty.matrix_world.translation.copy()
-        rise_time = _rise_time(scene, index)
-        drag = _event_drag(scene, config)
+        size_scale = max(0.6, min(2.0, float(event.size)))
+        birth = float(event.birth)
+        center = Vector(event.target)
         target = center
-        v0 = _rise_velocity(launch, target, rise_time, drag, gravity)
+        # The launcher of the event wins: the user can grab it.
+        launch = Vector(event.launcher)
+        rise_time = float(event.rise_time)
+        drag = float(event.drag)
+        launch_mode = event.launch_mode
+        speed = float(event.speed)
+        direction = Vector(event.direction)
+        # The empty of the scene is the manipulator of the event: it is read
+        # before anything is removed, so a moved launcher is never lost.
+        empty = _launcher_empty(scene, index, launch, system, event)
+        if empty is not None:
+            launch = _empty_position(empty)
+        v0 = _rise_velocity(launch, target, rise_time, drag, gravity,
+                            mode=launch_mode, speed=speed,
+                            direction=direction)
         burst_birth = birth + rise_time
         residual = _rise_velocity_at(v0, drag, gravity, rise_time)
         shell = shell_population(launch, v0, drag, birth, rise_time, size_scale)
-        _launcher_empty(scene, index, launch)
         # The deterministic data is built once and feeds both backends.
-        population = burst_population(seed, index, config, burst_birth, target,
-                                      size_scale, spoke_count,
-                                      shell_velocity=residual)
+        population = burst_population(seed=int(event.seed), index=index,
+                                      config=config, birth=burst_birth,
+                                      center=target, size_scale=size_scale,
+                                      spoke_count=spoke_count,
+                                      shell_velocity=residual,
+                                      gravity=gravity)
         family_colors = PALETTES[index % len(PALETTES)]
-        materials = [
-            _material("ALD FX %s %d A" % (family_key, index), family_colors[0],
-                      6.0),
-            _material("ALD FX %s %d B" % (family_key, index), family_colors[1],
-                      6.0),
-            _material("ALD FX %s %d C" % (family_key, index), family_colors[2],
-                      6.0),
-        ]
         # The backend is chosen before any allocation: the two paths never
-        # build the same geometry twice.
+        # build the same geometry twice. The material reads the energy from
+        # the domain of its backend: the instances or the points.
         use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
             else False
+        materials = [
+            _material("ALD FX %s %d A" % (family_key, index), family_colors[0],
+                      6.0, instancer=use_gn),
+            _material("ALD FX %s %d B" % (family_key, index), family_colors[1],
+                      6.0, instancer=use_gn),
+            _material("ALD FX %s %d C" % (family_key, index), family_colors[2],
+                      6.0, instancer=use_gn),
+        ]
         trail_obj = None
         head_obj = None
         head_ranges = []
@@ -1039,8 +1168,10 @@ def _build_fireworks(scene, count, seed, distance, family):
         core_ranges = []
         if not use_gn:
             python_objects = _build_python_objects(
-                scene, kind, family_key, index, population, config, center,
-                spoke_count, pistil_count, materials, size_scale)
+                scene, kind="fireworks", family_key=family_key, index=index,
+                population=population, config=config, center=center,
+                spoke_count=spoke_count, pistil_count=pistil_count,
+                materials=materials, size_scale=size_scale)
             trail_obj = python_objects["trail"]
             head_obj = python_objects["heads"]
             head_ranges = python_objects["head_ranges"]
@@ -1063,18 +1194,18 @@ def _build_fireworks(scene, count, seed, distance, family):
         if use_gn:
             created = []
             try:
-                age_offset = float(getattr(settings, "fx_age", 0.0)) \
-                    if settings else 0.0
                 powers = _energy_powers(scene)
                 fade = _atmospheric_fade(scene)
-                camera_position = tuple(origin)
+                camera_position = tuple(_camera_basis(scene)[0])
                 gn_heads = _gn_points_object(
                     scene, "ALD FX GN Heads %d" % index, materials[0],
                     population["heads"], trail=0.0, age_offset=age_offset,
                     energy_power=powers.get("head", 1.0),
                     camera_position=camera_position,
                     atmospheric_fade=fade,
-                    role_energy=ROLE_ENERGY["head"])
+                    role_energy=ROLE_ENERGY["head"],
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"])
                 created.append(gn_heads)
                 for slot in range(3):
                     grains = [p for p in population["grains"]
@@ -1086,7 +1217,9 @@ def _build_fireworks(scene, count, seed, distance, family):
                         energy_power=powers.get("grain", 1.0),
                         camera_position=camera_position,
                         atmospheric_fade=fade,
-                        role_energy=ROLE_ENERGY["grain"])
+                        role_energy=ROLE_ENERGY["grain"],
+                        time_override=clock["override"],
+                        use_time_override=clock["use_override"])
                     created.append(bead_gn)
                     gn_beads.append(bead_gn)
                 gn_pistil = _gn_points_object(
@@ -1095,7 +1228,9 @@ def _build_fireworks(scene, count, seed, distance, family):
                     energy_power=powers.get("pistil", 1.0),
                     camera_position=camera_position,
                     atmospheric_fade=fade,
-                    role_energy=ROLE_ENERGY["pistil"])
+                    role_energy=ROLE_ENERGY["pistil"],
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"])
                 created.append(gn_pistil)
                 gn_pistil_grains = _gn_points_object(
                     scene, "ALD FX GN Pistil Grains %d" % index, materials[1],
@@ -1104,7 +1239,9 @@ def _build_fireworks(scene, count, seed, distance, family):
                     energy_power=powers.get("pistil_grain", 1.0),
                     camera_position=camera_position,
                     atmospheric_fade=fade,
-                    role_energy=ROLE_ENERGY["pistil_grain"])
+                    role_energy=ROLE_ENERGY["pistil_grain"],
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"])
                 created.append(gn_pistil_grains)
                 gn_beads.append(gn_pistil_grains)
                 gn_sparks = _gn_points_object(
@@ -1114,7 +1251,9 @@ def _build_fireworks(scene, count, seed, distance, family):
                     energy_power=powers.get("spark", 1.0),
                     camera_position=camera_position,
                     atmospheric_fade=fade,
-                    role_energy=ROLE_ENERGY["spark"])
+                    role_energy=ROLE_ENERGY["spark"],
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"])
                 created.append(gn_sparks)
                 for slot in range(3):
                     samples = [p for p in population["trail"]
@@ -1122,7 +1261,11 @@ def _build_fireworks(scene, count, seed, distance, family):
                     trail_gn = _gn_trail_object(
                         scene, "ALD FX GN Trail %d %d" % (index, slot),
                         materials[slot], samples, trail=config["trail"],
-                        age_offset=age_offset, radius=0.022 * size_scale)
+                        age_offset=age_offset, radius=0.022 * size_scale,
+                        time_override=clock["override"],
+                        use_time_override=clock["use_override"],
+                        energy_power=powers.get("filament", 1.0),
+                        role_energy=ROLE_ENERGY["filament"])
                     created.append(trail_gn)
                     gn_trails.append(trail_gn)
                 gn_flash = _gn_points_object(
@@ -1132,7 +1275,9 @@ def _build_fireworks(scene, count, seed, distance, family):
                     energy_power=powers.get("flash", 1.0),
                     camera_position=camera_position,
                     atmospheric_fade=fade,
-                    role_energy=ROLE_ENERGY["flash"])
+                    role_energy=ROLE_ENERGY["flash"],
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"])
                 created.append(gn_flash)
                 # The rising shell and its short trail.
                 gn_shell = _gn_points_object(
@@ -1141,15 +1286,23 @@ def _build_fireworks(scene, count, seed, distance, family):
                     energy_power=powers.get("shell", 1.0),
                     camera_position=camera_position,
                     atmospheric_fade=fade,
-                    role_energy=ROLE_ENERGY["shell"])
+                    role_energy=ROLE_ENERGY["shell"],
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"])
                 created.append(gn_shell)
                 gn_shell_trail = _gn_trail_object(
                     scene, "ALD FX GN Shell Trail %d" % index, materials[0],
                     shell["trail"], trail=rise_time, age_offset=age_offset,
-                    radius=0.03 * size_scale)
+                    radius=0.03 * size_scale,
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"],
+                    energy_power=powers.get("shell_trail", 1.0),
+                    role_energy=ROLE_ENERGY["shell_trail"])
                 created.append(gn_shell_trail)
                 for obj in created:
-                    obj["ald_fx_kind"] = kind
+                    obj["ald_fx_kind"] = "fireworks"
+                    obj["ald_fx_system"] = system.uid
+                    obj["ald_fx_event"] = event.uid
                 # The replaced Python meshes must not survive as orphans.
                 _cleanup_orphans()
             except Exception as exc:
@@ -1165,13 +1318,14 @@ def _build_fireworks(scene, count, seed, distance, family):
                 gn_trails = []
         bursts.append({
             "index": index, "family": family_key, "config": config,
-            "center": center, "birth": birth, "seed": seed,
+            "center": center, "birth": birth, "seed": int(event.seed),
             "size_scale": size_scale, "materials": materials,
             "population": population, "shell": shell,
             "launch": launch, "shell_velocity": v0, "drag": drag,
             "rise_time": rise_time, "target": target,
             "burst_birth": burst_birth, "residual": residual,
-            "spread_x": (-0.18 + 0.36 * (index + 0.5) / burst_count) * spread,
+            "event": event,
+            "spread_x": (-0.18 + 0.36 * (index + 0.5) / max(total, 1)),
             "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
             "gn_heads": gn_heads, "gn_beads": gn_beads,
             "gn_pistil": gn_pistil, "gn_sparks": gn_sparks,
@@ -1183,7 +1337,8 @@ def _build_fireworks(scene, count, seed, distance, family):
             "core": core_obj, "core_ranges": core_ranges,
         })
     return {"kind": "fireworks", "bursts": bursts, "time": None,
-            "scene": scene, "camera": origin,
+            "scene": scene, "camera": _camera_basis(scene)[0],
+            "uid": system.uid, "system": system,
             "gn": all(burst.get("gn_heads") is not None for burst in bursts)}
 
 
@@ -1276,21 +1431,23 @@ def _update_fireworks(system, time):
 # ---------------------------------------------------------------------------
 
 def _meteor_population(seed, index, start, v0, drag, event_birth, life, train,
-                      persistence, radius=0.18, fragments=3):
+                      persistence, radius=0.18, fragments=3, gravity=None):
     """Deterministic data of one meteor: head, train and fragments.
 
     Every component shares the same ``event_birth``: the train and the
     fragments can never appear before the body.
     """
+    gravity = GRAVITY if gravity is None else Vector(gravity)
     head = _particle(event_birth, life, drag, radius, v0, start, use_decay=0.0,
-                     role="meteor_head", spoke=index)
+                     role="meteor_head", spoke=index, gravity=gravity)
     train_samples = []
     for step in range(SAMPLES):
         profile = step / (SAMPLES - 1.0)
         train_samples.append(_particle(
             event_birth, life + persistence, drag, 0.2 + 0.8 * profile, v0,
             start, tau=train * (1.0 - profile), use_decay=0.0,
-            role="meteor_train", spoke=index, trail=train))
+            role="meteor_train", spoke=index, trail=train,
+            gravity=gravity, persistence=persistence))
     fragment_points = []
     for fragment in range(fragments):
         emit = _hash_range(seed, index, 30 + fragment, 7, 0.05, life * 0.8)
@@ -1305,121 +1462,140 @@ def _meteor_population(seed, index, start, v0, drag, event_birth, life, train,
         ))
         fragment_points.append(_particle(
             event_birth + emit, frag_life, 1.6, 0.05, parent_vel * 0.25 + push,
-            parent, role="meteor_fragment", spoke=index))
+            parent, role="meteor_fragment", spoke=index, gravity=gravity))
     return {"head": head, "train": train_samples, "fragments": fragment_points}
 
 
-def _build_meteors(scene, count, seed, distance, kind="METEOR"):
-    origin, forward, up, right = _camera_basis(scene)
-    preset = METEOR_PRESETS.get(kind, METEOR_PRESETS["METEOR"])
-    # The shower direction is a world direction, almost lateral: the meteors
-    # cross the sky instead of moving along the line of sight. The radiant
-    # emerges from the convergence of the parallel trajectories.
-    shower = (forward * 0.16 + right * 0.94 + up * 0.30).normalized()
-    material = _material("ALD FX Meteor %s" % kind, (0.85, 0.94, 1.0),
-                          preset["emission"])
+def _build_meteors(scene, system):
+    """Build the geometry of the meteor events of a system.
+
+    The persistent events are the source of truth: the start point, the
+    direction, the speed and the lifetime are read from them. Every event
+    owns its objects, so a single event can be hidden, measured or removed
+    without touching the others.
+    """
+    origin, _forward, _up, _right = _camera_basis(scene)
+    clock = system_clock(scene, system)
+    age_offset = clock["age_offset"]
     settings = getattr(scene, "ald", None)
     use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
         else False
-    age_offset = float(getattr(settings, "fx_age", 0.0)) if settings else 0.0
     persistence = float(getattr(settings, "fx_meteor_persistence", 0.32)) \
         if settings else 0.32
-    total = max(1, int(count))
-    system = {"kind": "meteors", "count": total, "seed": seed,
-              "distance": distance, "shower": shower, "origin": origin,
-              "material": material, "gn": False, "trail": None,
-              "preset": kind,
-              "heads": None, "head_ranges": [], "fragments": None,
-              "fragment_ranges": [], "populations": []}
+    events = [event for event in system.events if event.enabled]
+    total = max(1, len(events))
+    material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0,
+                         instancer=use_gn)
+    runtime = {"kind": "meteors", "count": total, "seed": int(system.seed),
+               "distance": 0.0, "shower": Vector((1.0, 0.0, 0.0)),
+               "origin": origin, "material": material, "gn": False,
+               "trail": None, "preset": events[0].kind if events else "METEOR",
+               "uid": system.uid,
+               "system": system, "events": [],
+               "heads": None, "head_ranges": [], "fragments": None,
+               "fragment_ranges": [], "populations": []}
     populations = []
-    for index in range(total):
-        life = _hash_range(seed, index, 0, 2, preset["life"][0],
-                            preset["life"][1])
-        event_birth = index * preset["spacing"] + _hash_range(
-            seed, index, 0, 1, 0.0, 0.6)
-        # The start points are spread on a plane far away from the camera.
-        plane_center = origin + forward * distance
-        lateral_x = _hash_range(seed, index, 10, 11, -0.55, 0.55) * distance
-        lateral_y = _hash_range(seed, index, 10, 12, -0.30, 0.34) * distance
-        start = plane_center + right * lateral_x + up * lateral_y
-        # The velocities are almost parallel in world space, with a small
-        # angular jitter so the radiant is not a perfect point.
-        jitter_range = preset["jitter"]
-        jitter = Vector((
-            _hash_range(seed, index, 0, 3, -jitter_range, jitter_range),
-            _hash_range(seed, index, 0, 4, -jitter_range, jitter_range),
-            _hash_range(seed, index, 0, 5, -jitter_range * 0.7,
-                        jitter_range * 0.7),
-        ))
-        direction = (shower + jitter).normalized()
-        speed = _hash_range(seed, index, 0, 6, preset["speed"][0],
-                            preset["speed"][1])
-        v0 = direction * speed
-        populations.append(_meteor_population(
-            seed, index, start, v0, preset["drag"], event_birth, life,
+    for index, event in enumerate(events):
+        preset = METEOR_PRESETS.get(event.kind, METEOR_PRESETS["METEOR"])
+        drag = float(event.drag) if float(event.drag) > 0.0 \
+            else preset["drag"]
+        life = float(event.life)
+        start = Vector(event.target)
+        direction = Vector(event.direction)
+        if direction.length < 1e-6:
+            direction = Vector((1.0, 0.0, 0.0))
+        direction = direction.normalized()
+        v0 = direction * float(event.speed)
+        population = _meteor_population(
+            int(event.seed), index, start, v0, drag, float(event.birth), life,
             preset["train"], persistence, radius=preset["radius"],
-            fragments=preset["fragments"]))
-    system["populations"] = populations
-    if use_gn:
-        created = []
-        try:
-            powers = _energy_powers(scene)
-            fade = _atmospheric_fade(scene)
-            camera_position = tuple(origin)
-            head_points = [population["head"] for population in populations]
-            train_points = []
-            fragment_points = []
-            for population in populations:
-                train_points.extend(population["train"])
-                fragment_points.extend(population["fragments"])
-            gn_heads = _gn_points_object(
-                scene, "ALD FX GN Meteor Heads", material, head_points,
-                trail=0.0, age_offset=age_offset,
-                energy_power=powers.get("meteor_head", 1.0),
-                camera_position=camera_position, atmospheric_fade=fade,
-                role_energy=ROLE_ENERGY["meteor_head"])
-            created.append(gn_heads)
-            gn_train = _gn_trail_object(
-                scene, "ALD FX GN Meteor Trails", material, train_points,
-                trail=preset["train"], age_offset=age_offset,
-                radius=0.07 * (preset["radius"] / 0.18),
-                fade_window=persistence)
-            created.append(gn_train)
-            gn_fragments = _gn_points_object(
-                scene, "ALD FX GN Meteor Fragments", material, fragment_points,
-                trail=0.0, age_offset=age_offset, min_scale=0.0,
-                energy_power=powers.get("meteor_fragment", 1.0),
-                camera_position=camera_position, atmospheric_fade=fade,
-                role_energy=ROLE_ENERGY["meteor_fragment"])
-            created.append(gn_fragments)
-            for obj in created:
-                obj["ald_fx_kind"] = "meteors"
-            system["gn"] = True
-            return system
-        except Exception as exc:
-            print("ALD FX: geometry nodes meteors failed (%s)" % exc)
-            for obj in created:
-                if obj.name in bpy.data.objects:
-                    bpy.data.objects.remove(obj, do_unlink=True)
-            _cleanup_orphans()
-            # The material may have been purged with the failed objects.
-            material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0)
-    trail_obj = _build_curve(scene, "ALD FX Meteor Trails", total,
-                             [material], 0.07)
-    trail_obj["ald_fx_kind"] = "meteors"
-    head_obj, head_ranges = _build_particle_mesh(
-        "ALD FX Meteor Heads", [origin] * total, [0.001] * total, material)
-    _collection(scene).objects.link(head_obj)
-    head_obj["ald_fx_kind"] = "meteors"
-    fragment_obj, fragment_ranges = _build_particle_mesh(
-        "ALD FX Meteor Fragments", [origin] * (total * 3),
-        [0.001] * (total * 3), material)
-    _collection(scene).objects.link(fragment_obj)
-    fragment_obj["ald_fx_kind"] = "meteors"
-    system.update({"trail": trail_obj, "heads": head_obj,
-                   "head_ranges": head_ranges, "fragments": fragment_obj,
-                   "fragment_ranges": fragment_ranges})
-    return system
+            fragments=int(event.sparks) if int(event.sparks) > 0
+            else preset["fragments"], gravity=_gravity(scene))
+        populations.append(population)
+        entry = {"index": index, "event": event, "population": population,
+                 "preset": preset, "gn": False, "trail": None, "heads": None,
+                 "head_ranges": [], "fragments": None,
+                 "fragment_ranges": []}
+        if use_gn:
+            created = []
+            try:
+                powers = _energy_powers(scene)
+                fade = _atmospheric_fade(scene)
+                camera_position = tuple(origin)
+                gn_heads = _gn_points_object(
+                    scene, "ALD FX GN Meteor Heads %d" % index, material,
+                    [population["head"]], trail=0.0, age_offset=age_offset,
+                    energy_power=powers.get("meteor_head", 1.0),
+                    camera_position=camera_position, atmospheric_fade=fade,
+                    role_energy=ROLE_ENERGY["meteor_head"],
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"])
+                created.append(gn_heads)
+                gn_train = _gn_trail_object(
+                    scene, "ALD FX GN Meteor Trails %d" % index, material,
+                    population["train"], trail=preset["train"],
+                    age_offset=age_offset,
+                    radius=0.07 * (preset["radius"] / 0.18),
+                    fade_window=persistence,
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"],
+                    energy_power=powers.get("meteor_train", 1.0),
+                    role_energy=ROLE_ENERGY["meteor_train"])
+                created.append(gn_train)
+                gn_fragments = _gn_points_object(
+                    scene, "ALD FX GN Meteor Fragments %d" % index, material,
+                    population["fragments"], trail=0.0, age_offset=age_offset,
+                    min_scale=0.0,
+                    energy_power=powers.get("meteor_fragment", 1.0),
+                    camera_position=camera_position, atmospheric_fade=fade,
+                    role_energy=ROLE_ENERGY["meteor_fragment"],
+                    time_override=clock["override"],
+                    use_time_override=clock["use_override"])
+                created.append(gn_fragments)
+                for obj in created:
+                    obj["ald_fx_kind"] = "meteors"
+                    obj["ald_fx_system"] = system.uid
+                    obj["ald_fx_event"] = event.uid
+                entry["gn"] = True
+                entry["gn_heads"] = gn_heads
+                entry["gn_train"] = gn_train
+                entry["gn_fragments"] = gn_fragments
+                runtime["gn"] = True
+            except Exception as exc:
+                print("ALD FX: geometry nodes meteors failed (%s)" % exc)
+                for obj in created:
+                    if obj.name in bpy.data.objects:
+                        bpy.data.objects.remove(obj, do_unlink=True)
+                _cleanup_orphans()
+        if not entry["gn"]:
+            trail_obj = _build_curve(scene, "ALD FX Meteor Trails %d" % index,
+                                     1, [material],
+                                     0.07 * (preset["radius"] / 0.18))
+            trail_obj["ald_fx_kind"] = "meteors"
+            trail_obj["ald_fx_system"] = system.uid
+            trail_obj["ald_fx_event"] = event.uid
+            head_obj, head_ranges = _build_particle_mesh(
+                "ALD FX Meteor Heads %d" % index, [origin], [0.001], material)
+            _collection(scene).objects.link(head_obj)
+            head_obj["ald_fx_kind"] = "meteors"
+            head_obj["ald_fx_system"] = system.uid
+            head_obj["ald_fx_event"] = event.uid
+            fragment_total = len(population["fragments"])
+            fragment_obj, fragment_ranges = _build_particle_mesh(
+                "ALD FX Meteor Fragments %d" % index, [origin] * fragment_total,
+                [0.001] * fragment_total, material)
+            _collection(scene).objects.link(fragment_obj)
+            fragment_obj["ald_fx_kind"] = "meteors"
+            fragment_obj["ald_fx_system"] = system.uid
+            fragment_obj["ald_fx_event"] = event.uid
+            entry["trail"] = trail_obj
+            entry["heads"] = head_obj
+            entry["head_ranges"] = head_ranges
+            entry["fragments"] = fragment_obj
+            entry["fragment_ranges"] = fragment_ranges
+        runtime["events"].append(entry)
+    runtime["populations"] = populations
+    return runtime
 
 
 def _update_meteors(system, time):
@@ -1507,27 +1683,130 @@ def _remove_kind(scene, kind):
 
 
 def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
-                     fps=24.0, family="CHRYSANTHEMUM"):
-    """Create (or replace) a deterministic multi-burst firework system."""
-    _remove_kind(scene, "fireworks")
-    system = _build_fireworks(scene, count, seed, distance, family)
-    _update_system(system, time)
-    _registry(scene)["fireworks"] = system
-    # The persistent configuration is the source of truth: it is written by
-    # every path, not only by the operator.
-    store_system(scene, "FIREWORKS", count, seed, distance, family, time)
-    return count
+                     fps=24.0, family="CHRYSANTHEMUM", replace=True):
+    """Create a firework system: the persistent events first, then the
+    geometry.
+
+    The events are written in the scene and they are the source of truth:
+    the geometry is compiled from them and an update never rewrites them.
+    """
+    if replace:
+        clear(scene, kind="fireworks")
+    system = _new_system(scene, "FIREWORKS", seed, time)
+    origin, forward, up, right = _camera_basis(scene)
+    settings = getattr(scene, "ald", None)
+    spread = float(getattr(settings, "fx_burst_spread", 1.0)) if settings else 1.0
+    offset = Vector(getattr(settings, "fx_composition_offset", (0.0, 0.0, 0.0))) \
+        if settings else Vector((0.0, 0.0, 0.0))
+    total = max(1, int(count))
+    for index in range(total):
+        event = system.events.add()
+        event.uid = uuid.uuid4().hex
+        event.kind = "FIREWORK"
+        event.enabled = True
+        event.seed = int(seed)
+        # The composition: the first burst is the hero, the others are
+        # secondary and staggered in time so the sky is never a uniform field.
+        role = index % 3
+        event.family = family if index == 0 else FAMILIES[(index - 1) %
+                                                         len(FAMILIES)]
+        event.birth = 0.0 if index == 0 else (0.25 if role == 1 else 0.85)
+        config = FAMILY_CONFIG[event.family]
+        event.size = 1.0
+        event.spokes = config["spokes"]
+        event.pistil = config["pistil"]
+        event.sparks = config["sparks"]
+        family_distance = distance * (1.0 if index == 0 else
+                                      (0.78 if role == 1 else 0.58))
+        center = _burst_center(origin, forward, up, right, index, total,
+                                family_distance * (0.85 + 0.25 *
+                                                   _hash_unit(seed, index, 0, 1)),
+                                spread) + offset
+        event.target = tuple(center)
+        event.launcher = tuple(_launch_point(origin, forward, up, right, center))
+        event.launch_mode = "DIRECTOR"
+        event.rise_time = 1.2
+        event.drag = config["drag"]
+        event.duration = config["life"]
+        event.life = config["life"]
+        event.glow = 0.6
+    compile_system(scene, system)
+    return total
 
 
 def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
-                   fps=24.0, kind="METEOR"):
-    """Create (or replace) a deterministic meteor shower."""
-    _remove_kind(scene, "meteors")
-    system = _build_meteors(scene, count, seed, distance, kind)
-    _update_system(system, time)
-    _registry(scene)["meteors"] = system
-    store_system(scene, "METEORS", count, seed, distance, "WILLOW", time)
-    return count
+                   fps=24.0, kind="METEOR", replace=True):
+    """Create a meteor system: the persistent events first, then the
+    geometry."""
+    if replace:
+        clear(scene, kind="meteors")
+    system = _new_system(scene, "METEORS", seed, time)
+    origin, forward, up, right = _camera_basis(scene)
+    preset = METEOR_PRESETS.get(kind, METEOR_PRESETS["METEOR"])
+    # The shower direction is a world direction, almost lateral: the meteors
+    # cross the sky instead of moving along the line of sight. The radiant
+    # emerges from the convergence of the parallel trajectories.
+    shower = (forward * 0.16 + right * 0.94 + up * 0.30).normalized()
+    total = max(1, int(count))
+    for index in range(total):
+        event = system.events.add()
+        event.uid = uuid.uuid4().hex
+        event.kind = kind
+        event.enabled = True
+        event.seed = int(seed)
+        event.birth = index * preset["spacing"] + _hash_range(
+            seed, index, 0, 1, 0.0, 0.6)
+        event.family = "WILLOW"
+        event.size = 1.0
+        event.spokes = 0
+        event.pistil = 0
+        event.sparks = preset["fragments"]
+        # The start points are spread on a plane far away from the camera.
+        plane_center = origin + forward * distance
+        lateral_x = _hash_range(seed, index, 10, 11, -0.55, 0.55) * distance
+        lateral_y = _hash_range(seed, index, 10, 12, -0.30, 0.34) * distance
+        start = plane_center + right * lateral_x + up * lateral_y
+        event.target = tuple(start)
+        event.launcher = tuple(start)
+        jitter_range = preset["jitter"]
+        jitter = Vector((
+            _hash_range(seed, index, 0, 3, -jitter_range, jitter_range),
+            _hash_range(seed, index, 0, 4, -jitter_range, jitter_range),
+            _hash_range(seed, index, 0, 5, -jitter_range * 0.7,
+                        jitter_range * 0.7),
+        ))
+        direction = (shower + jitter).normalized()
+        speed = _hash_range(seed, index, 0, 6, preset["speed"][0],
+                            preset["speed"][1])
+        event.direction = tuple(direction)
+        event.speed = speed
+        event.drag = preset["drag"]
+        life = _hash_range(seed, index, 0, 2, preset["life"][0],
+                            preset["life"][1])
+        event.life = life
+        event.duration = life
+        event.glow = 0.6
+    compile_system(scene, system)
+    return total
+
+
+def _new_system(scene, kind, seed, time):
+    """Create the persistent description of a system."""
+    from .properties import FX_SCHEMA
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        raise RuntimeError("Anime Look Director settings are not registered")
+    system = settings.fx_systems.add()
+    system.uid = uuid.uuid4().hex
+    system.kind = kind
+    system.enabled = True
+    system.seed = int(seed)
+    system.timing_mode = "TIMELINE"
+    system.origin_frame = 1
+    system.origin_time = float(time)
+    system.isolation_mode = "EMISSION"
+    settings.fx_schema = FX_SCHEMA
+    return system
 
 
 def _age_offset(scene):
@@ -1542,77 +1821,87 @@ def _age_offset(scene):
     return 0.0
 
 
-def store_system(scene, kind, count, seed, distance, family, time):
-    """Write the persistent description of a system and of its events.
+def system_by_uid(scene, uid):
+    """The persistent system with the given identity."""
+    settings = getattr(scene, "ald", None)
+    if settings is None or not uid:
+        return None
+    for system in settings.fx_systems:
+        if system.uid == uid:
+            return system
+    return None
 
-    The runtime registry is only a cache: this configuration is the source of
-    truth and it is saved with the .blend file.
+
+def runtime_by_uid(scene, uid):
+    """The runtime state of a persistent system."""
+    registry = SYSTEMS.get(_scene_id(scene)) or {}
+    return registry.get(uid)
+
+
+def compile_system(scene, system):
+    """Build the geometry of a system from its persistent events.
+
+    The objects of the previous build are removed first, but the
+    manipulators of the events (the launchers) are read before the removal
+    and they survive it.
     """
-    from .properties import FX_SCHEMA
+    if system is None:
+        return None
+    _remove_system_objects(scene, system.uid)
+    if system.kind == "FIREWORKS":
+        runtime = _build_fireworks(scene, system)
+    else:
+        runtime = _build_meteors(scene, system)
+    registry = _registry(scene)
+    registry[system.uid] = runtime
+    _update_system(runtime, system_time(scene, system))
+    return runtime
+
+
+def update_system(scene, system):
+    """Recompile a system after a change of its events.
+
+    The identity of the system and of its events is preserved: an update
+    never resets the values chosen by the user.
+    """
+    if system is None:
+        return None
+    return compile_system(scene, system)
+
+
+def update_all(scene):
+    """Recompile every system of the scene."""
     settings = getattr(scene, "ald", None)
     if settings is None:
-        return None
-    registry = SYSTEMS.get(_scene_id(scene)) or {}
-    system = None
-    for entry in settings.fx_systems:
-        if entry.kind == kind:
-            system = entry
-            break
-    if system is None:
-        system = settings.fx_systems.add()
-    if not system.uid:
-        system.uid = uuid.uuid4().hex
-    system.kind = kind
-    system.enabled = True
-    system.seed = seed
-    system.timing_mode = "TIMELINE"
-    system.origin_frame = 1
-    system.origin_time = time
-    system.isolation_mode = "EMISSION"
-    system.events.clear()
-    origin, _forward, _up, _right = _camera_basis(scene)
-    if kind == "FIREWORKS":
-        for burst in registry.get("fireworks", {}).get("bursts", []):
-            event = system.events.add()
-            event.uid = uuid.uuid4().hex
-            event.kind = "FIREWORK"
-            event.enabled = True
-            event.seed = seed
-            event.birth = burst["birth"]
-            event.family = burst.get("family", family)
-            event.size = burst.get("size_scale", 1.0)
-            event.count = 1
-            event.target = tuple(burst["center"])
-            event.launcher = tuple(burst.get("launch", origin))
-            event.duration = burst["config"].get("life", 1.0)
-            event.life = event.duration
-            event.rise_time = float(burst.get("rise_time", 1.2))
-            event.drag = float(burst.get("drag", 1.3))
-            event.launch_mode = "DIRECTOR"
-            event.glow = 0.6
-    else:
-        populations = registry.get("meteors", {}).get("populations", [])
-        preset = registry.get("meteors", {}).get("preset", "METEOR")
-        for population in populations:
-            head = population["head"]
-            event = system.events.add()
-            event.uid = uuid.uuid4().hex
-            event.kind = "BOLIDE" if preset == "BOLIDE" else "METEOR"
-            event.enabled = True
-            event.seed = seed
-            event.birth = head["birth"]
-            event.family = family
-            event.size = 1.0
-            event.count = 1
-            event.target = tuple(head["pos0"])
-            event.launcher = tuple(head["pos0"])
-            event.direction = tuple(head["vel"])
-            event.speed = head["vel"].length
-            event.life = head["life"]
-            event.duration = head["life"]
-            event.glow = 0.6
-    settings.fx_schema = FX_SCHEMA
-    return system
+        return 0
+    count = 0
+    for system in settings.fx_systems:
+        if not system.enabled:
+            continue
+        compile_system(scene, system)
+        count += 1
+    return count
+
+
+def _remove_system_objects(scene, uid):
+    """Remove the objects generated by a system.
+
+    The manipulators of the events (the launchers) survive: they are the
+    handles of the user, not generated geometry.
+    """
+    owner = _scene_id(scene)
+    for coll in bpy.data.collections:
+        if coll.get(OWNER_KEY) != owner:
+            continue
+        for obj in list(coll.objects):
+            if not obj.get("ald_fx"):
+                continue
+            if obj.get("ald_fx_system") != uid:
+                continue
+            if obj.get("ald_fx_role") == "launcher":
+                continue
+            bpy.data.objects.remove(obj, do_unlink=True)
+    _cleanup_orphans()
 
 
 def _find_objects(scene):
@@ -1625,7 +1914,8 @@ def rebuild_registry(scene):
     """Rebuild the runtime registry from the persistent configuration.
 
     The geometry saved in the file is reused: nothing is regenerated. The
-    runtime cache is never the source of truth.
+    runtime cache is never the source of truth. The registry is keyed by the
+    identity of the system, so two systems of the same kind never collide.
     """
     settings = getattr(scene, "ald", None)
     registry = _registry(scene)
@@ -1637,25 +1927,40 @@ def rebuild_registry(scene):
     for system in settings.fx_systems:
         if not system.enabled:
             continue
-        events = list(system.events)
+        events = [event for event in system.events if event.enabled]
         if not events:
             continue
         if system.kind == "FIREWORKS":
             bursts = []
             for index, event in enumerate(events):
-                config = FAMILY_CONFIG[event.family]
+                config = _event_config(event)
                 spoke_count = config["spokes"]
                 center = Vector(event.target)
+                launch = Vector(event.launcher)
+                rise_time = float(event.rise_time)
+                drag = float(event.drag)
+                gravity = _gravity(scene)
+                v0 = _rise_velocity(launch, center, rise_time, drag, gravity,
+                                    mode=event.launch_mode,
+                                    speed=float(event.speed),
+                                    direction=Vector(event.direction))
+                residual = _rise_velocity_at(v0, drag, gravity, rise_time)
                 population = burst_population(event.seed, index, config,
-                                              event.birth, center, event.size,
-                                              spoke_count)
+                                              event.birth + rise_time,
+                                              center, float(event.size),
+                                              spoke_count,
+                                              shell_velocity=residual)
                 family_key = event.family
                 prefix = "ALD FX %s %d " % (family_key, index)
                 bursts.append({
                     "index": index, "family": family_key, "config": config,
-                    "center": center, "birth": event.birth,
-                    "seed": event.seed, "size_scale": event.size,
+                    "center": center, "birth": float(event.birth),
+                    "seed": event.seed, "size_scale": float(event.size),
                     "materials": [], "population": population,
+                    "launch": launch, "shell_velocity": v0, "drag": drag,
+                    "rise_time": rise_time, "target": center,
+                    "burst_birth": float(event.birth) + rise_time,
+                    "residual": residual, "event": event,
                     "trail": objects.get(prefix + "Filament"),
                     "heads": objects.get(prefix + "Heads"),
                     "head_ranges": [],
@@ -1666,30 +1971,37 @@ def rebuild_registry(scene):
                     "sparks": None, "spark_ranges": [],
                     "core": objects.get(prefix + "Flash"), "core_ranges": [],
                 })
-            registry["fireworks"] = {
+            registry[system.uid] = {
                 "kind": "fireworks", "bursts": bursts, "time": None,
+                "uid": system.uid, "system": system,
+                "camera": _camera_basis(scene)[0],
                 "gn": all(burst["gn_heads"] is not None for burst in bursts)}
             rebuilt += 1
         elif system.kind == "METEORS":
             populations = []
             for index, event in enumerate(events):
-                life = event.life
-                speed = event.speed
+                preset = METEOR_PRESETS.get(event.kind, METEOR_PRESETS["METEOR"])
+                drag = float(event.drag) if float(event.drag) > 0.0 \
+                    else preset["drag"]
+                life = float(event.life)
                 direction = Vector(event.direction)
                 if direction.length < 1e-6:
                     direction = Vector((1.0, 0.0, 0.0))
                 direction = direction.normalized()
                 start = Vector(event.target)
-                v0 = direction * speed
+                v0 = direction * float(event.speed)
                 populations.append(_meteor_population(
-                    event.seed, index, start, v0, 0.08, event.birth, life, 0.32,
-                    0.32))
-            registry["meteors"] = {
+                    event.seed, index, start, v0, drag, float(event.birth),
+                    life, preset["train"], 0.32,
+                    radius=preset["radius"], fragments=preset["fragments"]))
+            registry[system.uid] = {
                 "kind": "meteors", "count": len(populations),
                 "seed": system.seed, "distance": 0.0,
-                "shower": Vector((1.0, 0.0, 0.0)), "origin": Vector((0, 0, 0)),
+                "shower": Vector((1.0, 0.0, 0.0)),
+                "origin": _camera_basis(scene)[0],
                 "material": None, "gn": True, "trail": None, "heads": None,
                 "head_ranges": [], "fragments": None, "fragment_ranges": [],
+                "uid": system.uid, "system": system,
                 "populations": populations}
             rebuilt += 1
     return rebuilt
@@ -1724,7 +2036,7 @@ def apply_backend(scene):
 def set_age(scene, age):
     """Move the FX systems in time without rebuilding the geometry.
 
-    The Geometry Nodes systems only need the age offset of their modifiers:
+    The Geometry Nodes systems only need the clock of their modifiers:
     the deterministic data stays untouched. The Python systems are re-evaluated
     at the new instant.
     """
@@ -1732,28 +2044,33 @@ def set_age(scene, age):
     registry = SYSTEMS.get(_scene_id(scene))
     if not registry:
         return False
-    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
-    now = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
     updated = False
     collection = _collection(scene)
     powers = _energy_powers(scene)
     fade = _atmospheric_fade(scene)
     origin, _forward, _up, _right = _camera_basis(scene)
-    role_by_object = {}
-    for system in registry.values():
-        if not system:
+    for uid, runtime in list(registry.items()):
+        if not runtime:
             continue
-        if system.get("gn"):
+        system = runtime.get("system")
+        clock = system_clock(scene, system)
+        now = system_time(scene, system)
+        if runtime.get("gn"):
             for obj in collection.objects:
-                if obj.get("ald_fx"):
-                    fx_nodes.set_age_offset(obj, age)
-                    fx_nodes.set_look(obj, camera_position=tuple(origin),
-                                      atmospheric_fade=fade)
-            system["time"] = None
+                if not obj.get("ald_fx"):
+                    continue
+                if obj.get("ald_fx_system") != uid:
+                    continue
+                fx_nodes.set_clock(obj, clock["age_offset"],
+                                   time_override=clock["override"],
+                                   use_time_override=clock["use_override"])
+                fx_nodes.set_look(obj, camera_position=tuple(origin),
+                                  atmospheric_fade=fade)
+            runtime["time"] = None
             updated = True
         else:
             try:
-                _update_system(system, now + age)
+                _update_system(runtime, now)
                 updated = True
             except Exception:
                 pass
@@ -1761,63 +2078,87 @@ def set_age(scene, age):
 
 
 def update(scene, time=None):
-    """Re-evaluate every FX system of a scene at the given time."""
+    """Re-evaluate every FX system of a scene at the time of its clock."""
     registry = SYSTEMS.get(_scene_id(scene))
     if not registry:
         return False
-    if time is None:
-        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
-        time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
-        time += _age_offset(scene)
-    for system in registry.values():
-        if system:
-            _update_system(system, time)
+    for uid, runtime in list(registry.items()):
+        if not runtime:
+            continue
+        system = runtime.get("system")
+        if time is None:
+            moment = system_time(scene, system)
+        else:
+            moment = time
+        _update_system(runtime, moment)
     return True
 
 
 def systems_info(scene):
     """Return the FX systems present in a scene as (kind, object count)."""
     registry = SYSTEMS.get(_scene_id(scene), {})
+    settings = getattr(scene, "ald", None)
     info = []
-    for kind, system in registry.items():
-        if not system:
+    systems = list(settings.fx_systems) if settings else []
+    for system in systems:
+        runtime = registry.get(system.uid)
+        if runtime is None:
             continue
-        owner = _scene_id(scene)
         count = 0
-        for coll in bpy.data.collections:
-            if coll.get(OWNER_KEY) != owner:
-                continue
-            for obj in coll.objects:
-                if obj.get("ald_fx") and obj.get("ald_fx_kind") == kind \
-                        and obj.get("ald_fx_role") != "launcher":
-                    count += 1
-        info.append((kind, count))
+        for uid, entry in registry.items():
+            if entry is runtime:
+                count = _object_count(scene, system.uid)
+        info.append((system.kind.lower(), count))
     return info
 
 
-def clear(scene, keep_system=False, kind=None):
-    """Remove the FX systems owned by ``scene`` and their orphan data."""
+def _object_count(scene, uid):
+    """The number of generated objects of a system."""
     owner = _scene_id(scene)
-    removed = 0
-    coll = None
-    for candidate in bpy.data.collections:
-        if candidate.get(OWNER_KEY) == owner:
-            coll = candidate
-            break
-    if coll is not None:
-        for obj in list(coll.objects):
+    count = 0
+    for coll in bpy.data.collections:
+        if coll.get(OWNER_KEY) != owner:
+            continue
+        for obj in coll.objects:
             if not obj.get("ald_fx"):
                 continue
-            if kind is not None and obj.get("ald_fx_kind") != kind:
+            if obj.get("ald_fx_system") != uid:
+                continue
+            if obj.get("ald_fx_role") == "launcher":
+                continue
+            count += 1
+    return count
+
+
+def clear(scene, keep_system=False, kind=None):
+    """Remove the FX systems owned by ``scene`` and their orphan data.
+
+    The persistent description is removed too, unless it is explicitly kept:
+    a system that stays in the file must be able to rebuild its geometry.
+    """
+    owner = _scene_id(scene)
+    removed = 0
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return 0
+    # The collection is walked backwards: the indexes shift when a system is
+    # removed.
+    for index in range(len(settings.fx_systems) - 1, -1, -1):
+        system = settings.fx_systems[index]
+        if kind is not None and system.kind.lower() != kind:
+            continue
+        for obj in list(_collection(scene).objects):
+            if not obj.get("ald_fx"):
+                continue
+            if obj.get("ald_fx_system") != system.uid:
                 continue
             bpy.data.objects.remove(obj, do_unlink=True)
             removed += 1
-    if kind is not None:
         registry = SYSTEMS.get(owner)
         if registry is not None:
-            registry.pop(kind, None)
-    elif not keep_system:
-        SYSTEMS.pop(owner, None)
+            registry.pop(system.uid, None)
+        if not keep_system:
+            settings.fx_systems.remove(index)
     _cleanup_orphans()
     return removed
 
@@ -1834,20 +2175,18 @@ def _on_frame_change(scene, *_args):
     registry = SYSTEMS.get(_scene_id(scene))
     if not registry:
         return
-    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
-    time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
-    time += _age_offset(scene)
-    for system in registry.values():
-        if not system:
+    for uid, runtime in list(registry.items()):
+        if not runtime:
             continue
-        if system.get("gn"):
+        if runtime.get("gn"):
             # Every particle is evaluated by the node group.
             continue
-        if system.get("time") is not None \
-                and abs(time - system["time"]) < 1e-6:
+        time = system_time(scene, runtime.get("system"))
+        if runtime.get("time") is not None \
+                and abs(time - runtime["time"]) < 1e-6:
             continue
         try:
-            _update_system(system, time)
+            _update_system(runtime, time)
         except Exception:
             pass
 

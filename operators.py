@@ -272,10 +272,8 @@ class ALD_OT_fx_fireworks(bpy.types.Operator):
         time = _scene_time(scene) + self.age
         count = fx.create_fireworks(scene, self.count, self.seed,
                                     self.distance, time, family=self.family)
-        # The persistent configuration is the source of truth: it is saved
-        # with the file and it rebuilds the system after a reload.
-        fx.store_system(scene, "FIREWORKS", self.count, self.seed,
-                        self.distance, self.family, time)
+        # The persistent events are the source of truth: they are written by
+        # the creation and they rebuild the system after a reload.
         scene["ald_fx_config"] = {
             "kind": "fireworks", "count": self.count, "seed": self.seed,
             "distance": self.distance, "family": self.family, "age": self.age,
@@ -305,8 +303,6 @@ class ALD_OT_fx_meteors(bpy.types.Operator):
         time = _scene_time(scene) + self.age
         count = fx.create_meteors(scene, self.count, self.seed, self.distance,
                                   time)
-        fx.store_system(scene, "METEORS", self.count, self.seed,
-                        self.distance, "WILLOW", time)
         scene["ald_fx_config"] = {
             "kind": "meteors", "count": self.count, "seed": self.seed,
             "distance": self.distance, "age": self.age,
@@ -468,8 +464,6 @@ class ALD_OT_fx_bolide(bpy.types.Operator):
         time = _scene_time(scene) + self.age
         count = fx.create_meteors(scene, self.count, self.seed, self.distance,
                                   time, kind="BOLIDE")
-        fx.store_system(scene, "METEORS", self.count, self.seed,
-                        self.distance, "WILLOW", time)
         scene["ald_fx_config"] = {
             "kind": "meteors", "count": self.count, "seed": self.seed,
             "distance": self.distance, "age": self.age, "preset": "BOLIDE",
