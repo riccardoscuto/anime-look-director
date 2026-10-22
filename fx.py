@@ -25,11 +25,12 @@ FX_COLLECTION = "ALD | FX"
 OWNER_KEY = "ald_fx_owner"
 ID_KEY = "ald_fx_id"
 
-FAMILIES = ("CHRYSANTHEMUM", "PEONY", "WILLOW")
+FAMILIES = ("CHRYSANTHEMUM", "PEONY", "WILLOW", "KAMURO")
 FAMILY_LABELS = {
     "CHRYSANTHEMUM": "Chrysanthemum",
     "PEONY": "Peony",
     "WILLOW": "Willow",
+    "KAMURO": "Kamuro",
 }
 
 FAMILY_CONFIG = {
@@ -44,6 +45,11 @@ FAMILY_CONFIG = {
     "WILLOW": {
         "spokes": 70, "speed": 18.0, "drag": 0.9, "life": 4.4,
         "trail": 1.40, "sparks": 2, "core": 0.24, "pistil": 18,
+    },
+    "KAMURO": {
+        # The kamuro: few thick stars, a long drooping tail and a warm core.
+        "spokes": 48, "speed": 14.0, "drag": 0.55, "life": 5.6,
+        "trail": 2.20, "sparks": 3, "core": 0.34, "pistil": 10,
     },
 }
 
@@ -682,11 +688,15 @@ def _rise_position(launcher, v0, drag, gravity, elapsed):
     gravity = Vector(gravity)
     if elapsed <= 0.0:
         return launcher.copy()
-    if drag < 1e-4:
+    if drag < 1e-6:
         return launcher + v0 * elapsed + 0.5 * gravity * elapsed * elapsed
-    v_inf = gravity / drag
-    a = (1.0 - math.exp(-drag * elapsed)) / drag
-    return launcher + v_inf * elapsed + (v0 - v_inf) * a
+    x = drag * elapsed
+    if x < 1e-3:
+        factor = elapsed * (1.0 - x * (0.5 - x * (1.0 / 6.0 - x / 24.0)))
+        gravity_term = elapsed * elapsed * (0.5 - x * (1.0 / 6.0 - x / 24.0))
+        return launcher + v0 * factor + gravity * gravity_term
+    factor = -math.expm1(-x) / drag
+    return launcher + v0 * factor + gravity * (elapsed - factor) / drag
 
 
 def _rise_velocity_at(v0, drag, gravity, elapsed):
@@ -714,22 +724,39 @@ def _star_state(seed, index, spoke, count, config, age, speed_scale=1.0,
 
 
 def _position(p0, v0, drag, age):
-    """Position at ``age`` seconds with linear drag and world gravity."""
+    """Position at ``age`` seconds with linear drag and world gravity.
+
+    The closed form ``p0 + v_inf a + (v0 - v_inf) A`` cancels two large
+    terms when the drag is small. The stable form is used instead:
+
+        p = p0 + v0 A + g (a - A) / k,  A = (1 - e^(-k a)) / k
+
+    with a series expansion of A for the small ``k a``.
+    """
     if age <= 0.0:
         return p0.copy()
-    if drag < 1e-4:
+    if drag < 1e-6:
         return p0 + v0 * age + 0.5 * GRAVITY * (age * age)
-    v_inf = GRAVITY / drag
-    decay = math.exp(-drag * age)
-    factor = (1.0 - decay) / drag
-    return p0 + v_inf * age + (v0 - v_inf) * factor
+    x = drag * age
+    if x < 1e-3:
+        # A = a (1 - x/2 + x^2/6 - x^3/24) and (a - A)/k = a^2 (1/2 - x/6).
+        factor = age * (1.0 - x * (0.5 - x * (1.0 / 6.0 - x / 24.0)))
+        gravity_term = age * age * (0.5 - x * (1.0 / 6.0 - x / 24.0))
+        return p0 + v0 * factor + GRAVITY * gravity_term
+    factor = -math.expm1(-x) / drag
+    return p0 + v0 * factor + GRAVITY * (age - factor) / drag
 
 
 def _velocity(v0, drag, age):
-    if drag < 1e-4:
+    """The velocity at ``age`` seconds, in the stable form."""
+    if drag < 1e-6:
         return v0 + GRAVITY * age
-    v_inf = GRAVITY / drag
-    return v_inf + (v0 - v_inf) * math.exp(-drag * age)
+    x = drag * age
+    if x < 1e-3:
+        decay = 1.0 - x * (0.5 - x * (1.0 / 6.0))
+        return v0 * decay + GRAVITY * age * (1.0 - x * 0.5)
+    decay = math.exp(-x)
+    return v0 * decay + GRAVITY * (-math.expm1(-x) / drag)
 
 
 # ---------------------------------------------------------------------------
@@ -824,19 +851,26 @@ def _build_curve(scene, name, spline_count, materials, width):
 
 
 def _camera_basis(scene):
+    """The evaluated camera frame: the constraints and the parents included.
+
+    The local transform of a camera with a constraint or a parent is not the
+    frame of the shot: the evaluated matrix is the only reliable source.
+    """
     camera = scene.camera
     if camera is None:
         return (Vector((0.0, -8.0, 1.5)), Vector((0.0, 1.0, 0.0)),
                 Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)))
-    if camera.parent is None:
-        # Read the local transform directly: matrix_world can be stale when the
-        # FX are created right after moving the camera.
-        origin = camera.location.copy()
-        rotation = camera.rotation_euler.to_quaternion()
-    else:
+    matrix = None
+    try:
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        evaluated = camera.evaluated_get(depsgraph)
+        matrix = evaluated.matrix_world
+    except Exception:
+        matrix = None
+    if matrix is None:
         matrix = camera.matrix_world
-        origin = matrix.translation
-        rotation = matrix.to_quaternion()
+    origin = matrix.translation.copy()
+    rotation = matrix.to_quaternion()
     return (origin,
             (rotation @ Vector((0.0, 0.0, -1.0))).normalized(),
             (rotation @ Vector((0.0, 1.0, 0.0))).normalized(),
@@ -854,6 +888,57 @@ def _burst_center(origin, forward, up, right, index, total, distance,
 # ---------------------------------------------------------------------------
 # fireworks
 # ---------------------------------------------------------------------------
+
+def _build_python_objects(scene, kind, family_key, index, population, config,
+                          center, spoke_count, pistil_count, materials,
+                          size_scale):
+    """The meshes of the Python writer: the fallback backend."""
+    trail_obj = _build_curve(scene, "ALD FX %s %d Filament" % (family_key, index),
+                             spoke_count, materials, 0.022 * size_scale)
+    trail_obj["ald_fx_kind"] = kind
+    bead_objects = []
+    for slot in range(3):
+        grains = [p for p in population["grains"] if p["spoke"] % 3 == slot]
+        bead_obj, bead_ranges = _build_particle_mesh(
+            "ALD FX %s %d Beads %d" % (family_key, index, slot),
+            [center] * len(grains), [0.001] * len(grains), materials[slot])
+        _collection(scene).objects.link(bead_obj)
+        bead_obj["ald_fx_kind"] = kind
+        bead_objects.append((bead_obj, bead_ranges, grains))
+    head_obj, head_ranges = _build_particle_mesh(
+        "ALD FX %s %d Heads" % (family_key, index),
+        [center] * spoke_count, [0.001] * spoke_count, materials[0])
+    _collection(scene).objects.link(head_obj)
+    head_obj["ald_fx_kind"] = kind
+    pistil_obj, pistil_ranges = _build_particle_mesh(
+        "ALD FX %s %d Pistil Heads" % (family_key, index),
+        [center] * pistil_count, [0.001] * pistil_count, materials[1])
+    _collection(scene).objects.link(pistil_obj)
+    pistil_obj["ald_fx_kind"] = kind
+    pistil_bead_obj, pistil_bead_ranges = _build_particle_mesh(
+        "ALD FX %s %d Pistil Beads" % (family_key, index),
+        [center] * (pistil_count * SAMPLES),
+        [0.001] * (pistil_count * SAMPLES), materials[1])
+    _collection(scene).objects.link(pistil_bead_obj)
+    pistil_bead_obj["ald_fx_kind"] = kind
+    spark_total = spoke_count * config["sparks"]
+    spark_obj, spark_ranges = _build_particle_mesh(
+        "ALD FX %s %d Sparks" % (family_key, index),
+        [center] * spark_total, [0.001] * spark_total, materials[2])
+    _collection(scene).objects.link(spark_obj)
+    spark_obj["ald_fx_kind"] = kind
+    core_obj, core_ranges = _build_particle_mesh(
+        "ALD FX %s %d Flash" % (family_key, index), [center], [0.001],
+        materials[1])
+    _collection(scene).objects.link(core_obj)
+    core_obj["ald_fx_kind"] = kind
+    return {"trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
+            "beads": bead_objects, "pistil_obj": pistil_obj,
+            "pistil_ranges": pistil_ranges, "pistil_bead_obj": pistil_bead_obj,
+            "pistil_bead_ranges": pistil_bead_ranges, "sparks": spark_obj,
+            "spark_ranges": spark_ranges, "core": core_obj,
+            "core_ranges": core_ranges}
+
 
 def _build_fireworks(scene, count, seed, distance, family):
     origin, forward, up, right = _camera_basis(scene)
@@ -905,48 +990,38 @@ def _build_fireworks(scene, count, seed, distance, family):
             _material("ALD FX %s %d C" % (family_key, index), family_colors[2],
                       6.0),
         ]
-        # Python meshes: the fallback writer.
-        trail_obj = _build_curve(scene, "ALD FX %s %d Filament" % (family_key, index),
-                                 spoke_count, materials, 0.022 * size_scale)
-        trail_obj["ald_fx_kind"] = kind
+        # The backend is chosen before any allocation: the two paths never
+        # build the same geometry twice.
+        use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
+            else False
+        trail_obj = None
+        head_obj = None
+        head_ranges = []
         bead_objects = []
-        for slot in range(3):
-            grains = [p for p in population["grains"]
-                      if p["spoke"] % 3 == slot]
-            bead_obj, bead_ranges = _build_particle_mesh(
-                "ALD FX %s %d Beads %d" % (family_key, index, slot),
-                [center] * len(grains), [0.001] * len(grains), materials[slot])
-            _collection(scene).objects.link(bead_obj)
-            bead_obj["ald_fx_kind"] = kind
-            bead_objects.append((bead_obj, bead_ranges, grains))
-        head_obj, head_ranges = _build_particle_mesh(
-            "ALD FX %s %d Heads" % (family_key, index),
-            [center] * spoke_count, [0.001] * spoke_count, materials[0])
-        _collection(scene).objects.link(head_obj)
-        head_obj["ald_fx_kind"] = kind
-        # Inner contrasting pistil population (the classic Hanabi core).
-        pistil_obj, pistil_ranges = _build_particle_mesh(
-            "ALD FX %s %d Pistil Heads" % (family_key, index),
-            [center] * pistil_count, [0.001] * pistil_count, materials[1])
-        _collection(scene).objects.link(pistil_obj)
-        pistil_obj["ald_fx_kind"] = kind
-        pistil_bead_obj, pistil_bead_ranges = _build_particle_mesh(
-            "ALD FX %s %d Pistil Beads" % (family_key, index),
-            [center] * (pistil_count * sample_count),
-            [0.001] * (pistil_count * sample_count), materials[1])
-        _collection(scene).objects.link(pistil_bead_obj)
-        pistil_bead_obj["ald_fx_kind"] = kind
-        spark_total = spoke_count * config["sparks"]
-        spark_obj, spark_ranges = _build_particle_mesh(
-            "ALD FX %s %d Sparks" % (family_key, index),
-            [center] * spark_total, [0.001] * spark_total, materials[2])
-        _collection(scene).objects.link(spark_obj)
-        spark_obj["ald_fx_kind"] = kind
-        core_obj, core_ranges = _build_particle_mesh(
-            "ALD FX %s %d Flash" % (family_key, index), [center], [0.001],
-            materials[1])
-        _collection(scene).objects.link(core_obj)
-        core_obj["ald_fx_kind"] = kind
+        pistil_obj = None
+        pistil_ranges = []
+        pistil_bead_obj = None
+        pistil_bead_ranges = []
+        spark_obj = None
+        spark_ranges = []
+        core_obj = None
+        core_ranges = []
+        if not use_gn:
+            python_objects = _build_python_objects(
+                scene, kind, family_key, index, population, config, center,
+                spoke_count, pistil_count, materials, size_scale)
+            trail_obj = python_objects["trail"]
+            head_obj = python_objects["heads"]
+            head_ranges = python_objects["head_ranges"]
+            bead_objects = python_objects["beads"]
+            pistil_obj = python_objects["pistil_obj"]
+            pistil_ranges = python_objects["pistil_ranges"]
+            pistil_bead_obj = python_objects["pistil_bead_obj"]
+            pistil_bead_ranges = python_objects["pistil_bead_ranges"]
+            spark_obj = python_objects["sparks"]
+            spark_ranges = python_objects["spark_ranges"]
+            core_obj = python_objects["core"]
+            core_ranges = python_objects["core_ranges"]
         gn_heads = None
         gn_beads = []
         gn_pistil = None
@@ -954,8 +1029,6 @@ def _build_fireworks(scene, count, seed, distance, family):
         gn_flash = None
         gn_trails = []
         # Geometry Nodes path: the node group evaluates the same data.
-        use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
-            else False
         if use_gn:
             created = []
             try:
@@ -1046,24 +1119,6 @@ def _build_fireworks(scene, count, seed, distance, family):
                 created.append(gn_shell_trail)
                 for obj in created:
                     obj["ald_fx_kind"] = kind
-                # The Python meshes are replaced by the node group.
-                for python_obj in (head_obj, pistil_obj, pistil_bead_obj,
-                                   spark_obj, trail_obj, core_obj):
-                    bpy.data.objects.remove(python_obj, do_unlink=True)
-                for bead_obj, _bead_ranges, _grains in bead_objects:
-                    bpy.data.objects.remove(bead_obj, do_unlink=True)
-                head_obj = None
-                head_ranges = []
-                bead_objects = []
-                pistil_obj = None
-                pistil_ranges = []
-                pistil_bead_obj = None
-                pistil_bead_ranges = []
-                spark_obj = None
-                spark_ranges = []
-                trail_obj = None
-                core_obj = None
-                core_ranges = []
                 # The replaced Python meshes must not survive as orphans.
                 _cleanup_orphans()
             except Exception as exc:

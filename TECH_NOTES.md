@@ -1039,3 +1039,23 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The gate verifies the isolation: an emissive surface that is not ALD keeps
   the same value with and without the bursts.
 - The cost of the isolation is one more view layer in the render.
+### v2.19.0 notes (phase P3: the cleanups and the refinements)
+- The solver: the closed form `p0 + v_inf a + (v0 - v_inf) A` cancels two
+  large terms when the drag is small (`v_inf = g/k` and `A = (1 - e^(-k a))/k`
+  both blow up). The stable form is `p = p0 + v0 A + g (a - A) / k`, with
+  `A` computed by `expm1` and a series expansion (`A = a (1 - x/2 + x^2/6 -
+  x^3/24)`, `(a - A)/k = a^2 (1/2 - x/6 + x^2/24)`) when `x = k a` is small.
+  The velocity uses the same form: `v = v0 e^(-k a) + g A`.
+- The camera frame comes from the evaluated matrix
+  (`camera.evaluated_get(depsgraph).matrix_world`): a camera with a
+  Track To constraint or with a parent is followed correctly and the matrix is
+  never stale.
+- The clouds and the legacy shooting stars follow the time in seconds
+  (`palette._scene_seconds`): the same state at 24, 30 and 60 fps. The phase
+  of the legacy stars is separated from the wind of the clouds.
+- The custom colours accept the HDR range (max 4.0), like the palettes.
+- The backend is chosen before any allocation: `_build_python_objects` is
+  only called when the Python writer is the chosen backend, and the Geometry
+  Nodes path no longer creates and deletes the Python meshes.
+- The Kamuro family: 48 thick stars, a slow speed, a low drag, a 2.2 s trail
+  and a small pistil: a few bold strokes with a long drooping tail.

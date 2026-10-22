@@ -3540,10 +3540,27 @@ def apply_sun_angles(scene, elevation, azimuth):
     cameras.update_transforms(scene, force=True)
 
 
+def _scene_seconds(scene):
+    """The time of the scene in seconds, independent of the frame rate."""
+    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+    return (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
+
+
 def _cloud_offset(scene, settings):
+    """The drift of the clouds, expressed in seconds and not in frames."""
     wind = getattr(settings, "cloud_wind", 0.0) if settings else 0.0
-    frame = float(scene.frame_current)
-    return (frame * wind * 0.02, frame * wind * 0.005, 0.0)
+    seconds = _scene_seconds(scene)
+    return (seconds * wind * 0.02, seconds * wind * 0.005, 0.0)
+
+
+def _shooting_star_phase(scene, settings):
+    """The phase of the legacy shooting stars.
+
+    The phase follows the time in seconds and never the wind of the clouds:
+    the two movements are independent.
+    """
+    phase = getattr(settings, "shooting_star_phase", 0.0) if settings else 0.0
+    return phase + _scene_seconds(scene) * 0.035
 
 
 def _apply_gradient(scene, settings, nt, background, p):
@@ -3658,8 +3675,6 @@ def _apply_gradient(scene, settings, nt, background, p):
     node.inputs["Shooting Star Dir"].default_value = (
         math.cos(angle_rad), math.sin(angle_rad), 0.0)
     phase = getattr(settings, "shooting_star_phase", 0.0) if settings else 0.0
-    if settings is not None and getattr(settings, "cloud_wind", 0.0) > 0.0:
-        phase += scene.frame_current * 0.035
     node.inputs["Shooting Star Phase"].default_value = phase
     node.inputs["Fireworks Amount"].default_value = (
         (getattr(settings, "fireworks_amount", 0.60)
@@ -3712,6 +3727,9 @@ def ensure_sun(scene, p, reset_rotation=True):
 def apply_palette(scene, key):
     """Apply world gradient + sun values for a palette. Returns the preset."""
     global _syncing_style
+    from . import snapshot
+    # The state of the user is saved before the first modification.
+    snapshot.ensure(scene)
     p = effective(scene, key)
     settings = getattr(scene, "ald", None)
     world = _ensure_world(scene)
@@ -3738,10 +3756,8 @@ def update_sun_controls(scene):
     settings = getattr(scene, "ald", None)
     if settings is not None:
         node.inputs["Cloud Offset"].default_value = _cloud_offset(scene, settings)
-        phase = getattr(settings, "shooting_star_phase", 0.0)
-        if getattr(settings, "cloud_wind", 0.0) > 0.0:
-            phase += scene.frame_current * 0.035
-        node.inputs["Shooting Star Phase"].default_value = phase
+        node.inputs["Shooting Star Phase"].default_value = _shooting_star_phase(
+            scene, settings)
     direction = sun_toward(scene)
     if direction is None:
         node.inputs["Sun Strength"].default_value = 0.0

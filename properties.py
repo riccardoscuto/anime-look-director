@@ -242,7 +242,8 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
         name="Family",
         items=[("CHRYSANTHEMUM", "Chrysanthemum", ""),
                ("PEONY", "Peony", ""),
-               ("WILLOW", "Willow", "")],
+               ("WILLOW", "Willow", ""),
+               ("KAMURO", "Kamuro", "")],
         default="CHRYSANTHEMUM",
         description="Shape family of the event")
     size: FloatProperty(

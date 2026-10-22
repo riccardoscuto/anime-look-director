@@ -313,6 +313,18 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     glow is added once, on the FX only;
   - the Object Index pass is not exposed by the Render Layers node of
     Blender 5.1: the view layer difference is the reliable isolation.
+- FX 2.19 rules (phase P3 of the operational plan):
+  - the solver uses the stable form `p = p0 + v0 A + g (a - A) / k` with
+    `A = (1 - e^(-k a)) / k` computed with `expm1` and a series expansion
+    for the small `k a`: the naive form cancels two large terms;
+  - the camera frame comes from the evaluated matrix: the constraints and the
+    parents are honoured and the matrix is never stale;
+  - the cloud drift and the phase of the legacy shooting stars follow the
+    time in seconds, and the phase never follows the wind of the clouds;
+  - the custom colours accept the HDR range, like the palettes;
+  - the backend is chosen before any allocation: the Python meshes are only
+    created when the Python writer is the chosen backend;
+  - the Kamuro family: few thick stars, a long drooping tail, a warm core.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.19.0 - 2026-10-22
+Phase P3 of the operational plan: the cleanups and the refinements.
+
+### Fixed
+- The solver is numerically stable for a small drag: the closed form
+  `p0 + v_inf a + (v0 - v_inf) A` cancels two large terms, the stable form
+  `p0 + v0 A + g (a - A) / k` is used instead, with `expm1` and a series
+  expansion of A for the small `k a`. The velocity uses the same form.
+- The camera frame is read from the evaluated matrix: a camera with a
+  constraint or a parent is followed correctly, with no stale matrix.
+- The drift of the clouds and the phase of the legacy shooting stars follow
+  the time in seconds, not the frame counter: the same state at 24, 30 and 60
+  fps.
+- The phase of the legacy shooting stars is independent from the wind of the
+  clouds: the two movements are separated.
+- The custom colours accept the HDR range (up to 4.0), like the palettes.
+- The backend is chosen before any allocation: the two paths never build the
+  same geometry twice, and the Python meshes are only created when the
+  Python writer is the chosen backend.
+
+### Added
+- The Kamuro family: few thick stars, a long drooping tail and a warm core.
+- The gate runs the P3 tests: the stability of the solver (the closed form
+  and the series must agree, the velocity must match the position), the
+  camera with a constraint, the time in seconds of the clouds and of the
+  legacy stars and the Kamuro family.
+
 ## 2.18.0 - 2026-10-22
 Phase P2 of the operational plan: the material contract of the particles and
 the isolation of the FX layer in the compositor.

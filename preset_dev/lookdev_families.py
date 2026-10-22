@@ -23,7 +23,8 @@ MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SEED = 11
 DISTANCE = 70.0
-FRAME = 14
+#: The burst happens at the end of the rise: the frame shows the expansion.
+FRAME = 44
 
 
 def parse_args():

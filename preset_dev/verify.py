@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 18, 0)
+EXPECTED_VERSION = (2, 19, 0)
 TOLERANCE = 1e-4
 
 
@@ -2715,6 +2715,137 @@ def check_fx_foreign_emission(scene):
         scene.frame_set(previous_frame)
 
 
+def check_fx_solver_stability(scene):
+    """The solver must stay stable when the drag is small."""
+    import math
+
+    from anime_look_director import fx as fx_module
+    from mathutils import Vector
+
+    velocity = Vector((12.0, -4.0, 30.0))
+    origin = Vector((1.0, 2.0, 3.0))
+    gravity = Vector((0.0, 0.0, -9.81))
+    for drag in (0.0, 1e-5, 0.001, 0.01, 0.1, 1.3):
+        for age in (0.05, 0.5, 2.0):
+            position = fx_module._position(origin, velocity, drag, age)
+            check(all(abs(value) < 1e6 for value in position),
+                  "the solver overflows with the drag %g" % drag)
+            if drag >= 0.1:
+                # The naive closed form is accurate there: both must agree.
+                v_inf = gravity / drag
+                factor = (1.0 - math.exp(-drag * age)) / drag
+                naive = origin + v_inf * age + (velocity - v_inf) * factor
+                check((position - naive).length < 1e-3,
+                      "the stable solver differs from the closed form with the "
+                      "drag %g (%.6f m)" % (drag, (position - naive).length))
+            else:
+                # The series expansion of the exact solution.
+                x = drag * age
+                series = (origin + velocity * age * (1.0 - x * 0.5)
+                          + gravity * (age * age * 0.5 - x * age * age / 6.0))
+                check((position - series).length < 0.05,
+                      "the solver is not stable with the drag %g (%.6f m)"
+                      % (drag, (position - series).length))
+            # The velocity must agree with the position.
+            step = 1e-4
+            before = fx_module._position(origin, velocity, drag, age - step)
+            after = fx_module._position(origin, velocity, drag, age + step)
+            speed = (after - before) / (2.0 * step)
+            reported = fx_module._velocity(velocity, drag, age)
+            check((speed - reported).length < 0.05,
+                  "the velocity does not match the position with the drag %g"
+                  % drag)
+
+
+def check_fx_camera_evaluated(scene):
+    """The bursts follow the evaluated camera, constraints included."""
+    from anime_look_director import fx as fx_module
+    from mathutils import Vector
+
+    previous_frame = scene.frame_current
+    camera = scene.camera
+    if camera is None:
+        return
+    fx_module.clear(scene)
+    target = bpy.data.objects.new("ALD Gate Camera Target", None)
+    target.location = (0.0, 40.0, 25.0)
+    scene.collection.objects.link(target)
+    constraint = camera.constraints.new("TRACK_TO")
+    constraint.target = target
+    try:
+        fx_module.create_fireworks(scene, 1, seed=3, distance=50.0, time=0.0)
+        registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+        burst = registry["fireworks"]["bursts"][0]
+        origin, forward, up, right = fx_module._camera_basis(scene)
+        # The burst point is on the view axis of the evaluated camera.
+        delta = Vector(burst["target"]) - origin
+        check(abs(delta.normalized().dot(forward)) > 0.9,
+              "the burst does not follow the camera constraint")
+        check(abs(delta.normalized().dot(up)) < 0.35,
+              "the burst is not on the view axis")
+    finally:
+        camera.constraints.remove(constraint)
+        bpy.data.objects.remove(target, do_unlink=True)
+        fx_module.clear(scene)
+        scene.frame_set(previous_frame)
+
+
+def check_world_time_seconds(scene):
+    """The clouds and the legacy stars follow the seconds, not the frames."""
+    from anime_look_director import palette as palette_module
+
+    previous_fps = scene.render.fps
+    previous_frame = scene.frame_current
+    try:
+        scene.render.fps = 24
+        scene.frame_set(24)
+        at_24 = palette_module._cloud_offset(scene, scene.ald)
+        phase_24 = palette_module._shooting_star_phase(scene, scene.ald)
+        scene.render.fps = 60
+        scene.frame_set(60)
+        at_60 = palette_module._cloud_offset(scene, scene.ald)
+        phase_60 = palette_module._shooting_star_phase(scene, scene.ald)
+        for a, b in zip(at_24, at_60):
+            check(abs(a - b) < 1e-4,
+                  "the cloud offset depends on the frame rate: %s against %s"
+                  % (at_24, at_60))
+        check(abs(phase_24 - phase_60) < 1e-4,
+              "the phase of the legacy stars depends on the frame rate")
+        # The phase of the legacy stars does not follow the wind of the clouds.
+        scene.ald.cloud_wind = 2.0
+        scene.render.fps = 24
+        scene.frame_set(24)
+        with_wind = palette_module._shooting_star_phase(scene, scene.ald)
+        scene.ald.cloud_wind = 0.0
+        scene.frame_set(24)
+        without_wind = palette_module._shooting_star_phase(scene, scene.ald)
+        check(abs(with_wind - without_wind) < 1e-4,
+              "the phase of the legacy stars follows the wind of the clouds")
+        scene.ald.cloud_wind = 0.0
+    finally:
+        scene.render.fps = previous_fps
+        scene.frame_set(previous_frame)
+
+
+def check_fx_kamuro(scene):
+    """The Kamuro family is a valid family."""
+    from anime_look_director import fx as fx_module
+
+    previous_frame = scene.frame_current
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 1, seed=3, distance=60.0, time=0.0,
+                               family="KAMURO")
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    burst = registry["fireworks"]["bursts"][0]
+    check(burst["family"] == "KAMURO", "the Kamuro family was not used")
+    check(burst["config"]["spokes"] == fx_module.FAMILY_CONFIG["KAMURO"]
+          ["spokes"], "the Kamuro uses another configuration")
+    check(burst["config"]["trail"] > 1.0,
+          "the Kamuro has no long drooping tail")
+    fx_module.clear(scene)
+    scene.frame_set(previous_frame)
+
+
 def main():
     enable_addon()
     check_versions()
@@ -2744,6 +2875,10 @@ def main():
         check_fx_event_continuity(scene)
         check_fx_bolide(scene)
         check_fx_foreign_emission(scene)
+        check_fx_solver_stability(scene)
+        check_fx_camera_evaluated(scene)
+        check_world_time_seconds(scene)
+        check_fx_kamuro(scene)
 
         ng = scene.compositing_node_group
         check(ng is not None and ng.name == "ALD | Compositor Stack",
