@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.15.0 - 2026-10-22
+Phase P1-B of the operational plan: the scene can be restored.
+
+### Added
+- `snapshot.py`: the state of the user is saved before the first ALD
+  modification (the world and its background link, the strength and the
+  colour, the sun with its ownership, the compositor group and the render
+  passes). The snapshot is a JSON string in the scene: it is explicit and it
+  survives a save.
+- The operator `ald.remove_from_scene` ("Remove ALD from Scene"): it removes
+  the FX systems and the objects they own, restores the materials, the world,
+  the sun, the passes and the compositor from the snapshot, and removes the
+  internal properties only after a successful restore.
+- The maintenance mode suspends the handlers and the callbacks while the
+  scene is restored, so nothing re-applies the look in the middle.
+- The gate runs the acceptance condition of the plan: a scene with an HDRI
+  world, a custom sun, an emissive material and a pre-existing compositor
+  stack returns to the registered state.
+
 ## 2.14.0 - 2026-10-22
 Phase P1-A of the operational plan: one interface, one backend semantics.
 

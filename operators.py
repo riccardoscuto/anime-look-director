@@ -298,6 +298,27 @@ class ALD_OT_fx_meteors(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_remove_from_scene(bpy.types.Operator):
+    bl_idname = "ald.remove_from_scene"
+    bl_label = "Remove ALD from Scene"
+    bl_description = ("Restore the world, the sun, the materials, the passes "
+                     "and the compositor to the state saved before the first "
+                     "modification, and remove the FX")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import snapshot
+        scene = context.scene
+        if not snapshot.snapshot(scene):
+            self.report({"WARNING"},
+                        "Anime Look Director: no saved state to restore")
+            return {"CANCELLED"}
+        snapshot.restore(scene)
+        self.report({"INFO"},
+                    "Anime Look Director: the scene was restored")
+        return {"FINISHED"}
+
+
 class ALD_OT_fx_select_system(bpy.types.Operator):
     bl_idname = "ald.fx_select_system"
     bl_label = "Select System"
@@ -449,7 +470,7 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_update,
             ALD_OT_fx_clear, ALD_OT_fx_clear_kind, ALD_OT_fx_select_system,
             ALD_OT_fx_select_event, ALD_OT_fx_duplicate_system,
-            ALD_OT_fx_remove_system)
+            ALD_OT_fx_remove_system, ALD_OT_remove_from_scene)
 
 
 def register():

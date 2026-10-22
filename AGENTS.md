@@ -259,6 +259,20 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     debug controls only in developer mode;
   - the panel icons are validated by the gate: an icon that does not exist
     in this Blender version breaks the whole panel at draw time.
+- FX 2.15 rules (phase P1-B of the operational plan):
+  - `snapshot.ensure(scene)` is called before the first modification of the
+    world, the sun or the materials: the state of the user is saved in the
+    scene as a JSON string (`ald_snapshot`);
+  - `snapshot.restore(scene)` removes the FX, restores the materials, the
+    world (with the background link of an HDRI), the sun, the render passes
+    and the compositor, and removes the internal properties only after a
+    successful restore;
+  - the maintenance flag (`ald_maintenance`) suspends the handlers and the
+    property callbacks while the scene is restored: never re-apply the look
+    in the middle of a restore;
+  - the gate verifies the acceptance condition: a scene with an HDRI world, a
+    custom sun, an emissive material and a pre-existing compositor returns to
+    the registered state.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

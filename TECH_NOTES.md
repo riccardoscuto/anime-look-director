@@ -968,3 +968,20 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The panel used the icon `OUTLINER_OB_DATA`, which does not exist in
   Blender 5.1: the whole FX panel broke at draw time. The gate now validates
   the icons against a curated list.
+### v2.15.0 notes (phase P1-B: reversibility)
+- `snapshot.py` saves the state of the user before the first modification:
+  the world (with the link of the background, the default colour, the
+  strength and `use_nodes`), the sun (existence, ownership, energy, colour,
+  rotation), the compositor group and `use_compositing`, and the render
+  passes of every view layer. The materials keep their own reversible
+  bookkeeping (`ald_st_color`, `ald_em_color`, `ald_em_strength`).
+- The snapshot is a JSON string in the scene (`ald_snapshot`): it is explicit,
+  serializable and it survives a save.
+- `ald.remove_from_scene` restores everything and removes the internal
+  properties only after a successful restore. The maintenance flag
+  (`ald_maintenance`) suspends the frame handler, the depsgraph handler, the
+  shot handler and the property callbacks while the scene is restored, so the
+  look is never re-applied in the middle.
+- The gate runs the acceptance condition of the plan: a scene with a world of
+  its own, a custom sun, an emissive material and a pre-existing compositor
+  stack returns to the registered state after the removal.

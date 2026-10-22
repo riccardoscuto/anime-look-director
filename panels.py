@@ -352,6 +352,7 @@ def draw_fx_actions(layout, context, compact=False):
     col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
     col.operator("ald.fx_update", icon="FILE_REFRESH")
     col.operator("ald.fx_clear", icon="TRASH")
+    col.operator("ald.remove_from_scene", icon="LOOP_BACK")
 
 
 def draw_fx(layout, context, compact=False):

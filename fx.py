@@ -1505,6 +1505,9 @@ def clear(scene, keep_system=False, kind=None):
 
 @persistent
 def _on_frame_change(scene, *_args):
+    from . import snapshot
+    if snapshot.is_maintenance(scene):
+        return
     registry = SYSTEMS.get(_scene_id(scene))
     if not registry:
         return

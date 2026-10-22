@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 14, 0)
+EXPECTED_VERSION = (2, 15, 0)
 TOLERANCE = 1e-4
 
 
@@ -2510,7 +2510,7 @@ PANEL_ICONS = {
     "EMPTY_AXIS", "ERROR", "EVENT", "FILE_REFRESH", "INFO", "KEYFRAME_HLT",
     "LIGHT", "MARKER", "MATERIAL", "NODETREE", "OUTLINER", "PARTICLE_DATA",
     "PLAY", "PREFERENCES", "RESTRICT_SELECT_OFF", "RESTRICT_VIEW_OFF", "TIME",
-    "TRASH", "WORLD", "X",
+    "TRASH", "WORLD", "X", "LOOP_BACK",
 }
 
 
@@ -2524,6 +2524,128 @@ def check_panel_icons():
     used = set(re.findall(r'icon="([A-Z0-9_]+)"', source))
     unknown = sorted(icon for icon in used if icon not in PANEL_ICONS)
     check(not unknown, "the panels use unknown icons: %s" % unknown)
+
+
+def check_fx_reversibility(scene):
+    """Remove ALD from Scene must restore the state of the user."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import snapshot
+
+    # The gate already modified the scene: the snapshot is taken again with
+    # the state of this test.
+    if snapshot.SNAPSHOT_KEY in scene:
+        del scene[snapshot.SNAPSHOT_KEY]
+
+    # A scene with a world of its own, a sun, an emissive material and a
+    # compositor stack.
+    world = bpy.data.worlds.new("ALD Gate User World")
+    world.use_nodes = True
+    background = next((node for node in world.node_tree.nodes
+                        if node.bl_idname == "ShaderNodeBackground"), None)
+    background.inputs["Color"].default_value = (0.1, 0.2, 0.3, 1.0)
+    background.inputs["Strength"].default_value = 2.5
+    scene.world = world
+    sun_data = bpy.data.lights.new("ALD Gate User Sun", type="SUN")
+    sun_data.energy = 3.0
+    sun_data.color = (1.0, 0.9, 0.8)
+    sun = bpy.data.objects.new("ALD Gate User Sun", sun_data)
+    sun.rotation_euler = (0.5, 0.25, -0.75)
+    scene.collection.objects.link(sun)
+    material = bpy.data.materials.new("ALD Gate User Material")
+    material.use_nodes = True
+    bsdf = material.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = (0.4, 0.5, 0.6, 1.0)
+    if "Emission Color" in bsdf.inputs:
+        bsdf.inputs["Emission Color"].default_value = (0.9, 0.2, 0.1, 1.0)
+        bsdf.inputs["Emission Strength"].default_value = 4.0
+    plane = bpy.data.meshes.new("ALD Gate User Plane")
+    plane.from_pydata([(-5, -5, 0), (5, -5, 0), (5, 5, 0), (-5, 5, 0)],
+                       [], [(0, 1, 2, 3)])
+    plane.update()
+    obj = bpy.data.objects.new("ALD Gate User Plane", plane)
+    obj.data.materials.append(material)
+    scene.collection.objects.link(obj)
+    user_group = bpy.data.node_groups.new("ALD Gate User Stack",
+                                          "CompositorNodeTree")
+    scene.compositing_node_group = user_group
+    scene.render.use_compositing = True
+    view_layer = scene.view_layers[0]
+    view_layer.use_pass_z = False
+    view_layer.use_pass_emit = False
+    view_layer.use_pass_normal = False
+    state = {
+        "world": world.name,
+        "bg_color": list(background.inputs["Color"].default_value),
+        "bg_strength": float(background.inputs["Strength"].default_value),
+        "sun_energy": float(sun_data.energy),
+        "sun_color": list(sun_data.color),
+        "sun_rotation": [float(value) for value in sun.rotation_euler],
+        "base_color": list(bsdf.inputs["Base Color"].default_value),
+        "emission": list(bsdf.inputs["Emission Color"].default_value),
+        "emission_strength": float(bsdf.inputs["Emission Strength"].default_value),
+        "stack": user_group.name,
+        "use_compositing": True,
+    }
+
+    # The add-on modifies the scene.
+    bpy.ops.ald.apply_palette()
+    bpy.ops.ald.build()
+    bpy.ops.ald.fx_fireworks(count=2, age=0.8)
+    check(snapshot.SNAPSHOT_KEY in scene,
+          "the state of the user was not saved before the modification")
+    check(scene.compositing_node_group is not user_group,
+          "the stack of the user was not replaced")
+
+    # The full removal restores everything.
+    bpy.ops.ald.remove_from_scene()
+    check(scene.world is not None and scene.world.name == state["world"],
+          "the world of the user was not restored")
+    background = next((node for node in scene.world.node_tree.nodes
+                        if node.bl_idname == "ShaderNodeBackground"), None)
+    check(background is not None, "the background node is missing")
+    if background is not None:
+        check(abs(background.inputs["Strength"].default_value
+                  - state["bg_strength"]) < 1e-4,
+              "the strength of the world was not restored")
+        check(all(abs(a - b) < 1e-4 for a, b in
+                  zip(background.inputs["Color"].default_value,
+                      state["bg_color"])),
+              "the colour of the world was not restored")
+    check(sun_data.energy == state["sun_energy"],
+          "the energy of the sun was not restored")
+    check(all(abs(a - b) < 1e-4 for a, b in
+              zip(sun_data.color, state["sun_color"])),
+          "the colour of the sun was not restored")
+    check(all(abs(a - b) < 1e-4 for a, b in
+              zip(sun.rotation_euler, state["sun_rotation"])),
+          "the rotation of the sun was not restored")
+    check(all(abs(a - b) < 1e-4 for a, b in
+              zip(bsdf.inputs["Base Color"].default_value,
+                  state["base_color"])),
+          "the base colour of the material was not restored")
+    check(all(abs(a - b) < 1e-4 for a, b in
+              zip(bsdf.inputs["Emission Color"].default_value,
+                  state["emission"])),
+          "the emission of the material was not restored")
+    check(abs(bsdf.inputs["Emission Strength"].default_value
+              - state["emission_strength"]) < 1e-4,
+          "the emission strength of the material was not restored")
+    check(scene.compositing_node_group is not None
+          and scene.compositing_node_group.name == state["stack"],
+          "the stack of the user was not restored")
+    check(not view_layer.use_pass_z and not view_layer.use_pass_emit,
+          "the render passes were not restored")
+    check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
+          "the FX objects were not removed")
+
+    # The cleanup of the test data.
+    bpy.data.objects.remove(obj, do_unlink=True)
+    bpy.data.meshes.remove(plane)
+    bpy.data.materials.remove(material)
+    bpy.data.objects.remove(sun, do_unlink=True)
+    bpy.data.lights.remove(sun_data)
+    bpy.data.node_groups.remove(user_group)
+    bpy.data.worlds.remove(world)
 
 
 def main():
@@ -2581,6 +2703,8 @@ def main():
         scene = bpy.context.scene
         check_fx_scene_duplicate(scene)
         check_fx_gn_schema(scene)
+        # The reversibility check restores the scene: it runs last.
+        check_fx_reversibility(scene)
     finally:
         try:
             for obj in list(bpy.data.objects):

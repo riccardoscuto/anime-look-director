@@ -39,10 +39,20 @@ def _on_palette(self, context):
         pass
 
 
+def _in_maintenance(context):
+    """True while the add-on restores the scene: the callbacks stay quiet."""
+    try:
+        from . import snapshot
+        scene = getattr(context, "scene", None)
+        return scene is not None and snapshot.is_maintenance(scene)
+    except Exception:
+        return False
+
+
 def _on_world(self, context):
     try:
         from . import look, palette
-        if palette.style_syncing():
+        if palette.style_syncing() or _in_maintenance(context):
             return
         scene = context.scene
         if scene is not None:
@@ -146,6 +156,8 @@ def _on_fx_age(self, context):
     """Move the FX systems in time without rebuilding the geometry."""
     try:
         from . import fx
+        if _in_maintenance(context):
+            return
         scene = context.scene
         config = scene.get("ald_fx_config")
         if isinstance(config, dict):
@@ -161,6 +173,8 @@ def _on_fx_backend(self, context):
     """Apply the backend semantics: the three modes are really exclusive."""
     try:
         from . import fx
+        if _in_maintenance(context):
+            return
         fx.apply_backend(context.scene)
     except Exception:
         pass
