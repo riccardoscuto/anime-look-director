@@ -99,7 +99,7 @@ def build_report():
          and find(verify, "check_fx_decay_curve"),
          "the shape decay, the energy attribute and the multi age test")
     item("3.2", "FX-02 the burst count is never overwritten",
-         find(fx, "burst_count", "sample_count")
+         find(fx, "total", "len(events)")
          and find(verify, "check_fx_burst_centers"),
          "the distinct names and the composition test")
     item("3.3", "FX-03 the meteors cross the screen",
@@ -195,7 +195,7 @@ def build_report():
          find(fx, "ROLE_ENERGY") and find(nodes, "Role Energy"),
          "the energy of the role")
     item("9.3", "The FX layer is isolated from the other emissive surfaces",
-         find(comp, "ALD | FX Contribution", "ensure_fx_layer")
+         find(comp, "ALD | FX Contribution", "ensure_fx_base_layer")
          and find(verify, "check_fx_foreign_emission"),
          "the dedicated layer and the foreign emission test")
     item("9.4", "The atmosphere and the colour management",

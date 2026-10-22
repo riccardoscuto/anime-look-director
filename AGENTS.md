@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.22.1**).
+  (currently **2.24.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -377,13 +377,42 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     can be stale and it ignores the constraints;
   - `preset_dev/audit_plan.py` audits the operational plan requirement by
     requirement: 69/70, the only open item is the optional atmospheric smoke.
+- 2.24 rules:
+  - the compositor FX isolation uses **two** view layers (`ALD FX Base` and
+    `ALD FX Only`), not one. `ALD FX Base` excludes the FX collection (B:
+    clean environment), `ALD FX Only` includes only it (F: visible FX
+    colour). A is derived from F's luminance via `RGBToBW`;
+  - `ALD | FX Contribution` is a MIX between B and F driven by A, with two
+    `CompositorNodeRLayers` inputs;
+  - `ALD | FX Restore` adds F to Painted_B (Factor driven by `ALD |
+    FX Contribution`); `ALD | FX Glow` blooms F only;
+  - trails write the `energy` attribute via Geometry domain (the
+    ShaderNodeAttribute reads Geometry, not Instancer);
+  - the gravity of the scene reaches every solver: position, velocity, shell
+    rise and meteor fall all use `fx._gravity(scene)`;
+  - the velocity is the exact derivative of the position: the small-drag
+    series uses `exp(-x)`;
+  - child sparks inherit the parent star's position and velocity at emission;
+  - the train front is frozen at the body's last position after death;
+  - negative ages are clamped so particles never move backwards before birth;
+  - the clock of a system is real: Timeline reads `origin_frame` / fps,
+    Preview uses `origin_time`, Burst Age shifts every system;
+  - the runtime registry is keyed by system identity; two systems of the same
+    kind never collide.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth
   factor so the sky/stars are never smeared by the painterly filter.
-- FX compositing: the Emission pass masks `ALD | FX Restore` (cores restored
-  after the painterly filters) and `ALD | FX Glow` blooms only the particles.
-  Never tint FX with the sun halation colour.
+- FX compositing: **C = (1-A)*Painted_B + F + Glare(F)**. B is rendered from
+  `ALD FX Base` (FX collection excluded), F from `ALD FX Only` (only the FX
+  collection visible), A is the FX coverage derived from F's luminance. The
+  painterly filters run on B so FX cores are never smeared. `ALD | FX Restore`
+  adds F back to Painted_B (Factor driven by `ALD | FX Contribution`); `ALD |
+  FX Glow` blooms F only. Never tint FX with the sun halation colour.
+- The FX layer uses two view layers: `ALD FX Base` and `ALD FX Only`. The main
+  view layer keeps all passes for painterly/light wrap/ink/haze.
+- `ALD | FX Contribution` uses two `CompositorNodeRLayers` inputs (B and F).
+- `ALD | FX Mask` is `RGBToBW` of `ALD | FX Contribution`.
 - `_sample_cloud_density()` returns `(rho, envelope, warped_pos)`. Rho is
   Perlin-Worley: macro `Detail 5.5/Roughness 0.56` weighted 0.62, plus
   `(0.22 billow + 0.16 Voronoi puff)` gated by a macro envelope

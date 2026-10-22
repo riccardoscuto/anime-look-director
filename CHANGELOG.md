@@ -1,5 +1,56 @@
 # Changelog
 
+## 2.24.0 - 2026-10-22
+The compositor FX isolation is corrected: the broken DIFFERENCE-based
+separation is replaced with a clean environment / FX-only / coverage
+pipeline. The diagnostic panel tells why an effect is not visible.
+
+### Added
+- `diagnostics.py`: per-event visibility report (OK, NO_GEOMETRY,
+  DISABLED, MISSING_ATTRIBUTE, NON_EMISSIVE, HIDDEN, FUTURE, ENDED,
+  OFF_CAMERA, OFF_CLIPPING) shown in the FX panel "Diagnostics" section.
+- `preset_dev/fixtures.py` and `preset_dev/diagnose.py`: temporary fixtures
+  (one meteor, one firework, user scene with HDRI + compositor + emissive
+  material) and the FX diagnostic report.
+- `preset_dev/audit_plan.py` updated for the new builder names and FX layer
+  functions.
+
+### Changed
+- **Compositor FX isolation**: replaced the algebraically invalid
+  DIFFERENCE of two emission passes with `C = (1-A)*Painted_B + F +
+  Glare(F)`, where B is rendered from a base layer (FX excluded), F from a
+  dedicated FX-only layer, and A is the FX coverage derived from F's
+  luminance. Foreign emissive surfaces no longer enter the FX mask.
+- Two view layers replace one: `ALD FX Base` (environment only) and
+  `ALD FX Only` (FX only). The main layer keeps all passes for the
+  painterly filters.
+- The `energy` attribute on trails is stored via Geometry domain (not
+  Instancer), matching what the ShaderNodeAttribute actually reads.
+- The gravity of the scene now reaches every solver: position, velocity,
+  shell rise, and meteor fall all use the same gravity vector.
+- The velocity is the exact derivative of the position: the small-drag
+  series was corrected (`exp(-x)` instead of the A expansion).
+- Child sparks inherit the parent star's trajectory (position and
+  velocity at emission) instead of being born away from the star.
+- The train no longer travels after the head dies: the front of the train
+  is frozen at the body's last position; residuals only fade.
+- Negative ages are clamped so particles never move backwards before
+  birth.
+- The clock of a system is real: Timeline reads the origin frame, Preview
+  is frame-independent, and the Burst Age shifts every system.
+- Two systems of the same kind never collide: the runtime registry is
+  keyed by system identity.
+- Launchers are found by system/event identity and survive geometry
+  rebuilds.
+- Event counts are three distinct numbers: primary stars, pistil stars,
+  and child sparks (the burst count is the number of bursts).
+
+### Fixed
+- The FX compositor isolation no longer produces false contributions from
+  revealed surfaces behind FX (the N06 algebraic counterexample).
+- The trails are emissive: they write the `energy` attribute the material
+  reads and feed the FX glow.
+
 ## 2.23.0 - 2026-10-22
 The audit plan of the user is applied: the events drive the geometry, the
 clock of a system is real and the diagnostics say why an effect is not

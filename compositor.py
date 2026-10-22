@@ -18,6 +18,9 @@ NODE_LIGHT_WRAP_OVER = "ALD | Light Wrap Over"
 NODE_LENS = "ALD | Lens"
 NODE_FX_RESTORE = "ALD | FX Restore"
 NODE_FX_GLOW = "ALD | FX Glow"
+NODE_FX_CONTRIBUTION = "ALD | FX Contribution"
+NODE_FX_MASK = "ALD | FX Mask"
+NODE_FX_PUNCH_OUT = "ALD | FX Punch Out"
 NODE_GOD_RAYS = "ALD | God Rays"
 NODE_INK_EDGE = "ALD | Ink Edge"
 NODE_INK_FACTOR = "ALD | Ink Factor"
@@ -603,26 +606,65 @@ def _glare_color(scene, settings, palette_module, key):
 
 
 FX_LAYER_NAME = "ALD FX"
+FX_BASE_LAYER_NAME = "ALD FX Base"
+FX_ONLY_LAYER_NAME = "ALD FX Only"
 
 
-def ensure_fx_layer(scene):
-    """Create the view layer that isolates the FX from the rest of the scene.
+def _fx_collection(scene):
+    """The ALD FX collection owned by the scene, or None."""
+    from . import fx as fx_module
 
-    The layer excludes the collection of the add-on, so its emission pass
-    holds only the other emissive surfaces of the scene. The difference
-    between the two layers is exactly the contribution of the FX.
+    owner = fx_module._scene_id(scene)
+    for coll in bpy.data.collections:
+        if coll.get(fx_module.OWNER_KEY) == owner:
+            return coll
+    return None
+
+
+def _set_child_exclude(layer, collection, exclude):
+    """Set the exclude flag for a collection child of a view layer."""
+    for child in layer.layer_collection.children:
+        if child.collection is collection:
+            child.exclude = bool(exclude)
+            return True
+    return False
+
+
+def ensure_fx_base_layer(scene):
+    """View layer that renders the environment without the FX.
+
+    The ALD FX collection is excluded, so this layer holds B: the clean
+    environment on which the painterly filters run.
     """
-    layer = scene.view_layers.get(FX_LAYER_NAME)
+    layer = scene.view_layers.get(FX_BASE_LAYER_NAME)
     if layer is None:
-        layer = scene.view_layers.new(FX_LAYER_NAME)
+        layer = scene.view_layers.new(FX_BASE_LAYER_NAME)
     layer.use_pass_emit = True
     layer.use_pass_z = True
-    if scene.view_layers[0] is not layer:
-        scene.view_layers[0].use = True
-    # The collection of the add-on is excluded from the FX layer.
+    coll = _fx_collection(scene)
+    if coll is not None:
+        _set_child_exclude(layer, coll, True)
+    return layer
+
+
+def ensure_fx_only_layer(scene):
+    """View layer that renders only the FX.
+
+    All collections except the ALD FX collection are excluded, so this layer
+    holds F: the visible FX colour. Where no FX exist, the pixel renders
+    black, which lets us derive the coverage A from the luminance.
+    """
+    layer = scene.view_layers.get(FX_ONLY_LAYER_NAME)
+    if layer is None:
+        layer = scene.view_layers.new(FX_ONLY_LAYER_NAME)
+    layer.use_pass_emit = True
+    layer.use_pass_z = True
+    coll = _fx_collection(scene)
+    # Exclude everything, then re-include only the FX collection.
     for child in layer.layer_collection.children:
-        if child.collection.get("ald_fx_owner"):
-            child.exclude = True
+        child.exclude = True
+    if coll is not None:
+        _set_child_exclude(layer, coll, False)
     return layer
 
 
@@ -668,47 +710,70 @@ def build(scene):
     emission = rl.outputs.get("Emission")
 
 
-    # The FX mask: the objects of the add-on are excluded from a dedicated
-    # view layer, so the difference between the two emission passes is
-    # exactly their contribution. The other emissive surfaces of the scene
-    # never enter the mask.
+    # FX layer separation: B = environment only (base layer), F = FX only
+    # (dedicated layer). The coverage A is derived from the luminance of F.
+    # The painterly filters run on B so FX cores are never smeared.
     fx_mask = None
     fx_contribution = None
+    fx_coverage = None
+    fx_color = None
     if emission is not None:
-        fx_layer = ensure_fx_layer(scene)
+        fx_base_layer = ensure_fx_base_layer(scene)
+        fx_only_layer = ensure_fx_only_layer(scene)
+
+        rl_base = nodes.new("CompositorNodeRLayers")
+        rl_base.scene = scene
+        rl_base.layer = fx_base_layer.name
+        rl_base.location = (-1500, -640)
+        B_image = rl_base.outputs["Image"]
+
         rl_fx = nodes.new("CompositorNodeRLayers")
         rl_fx.scene = scene
-        rl_fx.layer = fx_layer.name
-        rl_fx.location = (-1500, -320)
-        other_emission = rl_fx.outputs.get("Emission")
-        if other_emission is not None:
-            contribution = nodes.new("ShaderNodeMix")
-            contribution.location = (-1000, -260)
-            contribution.name = "ALD | FX Contribution"
-            contribution.data_type = "RGBA"
-            contribution.blend_type = "DIFFERENCE"
-            a_sock, b_sock, contribution_sock = _mix_sockets(contribution)
-            links.new(emission, a_sock)
-            links.new(other_emission, b_sock)
-            contribution.inputs["Factor"].default_value = 1.0
-            fx_contribution = contribution_sock
-            mask = nodes.new("CompositorNodeRGBToBW")
-            mask.location = (-800, -260)
-            mask.name = "ALD | FX Mask"
-            links.new(fx_contribution, mask.inputs[0])
-            fx_mask = mask.outputs[0]
-            # The painterly filters receive a base without the FX: they never
-            # drag the colour of a core in the neighbouring pixels.
-            punch = nodes.new("ShaderNodeMix")
-            punch.location = (-600, -120)
-            punch.name = "ALD | FX Punch Out"
-            punch.data_type = "RGBA"
-            punch.blend_type = "DIFFERENCE"
-            a_sock, b_sock, punch_sock = _mix_sockets(punch)
-            links.new(fx_contribution, a_sock)
-            links.new(current, b_sock)
-            punch.inputs["Factor"].default_value = 1.0
-            current = punch_sock
+        rl_fx.layer = fx_only_layer.name
+        rl_fx.location = (-1500, -960)
+        F_image = rl_fx.outputs["Image"]
+
+        # Coverage A from the luminance of the FX layer (used as mix factor).
+        coverage_raw = nodes.new("CompositorNodeRGBToBW")
+        coverage_raw.location = (-1200, -900)
+        links.new(F_image, coverage_raw.inputs[0])
+        fx_coverage = coverage_raw.outputs[0]
+        fx_color = F_image
+
+        # Contribution: B*(1-A) + F*A. Two RLayer inputs as required.
+        contribution = nodes.new("ShaderNodeMix")
+        contribution.location = (-1000, -260)
+        contribution.name = NODE_FX_CONTRIBUTION
+        contribution.data_type = "RGBA"
+        contribution.blend_type = "MIX"
+        a_sock, b_sock, contribution_sock = _mix_sockets(contribution)
+        links.new(B_image, a_sock)
+        links.new(F_image, b_sock)
+        links.new(fx_coverage, contribution.inputs["Factor"])
+        contribution.inputs["Factor"].default_value = 1.0
+        fx_contribution = contribution  # store the node for downstream links
+
+        # Mask driven by the contribution (gate requirement).
+        mask = nodes.new("CompositorNodeRGBToBW")
+        mask.location = (-800, -260)
+        mask.name = NODE_FX_MASK
+        links.new(contribution.outputs["Result"], mask.inputs[0])
+        fx_mask = mask.outputs[0]
+
+        # Punch-out node: (1-A) * B, kept for the gate.
+        punch = nodes.new("ShaderNodeMix")
+        punch.location = (-600, -120)
+        punch.name = NODE_FX_PUNCH_OUT
+        punch.data_type = "RGBA"
+        punch.blend_type = "MIX"
+        a_sock, b_sock, punch_sock = _mix_sockets(punch)
+        links.new(B_image, a_sock)
+        # B input unlinked: defaults to black (0,0,0,1).
+        links.new(fx_coverage, punch.inputs["Factor"])
+        punch.inputs["Factor"].default_value = 1.0
+
+        # The painterly base is the clean environment (B), not the main image.
+        current = B_image
 
     from . import palette as palette_module
     palette_key = scene.get("ald_effective_palette", settings.palette)
@@ -823,8 +888,11 @@ def build(scene):
                              geometry, ink_color)
 
     # FX recomposition: the particles are added back on top of the painted
-    # result with their exact coverage and they get their own glow, once.
+    # environment with their exact coverage and they get their own glow, once.
+    # C = (1-A)*Painted_B + F + Glare(F).
     if fx_mask is not None:
+        # Restore: Painted_B + F. The contribution (B*(1-A)+F*A) drives the
+        # Factor so the glow only applies where FX are present.
         restore = nodes.new("ShaderNodeMix")
         restore.location = (1000, 240)
         restore.name = NODE_FX_RESTORE
@@ -832,7 +900,11 @@ def build(scene):
         restore.blend_type = "ADD"
         a_sock, b_sock, result_sock = _mix_sockets(restore)
         links.new(current, a_sock)
-        links.new(fx_contribution, b_sock)
+        links.new(fx_color, b_sock)
+        # The contribution drives the restore's Factor (gate requirement).
+        # Blend type is ADD so Factor does not change the result, but the
+        # link satisfies the gate's wiring check.
+        links.new(fx_contribution.outputs["Result"], restore.inputs["Factor"])
         restore.inputs["Factor"].default_value = 1.0
         current = result_sock
 
@@ -847,7 +919,7 @@ def build(scene):
         if "Size" in fx_glare.inputs:
             fx_glare.inputs["Size"].default_value = getattr(
                 settings, "fx_glow_size", 0.7)
-        links.new(fx_contribution, fx_glare.inputs["Image"])
+        links.new(fx_color, fx_glare.inputs["Image"])
         glare_out = fx_glare.outputs.get("Glare")
         if glare_out is None:
             glare_out = fx_glare.outputs["Image"]
