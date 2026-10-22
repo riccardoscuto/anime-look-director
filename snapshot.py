@@ -155,6 +155,50 @@ def _restore_world(scene, state):
             state["bg_strength"])
 
 
+def _snapshot_contains_ald(state):
+    """True if the saved world state references an ALD node (i.e. ALD was
+    already applied when the snapshot was taken, so restoring it would not
+    bring back a neutral world)."""
+    world_state = state.get("world", {}) if state else {}
+    bg_link = world_state.get("bg_link")
+    if bg_link and bg_link.get("node") and "ALD" in bg_link.get("node", ""):
+        return True
+    return False
+
+
+def _restore_neutral_world(scene):
+    """Replace an ALD-tainted world with a simple neutral one (Background only)."""
+    world = scene.world
+    if world is None:
+        world = bpy.data.worlds.new("World")
+        scene.world = world
+    world.use_nodes = True
+    tree = world.node_tree
+    # Remove any ALD nodes and their links.
+    for node in list(tree.nodes):
+        if node.name.startswith("ALD"):
+            tree.nodes.remove(node)
+    for link in list(tree.links):
+        if (link.from_node.name.startswith("ALD")
+                or link.to_node.name.startswith("ALD")):
+            tree.links.remove(link)
+    # Ensure a Background node with a neutral dark colour.
+    background = next((n for n in tree.nodes
+                       if n.bl_idname == "ShaderNodeBackground"), None)
+    if background is None:
+        background = tree.nodes.new("ShaderNodeBackground")
+    background.inputs["Color"].default_value = (0.05, 0.05, 0.06, 1.0)
+    background.inputs["Strength"].default_value = 1.0
+    # Link Background to World Output.
+    output = next((n for n in tree.nodes
+                   if n.bl_idname == "ShaderNodeOutputWorld"), None)
+    if output is None:
+        output = tree.nodes.new("ShaderNodeOutputWorld")
+    surface_input = output.inputs.get("Surface")
+    if surface_input is not None and not surface_input.is_linked:
+        tree.links.new(background.outputs["Background"], surface_input)
+
+
 def _restore_sun(scene, state):
     sun = next((obj for obj in scene.objects
                  if obj.type == "LIGHT" and obj.data is not None
@@ -258,11 +302,23 @@ def restore(scene):
         fx.clear(scene)
         # The materials: the original base colour and emission come back.
         materials.clear_scene(scene)
-        if state:
+        has_valid_snapshot = bool(state) and not _snapshot_contains_ald(state)
+        if has_valid_snapshot:
             _restore_world(scene, state.get("world", {}))
             _restore_sun(scene, state.get("sun", {}))
             _restore_compositor(scene, state.get("compositor", {}))
             _restore_view_layer(scene, state.get("view_layer", []))
+        else:
+            # No valid snapshot (none, or one captured after ALD was already
+            # applied). Remove ALD taint from world and compositor so the
+            # scene comes back to a neutral state.
+            _restore_neutral_world(scene)
+            scene.compositing_node_group = None
+            scene.render.use_compositing = False
+            # Drop unused ALD node groups.
+            for ng in list(bpy.data.node_groups):
+                if ng.get("ald_scene") is not None and ng.users == 0:
+                    bpy.data.node_groups.remove(ng)
         # The internal properties are removed only after the restore.
         for key in INTERNAL_KEYS:
             if key in scene:
@@ -279,4 +335,4 @@ def restore(scene):
             settings.bypass = False
     finally:
         scene[MAINTENANCE_KEY] = False
-    return bool(state)
+    return has_valid_snapshot

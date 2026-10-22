@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.27.1 - 2026-10-22
+Fixed "Remove ALD from Scene" doing nothing when no valid snapshot exists.
+
+### Fixed
+- `Remove ALD from Scene` previously did nothing when there was no snapshot
+  (or the snapshot had been captured after ALD was already applied). The
+  World and compositor were left in their ALD state. Now, when no valid
+  snapshot exists, ALD removes its own nodes from the World (replacing the
+  ALD World Gradient with a simple neutral Background) and clears the
+  compositor, bringing the scene back to a neutral state.
+- The operator message now clearly reports whether a full restore happened
+  or a conservative neutral reset was performed.
+
 ## 2.27.0 - 2026-10-22
 Critical bug fix in the FX Python writer plus completion of the T24 visual
 profile acceptance test.

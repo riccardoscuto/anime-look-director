@@ -330,9 +330,9 @@ class ALD_OT_remove_from_scene(bpy.types.Operator):
                         "Anime Look Director: the scene was restored")
         else:
             self.report({"WARNING"},
-                        "Anime Look Director: the FX were removed but the "
-                        "original state was not registered, the world, the "
-                        "materials and the compositor were kept")
+                        "Anime Look Director: no original snapshot found. "
+                        "FX removed and world/compositor reset to a neutral "
+                        "state (original ALD look cannot be recovered).")
         return {"FINISHED"}
 
 
