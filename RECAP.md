@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.13.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.14.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -311,4 +311,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.11.1** - La verifica UI diventa uno strumento del repository (`preset_dev/ui_probe.py`).
 - **2.12.0** - Fase P0-A del piano operativo: decadimento corretto, energia separata dalla scala, regola di composizione dei burst, geometria delle meteore e origini delle figlie. GN e Python condividono gli stessi dati deterministici.
 - **2.13.0** - Fase P0-B: schema persistente (sistemi ed eventi), identità di scena robusta con gestione della duplicazione, registry ricostruito dalla configurazione salvata e version marker dei gruppi GN.
+- **2.14.0** - Fase P1-A: interfaccia unica tra Properties e sidebar, backend esclusivi (OFF / Legacy World / FX 3D), editor dei sistemi FX e controlli di look (energie per ruolo, attenuazione atmosferica).
 

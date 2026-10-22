@@ -943,3 +943,28 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The gate runs the P0-B tests: the fixture (save, reopen, list, sliders,
   clear per kind, animation), the duplication and the migration of an old
   group.
+### v2.14.0 notes (phase P1-A: one interface, exclusive backends)
+- `panels.py` now exposes the drawing functions (`draw_atmosphere`,
+  `draw_world`, `draw_shadows`, `draw_camera_override`, `draw_compositor`,
+  `draw_fx`, `draw_stack_actions`) and the panels only call them: the Scene
+  properties and the View3D sidebar show the same state with the same
+  operators, the sidebar is only more compact.
+- The FX section follows the structure of the plan: Systems (the list of the
+  persistent systems and events with the selection, the enabled flag, the
+  duplicate and the remove), Timing (Timeline or Preview, the origin frame
+  and the preview time), Launch (the launcher, the target, the duration, the
+  birth), Explosion (the family, the seed, the size, the primary count, the
+  pistil, the child sparks), Look (the glow, the energies of the heads, the
+  grains and the embers, the atmospheric fade), Advanced (the debug backend,
+  only in developer mode) and Actions.
+- The backend is exclusive and applied immediately by `fx.apply_backend`:
+  OFF hides the 3D systems and the legacy shader and preserves the data,
+  LEGACY enables the legacy shader and hides the systems, FX3D does the
+  opposite. The legacy world controls only appear in LEGACY.
+- The energy of every role is a separate exponent (head, grain, ember) and
+  the atmospheric fade attenuates the emission with the distance from the
+  camera: the nodes take the camera position and the fade as inputs, the
+  Python writer applies the same law.
+- The panel used the icon `OUTLINER_OB_DATA`, which does not exist in
+  Blender 5.1: the whole FX panel broke at draw time. The gate now validates
+  the icons against a curated list.

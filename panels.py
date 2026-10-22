@@ -3,6 +3,368 @@ import sys
 import bpy
 
 
+# ---------------------------------------------------------------------------
+# shared drawing functions
+#
+# The Scene properties and the View3D sidebar draw the same data with the
+# same operators: the user never has to choose which panel is the real one.
+# The sidebar may be more compact, but it never exposes a different state.
+# ---------------------------------------------------------------------------
+
+def draw_atmosphere(layout, context):
+    """The palette and the state of the compositor stack."""
+    scene = context.scene
+    s = scene.ald
+    col = layout.column(align=True)
+    col.prop(s, "palette", text="")
+    col.operator("ald.apply_palette", icon="FILE_REFRESH")
+    if scene.compositing_node_group is None:
+        col.label(text="Stack not assigned", icon="INFO")
+    else:
+        col.label(text="Stack ready", icon="CHECKMARK")
+
+
+def draw_world(layout, context, compact=False):
+    """The world, the sun, the clouds and the stars."""
+    scene = context.scene
+    s = scene.ald
+    box = layout.box()
+    box.label(text="World", icon="WORLD")
+    row = box.row(align=True)
+    row.prop(s, "world_gradient", toggle=True)
+    row.prop(s, "auto_sun", toggle=True)
+    if s.world_gradient:
+        col = box.column(align=True)
+        col.prop(s, "horizon_offset")
+        if not compact:
+            col.prop(s, "horizon_softness")
+    row = box.row(align=True)
+    row.prop(s, "sun_disk", toggle=True)
+    row.prop(s, "clouds", toggle=True)
+    if s.sun_disk:
+        col = box.column(align=True)
+        col.prop(s, "sun_disk_size")
+        col.prop(s, "sun_disk_strength")
+    row = box.row(align=True)
+    row.prop(s, "sun_glow_enabled", text="Sun Glow", toggle=True)
+    row.prop(s, "god_rays", text="Sun Beams", toggle=True)
+    if s.sun_glow_enabled:
+        box.prop(s, "sun_glow", text="Glow Strength")
+    if s.god_rays:
+        col = box.column(align=True)
+        col.prop(s, "god_rays_strength", text="Beam Strength")
+        col.prop(s, "god_rays_size", text="Beam Size")
+    col = box.column(align=True)
+    col.prop(s, "sky_accent")
+    col.prop(s, "sky_accent_amount")
+    if s.clouds:
+        col = box.column(align=True)
+        col.prop(s, "cloud_amount")
+        col.prop(s, "cloud_scale")
+        col.prop(s, "cloud_flatness")
+        col.prop(s, "cloud_wind")
+        col.prop(s, "contrails")
+        col.prop(s, "cloud_delta_gain")
+        col.prop(s, "cloud_rim_boost")
+    row = box.row(align=True)
+    row.prop(s, "stars", toggle=True)
+    row.prop(s, "shooting_stars", toggle=True)
+    if s.stars:
+        col = box.column(align=True)
+        col.prop(s, "star_strength")
+        col.prop(s, "star_density")
+        col.prop(s, "milky_way")
+    if s.shooting_stars:
+        col = box.column(align=True)
+        col.prop(s, "shooting_star_amount")
+        col.prop(s, "shooting_star_length")
+        col.prop(s, "shooting_star_angle")
+        col.prop(s, "shooting_star_phase")
+    # The legacy world fireworks only exist in the Legacy World backend.
+    if s.fx_backend == "LEGACY":
+        row = box.row(align=True)
+        row.prop(s, "fireworks", toggle=True)
+        if s.fireworks:
+            col = box.column(align=True)
+            col.prop(s, "fireworks_amount")
+            col.prop(s, "fireworks_scale")
+            col.prop(s, "fireworks_phase")
+    col = box.column(align=True)
+    col.prop(s, "sun_elevation")
+    col.prop(s, "sun_azimuth")
+    box.operator("ald.stage_backlight", icon="LIGHT")
+    row = box.row()
+    row.prop(s, "custom_colors", toggle=True)
+    if s.custom_colors:
+        col = box.column(align=True)
+        col.prop(s, "custom_sky")
+        col.prop(s, "custom_horizon")
+        col.prop(s, "custom_sun")
+        col.prop(s, "custom_shadow")
+        col.separator()
+        col.prop(s, "custom_cloud_shadow")
+        col.prop(s, "custom_cloud_mid")
+        col.prop(s, "custom_cloud_light")
+
+
+def draw_shadows(layout, context, compact=False):
+    """The shadow tint, the toon shading and the rim light."""
+    scene = context.scene
+    s = scene.ald
+    box = layout.box()
+    row = box.row(align=True)
+    row.prop(s, "shadow_tint", toggle=True)
+    count = scene.get("ald_shadow_materials", 0)
+    row.label(text="%d mats" % count, icon="MATERIAL")
+    row.operator("ald.clear_shadow_tint", text="", icon="X")
+    if s.shadow_tint:
+        col = box.column(align=True)
+        col.prop(s, "shadow_tint_strength")
+        if not compact:
+            col.prop(s, "shadow_hue_lift")
+    row = box.row(align=True)
+    row.prop(s, "toon_shading", toggle=True)
+    row.prop(s, "rim_light", toggle=True)
+    if s.toon_shading:
+        col = box.column(align=True)
+        col.prop(s, "toon_strength")
+        col.prop(s, "terminator_warmth")
+    if s.rim_light:
+        col = box.column(align=True)
+        col.prop(s, "rim_strength")
+        col.prop(s, "rim_mode")
+    if s.toon_shading or s.rim_light:
+        box.prop(s, "rim_emission")
+
+
+def draw_camera_override(layout, context):
+    """The palette override of the render camera."""
+    scene = context.scene
+    cam = scene.camera
+    if cam is None or cam.data is None or not hasattr(cam.data, "ald"):
+        return
+    box = layout.box()
+    box.label(text="Camera Override", icon="CAMERA_DATA")
+    box.prop(cam.data.ald, "override", toggle=True)
+    if cam.data.ald.override:
+        box.prop(cam.data.ald, "palette", text="")
+
+
+def draw_compositor(layout, context, compact=False):
+    """The controls of the compositor stack."""
+    scene = context.scene
+    s = scene.ald
+    box = layout.box()
+    box.label(text="Compositor", icon="NODETREE")
+    row = box.row(align=True)
+    row.prop(s, "halation", toggle=True)
+    row.prop(s, "painterly", toggle=True)
+    row = box.row(align=True)
+    row.prop(s, "light_wrap", toggle=True)
+    row.prop(s, "dispersion", toggle=True)
+    row = box.row(align=True)
+    row.prop(s, "god_rays", toggle=True)
+    if s.god_rays:
+        row.prop(s, "god_rays_strength", text="Strength")
+    row = box.row(align=True)
+    row.prop(s, "ink_lines", toggle=True)
+    if s.ink_lines:
+        row.prop(s, "ink_strength", text="Strength")
+    row = box.row(align=True)
+    row.prop(s, "aerial_haze", toggle=True)
+    if s.aerial_haze:
+        row.prop(s, "haze_strength", text="Strength")
+
+    col = box.column(align=True)
+    if s.halation:
+        col.prop(s, "halation_strength")
+    if s.painterly:
+        col.prop(s, "kuwahara_size")
+    if s.light_wrap:
+        col.prop(s, "light_wrap_strength")
+        col.prop(s, "light_wrap_size")
+    if s.god_rays:
+        col.prop(s, "god_rays_size")
+    if s.ink_lines:
+        col.prop(s, "ink_size")
+        col.prop(s, "ink_normal_sensitivity")
+
+
+def draw_stack_actions(layout, context):
+    """The stack buttons."""
+    row = layout.row(align=True)
+    row.operator("ald.build", icon="PLAY")
+    row.operator("ald.remove", icon="TRASH")
+    layout.operator("ald.viewport_compositor", icon="RESTRICT_VIEW_OFF")
+
+
+def _selected_system(context):
+    """The system and the event selected in the panel."""
+    scene = context.scene
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return None, None
+    index = int(settings.fx_selected_system)
+    if index < 0 or index >= len(settings.fx_systems):
+        return None, None
+    system = settings.fx_systems[index]
+    event_index = int(settings.fx_selected_event)
+    event = None
+    if 0 <= event_index < len(system.events):
+        event = system.events[event_index]
+    return system, event
+
+
+def draw_fx_systems(layout, context, compact=False):
+    """The list of the persistent systems and of their events."""
+    from . import fx
+    scene = context.scene
+    s = scene.ald
+    box = layout.box()
+    box.label(text="Systems", icon="OUTLINER")
+    if not s.fx_systems:
+        box.label(text="No FX system", icon="INFO")
+    for index, system in enumerate(s.fx_systems):
+        row = box.row(align=True)
+        row.prop(system, "enabled", text="", icon="CHECKBOX_HLT")
+        row.label(text="%s (%d)" % (system.kind.capitalize(),
+                                   len(system.events)))
+        op = row.operator("ald.fx_select_system", text="", icon="RESTRICT_SELECT_OFF")
+        op.index = index
+    if s.fx_systems:
+        row = box.row(align=True)
+        row.operator("ald.fx_duplicate_system", icon="DUPLICATE")
+        row.operator("ald.fx_remove_system", icon="X")
+    system, event = _selected_system(context)
+    if system is not None and system.events:
+        col = box.column(align=True)
+        col.label(text="Events", icon="KEYFRAME_HLT")
+        for index, item in enumerate(system.events):
+            row = col.row(align=True)
+            row.prop(item, "enabled", text="", icon="CHECKBOX_HLT")
+            row.label(text="%s %d" % (item.kind.capitalize(), index))
+            op = row.operator("ald.fx_select_event", text="", icon="RESTRICT_SELECT_OFF")
+            op.index = index
+
+
+def draw_fx_timing(layout, context, compact=False):
+    """The timing of the selected system."""
+    scene = context.scene
+    s = scene.ald
+    system, _event = _selected_system(context)
+    if system is None:
+        return
+    box = layout.box()
+    box.label(text="Timing", icon="TIME")
+    col = box.column(align=True)
+    col.prop(system, "timing_mode")
+    if system.timing_mode == "TIMELINE":
+        col.prop(system, "origin_frame")
+    else:
+        col.prop(system, "origin_time")
+    col = box.column(align=True)
+    col.prop(s, "fx_age", text="Burst Age")
+    if not compact:
+        col.prop(s, "fx_burst_spread", text="Burst Spread")
+        col.prop(s, "fx_composition_offset", text="Offset")
+
+
+def draw_fx_launch(layout, context, compact=False):
+    """The launcher and the target of the selected event."""
+    system, event = _selected_system(context)
+    if event is None:
+        return
+    box = layout.box()
+    box.label(text="Launch", icon="EMPTY_AXIS")
+    col = box.column(align=True)
+    if event.kind == "METEOR":
+        col.prop(event, "direction")
+        col.prop(event, "speed")
+        col.prop(event, "life")
+    else:
+        col.prop(event, "launcher")
+        col.prop(event, "target")
+        col.prop(event, "duration", text="Burst Duration")
+        col.prop(event, "birth", text="Birth")
+
+
+def draw_fx_explosion(layout, context, compact=False):
+    """The shape of the selected event."""
+    system, event = _selected_system(context)
+    if event is None:
+        return
+    box = layout.box()
+    box.label(text="Explosion", icon="PARTICLE_DATA")
+    col = box.column(align=True)
+    if event.kind == "FIREWORK":
+        col.prop(event, "family")
+    col.prop(event, "seed")
+    col.prop(event, "size")
+    col.prop(event, "count", text="Primary Count")
+    if not compact:
+        col.prop(event, "pistil")
+        col.prop(event, "sparks")
+
+
+def draw_fx_look(layout, context, compact=False):
+    """The look of the selected event."""
+    scene = context.scene
+    s = scene.ald
+    system, event = _selected_system(context)
+    box = layout.box()
+    box.label(text="Look", icon="COLOR")
+    col = box.column(align=True)
+    col.prop(s, "fx_glow_strength", text="FX Glow")
+    if not compact:
+        col.prop(s, "fx_glow_size", text="Glow Size")
+        col.prop(s, "fx_energy_head", text="Head Energy")
+        col.prop(s, "fx_energy_grain", text="Grain Energy")
+        col.prop(s, "fx_energy_ember", text="Ember Energy")
+        col.prop(s, "fx_atmospheric_fade", text="Atmospheric Fade")
+    if event is not None:
+        col.prop(event, "glow", text="Event Glow")
+
+
+def draw_fx_advanced(layout, context, compact=False):
+    """The debug controls, only in developer mode."""
+    scene = context.scene
+    s = scene.ald
+    box = layout.box()
+    box.label(text="Advanced", icon="PREFERENCES")
+    row = box.row(align=True)
+    row.prop(s, "developer_mode", toggle=True)
+    if not s.developer_mode:
+        box.label(text="Developer mode off", icon="INFO")
+        return
+    col = box.column(align=True)
+    col.prop(s, "fx_gn_prototype")
+    col.prop(s, "fx_meteor_persistence")
+    col.prop(s, "fx_schema")
+    col.label(text="UID %s" % (s.fx_uid or "-"))
+
+
+def draw_fx_actions(layout, context, compact=False):
+    """The FX actions."""
+    box = layout.box()
+    box.label(text="Actions", icon="EVENT")
+    col = box.column(align=True)
+    col.operator("ald.fx_fireworks", icon="LIGHT")
+    col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
+    col.operator("ald.fx_update", icon="FILE_REFRESH")
+    col.operator("ald.fx_clear", icon="TRASH")
+
+
+def draw_fx(layout, context, compact=False):
+    """The whole FX section, shared by the two surfaces."""
+    draw_fx_systems(layout, context, compact)
+    draw_fx_timing(layout, context, compact)
+    draw_fx_launch(layout, context, compact)
+    draw_fx_explosion(layout, context, compact)
+    draw_fx_look(layout, context, compact)
+    draw_fx_advanced(layout, context, compact)
+    draw_fx_actions(layout, context, compact)
+
+
 class ALD_PT_scene(bpy.types.Panel):
     bl_label = "Anime Look Director"
     bl_idname = "ALD_PT_scene"
@@ -69,125 +431,8 @@ class ALD_PT_world(bpy.types.Panel):
     bl_order = -20
 
     def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        s = scene.ald
-        count = scene.get("ald_shadow_materials", 0)
-
-        box = layout.box()
-        row = box.row(align=True)
-        row.prop(s, "world_gradient", toggle=True)
-        row.prop(s, "auto_sun", toggle=True)
-        if s.world_gradient:
-            col = box.column(align=True)
-            col.prop(s, "horizon_offset")
-            col.prop(s, "horizon_softness")
-
-        row = box.row(align=True)
-        row.prop(s, "sun_disk", toggle=True)
-        row.prop(s, "clouds", toggle=True)
-        if s.sun_disk:
-            col = box.column(align=True)
-            col.prop(s, "sun_disk_size")
-            col.prop(s, "sun_disk_strength")
-        row = box.row(align=True)
-        row.prop(s, "sun_glow_enabled", text="Sun Glow", toggle=True)
-        row.prop(s, "god_rays", text="Sun Beams", toggle=True)
-        if s.sun_glow_enabled:
-            box.prop(s, "sun_glow", text="Glow Strength")
-        if s.god_rays:
-            col = box.column(align=True)
-            col.prop(s, "god_rays_strength", text="Beam Strength")
-            col.prop(s, "god_rays_size", text="Beam Size")
-        col = box.column(align=True)
-        col.prop(s, "sky_accent")
-        col.prop(s, "sky_accent_amount")
-        if s.clouds:
-            col = box.column(align=True)
-            col.prop(s, "cloud_amount")
-            col.prop(s, "cloud_scale")
-            col.prop(s, "cloud_flatness")
-            col.prop(s, "cloud_wind")
-            col.prop(s, "contrails")
-            col.prop(s, "cloud_delta_gain")
-            col.prop(s, "cloud_rim_boost")
-
-        row = box.row(align=True)
-        row.prop(s, "stars", toggle=True)
-        row.prop(s, "shooting_stars", toggle=True)
-        if s.stars:
-            col = box.column(align=True)
-            col.prop(s, "star_strength")
-            col.prop(s, "star_density")
-            col.prop(s, "milky_way")
-        if s.shooting_stars:
-            col = box.column(align=True)
-            col.prop(s, "shooting_star_amount")
-            col.prop(s, "shooting_star_length")
-            col.prop(s, "shooting_star_angle")
-            col.prop(s, "shooting_star_phase")
-        row = box.row(align=True)
-        row.prop(s, "fireworks", toggle=True)
-        if s.fireworks:
-            col = box.column(align=True)
-            col.prop(s, "fireworks_amount")
-            col.prop(s, "fireworks_scale")
-            col.prop(s, "fireworks_phase")
-
-        col = box.column(align=True)
-        col.prop(s, "sun_elevation")
-        col.prop(s, "sun_azimuth")
-        box.operator("ald.stage_backlight", icon="LIGHT")
-
-        row = box.row()
-        row.prop(s, "custom_colors", toggle=True)
-        if s.custom_colors:
-            col = box.column(align=True)
-            col.prop(s, "custom_sky")
-            col.prop(s, "custom_horizon")
-            col.prop(s, "custom_sun")
-            col.prop(s, "custom_shadow")
-            col.separator()
-            col.prop(s, "custom_cloud_shadow")
-            col.prop(s, "custom_cloud_mid")
-            col.prop(s, "custom_cloud_light")
-
-        box.separator()
-        row = box.row(align=True)
-        row.prop(s, "shadow_tint", toggle=True)
-        row.label(text="%d mats" % count, icon="MATERIAL")
-        row.operator("ald.clear_shadow_tint", text="", icon="X")
-        if s.shadow_tint:
-            col = box.column(align=True)
-            col.prop(s, "shadow_tint_strength")
-            col.prop(s, "shadow_tint_distance")
-            col.prop(s, "shadow_hue_lift")
-
-        box.separator()
-        row = box.row(align=True)
-        row.prop(s, "toon_shading", toggle=True)
-        row.prop(s, "rim_light", toggle=True)
-        if s.toon_shading:
-            col = box.column(align=True)
-            col.prop(s, "toon_strength")
-            col.prop(s, "toon_sharpness")
-            col.prop(s, "terminator_warmth")
-        if s.rim_light:
-            col = box.column(align=True)
-            col.prop(s, "rim_strength")
-            col.prop(s, "rim_width")
-            col.prop(s, "rim_mode")
-        if s.toon_shading or s.rim_light:
-            box.prop(s, "rim_emission")
-
-        cam = scene.camera
-        if (cam is not None and cam.data is not None
-                and hasattr(cam.data, "ald")):
-            box = layout.box()
-            box.label(text="Camera Override", icon="CAMERA_DATA")
-            box.prop(cam.data.ald, "override", toggle=True)
-            if cam.data.ald.override:
-                box.prop(cam.data.ald, "palette", text="")
+        draw_world(self.layout, context)
+        draw_shadows(self.layout, context)
 
 
 class ALD_PT_compositor(bpy.types.Panel):
@@ -200,48 +445,20 @@ class ALD_PT_compositor(bpy.types.Panel):
     bl_order = -10
 
     def draw(self, context):
-        layout = self.layout
-        s = context.scene.ald
+        draw_compositor(self.layout, context)
+        draw_camera_override(self.layout, context)
 
-        box = layout.box()
-        row = box.row(align=True)
-        row.prop(s, "halation", toggle=True)
-        row.prop(s, "painterly", toggle=True)
-        row = box.row(align=True)
-        row.prop(s, "dispersion", toggle=True)
-        row.prop(s, "light_wrap", toggle=True)
-        row = box.row(align=True)
-        row.prop(s, "god_rays", toggle=True)
-        if s.god_rays:
-            row.prop(s, "god_rays_strength", text="Strength")
-        row = box.row(align=True)
-        row.prop(s, "ink_lines", toggle=True)
-        if s.ink_lines:
-            row.prop(s, "ink_strength", text="Strength")
-        row = box.row(align=True)
-        row.prop(s, "aerial_haze", toggle=True)
-        if s.aerial_haze:
-            row.prop(s, "haze_strength", text="Strength")
 
-        col = box.column(align=True)
-        if s.halation:
-            col.prop(s, "halation_strength")
-        if s.painterly:
-            col.prop(s, "kuwahara_size")
-        if s.dispersion:
-            col.prop(s, "dispersion_amount")
-        if s.light_wrap:
-            col.prop(s, "light_wrap_strength")
-            col.prop(s, "light_wrap_size")
-        if s.god_rays:
-            col.prop(s, "god_rays_size")
-        if s.ink_lines:
-            col.prop(s, "ink_size")
-            col.prop(s, "ink_normal_sensitivity")
+class ALD_PT_fx(bpy.types.Panel):
+    bl_label = "FX Particles"
+    bl_idname = "ALD_PT_fx"
+    bl_parent_id = "ALD_PT_scene"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
 
-        col.separator()
-        col.prop(s, "depth_near")
-        col.prop(s, "depth_far")
+    def draw(self, context):
+        draw_fx(self.layout, context)
 
 
 class ALD_PT_view3d(bpy.types.Panel):
@@ -259,199 +476,13 @@ class ALD_PT_view3d(bpy.types.Panel):
         version = getattr(module, "bl_info", {}).get("version")
         if version:
             layout.label(text="v%d.%d.%d" % tuple(version), icon="INFO")
-
-        col = layout.column(align=True)
-        col.prop(s, "palette", text="")
-        col.operator("ald.apply_palette", icon="FILE_REFRESH")
-        if scene.compositing_node_group is None:
-            col.label(text="Stack not assigned", icon="INFO")
-        else:
-            col.label(text="Stack ready", icon="CHECKMARK")
-
-        box = layout.box()
-        box.label(text="World", icon="WORLD")
-        row = box.row(align=True)
-        row.prop(s, "world_gradient", toggle=True)
-        row.prop(s, "auto_sun", toggle=True)
-        if s.world_gradient:
-            col = box.column(align=True)
-            col.prop(s, "horizon_offset")
-            col.prop(s, "horizon_softness")
-        row = box.row(align=True)
-        row.prop(s, "sun_disk", toggle=True)
-        row.prop(s, "clouds", toggle=True)
-        if s.sun_disk:
-            col = box.column(align=True)
-            col.prop(s, "sun_disk_size")
-            col.prop(s, "sun_disk_strength")
-        row = box.row(align=True)
-        row.prop(s, "sun_glow_enabled", text="Sun Glow", toggle=True)
-        row.prop(s, "god_rays", text="Sun Beams", toggle=True)
-        if s.sun_glow_enabled:
-            box.prop(s, "sun_glow", text="Glow Strength")
-        if s.god_rays:
-            col = box.column(align=True)
-            col.prop(s, "god_rays_strength", text="Beam Strength")
-            col.prop(s, "god_rays_size", text="Beam Size")
-        col = box.column(align=True)
-        col.prop(s, "sky_accent")
-        col.prop(s, "sky_accent_amount")
-        if s.clouds:
-            col = box.column(align=True)
-            col.prop(s, "cloud_amount")
-            col.prop(s, "cloud_scale")
-            col.prop(s, "cloud_flatness")
-            col.prop(s, "cloud_wind")
-            col.prop(s, "contrails")
-            col.prop(s, "cloud_delta_gain")
-            col.prop(s, "cloud_rim_boost")
-        row = box.row(align=True)
-        row.prop(s, "stars", toggle=True)
-        row.prop(s, "shooting_stars", toggle=True)
-        if s.stars:
-            col = box.column(align=True)
-            col.prop(s, "star_strength")
-            col.prop(s, "star_density")
-            col.prop(s, "milky_way")
-        if s.shooting_stars:
-            col = box.column(align=True)
-            col.prop(s, "shooting_star_amount")
-            col.prop(s, "shooting_star_length")
-            col.prop(s, "shooting_star_angle")
-            col.prop(s, "shooting_star_phase")
-        row = box.row(align=True)
-        row.prop(s, "fireworks", toggle=True)
-        if s.fireworks:
-            col = box.column(align=True)
-            col.prop(s, "fireworks_amount")
-            col.prop(s, "fireworks_scale")
-            col.prop(s, "fireworks_phase")
-        col = box.column(align=True)
-        col.prop(s, "sun_elevation")
-        col.prop(s, "sun_azimuth")
-        box.operator("ald.stage_backlight", icon="LIGHT")
-        row = box.row()
-        row.prop(s, "custom_colors", toggle=True)
-        if s.custom_colors:
-            col = box.column(align=True)
-            col.prop(s, "custom_sky")
-            col.prop(s, "custom_horizon")
-            col.prop(s, "custom_sun")
-            col.prop(s, "custom_shadow")
-            col.separator()
-            col.prop(s, "custom_cloud_shadow")
-            col.prop(s, "custom_cloud_mid")
-            col.prop(s, "custom_cloud_light")
-
-        box = layout.box()
-        row = box.row(align=True)
-        row.prop(s, "shadow_tint", toggle=True)
-        count = scene.get("ald_shadow_materials", 0)
-        row.label(text="%d mats" % count, icon="MATERIAL")
-        row.operator("ald.clear_shadow_tint", text="", icon="X")
-        if s.shadow_tint:
-            col = box.column(align=True)
-            col.prop(s, "shadow_tint_strength")
-            col.prop(s, "shadow_hue_lift")
-        row = box.row(align=True)
-        row.prop(s, "toon_shading", toggle=True)
-        row.prop(s, "rim_light", toggle=True)
-        if s.toon_shading:
-            col = box.column(align=True)
-            col.prop(s, "toon_strength")
-            col.prop(s, "terminator_warmth")
-        if s.rim_light:
-            col = box.column(align=True)
-            col.prop(s, "rim_strength")
-            col.prop(s, "rim_mode")
-        if s.toon_shading or s.rim_light:
-            box.prop(s, "rim_emission")
-
-        cam = scene.camera
-        if (cam is not None and cam.data is not None
-                and hasattr(cam.data, "ald")):
-            box = layout.box()
-            box.label(text="Camera Override", icon="CAMERA_DATA")
-            box.prop(cam.data.ald, "override", toggle=True)
-            if cam.data.ald.override:
-                box.prop(cam.data.ald, "palette", text="")
-
-        box = layout.box()
-        box.label(text="Compositor", icon="NODETREE")
-        row = box.row(align=True)
-        row.prop(s, "halation", toggle=True)
-        row.prop(s, "painterly", toggle=True)
-        row = box.row(align=True)
-        row.prop(s, "light_wrap", toggle=True)
-        row.prop(s, "dispersion", toggle=True)
-        row = box.row(align=True)
-        row.prop(s, "god_rays", toggle=True)
-        if s.god_rays:
-            row.prop(s, "god_rays_strength", text="Strength")
-        row = box.row(align=True)
-        row.prop(s, "ink_lines", toggle=True)
-        if s.ink_lines:
-            row.prop(s, "ink_strength", text="Strength")
-        row = box.row(align=True)
-        row.prop(s, "aerial_haze", toggle=True)
-        if s.aerial_haze:
-            row.prop(s, "haze_strength", text="Strength")
-
-        col = box.column(align=True)
-        if s.halation:
-            col.prop(s, "halation_strength")
-        if s.painterly:
-            col.prop(s, "kuwahara_size")
-        if s.light_wrap:
-            col.prop(s, "light_wrap_strength")
-            col.prop(s, "light_wrap_size")
-        if s.god_rays:
-            col.prop(s, "god_rays_size")
-        if s.ink_lines:
-            col.prop(s, "ink_size")
-            col.prop(s, "ink_normal_sensitivity")
-
-        row = layout.row(align=True)
-        row.operator("ald.build", icon="PLAY")
-        row.operator("ald.remove", icon="TRASH")
-        layout.operator("ald.viewport_compositor", icon="RESTRICT_VIEW_OFF")
-
-
-class ALD_PT_fx(bpy.types.Panel):
-    bl_label = "FX Particles"
-    bl_idname = "ALD_PT_fx"
-    bl_parent_id = "ALD_PT_scene"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "scene"
-
-    def draw(self, context):
-        layout = self.layout
-        col = layout.column(align=True)
-        col.prop(context.scene.ald, "fx_backend")
-        col.prop(context.scene.ald, "fx_age")
-        col.prop(context.scene.ald, "fx_burst_spread")
-        col.prop(context.scene.ald, "fx_composition_offset")
-        col.prop(context.scene.ald, "fx_gn_prototype")
-        col.prop(context.scene.ald, "fx_meteor_persistence")
-        glow = layout.column(align=True)
-        glow.prop(context.scene.ald, "fx_glow_strength")
-        glow.prop(context.scene.ald, "fx_glow_size")
-        col.operator("ald.fx_fireworks", icon="LIGHT")
-        col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
-        col.operator("ald.fx_update", icon="FILE_REFRESH")
-        col.operator("ald.fx_clear", icon="TRASH")
-        config = context.scene.get("ald_fx_config")
-        if config:
-            layout.label(text="FX active: %s" % config.get("kind", "-"),
-                         icon="DOT")
-        from . import fx
-        for kind, count in fx.systems_info(context.scene):
-            row = layout.row(align=True)
-            row.label(text="%s (%d)" % (kind.capitalize(), count),
-                      icon="PARTICLE_DATA")
-            op = row.operator("ald.fx_clear_kind", text="", icon="X")
-            op.kind = kind
+        draw_atmosphere(layout, context)
+        draw_world(layout, context, compact=True)
+        draw_shadows(layout, context, compact=True)
+        draw_camera_override(layout, context)
+        draw_compositor(layout, context, compact=True)
+        draw_fx(layout, context, compact=True)
+        draw_stack_actions(layout, context)
 
 
 _classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor, ALD_PT_fx, ALD_PT_view3d)

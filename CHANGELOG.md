@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.14.0 - 2026-10-22
+Phase P1-A of the operational plan: one interface, one backend semantics.
+
+### Added
+- Shared drawing functions: the Scene properties and the View3D sidebar draw
+  the same data with the same operators (`draw_atmosphere`, `draw_world`,
+  `draw_shadows`, `draw_camera_override`, `draw_compositor`, `draw_fx`,
+  `draw_stack_actions`). The sidebar is more compact, the state is the same.
+- The FX section follows the structure of the plan: Systems, Timing, Launch,
+  Explosion, Look, Advanced and Actions, with the list of the persistent
+  systems and events (selection, enabled, duplicate, remove).
+- The operators `ald.fx_select_system`, `ald.fx_select_event`,
+  `ald.fx_duplicate_system` and `ald.fx_remove_system`.
+- The look controls: the energy decay of the heads, of the grains and of the
+  embers, plus the atmospheric fade (the emission is attenuated with the
+  distance from the camera, in the nodes and in the Python writer).
+- `Developer Mode` hides the debug controls (the Geometry Nodes or Python
+  backend) from the normal interface.
+- The gate checks the backend exclusivity, the parity of the two surfaces and
+  the icons used by the panels.
+
+### Fixed
+- The backend is really exclusive: `OFF` hides the 3D systems and the legacy
+  shader and preserves the data, `Legacy World` enables the legacy shader and
+  hides the systems, `FX 3D` does the opposite. The change applies at once.
+- The legacy world controls only appear in the Legacy World backend.
+- The panel used an icon that does not exist in Blender 5.1 and broke the
+  whole FX panel at draw time: the gate now validates the icons.
+
 ## 2.13.0 - 2026-10-22
 Phase P0-B of the operational plan: the state is persistent and the identity
 is robust.

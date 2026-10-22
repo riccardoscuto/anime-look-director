@@ -223,7 +223,8 @@ def _fibonacci_direction(index, count, jitter, seed, burst):
 
 def _gn_points_object(scene, name, material, particles, trail=0.0,
                       age_offset=0.0, min_scale=0.35, decay_power=1.0,
-                      gravity=None):
+                      energy_power=1.0, gravity=None, camera_position=None,
+                      atmospheric_fade=0.0):
     """Build a points object whose motion is evaluated by Geometry Nodes."""
     from . import fx_nodes
     count = len(particles)
@@ -258,7 +259,10 @@ def _gn_points_object(scene, name, material, particles, trail=0.0,
                                    material, trail=trail,
                                    age_offset=age_offset,
                                    min_scale=min_scale,
-                                   decay_power=decay_power)
+                                   decay_power=decay_power,
+                                   energy_power=energy_power,
+                                   camera_position=camera_position,
+                                   atmospheric_fade=atmospheric_fade)
     return obj
 
 
@@ -378,7 +382,23 @@ def burst_population(seed, index, config, birth, center, size_scale,
             "sparks": sparks, "flash": flash}
 
 
-def _particle_state(particle, time):
+def _energy_powers(scene):
+    """The energy decay exponents of every role."""
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return {}
+    return {"head": float(settings.fx_energy_head),
+            "grain": float(settings.fx_energy_grain),
+            "ember": float(settings.fx_energy_ember)}
+
+
+def _atmospheric_fade(scene):
+    """The atmospheric attenuation of the FX emission."""
+    settings = getattr(scene, "ald", None)
+    return float(settings.fx_atmospheric_fade) if settings else 0.0
+
+
+def _particle_state(particle, time, powers=None, fade=0.0, camera=None):
     """Evaluate one particle: position, scale, energy and alive flag."""
     age = time - particle["birth"]
     life = max(particle["life"], 1e-3)
@@ -402,7 +422,12 @@ def _particle_state(particle, time):
     minimum = particle["min_scale"]
     shape = minimum + (1.0 - minimum) * (1.0 - u) ** particle["decay_power"]
     scale = particle["radius"] * (shape if particle["use_decay"] else 1.0)
-    energy = (1.0 - u) ** particle["energy_power"]
+    power = particle["energy_power"]
+    if powers:
+        power = powers.get(particle["role"], power)
+    energy = (1.0 - u) ** power
+    if fade > 0.0 and camera is not None:
+        energy *= math.exp(-fade * (position - camera).length / 100.0)
     return position, scale, energy, alive
 
 
@@ -747,9 +772,15 @@ def _build_fireworks(scene, count, seed, distance, family):
             try:
                 age_offset = float(getattr(settings, "fx_age", 0.0)) \
                     if settings else 0.0
+                powers = _energy_powers(scene)
+                fade = _atmospheric_fade(scene)
+                camera_position = tuple(origin)
                 gn_heads = _gn_points_object(
                     scene, "ALD FX GN Heads %d" % index, materials[0],
-                    population["heads"], trail=0.0, age_offset=age_offset)
+                    population["heads"], trail=0.0, age_offset=age_offset,
+                    energy_power=powers.get("head", 1.0),
+                    camera_position=camera_position,
+                    atmospheric_fade=fade)
                 created.append(gn_heads)
                 for slot in range(3):
                     grains = [p for p in population["grains"]
@@ -757,23 +788,35 @@ def _build_fireworks(scene, count, seed, distance, family):
                     bead_gn = _gn_points_object(
                         scene, "ALD FX GN Beads %d %d" % (index, slot),
                         materials[slot], grains, trail=config["trail"],
-                        age_offset=age_offset)
+                        age_offset=age_offset,
+                        energy_power=powers.get("grain", 1.0),
+                        camera_position=camera_position,
+                        atmospheric_fade=fade)
                     created.append(bead_gn)
                     gn_beads.append(bead_gn)
                 gn_pistil = _gn_points_object(
                     scene, "ALD FX GN Pistil %d" % index, materials[1],
-                    population["pistil"], trail=0.0, age_offset=age_offset)
+                    population["pistil"], trail=0.0, age_offset=age_offset,
+                    energy_power=powers.get("head", 1.0),
+                    camera_position=camera_position,
+                    atmospheric_fade=fade)
                 created.append(gn_pistil)
                 gn_pistil_grains = _gn_points_object(
                     scene, "ALD FX GN Pistil Grains %d" % index, materials[1],
                     population["pistil_grains"],
-                    trail=config["trail"] * 0.6, age_offset=age_offset)
+                    trail=config["trail"] * 0.6, age_offset=age_offset,
+                    energy_power=powers.get("grain", 1.0),
+                    camera_position=camera_position,
+                    atmospheric_fade=fade)
                 created.append(gn_pistil_grains)
                 gn_beads.append(gn_pistil_grains)
                 gn_sparks = _gn_points_object(
                     scene, "ALD FX GN Sparks %d" % index, materials[2],
                     population["sparks"], trail=0.0, age_offset=age_offset,
-                    min_scale=0.0)
+                    min_scale=0.0,
+                    energy_power=powers.get("ember", 1.0),
+                    camera_position=camera_position,
+                    atmospheric_fade=fade)
                 created.append(gn_sparks)
                 for slot in range(3):
                     samples = [p for p in population["trail"]
@@ -787,7 +830,10 @@ def _build_fireworks(scene, count, seed, distance, family):
                 gn_flash = _gn_points_object(
                     scene, "ALD FX GN Flash %d" % index, materials[1],
                     population["flash"], trail=0.0, age_offset=age_offset,
-                    min_scale=0.0, decay_power=0.5)
+                    min_scale=0.0, decay_power=0.5,
+                    energy_power=powers.get("head", 1.0),
+                    camera_position=camera_position,
+                    atmospheric_fade=fade)
                 created.append(gn_flash)
                 for obj in created:
                     obj["ald_fx_kind"] = kind
@@ -838,10 +884,11 @@ def _build_fireworks(scene, count, seed, distance, family):
             "core": core_obj, "core_ranges": core_ranges,
         })
     return {"kind": "fireworks", "bursts": bursts, "time": None,
+            "scene": scene, "camera": origin,
             "gn": all(burst.get("gn_heads") is not None for burst in bursts)}
 
 
-def _evaluate(population, role, time):
+def _evaluate(population, role, time, powers=None, fade=0.0, camera=None):
     """Evaluate a population: (centers, radii, energies, alive flags).
 
     A dead particle is moved away and shrunk: the Geometry Nodes path hides it
@@ -852,7 +899,8 @@ def _evaluate(population, role, time):
     energies = []
     alive_flags = []
     for particle in population[role]:
-        position, scale, energy, alive = _particle_state(particle, time)
+        position, scale, energy, alive = _particle_state(particle, time, powers,
+                                                        fade, camera)
         if not alive:
             position = particle["pos0"] + Vector((0.0, 0.0, 1000.0))
             scale = 0.0001
@@ -870,6 +918,9 @@ def _update_fireworks(system, time):
             # The node group evaluates every particle of the burst.
             continue
         center = burst["center"]
+        powers = _energy_powers(system.get("scene"))
+        fade = _atmospheric_fade(system.get("scene"))
+        camera = system.get("camera")
         # Filament: the thin trail of every star.
         trail_data = burst["trail"].data if burst["trail"] is not None else None
         if trail_data is not None:
@@ -879,13 +930,13 @@ def _update_fireworks(system, time):
                 spline = trail_data.splines[spoke]
                 for step, particle in enumerate(samples):
                     position, _scale, _energy, alive = _particle_state(
-                        particle, time)
+                        particle, time, powers, fade, camera)
                     if not alive:
                         position = center + Vector((0.0, 0.0, 1000.0))
                     spline.points[step].co = (position.x, position.y,
                                               position.z, 1.0)
                     spline.points[step].radius = particle["radius"]
-        heads = _evaluate(population, "heads", time)
+        heads = _evaluate(population, "heads", time, powers, fade, camera)
         _write_particle_mesh(burst["heads"].data, burst["head_ranges"],
                              heads[0], heads[1], heads[2])
         for slot, (bead_obj, bead_ranges, grains) in enumerate(burst["beads"]):
@@ -893,7 +944,8 @@ def _update_fireworks(system, time):
             radii = []
             energies = []
             for particle in grains:
-                position, scale, energy, alive = _particle_state(particle, time)
+                position, scale, energy, alive = _particle_state(
+                    particle, time, powers, fade, camera)
                 if not alive:
                     position = center + Vector((0.0, 0.0, 1000.0))
                     scale = 0.0001
@@ -904,17 +956,18 @@ def _update_fireworks(system, time):
                                  energies)
         (pistil_obj, pistil_ranges, pistil_bead_obj, pistil_bead_ranges,
          _pistil_count) = burst["pistil"]
-        pistil = _evaluate(population, "pistil", time)
+        pistil = _evaluate(population, "pistil", time, powers, fade, camera)
         _write_particle_mesh(pistil_obj.data, pistil_ranges, pistil[0],
                              pistil[1], pistil[2])
-        pistil_grains = _evaluate(population, "pistil_grains", time)
+        pistil_grains = _evaluate(population, "pistil_grains", time, powers,
+                                  fade, camera)
         _write_particle_mesh(pistil_bead_obj.data, pistil_bead_ranges,
                              pistil_grains[0], pistil_grains[1],
                              pistil_grains[2])
-        sparks = _evaluate(population, "sparks", time)
+        sparks = _evaluate(population, "sparks", time, powers, fade, camera)
         _write_particle_mesh(burst["sparks"].data, burst["spark_ranges"],
                              sparks[0], sparks[1], sparks[2])
-        flash = _evaluate(population, "flash", time)
+        flash = _evaluate(population, "flash", time, powers, fade, camera)
         _write_particle_mesh(burst["core"].data, burst["core_ranges"],
                              flash[0], flash[1], flash[2])
 
@@ -1002,6 +1055,9 @@ def _build_meteors(scene, count, seed, distance):
     if use_gn:
         created = []
         try:
+            powers = _energy_powers(scene)
+            fade = _atmospheric_fade(scene)
+            camera_position = tuple(origin)
             head_points = [population["head"] for population in populations]
             train_points = []
             fragment_points = []
@@ -1010,7 +1066,9 @@ def _build_meteors(scene, count, seed, distance):
                 fragment_points.extend(population["fragments"])
             gn_heads = _gn_points_object(
                 scene, "ALD FX GN Meteor Heads", material, head_points,
-                trail=0.0, age_offset=age_offset)
+                trail=0.0, age_offset=age_offset,
+                energy_power=powers.get("head", 1.0),
+                camera_position=camera_position, atmospheric_fade=fade)
             created.append(gn_heads)
             gn_train = _gn_trail_object(
                 scene, "ALD FX GN Meteor Trails", material, train_points,
@@ -1019,7 +1077,9 @@ def _build_meteors(scene, count, seed, distance):
             created.append(gn_train)
             gn_fragments = _gn_points_object(
                 scene, "ALD FX GN Meteor Fragments", material, fragment_points,
-                trail=0.0, age_offset=age_offset, min_scale=0.0)
+                trail=0.0, age_offset=age_offset, min_scale=0.0,
+                energy_power=powers.get("ember", 1.0),
+                camera_position=camera_position, atmospheric_fade=fade)
             created.append(gn_fragments)
             for obj in created:
                 obj["ald_fx_kind"] = "meteors"
@@ -1316,6 +1376,29 @@ def rebuild_registry(scene):
     return rebuilt
 
 
+def apply_backend(scene):
+    """Apply the backend semantics immediately.
+
+    OFF hides the 3D systems and the legacy shader, the data is preserved.
+    LEGACY enables the legacy world shader and hides the 3D systems.
+    FX3D disables the legacy shader and shows the 3D systems.
+    """
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return False
+    backend = settings.fx_backend
+    visible = (backend == "FX3D")
+    for obj in _collection(scene).objects:
+        if not obj.get("ald_fx"):
+            continue
+        obj.hide_render = not visible
+        obj.hide_viewport = not visible
+    # The legacy world fireworks follow the backend.
+    if settings.fireworks != (backend == "LEGACY"):
+        settings.fireworks = (backend == "LEGACY")
+    return True
+
+
 def set_age(scene, age):
     """Move the FX systems in time without rebuilding the geometry.
 
@@ -1331,6 +1414,10 @@ def set_age(scene, age):
     now = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
     updated = False
     collection = _collection(scene)
+    powers = _energy_powers(scene)
+    fade = _atmospheric_fade(scene)
+    origin, _forward, _up, _right = _camera_basis(scene)
+    role_by_object = {}
     for system in registry.values():
         if not system:
             continue
@@ -1338,6 +1425,8 @@ def set_age(scene, age):
             for obj in collection.objects:
                 if obj.get("ald_fx"):
                     fx_nodes.set_age_offset(obj, age)
+                    fx_nodes.set_look(obj, camera_position=tuple(origin),
+                                      atmospheric_fade=fade)
             system["time"] = None
             updated = True
         else:

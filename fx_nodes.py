@@ -89,7 +89,9 @@ def _socket_ids(ng, defaults):
 BURST_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
                           "material": "Socket_2", "trail": "Socket_3",
                           "age_offset": "Socket_4", "min_scale": "Socket_5",
-                          "decay_power": "Socket_6", "energy_power": "Socket_7"}
+                          "decay_power": "Socket_6", "energy_power": "Socket_7",
+                          "camera_position": "Socket_8",
+                          "atmospheric_fade": "Socket_9"}
 TRAIL_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
                           "material": "Socket_2", "trail": "Socket_3",
                           "age_offset": "Socket_4", "radius": "Socket_5",
@@ -276,6 +278,8 @@ def _create_burst_group():
         ("Min Scale", "NodeSocketFloat", 0.35),
         ("Decay Power", "NodeSocketFloat", 1.0),
         ("Energy Power", "NodeSocketFloat", 1.0),
+        ("Camera Position", "NodeSocketVector", None),
+        ("Atmospheric Fade", "NodeSocketFloat", 0.0),
     ))
     nodes = ng.nodes
     links = ng.links
@@ -355,13 +359,31 @@ def _create_burst_group():
     # scale: the geometry shrinks while the emission fades on its own curve.
     energy = _math(nodes, links, "POWER", one_minus.outputs[0],
                    group_in.outputs["Energy Power"], (240, -960))
+    # Atmospheric fade: the emission is attenuated with the distance from the
+    # camera, like the air between the viewer and the burst.
+    to_camera = _vector(nodes, links, "SUBTRACT", motion["position"],
+                        group_in.outputs["Camera Position"], (240, -1120))
+    distance = _vector(nodes, links, "LENGTH", to_camera.outputs["Vector"], None,
+                       (400, -1120))
+    fade_scaled = _math(nodes, links, "MULTIPLY", distance.outputs["Value"],
+                        group_in.outputs["Atmospheric Fade"], (560, -1120))
+    fade_reference = _math(nodes, links, "DIVIDE", fade_scaled.outputs[0], None,
+                            (720, -1120))
+    fade_reference.inputs[1].default_value = 100.0
+    fade_negative = _math(nodes, links, "MULTIPLY", fade_reference.outputs[0],
+                           None, (880, -1120))
+    fade_negative.inputs[1].default_value = -1.0
+    fade_factor = _math(nodes, links, "EXPONENT", fade_negative.outputs[0], None,
+                        (1040, -1120))
+    energy_final = _math(nodes, links, "MULTIPLY", energy.outputs[0],
+                         fade_factor.outputs[0], (1200, -960))
     store = nodes.new("GeometryNodeStoreNamedAttribute")
     store.location = (620, -200)
     store.data_type = "FLOAT"
     store.domain = "POINT"
     store.inputs["Name"].default_value = "energy"
     links.new(set_pos.outputs["Geometry"], store.inputs["Geometry"])
-    links.new(energy.outputs[0], store.inputs["Value"])
+    links.new(energy_final.outputs[0], store.inputs["Value"])
 
     scale_alive = _vector(nodes, links, "SCALE", scale_vec.outputs["Vector"],
                           None, (560, -800), scale=alive_decay.outputs[0])
@@ -493,7 +515,8 @@ def _create_trail_group():
 
 def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
                           age_offset=0.0, min_scale=0.35, decay_power=1.0,
-                          energy_power=1.0):
+                          energy_power=1.0, camera_position=None,
+                          atmospheric_fade=0.0):
     """Add the burst modifier to a points object and set its inputs."""
     modifier = obj.modifiers.new("ALD FX Burst", "NODES")
     modifier.node_group = group
@@ -504,7 +527,35 @@ def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
     modifier[sockets["min_scale"]] = float(min_scale)
     modifier[sockets["decay_power"]] = float(decay_power)
     modifier[sockets["energy_power"]] = float(energy_power)
+    modifier[sockets["camera_position"]] = tuple(camera_position or
+                                                 (0.0, 0.0, 0.0))
+    modifier[sockets["atmospheric_fade"]] = float(atmospheric_fade)
     return modifier
+
+
+def set_look(obj, energy_power=None, camera_position=None,
+             atmospheric_fade=None):
+    """Update the look inputs of a burst modifier without a rebuild."""
+    for modifier in obj.modifiers:
+        if modifier.type != "NODES" or modifier.node_group is None:
+            continue
+        group = modifier.node_group
+        if group.name != GROUP_NAME:
+            continue
+        defaults = BURST_SOCKET_DEFAULTS
+        if energy_power is not None:
+            identifier = _socket_ids(group, defaults)["energy_power"]
+            if identifier in modifier:
+                modifier[identifier] = float(energy_power)
+        if camera_position is not None:
+            identifier = _socket_ids(group, defaults)["camera_position"]
+            if identifier in modifier:
+                modifier[identifier] = tuple(camera_position)
+        if atmospheric_fade is not None:
+            identifier = _socket_ids(group, defaults)["atmospheric_fade"]
+            if identifier in modifier:
+                modifier[identifier] = float(atmospheric_fade)
+    return True
 
 
 def attach_trail_modifier(obj, group, sockets, gravity, material, trail=0.0,

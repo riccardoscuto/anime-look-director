@@ -298,6 +298,98 @@ class ALD_OT_fx_meteors(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_select_system(bpy.types.Operator):
+    bl_idname = "ald.fx_select_system"
+    bl_label = "Select System"
+    bl_description = "Select the system edited in the panel"
+    bl_options = {"REGISTER", "UNDO"}
+
+    index: bpy.props.IntProperty(default=0, min=0, max=256)
+
+    def execute(self, context):
+        context.scene.ald.fx_selected_system = self.index
+        context.scene.ald.fx_selected_event = 0
+        return {"FINISHED"}
+
+
+class ALD_OT_fx_select_event(bpy.types.Operator):
+    bl_idname = "ald.fx_select_event"
+    bl_label = "Select Event"
+    bl_description = "Select the event edited in the panel"
+    bl_options = {"REGISTER", "UNDO"}
+
+    index: bpy.props.IntProperty(default=0, min=0, max=256)
+
+    def execute(self, context):
+        context.scene.ald.fx_selected_event = self.index
+        return {"FINISHED"}
+
+
+class ALD_OT_fx_duplicate_system(bpy.types.Operator):
+    bl_idname = "ald.fx_duplicate_system"
+    bl_label = "Duplicate System"
+    bl_description = "Duplicate the selected FX system and its events"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        import uuid
+        settings = context.scene.ald
+        index = int(settings.fx_selected_system)
+        if index < 0 or index >= len(settings.fx_systems):
+            return {"CANCELLED"}
+        source = settings.fx_systems[index]
+        copy = settings.fx_systems.add()
+        copy.uid = uuid.uuid4().hex
+        copy.kind = source.kind
+        copy.enabled = source.enabled
+        copy.seed = source.seed
+        copy.timing_mode = source.timing_mode
+        copy.origin_frame = source.origin_frame
+        copy.origin_time = source.origin_time
+        copy.material_profile = source.material_profile
+        copy.glow_profile = source.glow_profile
+        copy.isolation_mode = source.isolation_mode
+        for event in source.events:
+            new_event = copy.events.add()
+            new_event.uid = uuid.uuid4().hex
+            new_event.kind = event.kind
+            new_event.enabled = event.enabled
+            new_event.seed = event.seed
+            new_event.birth = event.birth
+            new_event.family = event.family
+            new_event.size = event.size
+            new_event.count = event.count
+            new_event.pistil = event.pistil
+            new_event.sparks = event.sparks
+            new_event.launch_mode = event.launch_mode
+            new_event.launcher = tuple(event.launcher)
+            new_event.target = tuple(event.target)
+            new_event.direction = tuple(event.direction)
+            new_event.speed = event.speed
+            new_event.life = event.life
+            new_event.duration = event.duration
+            new_event.glow = event.glow
+        settings.fx_selected_system = len(settings.fx_systems) - 1
+        self.report({"INFO"}, "Anime Look Director: the system was duplicated")
+        return {"FINISHED"}
+
+
+class ALD_OT_fx_remove_system(bpy.types.Operator):
+    bl_idname = "ald.fx_remove_system"
+    bl_label = "Remove System"
+    bl_description = "Remove the selected FX system and its events"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        settings = context.scene.ald
+        index = int(settings.fx_selected_system)
+        if index < 0 or index >= len(settings.fx_systems):
+            return {"CANCELLED"}
+        settings.fx_systems.remove(index)
+        settings.fx_selected_system = max(0, index - 1)
+        return {"FINISHED"}
+
+
 class ALD_OT_fx_update(bpy.types.Operator):
     bl_idname = "ald.fx_update"
     bl_label = "Update FX"
@@ -355,7 +447,9 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_update,
-            ALD_OT_fx_clear, ALD_OT_fx_clear_kind)
+            ALD_OT_fx_clear, ALD_OT_fx_clear_kind, ALD_OT_fx_select_system,
+            ALD_OT_fx_select_event, ALD_OT_fx_duplicate_system,
+            ALD_OT_fx_remove_system)
 
 
 def register():

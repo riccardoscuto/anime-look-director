@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.13.0)
+## What it does (v2.14.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -163,6 +163,8 @@ Expected output: `ALD GATE: PASS`.
   backends share the same deterministic data
 - v2.13.0 - phase P0-B: persistent systems and events, robust scene identity
   with duplication handling, registry rebuilt from the saved configuration
+- v2.14.0 - phase P1-A: one interface for both surfaces, exclusive backends
+  (OFF / Legacy World / FX 3D), the FX system editor and the look controls
   (current)
 
 ## Recap

@@ -9,13 +9,14 @@ import sys
 import tempfile
 import tomllib
 import math
+import inspect
 
 import bpy
 import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 13, 0)
+EXPECTED_VERSION = (2, 14, 0)
 TOLERANCE = 1e-4
 
 
@@ -1796,6 +1797,9 @@ def check_fx_gn_parity(scene):
     check_fx_burst_centers(scene)
     check_fx_meteor_timing(scene)
     check_fx_meteor_travel(scene)
+    check_fx_backend(scene)
+    check_ui_parity(scene)
+    check_panel_icons()
 
     # The Python solver stays available as a fallback.
     scene.ald.fx_gn_prototype = False
@@ -2439,6 +2443,87 @@ def check_fx_gn_schema(scene):
                            for mod in obj.modifiers)]
         check(attached, "the modifiers were not remapped on the new group")
     fx_module.clear(scene)
+
+
+def check_fx_backend(scene):
+    """The three backends must be really exclusive."""
+    from anime_look_director import fx as fx_module
+
+    fx_module.clear(scene)
+    bpy.ops.ald.fx_fireworks(count=2, age=0.8)
+    objects = [obj for obj in bpy.data.objects if obj.get("ald_fx")]
+    check(objects, "no FX object to test the backend")
+    # FX 3D: the systems are visible, the legacy shader is off.
+    scene.ald.fx_backend = "FX3D"
+    check(all(not obj.hide_render for obj in objects),
+          "the FX 3D objects are hidden")
+    check(all(not obj.hide_viewport for obj in objects),
+          "the FX 3D objects are hidden in the viewport")
+    check(not scene.ald.fireworks,
+          "the legacy shader is active in the FX 3D backend")
+    # OFF: nothing contributes, the data is preserved.
+    scene.ald.fx_backend = "OFF"
+    check(all(obj.hide_render for obj in objects),
+          "the objects are still rendered with the backend off")
+    check(not scene.ald.fireworks,
+          "the legacy shader is active with the backend off")
+    check(fx_module.systems_info(scene),
+          "the data is lost with the backend off")
+    # LEGACY: the shader is on, the systems are hidden.
+    scene.ald.fx_backend = "LEGACY"
+    check(all(obj.hide_render for obj in objects),
+          "the objects are still rendered in the legacy backend")
+    check(scene.ald.fireworks,
+          "the legacy shader is not active in the legacy backend")
+    scene.ald.fx_backend = "FX3D"
+    fx_module.clear(scene)
+
+
+def check_ui_parity(scene):
+    """The two surfaces must share the same drawing functions."""
+    import inspect
+
+    from anime_look_director import panels
+
+    shared = [name for name in dir(panels) if name.startswith("draw_")]
+    check(len(shared) >= 8, "the shared drawing functions are missing")
+    for cls in (panels.ALD_PT_view3d, panels.ALD_PT_world,
+                panels.ALD_PT_compositor, panels.ALD_PT_fx):
+        source = inspect.getsource(cls.draw)
+        used = [name for name in shared if name + "(" in source]
+        check(used, "the panel %s does not use the shared functions"
+              % cls.__name__)
+    # The debug controls only exist in developer mode.
+    source = inspect.getsource(panels.draw_fx_advanced)
+    check("developer_mode" in source,
+          "the debug controls ignore the developer mode")
+    # The legacy controls only exist in the legacy backend.
+    source = inspect.getsource(panels.draw_world)
+    check("LEGACY" in source,
+          "the legacy controls are not bound to the legacy backend")
+
+
+#: The icons the panels are allowed to use. An icon that does not exist in
+#: this Blender version breaks the whole panel at draw time.
+PANEL_ICONS = {
+    "CAMERA_DATA", "CHECKBOX_HLT", "CHECKMARK", "COLOR", "DUPLICATE",
+    "EMPTY_AXIS", "ERROR", "EVENT", "FILE_REFRESH", "INFO", "KEYFRAME_HLT",
+    "LIGHT", "MARKER", "MATERIAL", "NODETREE", "OUTLINER", "PARTICLE_DATA",
+    "PLAY", "PREFERENCES", "RESTRICT_SELECT_OFF", "RESTRICT_VIEW_OFF", "TIME",
+    "TRASH", "WORLD", "X",
+}
+
+
+def check_panel_icons():
+    """Every icon used by the panels must exist in this Blender version."""
+    import re
+
+    from anime_look_director import panels
+
+    source = inspect.getsource(panels)
+    used = set(re.findall(r'icon="([A-Z0-9_]+)"', source))
+    unknown = sorted(icon for icon in used if icon not in PANEL_ICONS)
+    check(not unknown, "the panels use unknown icons: %s" % unknown)
 
 
 def main():

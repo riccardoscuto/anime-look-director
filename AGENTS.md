@@ -247,6 +247,18 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the node groups carry the `ald_schema` build marker: an old group is
     rebuilt, the modifiers are remapped and the old group is removed only
     when unused.
+- UI 2.14 rules (phase P1-A of the operational plan):
+  - the panels never draw the state themselves: the shared functions
+    (`draw_world`, `draw_shadows`, `draw_compositor`, `draw_fx`, ...) are used
+    by the Scene properties and by the View3D sidebar, so the two surfaces
+    can never diverge;
+  - the backend is exclusive and applied at once: OFF hides the systems and
+    the legacy shader, LEGACY enables the shader and hides the systems, FX3D
+    does the opposite (`fx.apply_backend`);
+  - the legacy world controls only appear in the LEGACY backend and the
+    debug controls only in developer mode;
+  - the panel icons are validated by the gate: an icon that does not exist
+    in this Blender version breaks the whole panel at draw time.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

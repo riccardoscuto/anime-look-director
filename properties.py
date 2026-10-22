@@ -157,6 +157,15 @@ def _on_fx_age(self, context):
         pass
 
 
+def _on_fx_backend(self, context):
+    """Apply the backend semantics: the three modes are really exclusive."""
+    try:
+        from . import fx
+        fx.apply_backend(context.scene)
+    except Exception:
+        pass
+
+
 def _on_fx_rebuild(self, context):
     """Rebuild the FX systems when the composition changes."""
     try:
@@ -226,6 +235,20 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
     count: IntProperty(
         name="Count", default=1, min=1, max=16,
         description="Number of bursts of the event")
+    pistil: IntProperty(
+        name="Pistil", default=0, min=0, max=64,
+        description="Number of stars of the inner pistil")
+    sparks: IntProperty(
+        name="Child Sparks", default=0, min=0, max=8,
+        description="Number of child sparks emitted by every star")
+    launch_mode: EnumProperty(
+        name="Launch",
+        items=[("DIRECTOR", "Director",
+                "The burst target and the rise time define the shot"),
+               ("PHYSICAL", "Physical",
+                "The launcher and the initial speed define the shot")],
+        default="DIRECTOR",
+        description="How the firework reaches its burst point")
     launcher: FloatVectorProperty(
         name="Launcher", size=3, subtype="TRANSLATION",
         description="World position the firework starts from")
@@ -547,7 +570,8 @@ class ALD_Settings(bpy.types.PropertyGroup):
                ("LEGACY", "Legacy World", "Procedural fireworks in the sky shader"),
                ("FX3D", "FX 3D", "Physical particles created in the scene")],
         default="FX3D",
-        description="Which fireworks backend stays active")
+        description="Which fireworks backend stays active",
+        update=_on_fx_backend)
     fx_age: FloatProperty(
         name="Burst Age", default=0.8, min=0.0, max=6.0,
         description="Seconds after the burst shown by the FX system",
@@ -578,6 +602,31 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="Scene UID", default="",
         description="Stable identity of the scene for the FX ownership")
     fx_systems: CollectionProperty(type=ALD_FX_System)
+    fx_selected_system: IntProperty(
+        name="Selected System", default=0, min=0, max=64,
+        description="Index of the system edited in the panel")
+    fx_selected_event: IntProperty(
+        name="Selected Event", default=0, min=0, max=256,
+        description="Index of the event edited in the panel")
+    developer_mode: BoolProperty(
+        name="Developer Mode", default=False,
+        description="Shows the debug controls of the add-on")
+    fx_energy_head: FloatProperty(
+        name="Head Energy", default=1.0, min=0.0, max=4.0,
+        description="Exponent of the energy decay of the star heads",
+        update=_on_fx_age)
+    fx_energy_grain: FloatProperty(
+        name="Grain Energy", default=1.0, min=0.0, max=4.0,
+        description="Exponent of the energy decay of the trail grains",
+        update=_on_fx_age)
+    fx_energy_ember: FloatProperty(
+        name="Ember Energy", default=1.0, min=0.0, max=4.0,
+        description="Exponent of the energy decay of the embers and fragments",
+        update=_on_fx_age)
+    fx_atmospheric_fade: FloatProperty(
+        name="Atmospheric Fade", default=0.0, min=0.0, max=1.0,
+        description="Fades the FX with the distance, like the atmosphere",
+        update=_on_fx_age)
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,
         description="Dedicated glow for the 3D FX layer",
