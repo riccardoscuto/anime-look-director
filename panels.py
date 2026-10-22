@@ -372,7 +372,7 @@ def draw_fx_advanced(layout, context):
     col.prop(s, "fx_gn_prototype")
     col.prop(s, "fx_meteor_persistence")
     col.prop(s, "fx_schema")
-    col.label(text="UID %s" % (s.fx_uid or "-"))
+    col.label(text="UID %s" % (scene.get("ald_fx_id") or "-"))
 
     # --- ALD Sky/FX Anchor -----------------------------------------------
     col.separator()

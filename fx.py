@@ -152,15 +152,10 @@ def _scene_id(scene):
         scene[ID_KEY] = ident
         _retag_scene(scene, ident)
     _CLAIMED[ident] = scene.as_pointer()
-    settings = getattr(scene, "ald", None)
-    if settings is not None:
-        try:
-            settings.fx_uid = ident
-        except (AttributeError, RuntimeError):
-            # During panel draw or other restricted contexts Blender blocks
-            # writes to ID-class properties. The identity is already stored in
-            # scene[ID_KEY]; this cache on settings is best-effort only.
-            pass
+    # The identity is stored in scene[ID_KEY] above; that is the authoritative
+    # source. The settings.fx_uid mirror is intentionally not written here to
+    # avoid crashes during panel draw (Blender blocks writes to ID-class
+    # properties in restricted contexts).
     return ident
 
 
