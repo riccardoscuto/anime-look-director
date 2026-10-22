@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 20, 1)
+EXPECTED_VERSION = (2, 21, 0)
 TOLERANCE = 1e-4
 
 
@@ -2361,38 +2361,46 @@ def check_fx_backend(scene):
 
 
 def check_ui_parity(scene):
-    """The two surfaces must share the same drawing functions."""
+    """The two surfaces must expose the same controls."""
     import inspect
+    import re
 
     from anime_look_director import panels
 
     shared = [name for name in dir(panels) if name.startswith("draw_")]
-    check(len(shared) >= 8, "the shared drawing functions are missing")
-    for cls in (panels.ALD_PT_view3d, panels.ALD_PT_world,
-                panels.ALD_PT_compositor, panels.ALD_PT_fx):
-        source = inspect.getsource(cls.draw)
-        used = [name for name in shared if name + "(" in source]
-        check(used, "the panel %s does not use the shared functions"
-              % cls.__name__)
+    check(len(shared) >= 10, "the shared drawing functions are missing")
+
+    def calls(classes):
+        names = set()
+        for cls in classes:
+            source = inspect.getsource(cls.draw)
+            for name in shared:
+                if re.search(r"\b%s\(" % name, source):
+                    names.add(name)
+        return names
+
+    properties = calls((panels.ALD_PT_scene, panels.ALD_PT_world,
+                        panels.ALD_PT_compositor, panels.ALD_PT_fx))
+    sidebar = calls((panels.ALD_PT_view3d, panels.ALD_PT_view3d_world,
+                     panels.ALD_PT_view3d_compositor, panels.ALD_PT_view3d_fx))
+    check(properties == sidebar,
+          "the two surfaces expose different controls: %s against %s"
+          % (sorted(properties), sorted(sidebar)))
+    check("draw_fx" in sidebar and "draw_fx" in properties,
+          "the FX section is missing in one of the surfaces")
+    # No control may be hidden in one surface only.
+    for name in shared:
+        source = inspect.getsource(getattr(panels, name))
+        check("compact" not in source,
+              "the drawing function %s still has a compact mode" % name)
     # The debug controls only exist in developer mode.
     source = inspect.getsource(panels.draw_fx_advanced)
     check("developer_mode" in source,
           "the debug controls ignore the developer mode")
-    # The legacy controls only exist in the legacy backend.
+    # The legacy controls only appear in the legacy backend.
     source = inspect.getsource(panels.draw_world)
     check("LEGACY" in source,
           "the legacy controls are not bound to the legacy backend")
-
-
-#: The icons the panels are allowed to use. An icon that does not exist in
-#: this Blender version breaks the whole panel at draw time.
-PANEL_ICONS = {
-    "CAMERA_DATA", "CHECKBOX_HLT", "CHECKMARK", "COLOR", "DUPLICATE",
-    "EMPTY_AXIS", "ERROR", "EVENT", "FILE_REFRESH", "INFO", "KEYFRAME_HLT",
-    "LIGHT", "MARKER", "MATERIAL", "NODETREE", "OUTLINER", "PARTICLE_DATA",
-    "PLAY", "PREFERENCES", "RESTRICT_SELECT_OFF", "RESTRICT_VIEW_OFF", "TIME",
-    "TRASH", "WORLD", "X", "LOOP_BACK", "TRIA_RIGHT_BAR",
-}
 
 
 def check_panel_icons():

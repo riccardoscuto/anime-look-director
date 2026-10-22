@@ -341,6 +341,15 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     the actions are reachable without scrolling;
   - an add-on loaded in memory is never updated by the file changes: reload
     it (or restart Blender) before judging the interface.
+- UI 2.21 rules:
+  - the two surfaces are the same: the drawing functions have **no compact
+    mode** and every control is available in the Scene properties and in the
+    View3D sidebar, with the same operators and the same values;
+  - the sidebar mirrors the structure of the Scene properties: the parent
+    panel with the atmosphere, the material presets and the stack buttons,
+    then World & Shadows, Compositor Stack and FX Particles;
+  - the gate compares the controls drawn by the two surfaces: a control that
+    exists in one surface only is a failure.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

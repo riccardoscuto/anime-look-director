@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.21.0 - 2026-10-22
+The two surfaces are now exactly the same.
+
+### Changed
+- The View3D sidebar and the Scene properties draw **the same controls with
+  the same operators**: the "compact" mode is gone. Every control of the World,
+  of the Shadows, of the Compositor, of the Camera Override and of the FX
+  section is available in both surfaces, with the same values.
+- The sidebar has the same structure as the Scene properties: the parent panel
+  with the atmosphere, the material presets and the stack buttons, then the
+  sub panels World & Shadows, Compositor Stack and FX Particles.
+- The FX section of the sidebar shows the backend, the timing, the launch, the
+  explosion, the look, the advanced controls and the actions, with the same
+  fields as the Scene properties.
+
+### Added
+- The gate compares the controls drawn by the two surfaces and fails when
+  they diverge, and it fails when a drawing function keeps a compact mode.
+
 ## 2.20.1 - 2026-10-22
 ### Fixed
 - The legacy shooting stars of the world shader stayed active with the FX 3D

@@ -1086,3 +1086,17 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   systems and the actions are reachable without scrolling.
 - An add-on already loaded in memory is never updated by the changes on disk:
   it has to be reloaded (or Blender restarted) before judging the interface.
+### v2.21.0 notes (the two surfaces are the same)
+- The "compact" mode of the drawing functions is gone. It was hiding
+  controls in the View3D sidebar (the horizon softness, the contrails, the
+  cloud delta gain and rim boost, the hue lift, the burst spread and the
+  offset, the pistil and the child sparks, the glow size and threshold, the
+  energies and the atmospheric fade) and it moved the backend selector out of
+  the timing section: the two surfaces ended up showing different things.
+- Both surfaces now draw the same controls with the same operators, and the
+  sidebar mirrors the structure of the Scene properties: the parent panel with
+  the atmosphere, the material presets and the stack buttons, then the sub
+  panels World & Shadows, Compositor Stack and FX Particles.
+- The gate compares the controls drawn by the two surfaces (the set of the
+  shared functions called by the panels) and fails when they diverge or when
+  a drawing function keeps a compact mode.
