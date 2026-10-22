@@ -234,6 +234,19 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     reused by both backends;
   - `fx.burst_population()` is the single source of the deterministic data:
     the Geometry Nodes attributes and the Python writer consume it.
+- FX 2.13 rules (phase P0-B of the operational plan):
+  - the persistent schema lives in `Scene.ald.fx_systems` (a collection of
+    `ALD_FX_System`, each with a collection of `ALD_FX_Event`): the runtime
+    registry is only a cache, the saved file is the source of truth;
+  - `fx.store_system()` writes the configuration after a creation and
+    `fx.rebuild_registry()` reads it back after `load_post`, reusing the
+    geometry saved in the file;
+  - the identity of a scene is a persistent UUID: the first scene that claims
+    it keeps it, a duplicated scene receives a new one and an independent
+    copy, and a collection shared with another scene never owns the systems;
+  - the node groups carry the `ald_schema` build marker: an old group is
+    rebuilt, the modifiers are remapped and the old group is removed only
+    when unused.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

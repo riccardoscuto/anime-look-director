@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.13.0 - 2026-10-22
+Phase P0-B of the operational plan: the state is persistent and the identity
+is robust.
+
+### Added
+- Persistent schema: `ALD_FX_System` and `ALD_FX_Event` (PropertyGroup and
+  CollectionProperty) describe the systems and their events. The scene holds
+  the schema version and its own UUID; a system holds its UUID, its type, its
+  enabled flag, its seed, its timing mode and its origin; an event holds the
+  launcher, the target, the family, the size, the birth, the duration, the
+  speed and the glow profile.
+- `fx.store_system()` writes the configuration after a creation: the runtime
+  registry is only a cache, the saved file is the source of truth.
+- `fx.rebuild_registry()` rebuilds the runtime state from the persistent
+  configuration, the collection ownership, the object tags and the ALD
+  modifiers. It runs after `load_post` and reuses the geometry saved in the
+  file: nothing is regenerated.
+- The node groups carry a build marker (`ald_schema`): a group saved with an
+  older marker is rebuilt, the modifiers are remapped on the new structure and
+  the old group is removed only when nothing uses it any more.
+- The gate runs the P0-B tests: the fixture (save, reopen, list, sliders,
+  clear per kind, animation), the scene duplication and the migration of an
+  old node group.
+
+### Changed
+- The identity of a scene is a persistent UUID and not the hash of its name.
+  The first scene that claims an identity keeps it: a duplicated scene
+  receives a new one and an independent copy of the systems, and the clear of
+  the copy never touches the original.
+
 ## 2.12.0 - 2026-10-22
 Phase P0-A of the operational plan: the dynamics are corrected and the two
 backends share the same deterministic data.

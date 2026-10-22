@@ -14,6 +14,7 @@ The system is evaluated analytically (see the technical guide):
 
 import hashlib
 import math
+import uuid
 
 import bmesh
 import bpy
@@ -55,26 +56,98 @@ PALETTES = (
 GRAVITY = Vector((0.0, 0.0, -9.81))
 SAMPLES = 16
 SYSTEMS = {}
+#: Identity of the scene that owns each identifier: the first claim wins, a
+#: duplicated scene receives a new identity.
+_CLAIMED = {}
 
 
 # ---------------------------------------------------------------------------
 # ownership helpers
 # ---------------------------------------------------------------------------
 
+def _scene_collections(scene):
+    """Every collection linked to the scene, at any depth."""
+    found = []
+
+    def walk(collection):
+        for child in collection.children:
+            if child in found:
+                continue
+            found.append(child)
+            walk(child)
+
+    walk(scene.collection)
+    return found
+
+
+def _retag_scene(scene, owner):
+    """Give the ALD collections of a scene the new ownership.
+
+    A collection shared with another scene is left alone: the other scene
+    still owns it.
+    """
+    for coll in _scene_collections(scene):
+        if not coll.get(OWNER_KEY):
+            continue
+        if _shared_with_other_scene(coll, scene):
+            continue
+        coll[OWNER_KEY] = owner
+
+
 def _scene_id(scene):
+    """Stable identity of a scene for the FX ownership.
+
+    The identity is a persistent UUID: it survives a save and a reload and it
+    is not derived from the name. The first scene that claims an identity
+    keeps it: a duplicated scene receives a new one and an independent copy of
+    the systems.
+    """
+    _prune_claims()
     ident = scene.get(ID_KEY)
     if not ident:
-        ident = hashlib.blake2b(scene.name.encode("utf-8"),
-                                digest_size=8).hexdigest()
+        ident = uuid.uuid4().hex
         scene[ID_KEY] = ident
+    owner = _CLAIMED.get(ident)
+    if owner is not None and owner != scene.as_pointer():
+        # The scene was duplicated: it gets an independent identity.
+        ident = uuid.uuid4().hex
+        scene[ID_KEY] = ident
+        _retag_scene(scene, ident)
+    _CLAIMED[ident] = scene.as_pointer()
+    settings = getattr(scene, "ald", None)
+    if settings is not None:
+        settings.fx_uid = ident
     return ident
+
+
+def _prune_claims():
+    """Drop the claims of the scenes that no longer exist."""
+    alive = {scene.as_pointer() for scene in bpy.data.scenes}
+    for ident, pointer in list(_CLAIMED.items()):
+        if pointer not in alive:
+            del _CLAIMED[ident]
+
+
+def _shared_with_other_scene(coll, scene):
+    """True when a collection is also linked to another scene."""
+    for other in bpy.data.scenes:
+        if other is scene:
+            continue
+        if coll in _scene_collections(other):
+            return True
+    return False
 
 
 def _collection(scene):
     owner = _scene_id(scene)
-    for coll in bpy.data.collections:
-        if coll.get(OWNER_KEY) == owner:
-            return coll
+    for coll in _scene_collections(scene):
+        if coll.get(OWNER_KEY) != owner:
+            continue
+        if _shared_with_other_scene(coll, scene):
+            # A collection shared with another scene cannot own the systems:
+            # the copy gets its own.
+            continue
+        return coll
     coll = bpy.data.collections.new(FX_COLLECTION)
     coll[OWNER_KEY] = owner
     scene.collection.children.link(coll)
@@ -1094,6 +1167,155 @@ def _age_offset(scene):
     return 0.0
 
 
+def store_system(scene, kind, count, seed, distance, family, time):
+    """Write the persistent description of a system and of its events.
+
+    The runtime registry is only a cache: this configuration is the source of
+    truth and it is saved with the .blend file.
+    """
+    from .properties import FX_SCHEMA
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return None
+    registry = SYSTEMS.get(_scene_id(scene)) or {}
+    system = None
+    for entry in settings.fx_systems:
+        if entry.kind == kind:
+            system = entry
+            break
+    if system is None:
+        system = settings.fx_systems.add()
+    if not system.uid:
+        system.uid = uuid.uuid4().hex
+    system.kind = kind
+    system.enabled = True
+    system.seed = seed
+    system.timing_mode = "TIMELINE"
+    system.origin_frame = 1
+    system.origin_time = time
+    system.isolation_mode = "EMISSION"
+    system.events.clear()
+    origin, _forward, _up, _right = _camera_basis(scene)
+    if kind == "FIREWORKS":
+        for burst in registry.get("fireworks", {}).get("bursts", []):
+            event = system.events.add()
+            event.uid = uuid.uuid4().hex
+            event.kind = "FIREWORK"
+            event.enabled = True
+            event.seed = seed
+            event.birth = burst["birth"]
+            event.family = burst.get("family", family)
+            event.size = burst.get("size_scale", 1.0)
+            event.count = 1
+            event.target = tuple(burst["center"])
+            event.launcher = tuple(origin)
+            event.duration = burst["config"].get("life", 1.0)
+            event.life = event.duration
+            event.glow = 0.6
+    else:
+        populations = registry.get("meteors", {}).get("populations", [])
+        for population in populations:
+            head = population["head"]
+            event = system.events.add()
+            event.uid = uuid.uuid4().hex
+            event.kind = "METEOR"
+            event.enabled = True
+            event.seed = seed
+            event.birth = head["birth"]
+            event.family = family
+            event.size = 1.0
+            event.count = 1
+            event.target = tuple(head["pos0"])
+            event.launcher = tuple(head["pos0"])
+            event.direction = tuple(head["vel"])
+            event.speed = head["vel"].length
+            event.life = head["life"]
+            event.duration = head["life"]
+            event.glow = 0.6
+    settings.fx_schema = FX_SCHEMA
+    return system
+
+
+def _find_objects(scene):
+    """The ALD objects of a scene, indexed by name."""
+    return {obj.name: obj for obj in _collection(scene).objects
+            if obj.get("ald_fx")}
+
+
+def rebuild_registry(scene):
+    """Rebuild the runtime registry from the persistent configuration.
+
+    The geometry saved in the file is reused: nothing is regenerated. The
+    runtime cache is never the source of truth.
+    """
+    settings = getattr(scene, "ald", None)
+    registry = _registry(scene)
+    registry.clear()
+    if settings is None:
+        return 0
+    objects = _find_objects(scene)
+    rebuilt = 0
+    for system in settings.fx_systems:
+        if not system.enabled:
+            continue
+        events = list(system.events)
+        if not events:
+            continue
+        if system.kind == "FIREWORKS":
+            bursts = []
+            for index, event in enumerate(events):
+                config = FAMILY_CONFIG[event.family]
+                spoke_count = config["spokes"]
+                center = Vector(event.target)
+                population = burst_population(event.seed, index, config,
+                                              event.birth, center, event.size,
+                                              spoke_count)
+                family_key = event.family
+                prefix = "ALD FX %s %d " % (family_key, index)
+                bursts.append({
+                    "index": index, "family": family_key, "config": config,
+                    "center": center, "birth": event.birth,
+                    "seed": event.seed, "size_scale": event.size,
+                    "materials": [], "population": population,
+                    "trail": objects.get(prefix + "Filament"),
+                    "heads": objects.get(prefix + "Heads"),
+                    "head_ranges": [],
+                    "gn_heads": objects.get("ALD FX GN Heads %d" % index),
+                    "gn_beads": [], "gn_pistil": None, "gn_sparks": None,
+                    "gn_flash": None, "gn_trails": [],
+                    "beads": [], "pistil": (None, [], None, [], 0),
+                    "sparks": None, "spark_ranges": [],
+                    "core": objects.get(prefix + "Flash"), "core_ranges": [],
+                })
+            registry["fireworks"] = {
+                "kind": "fireworks", "bursts": bursts, "time": None,
+                "gn": all(burst["gn_heads"] is not None for burst in bursts)}
+            rebuilt += 1
+        elif system.kind == "METEORS":
+            populations = []
+            for index, event in enumerate(events):
+                life = event.life
+                speed = event.speed
+                direction = Vector(event.direction)
+                if direction.length < 1e-6:
+                    direction = Vector((1.0, 0.0, 0.0))
+                direction = direction.normalized()
+                start = Vector(event.target)
+                v0 = direction * speed
+                populations.append(_meteor_population(
+                    event.seed, index, start, v0, 0.08, event.birth, life, 0.32,
+                    0.32))
+            registry["meteors"] = {
+                "kind": "meteors", "count": len(populations),
+                "seed": system.seed, "distance": 0.0,
+                "shower": Vector((1.0, 0.0, 0.0)), "origin": Vector((0, 0, 0)),
+                "material": None, "gn": True, "trail": None, "heads": None,
+                "head_ranges": [], "fragments": None, "fragment_ranges": [],
+                "populations": populations}
+            rebuilt += 1
+    return rebuilt
+
+
 def set_age(scene, age):
     """Move the FX systems in time without rebuilding the geometry.
 
@@ -1217,8 +1439,18 @@ def _on_frame_change(scene, *_args):
 
 @persistent
 def _on_load_post(*_args):
-    """A new file invalidates every cached FX system."""
+    """A new file invalidates every cached FX system.
+
+    The registry is rebuilt from the persistent configuration: the geometry
+    saved in the file is reused.
+    """
     SYSTEMS.clear()
+    _CLAIMED.clear()
+    for scene in bpy.data.scenes:
+        try:
+            rebuild_registry(scene)
+        except Exception:
+            pass
 
 
 def register():

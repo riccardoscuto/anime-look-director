@@ -1,6 +1,11 @@
 import bpy
-from bpy.props import (BoolProperty, EnumProperty, FloatProperty,
-                       FloatVectorProperty, PointerProperty)
+from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
+                       FloatProperty, FloatVectorProperty, IntProperty,
+                       PointerProperty, StringProperty)
+
+#: Version of the persistent FX layout: a scene saved with an older schema is
+#: migrated when the add-on is enabled.
+FX_SCHEMA = 1
 
 PALETTES = [
     ("GOLDEN_HOUR", "Golden Hour", "Warm backlight, cobalt zenith and golden clouds"),
@@ -186,6 +191,110 @@ def _on_shots(self, context):
             shots.apply_for_frame(context.scene, force=True)
     except Exception:
         pass
+
+
+class ALD_FX_Event(bpy.types.PropertyGroup):
+    """One firework or meteor event, persistent in the .blend file."""
+
+    uid: StringProperty(
+        name="UID", default="",
+        description="Stable identity of the event")
+    kind: EnumProperty(
+        name="Kind",
+        items=[("FIREWORK", "Firework", "A firework with a launcher and a burst"),
+               ("METEOR", "Meteor", "A meteor with a start region")],
+        default="FIREWORK")
+    enabled: BoolProperty(
+        name="Enabled", default=True,
+        description="The event takes part in the render")
+    seed: IntProperty(
+        name="Seed", default=0, min=0, max=99999,
+        description="Deterministic seed of the event")
+    birth: FloatProperty(
+        name="Birth", default=0.0, min=-10.0, max=600.0,
+        description="Seconds after the origin of the system")
+    family: EnumProperty(
+        name="Family",
+        items=[("CHRYSANTHEMUM", "Chrysanthemum", ""),
+               ("PEONY", "Peony", ""),
+               ("WILLOW", "Willow", "")],
+        default="CHRYSANTHEMUM",
+        description="Shape family of the event")
+    size: FloatProperty(
+        name="Size", default=1.0, min=0.1, max=4.0,
+        description="Scale of the event")
+    count: IntProperty(
+        name="Count", default=1, min=1, max=16,
+        description="Number of bursts of the event")
+    launcher: FloatVectorProperty(
+        name="Launcher", size=3, subtype="TRANSLATION",
+        description="World position the firework starts from")
+    target: FloatVectorProperty(
+        name="Target", size=3, subtype="TRANSLATION",
+        description="World position the firework bursts at")
+    direction: FloatVectorProperty(
+        name="Direction", size=3, subtype="DIRECTION",
+        default=(1.0, 0.0, 0.0),
+        description="World direction of a meteor")
+    speed: FloatProperty(
+        name="Speed", default=30.0, min=0.0, max=200.0,
+        description="Speed of a meteor in world units per second")
+    life: FloatProperty(
+        name="Life", default=1.0, min=0.05, max=20.0,
+        description="Lifetime of a meteor")
+    duration: FloatProperty(
+        name="Duration", default=1.0, min=0.05, max=20.0,
+        description="Duration of the burst of a firework")
+    glow: FloatProperty(
+        name="Glow", default=0.6, min=0.0, max=3.0,
+        description="Glow profile of the event")
+
+
+class ALD_FX_System(bpy.types.PropertyGroup):
+    """A system of events with its own seed, timing and origin."""
+
+    uid: StringProperty(
+        name="UID", default="",
+        description="Stable identity of the system")
+    kind: EnumProperty(
+        name="Kind",
+        items=[("FIREWORKS", "Fireworks", "A system of firework bursts"),
+               ("METEORS", "Meteors", "A system of shooting stars")],
+        default="FIREWORKS",
+        description="Type of the system")
+    enabled: BoolProperty(
+        name="Enabled", default=True,
+        description="The system takes part in the render")
+    seed: IntProperty(
+        name="Seed", default=0, min=0, max=99999,
+        description="Deterministic seed of the system")
+    timing_mode: EnumProperty(
+        name="Timing",
+        items=[("TIMELINE", "Timeline",
+                "The event time follows the frame of the timeline"),
+               ("PREVIEW", "Preview",
+                "The event time is set by hand, independently of the timeline")],
+        default="TIMELINE",
+        description="How the time of the system is read")
+    origin_frame: IntProperty(
+        name="Origin Frame", default=1, min=-100000, max=100000,
+        description="Frame the system starts from")
+    origin_time: FloatProperty(
+        name="Origin Time", default=0.0, min=-100.0, max=100.0,
+        description="Seconds the system starts from in preview mode")
+    events: CollectionProperty(type=ALD_FX_Event)
+    material_profile: StringProperty(
+        name="Material Profile", default="",
+        description="Name of the material profile of the system")
+    glow_profile: StringProperty(
+        name="Glow Profile", default="",
+        description="Name of the glow profile of the system")
+    isolation_mode: EnumProperty(
+        name="Isolation",
+        items=[("EMISSION", "Emission Pass", "The emission pass isolates the FX"),
+               ("AOV", "Dedicated AOV", "A dedicated pass isolates the FX")],
+        default="EMISSION",
+        description="How the compositor isolates the FX layer")
 
 
 class ALD_Settings(bpy.types.PropertyGroup):
@@ -462,6 +571,13 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Seconds the train of a meteor survives the head; "
                     "0 means no persistence at all",
         update=_on_fx_age)
+    fx_schema: IntProperty(
+        name="Schema", default=FX_SCHEMA, min=0,
+        description="Version of the persistent FX layout")
+    fx_uid: StringProperty(
+        name="Scene UID", default="",
+        description="Stable identity of the scene for the FX ownership")
+    fx_systems: CollectionProperty(type=ALD_FX_System)
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,
         description="Dedicated glow for the 3D FX layer",
@@ -602,7 +718,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
                              update=_on_params)
 
 
-_classes = (ALD_Settings,)
+_classes = (ALD_FX_Event, ALD_FX_System, ALD_Settings)
 
 
 def register():

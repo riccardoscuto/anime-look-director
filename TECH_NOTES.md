@@ -919,3 +919,27 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   the Geometry Nodes attributes and the Python writer consume the same
   particles, and the gate compares the positions and the scales of the two
   backends (within 1 mm and 2 mm).
+### v2.13.0 notes (phase P0-B: persistent state and migrations)
+- The persistent schema: `Scene.ald.fx_systems` is a collection of
+  `ALD_FX_System` (uid, kind, enabled, seed, timing mode, origin frame and
+  time, material and glow profile, isolation mode) and every system holds a
+  collection of `ALD_FX_Event` (uid, kind, enabled, seed, birth, family,
+  size, count, launcher, target, direction, speed, life, duration, glow).
+  The schema version lives in `Scene.ald.fx_schema`.
+- `fx.store_system()` writes the description of a system and of its events
+  after a creation: the runtime registry (`fx.SYSTEMS`) is only a cache.
+- `fx.rebuild_registry()` rebuilds the runtime state from the persistent
+  configuration, the collection ownership, the object tags and the ALD
+  modifiers. It runs in the `load_post` handler and reuses the geometry saved
+  in the file: nothing is regenerated.
+- The identity of a scene is a persistent UUID stored in `ald_fx_id`. The
+  first scene that claims an identity keeps it (`fx._CLAIMED`): a duplicated
+  scene receives a new one and an independent copy of the systems. A
+  collection linked to more than one scene never owns the systems, so the
+  clear of a copy never touches the original.
+- The node groups carry the build marker `ald_schema`. A group saved with an
+  older marker is rebuilt, the modifiers are remapped on the new structure
+  and the old group is removed only when nothing uses it any more.
+- The gate runs the P0-B tests: the fixture (save, reopen, list, sliders,
+  clear per kind, animation), the duplication and the migration of an old
+  group.

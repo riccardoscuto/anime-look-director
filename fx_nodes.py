@@ -35,6 +35,10 @@ from mathutils import Vector
 GROUP_NAME = "ALD | FX Burst GN"
 TRAIL_GROUP_NAME = "ALD | FX Trail GN"
 
+#: Build marker of the node groups: a group saved with an older marker is
+#: rebuilt and the modifiers are remapped on the new structure.
+SCHEMA = 2
+
 
 def _math(nodes, links, operation, x, y, location):
     node = nodes.new("ShaderNodeMath")
@@ -228,11 +232,41 @@ def _build_group(name, socket_specs):
     return ng, sockets
 
 
+def _remap_modifiers(old, new):
+    """Point the modifiers of the old group to the new one."""
+    remapped = 0
+    for obj in bpy.data.objects:
+        for modifier in obj.modifiers:
+            if modifier.type == "NODES" and modifier.node_group is old:
+                modifier.node_group = new
+                remapped += 1
+    return remapped
+
+
+def _upgrade_group(name, builder, defaults):
+    """Return the group of the current schema, migrating the old one."""
+    existing = bpy.data.node_groups.get(name)
+    if existing is not None and int(existing.get("ald_schema", 0)) == SCHEMA:
+        return existing, _socket_ids(existing, defaults)
+    old = existing
+    if old is not None:
+        # The old structure is kept aside until nothing uses it any more.
+        old.name = "%s (schema %d)" % (name, int(old.get("ald_schema", 0)))
+    group, sockets = builder()
+    group["ald_schema"] = SCHEMA
+    if old is not None:
+        _remap_modifiers(old, group)
+        if old.users == 0:
+            bpy.data.node_groups.remove(old)
+    return group, sockets
+
+
 def build_burst_group():
     """Create (or reuse) the burst node group and return it with its sockets."""
-    existing = bpy.data.node_groups.get(GROUP_NAME)
-    if existing is not None:
-        return existing, _socket_ids(existing, BURST_SOCKET_DEFAULTS)
+    return _upgrade_group(GROUP_NAME, _create_burst_group, BURST_SOCKET_DEFAULTS)
+
+
+def _create_burst_group():
     ng, sockets = _build_group(GROUP_NAME, (
         ("Geometry", "NodeSocketGeometry", None),
         ("Gravity", "NodeSocketVector", None),
@@ -349,9 +383,11 @@ def build_burst_group():
 
 def build_trail_group():
     """Create (or reuse) the trail node group and return it with its sockets."""
-    existing = bpy.data.node_groups.get(TRAIL_GROUP_NAME)
-    if existing is not None:
-        return existing, _socket_ids(existing, TRAIL_SOCKET_DEFAULTS)
+    return _upgrade_group(TRAIL_GROUP_NAME, _create_trail_group,
+                          TRAIL_SOCKET_DEFAULTS)
+
+
+def _create_trail_group():
     ng, sockets = _build_group(TRAIL_GROUP_NAME, (
         ("Geometry", "NodeSocketGeometry", None),
         ("Gravity", "NodeSocketVector", None),

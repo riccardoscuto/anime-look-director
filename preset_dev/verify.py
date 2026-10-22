@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 12, 0)
+EXPECTED_VERSION = (2, 13, 0)
 TOLERANCE = 1e-4
 
 
@@ -2331,6 +2331,116 @@ def _right_of(scene):
     return fx_module._camera_basis(scene)[3]
 
 
+def check_fx_fixture(scene):
+    """A saved file must restore the systems, the sliders and the clear."""
+    from anime_look_director import fx as fx_module
+
+    path = os.path.join(tempfile.gettempdir(), "ald_gate_fixture.blend")
+    target = scene
+    try:
+        fx_module.clear(scene)
+        bpy.ops.ald.fx_fireworks(count=3, age=0.8)
+        bpy.ops.ald.fx_meteors(count=3, age=0.6)
+        objects_before = len([obj for obj in bpy.data.objects
+                              if obj.get("ald_fx")])
+        check(objects_before > 0, "the fixture has no FX object")
+        check(len(scene.ald.fx_systems) == 2,
+              "the persistent configuration holds %d systems"
+              % len(scene.ald.fx_systems))
+        bpy.ops.wm.save_as_mainfile(filepath=path)
+        bpy.ops.wm.open_mainfile(filepath=path)
+        new_scene = bpy.context.scene
+        target = new_scene
+        info = dict(fx_module.systems_info(new_scene))
+        check(info.get("fireworks", 0) > 0,
+              "the fireworks are not listed after the reload")
+        check(info.get("meteors", 0) > 0,
+              "the meteors are not listed after the reload")
+        check(len(new_scene.ald.fx_systems) == 2,
+              "the persistent configuration is lost after the reload")
+        # The animation must still work.
+        new_scene.frame_set(12)
+        bpy.context.view_layer.update()
+        check(fx_module.update(new_scene) is not False,
+              "the FX cannot be updated after the reload")
+        # The clear of one kind must not touch the other.
+        registry = fx_module.SYSTEMS.get(fx_module._scene_id(new_scene))
+        if registry and "fireworks" in registry:
+            fx_module._remove_kind(new_scene, "fireworks")
+            info = dict(fx_module.systems_info(new_scene))
+            check(info.get("fireworks", 0) == 0,
+                  "the fireworks are still listed after the clear")
+            check(info.get("meteors", 0) > 0,
+                  "the clear of the fireworks touched the meteors")
+    finally:
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        try:
+            if target.name in bpy.data.scenes:
+                fx_module.clear(target)
+        except ReferenceError:
+            pass
+
+
+def check_fx_scene_duplicate(scene):
+    """A duplicated scene owns an independent copy of the systems."""
+    from anime_look_director import fx as fx_module
+
+    fx_module.clear(scene)
+    bpy.ops.ald.fx_fireworks(count=2, age=0.8)
+    original_objects = len([obj for obj in scene.objects if obj.get("ald_fx")])
+    check(original_objects > 0, "the scene has no FX object")
+    duplicate = scene.copy()
+    try:
+        original_id = fx_module._scene_id(scene)
+        duplicate_id = fx_module._scene_id(duplicate)
+        check(duplicate_id != original_id,
+              "the duplicated scene shares the identity of the original")
+        # The clear of the copy must not touch the original.
+        fx_module.clear(duplicate)
+        check(len([obj for obj in scene.objects if obj.get("ald_fx")])
+              == original_objects,
+              "the clear of the copy touched the original scene")
+    finally:
+        bpy.data.scenes.remove(duplicate)
+        fx_module.clear(scene)
+
+
+def check_fx_gn_schema(scene):
+    """The node groups carry a build marker and an old one is migrated."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    fx_module.clear(scene)
+    bpy.ops.ald.fx_fireworks(count=1, age=0.8)
+    group = bpy.data.node_groups.get(fx_nodes.GROUP_NAME)
+    check(group is not None, "the burst node group is missing")
+    if group is not None:
+        check(int(group.get("ald_schema", 0)) == fx_nodes.SCHEMA,
+              "the burst node group has no build marker")
+    trail = bpy.data.node_groups.get(fx_nodes.TRAIL_GROUP_NAME)
+    check(trail is not None, "the trail node group is missing")
+    if trail is not None:
+        check(int(trail.get("ald_schema", 0)) == fx_nodes.SCHEMA,
+              "the trail node group has no build marker")
+    # An old group must be migrated: the markers are updated and the
+    # modifiers are remapped.
+    if group is not None:
+        group["ald_schema"] = 0
+        new_group, _sockets = fx_nodes.build_burst_group()
+        check(int(new_group.get("ald_schema", 0)) == fx_nodes.SCHEMA,
+              "the old node group was not migrated")
+        attached = [obj for obj in bpy.data.objects
+                    if any(mod.type == "NODES"
+                           and mod.node_group is new_group
+                           for mod in obj.modifiers)]
+        check(attached, "the modifiers were not remapped on the new group")
+    fx_module.clear(scene)
+
+
 def main():
     enable_addon()
     check_versions()
@@ -2377,8 +2487,15 @@ def main():
         check(scene.compositing_node_group is None, "stack not removed")
         check(bpy.data.node_groups.get("ALD | Compositor Stack") is None,
               "compositor group not deleted")
-        # The last check: a new file must reinitialise the add-on.
+        # The last checks: a new file and a saved fixture must restore the
+        # systems, and a duplicated scene must own an independent copy.
         check_fx_new_file(scene)
+        # The file load replaced the scene: the reference must be refreshed.
+        scene = bpy.context.scene
+        check_fx_fixture(scene)
+        scene = bpy.context.scene
+        check_fx_scene_duplicate(scene)
+        check_fx_gn_schema(scene)
     finally:
         try:
             for obj in list(bpy.data.objects):
