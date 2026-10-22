@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.20.1 - 2026-10-22
+### Fixed
+- The legacy shooting stars of the world shader stayed active with the FX 3D
+  backend: the old comets were still rendered together with the new ones.
+  The backend now turns them off, like the legacy world fireworks.
+- The legacy controls (the world fireworks and the world shooting stars) only
+  appear in the Legacy World backend, in both the Scene properties and the
+  View3D sidebar.
+- The FX section is the first section of the View3D sidebar: the systems and
+  the actions are reachable without scrolling.
+
 ## 2.20.0 - 2026-10-22
 The milestone of the operational plan: a single complete and reversible
 firework, with the Definition of Done verified by a script.

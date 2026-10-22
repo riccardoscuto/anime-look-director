@@ -68,18 +68,22 @@ def draw_world(layout, context, compact=False):
         col.prop(s, "cloud_rim_boost")
     row = box.row(align=True)
     row.prop(s, "stars", toggle=True)
-    row.prop(s, "shooting_stars", toggle=True)
     if s.stars:
         col = box.column(align=True)
         col.prop(s, "star_strength")
         col.prop(s, "star_density")
         col.prop(s, "milky_way")
-    if s.shooting_stars:
-        col = box.column(align=True)
-        col.prop(s, "shooting_star_amount")
-        col.prop(s, "shooting_star_length")
-        col.prop(s, "shooting_star_angle")
-        col.prop(s, "shooting_star_phase")
+    # The legacy world meteors belong to the Legacy World backend: the 3D
+    # ones are in the FX section.
+    if s.fx_backend == "LEGACY":
+        row = box.row(align=True)
+        row.prop(s, "shooting_stars", toggle=True)
+        if s.shooting_stars:
+            col = box.column(align=True)
+            col.prop(s, "shooting_star_amount")
+            col.prop(s, "shooting_star_length")
+            col.prop(s, "shooting_star_angle")
+            col.prop(s, "shooting_star_phase")
     # The legacy world fireworks only exist in the Legacy World backend.
     if s.fx_backend == "LEGACY":
         row = box.row(align=True)
@@ -483,11 +487,12 @@ class ALD_PT_view3d(bpy.types.Panel):
         if version:
             layout.label(text="v%d.%d.%d" % tuple(version), icon="INFO")
         draw_atmosphere(layout, context)
+        # The FX section comes first: it is the most used part of the panel.
+        draw_fx(layout, context, compact=True)
         draw_world(layout, context, compact=True)
         draw_shadows(layout, context, compact=True)
         draw_camera_override(layout, context)
         draw_compositor(layout, context, compact=True)
-        draw_fx(layout, context, compact=True)
         draw_stack_actions(layout, context)
 
 

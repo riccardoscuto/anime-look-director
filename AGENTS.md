@@ -333,6 +333,14 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     `create_meteors` store the system and its events, not only the operators;
   - `preset_dev/milestone.py` verifies the Definition of Done of the plan
     point by point and writes the filmstrip of the event.
+- UI 2.20.1 rules:
+  - the legacy world effects (the shader fireworks and the shader shooting
+    stars) follow the backend: they only live in the Legacy World backend and
+    their controls only appear there, in both surfaces;
+  - the FX section is the first section of the View3D sidebar: the systems and
+    the actions are reachable without scrolling;
+  - an add-on loaded in memory is never updated by the file changes: reload
+    it (or restart Blender) before judging the interface.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

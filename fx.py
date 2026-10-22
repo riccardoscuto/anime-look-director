@@ -1712,9 +1712,12 @@ def apply_backend(scene):
             continue
         obj.hide_render = not visible
         obj.hide_viewport = not visible
-    # The legacy world fireworks follow the backend.
+    # The legacy world effects follow the backend: the shader fireworks and
+    # the shader shooting stars only live in the Legacy World backend.
     if settings.fireworks != (backend == "LEGACY"):
         settings.fireworks = (backend == "LEGACY")
+    if backend != "LEGACY" and settings.shooting_stars:
+        settings.shooting_stars = False
     return True
 
 

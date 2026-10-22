@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 20, 0)
+EXPECTED_VERSION = (2, 20, 1)
 TOLERANCE = 1e-4
 
 
@@ -2349,6 +2349,13 @@ def check_fx_backend(scene):
           "the objects are still rendered in the legacy backend")
     check(scene.ald.fireworks,
           "the legacy shader is not active in the legacy backend")
+    # The legacy meteors of the world shader belong to the legacy backend.
+    scene.ald.shooting_stars = True
+    scene.ald.fx_backend = "FX3D"
+    check(not scene.ald.shooting_stars,
+          "the legacy shooting stars stay active in the FX 3D backend")
+    check(not scene.ald.fireworks,
+          "the legacy fireworks stay active in the FX 3D backend")
     scene.ald.fx_backend = "FX3D"
     fx_module.clear(scene)
 

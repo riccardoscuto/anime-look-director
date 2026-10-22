@@ -1074,3 +1074,15 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   saved after a direct call keeps its systems and its events.
 - The shell is a visible ball (`0.20 * size_scale`): the rising body and its
   short trail must be readable in the shot.
+### v2.20.1 notes (the backend owns the legacy effects)
+- The legacy world effects follow the backend: `fx.apply_backend` turns off the
+  shader shooting stars together with the shader fireworks when the backend is
+  not the Legacy World. Before this the old comets were rendered together with
+  the new ones.
+- The legacy controls only appear in the Legacy World backend, in both the
+  Scene properties and the View3D sidebar: the world meteors and the world
+  fireworks are one block of the World section, behind the backend test.
+- The FX section is now the first section of the View3D sidebar, so the
+  systems and the actions are reachable without scrolling.
+- An add-on already loaded in memory is never updated by the changes on disk:
+  it has to be reloaded (or Blender restarted) before judging the interface.
