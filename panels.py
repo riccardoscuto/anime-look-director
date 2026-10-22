@@ -310,6 +310,12 @@ def draw_fx_launch(layout, context):
         col.prop(event, "duration", text="Burst Duration")
         col.prop(event, "birth", text="Birth")
 
+    # Conflict warning (T15): camera below ground or burst under terrain.
+    scene = context.scene
+    warning = scene.get("ald_fx_conflict_warning")
+    if warning:
+        col.label(text=warning, icon="ERROR")
+
 
 def draw_fx_explosion(layout, context):
     """The shape of the selected event."""
@@ -367,6 +373,17 @@ def draw_fx_advanced(layout, context):
     col.prop(s, "fx_meteor_persistence")
     col.prop(s, "fx_schema")
     col.label(text="UID %s" % (s.fx_uid or "-"))
+
+    # --- ALD Sky/FX Anchor -----------------------------------------------
+    col.separator()
+    col.label(text="Sky/FX Anchor", icon="EMPTY_AXIS")
+    col.prop(s, "fx_anchor_axis", text="Vertical Axis")
+    col.prop(s, "fx_anchor_ground_elevation", text="Ground Elevation")
+    col.prop(s, "fx_anchor_units_scale", text="Units Scale")
+    if not s.fx_anchor_created:
+        col.operator("ald.fx_anchor_create", icon="ADD")
+    else:
+        col.label(text="Anchor exists: ALD Sky/FX Anchor", icon="CHECKMARK")
 
 
 def draw_scene_actions(layout, context):

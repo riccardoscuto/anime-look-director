@@ -474,6 +474,34 @@ class ALD_OT_fx_bolide(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_anchor_create(bpy.types.Operator):
+    bl_idname = "ald.fx_anchor_create"
+    bl_label = "Create Sky/FX Anchor"
+    bl_description = ("Create the ALD Sky/FX Anchor empty: the persistent "
+                     "world reference for FX placement (origin, vertical "
+                     "axis, ground elevation, units scale)")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        scene = context.scene
+        settings = scene.ald
+        name = "ALD Sky/FX Anchor"
+        anchor = bpy.data.objects.get(name)
+        if anchor is None:
+            anchor = bpy.data.objects.new(name, None)
+            anchor.empty_display_type = "PLAIN_AXES"
+            anchor.empty_display_size = 2.0
+            scene.collection.objects.link(anchor)
+        anchor["ald_fx_anchor"] = True
+        anchor["ald_fx_axis"] = settings.fx_anchor_axis
+        anchor["ald_fx_ground"] = float(settings.fx_anchor_ground_elevation)
+        anchor["ald_fx_scale"] = float(settings.fx_anchor_units_scale)
+        settings.fx_anchor_created = True
+        self.report({"INFO"},
+                    "Anime Look Director: sky/FX anchor created")
+        return {"FINISHED"}
+
+
 class ALD_OT_fx_update(bpy.types.Operator):
     bl_idname = "ald.fx_update"
     bl_label = "Update FX"
@@ -541,7 +569,7 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_bolide,
-            ALD_OT_fx_update,
+            ALD_OT_fx_anchor_create, ALD_OT_fx_update,
             ALD_OT_fx_clear, ALD_OT_fx_clear_kind, ALD_OT_fx_select_system,
             ALD_OT_fx_select_event, ALD_OT_fx_duplicate_system,
             ALD_OT_fx_remove_system, ALD_OT_remove_from_scene,

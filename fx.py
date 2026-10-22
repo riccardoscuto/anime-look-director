@@ -154,7 +154,13 @@ def _scene_id(scene):
     _CLAIMED[ident] = scene.as_pointer()
     settings = getattr(scene, "ald", None)
     if settings is not None:
-        settings.fx_uid = ident
+        try:
+            settings.fx_uid = ident
+        except (AttributeError, RuntimeError):
+            # During panel draw or other restricted contexts Blender blocks
+            # writes to ID-class properties. The identity is already stored in
+            # scene[ID_KEY]; this cache on settings is best-effort only.
+            pass
     return ident
 
 
@@ -1336,6 +1342,32 @@ def _build_fireworks(scene, system):
             "sparks": spark_obj, "spark_ranges": spark_ranges,
             "core": core_obj, "core_ranges": core_ranges,
         })
+    # Conflict check (T15 of the operational plan): if the camera looks below
+    # the ground or a burst target is under the ground elevation, report the
+    # conflict instead of silently generating underground coordinates.
+    conflict = False
+    if settings is not None and scene.camera is not None:
+        ground = float(getattr(settings, "fx_anchor_ground_elevation", 0.0))
+        axis = getattr(settings, "fx_anchor_axis", "Z")
+        axis_index = {"Z": 2, "Y": 1, "X": 0}.get(axis, 2)
+        axis_sign = -1.0 if axis.startswith("-") else 1.0
+        cam = scene.camera
+        cam_matrix = cam.matrix_world
+        cam_forward = (cam_matrix.to_3x3() @ Vector((0.0, 0.0, -1.0))).normalized()
+        # Camera looking down toward the ground?
+        if cam_forward[axis_index] * axis_sign < -0.1:
+            conflict = True
+        # Any burst target under the ground?
+        for burst in bursts:
+            if burst["center"][axis_index] < ground + 1.0:
+                conflict = True
+                break
+    if conflict:
+        scene["ald_fx_conflict_warning"] = (
+            "Camera points below the ground or a burst target is under the "
+            "ground elevation: no silent underground target was generated.")
+    else:
+        scene.pop("ald_fx_conflict_warning", None)
     return {"kind": "fireworks", "bursts": bursts, "time": None,
             "scene": scene, "camera": _camera_basis(scene)[0],
             "uid": system.uid, "system": system,

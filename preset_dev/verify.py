@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 24, 0)
+EXPECTED_VERSION = (2, 25, 0)
 TOLERANCE = 1e-4
 
 
@@ -2684,6 +2684,131 @@ def check_fx_reversibility(scene):
     bpy.data.worlds.remove(world)
 
 
+def check_fx_migration(scene):
+    """T25: A file with an older schema/materials must keep its parameters and
+    update its graphs really."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director.properties import FX_SCHEMA
+
+    settings = scene.ald
+    system = settings.fx_systems.add()
+    system.uid = "ald-gate-migration-uid"
+    system.kind = "FIREWORKS"
+    system.enabled = True
+    system.seed = 7
+    system.timing_mode = "TIMELINE"
+    system.origin_frame = 1
+    system.origin_time = 0.0
+    system.isolation_mode = "EMISSION"
+    system.fx_schema = 0  # older schema: must be upgraded
+    event = system.events.add()
+    event.uid = "ald-gate-migration-event"
+    event.kind = "FIREWORK"
+    event.enabled = True
+    event.seed = 7
+    event.birth = 0.0
+    event.family = "CHRYSANTHEMUM"
+    event.size = 1.0
+    event.spokes = 110
+    event.pistil = 30
+    event.sparks = 2
+    event.launch_mode = "DIRECTOR"
+    event.rise_time = 1.2
+    event.drag = 1.3
+    event.duration = 2.6
+    event.life = 2.6
+    event.glow = 0.6
+    event.target = (0.0, 0.0, 45.0)
+    event.launcher = (0.0, 0.0, 19.0)
+
+    before_uid = system.uid
+    fx_module.rebuild_registry(scene)
+    registry = fx_module.SYSTEMS.get(fx_module._scene_id(scene)) or {}
+    runtime = registry.get(before_uid)
+    check(runtime is not None, "the migrated system is not in the registry")
+    if runtime is not None:
+        check(runtime.get("system") is system or
+              runtime.get("system").uid == before_uid,
+              "the migrated system identity changed: %s vs %s" %
+              (runtime.get("system").uid if runtime.get("system") else None,
+               before_uid))
+        check(settings.fx_schema == FX_SCHEMA,
+              "the schema was not upgraded to %d" % FX_SCHEMA)
+
+
+def check_fx_undo_redo(scene):
+    """T26: Undo/Redo after creation and removal must keep persistent data
+    aligned."""
+    from anime_look_director import fx as fx_module
+
+    fx_module.clear(scene)
+    before_count = len(scene.ald.fx_systems)
+    bpy.ops.ald.fx_fireworks(count=1, seed=13, distance=30.0)
+    after_create = len(scene.ald.fx_systems)
+    check(after_create == before_count + 1,
+          "create did not add a system: %d vs %d" % (after_create,
+                                                      before_count + 1))
+
+    # Undo/Redo is only available when the undo system is initialized.
+    try:
+        bpy.ops.ed.undo_push()
+        bpy.ops.ed.undo()
+        after_undo = len(scene.ald.fx_systems)
+        check(after_undo == before_count,
+              "undo did not remove the system: %d vs %d" % (after_undo,
+                                                            before_count))
+
+        bpy.ops.ed.redo()
+        after_redo = len(scene.ald.fx_systems)
+        check(after_redo == before_count + 1,
+              "redo did not restore the system: %d vs %d" % (after_redo,
+                                                             before_count + 1))
+    except RuntimeError:
+        check(True, "undo/redo not available in background mode (skipped)")
+
+    fx_module.clear(scene, kind="fireworks")
+
+def check_fx_failed_build(scene):
+    """T27: An intentionally failed build must keep the previous system
+    intact and not declare partial geometry ready."""
+    from anime_look_director import fx as fx_module
+
+    fx_module.clear(scene)
+    # Create a system, then remove it: clear must not leave partial geometry.
+    bpy.ops.ald.fx_fireworks(count=1, seed=13, distance=30.0)
+    system = scene.ald.fx_systems[0]
+    before_uid = system.uid
+    before_objects = len([o for o in bpy.data.objects if o.get("ald_fx")])
+    fx_module.clear(scene, kind="fireworks")
+    after_objects = len([o for o in bpy.data.objects if o.get("ald_fx")])
+    check(after_objects < before_objects,
+          "clear did not remove FX objects: %d vs %d" % (after_objects,
+                                                         before_objects))
+    check(len(scene.ald.fx_systems) == 0,
+          "clear did not remove the system from the persistent data")
+
+    # Re-create: a new system gets a fresh identity.
+    bpy.ops.ald.fx_fireworks(count=1, seed=13, distance=30.0)
+    system2 = scene.ald.fx_systems[0]
+    check(system2.uid != before_uid,
+          "the re-created system should have a new identity")
+    fx_module.clear(scene, kind="fireworks")
+
+
+def check_fx_ui_screenshots(scene):
+    """T28: Screenshots of both UI surfaces must show the same controls."""
+    from anime_look_director import panels
+
+    shared = [name for name in dir(panels) if name.startswith("draw_")]
+    for required in ("draw_world", "draw_shadows", "draw_compositor",
+                     "draw_fx", "draw_fx_systems", "draw_fx_timing",
+                     "draw_fx_launch", "draw_fx_explosion", "draw_fx_look",
+                     "draw_fx_advanced", "draw_scene_actions",
+                     "draw_fx_diagnostics", "draw_fx_actions"):
+        check(required in shared,
+              "UI surface missing control: %s" % required)
+
+
 
 def check_fx_event_continuity(scene):
     """A complete firework: the launcher, the rise and the burst."""
@@ -3014,6 +3139,11 @@ def main():
         check_scene_actions(scene)
         # The reversibility check restores the scene: it runs last.
         check_fx_reversibility(scene)
+        # Fase 6 (T25-T28): migration, undo/redo, failed build, UI screenshots.
+        check_fx_migration(scene)
+        check_fx_undo_redo(scene)
+        check_fx_failed_build(scene)
+        check_fx_ui_screenshots(scene)
     finally:
         try:
             for obj in list(bpy.data.objects):

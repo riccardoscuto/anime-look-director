@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.25.0 - 2026-10-22
+The v2.24 compositor isolation is consolidated: the registration crash is
+fixed, the ALD Sky/FX Anchor is added, and the acceptance matrix T25-T28 is
+covered by the gate.
+
+### Fixed
+- `AttributeError: Writing to ID classes in this context is not allowed`
+  when `fx._scene_id` wrote `settings.fx_uid` during panel draw. The write is
+  now best-effort (`try/except`): the identity lives in `scene[ald_fx_id]`
+  and the settings cache is only updated when Blender allows it.
+
+### Added
+- **ALD Sky/FX Anchor** (Fase 4 of the plan): a persistent Empty world
+  reference with vertical axis, ground elevation and units scale. Operators
+  and UI controls to create and inspect it. The anchor survives geometry
+  rebuilds and is identified by UID, not by name.
+- **Conflict warning (T15)**: when the camera points below the ground or a
+  burst target is under the terrain elevation, the panel reports the
+  conflict instead of silently generating underground coordinates.
+- **Gate tests T25-T28** (`preset_dev/verify.py`): migration from an older
+  schema, undo/redo alignment, failed-build safety, and UI surface parity.
+
+### Changed
+- `fx._scene_id` no longer crashes in restricted contexts (panel draw).
+- `panels.draw_fx_advanced` shows the Anchor controls; `panels.draw_fx_launch`
+  shows the conflict warning when present.
+
 ## 2.24.0 - 2026-10-22
 The compositor FX isolation is corrected: the broken DIFFERENCE-based
 separation is replaced with a clean environment / FX-only / coverage

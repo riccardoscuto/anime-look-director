@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.24.0**).
+  (currently **2.25.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -399,6 +399,19 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     Preview uses `origin_time`, Burst Age shifts every system;
   - the runtime registry is keyed by system identity; two systems of the same
     kind never collide.
+- 2.25 rules:
+  - `fx._scene_id` writes `settings.fx_uid` inside a `try/except`: the identity
+    lives in `scene[ald_fx_id]` and the settings cache is best-effort only.
+    Writing to ID-class properties during panel draw raises
+    "Writing to ID classes in this context is not allowed";
+  - ALD Sky/FX Anchor: a persistent Empty world reference with vertical axis,
+    ground elevation and units scale. Identified by UID, it survives geometry
+    rebuilds and is never searched by name;
+  - Conflict warning (T15): camera below ground or burst target under terrain
+    elevation is reported in the Launch panel instead of generating silent
+    underground coordinates;
+  - Gate tests T25-T28: migration from older schema, undo/redo alignment,
+    failed-build safety, UI surface parity.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

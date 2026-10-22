@@ -717,6 +717,30 @@ class ALD_Settings(bpy.types.PropertyGroup):
         default=(0.0, 0.0, -9.81),
         description="World gravity used by the FX",
         update=_on_fx_age)
+
+    # --- ALD Sky/FX Anchor (Fase 4 del piano operativo) -------------------
+    fx_anchor_axis: EnumProperty(
+        name="Vertical Axis", default="Z",
+        items=[("Z", "Z-up", "Vertical axis is Z"),
+               ("Y", "Y-up", "Vertical axis is Y"),
+               ("X", "X-up", "Vertical axis is X"),
+               ("-Z", "Z-down", "Vertical axis is -Z"),
+               ("-Y", "Y-down", "Vertical axis is -Y"),
+               ("-X", "X-down", "Vertical axis is -X")],
+        description="Vertical axis of the scene reference frame",
+        update=_on_fx_rebuild)
+    fx_anchor_ground_elevation: FloatProperty(
+        name="Ground Elevation", default=0.0, min=-10000.0, max=10000.0,
+        description="World-space elevation of the ground reference plane",
+        update=_on_fx_rebuild)
+    fx_anchor_units_scale: FloatProperty(
+        name="Units Scale", default=1.0, min=0.001, max=1000.0,
+        description="World units per metre (1 = 1 Blender unit = 1 metre)",
+        update=_on_fx_rebuild)
+    fx_anchor_created: BoolProperty(
+        name="Anchor Created", default=False,
+        description="Whether the ALD Sky/FX Anchor empty exists in the scene")
+
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,
         description="Dedicated glow for the 3D FX layer",
