@@ -273,6 +273,20 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the gate verifies the acceptance condition: a scene with an HDRI world, a
     custom sun, an emissive material and a pre-existing compositor returns to
     the registered state.
+- FX 2.16 rules (phase P1-C of the operational plan):
+  - a firework is a complete event: the launcher, the rising shell (a body
+    with its own birth, drag and lifetime and a short trail), the burst at the
+    target and the residuals;
+  - the initial velocity follows the equations of the plan
+    (`v0 = v_inf + (pB - pL - v_inf T)/A(T)`, and the stable limit without
+    drag `v0 = (pB - pL - 0.5 g T^2)/T`);
+  - the continuity at the burst is mandatory: the stars are born exactly at
+    `p_rise(T)` and their velocity includes the residual velocity of the
+    shell (`v_star0 = v_rise(T) + s_i d_i`);
+  - the launcher sits below the burst point in the world space, never along
+    the line of sight: the shell must read as a real ascent;
+  - the burst happens at the end of the rise: the lookdev renders follow the
+    new timing.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

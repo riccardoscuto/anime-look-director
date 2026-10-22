@@ -291,18 +291,37 @@ def _particle(birth, life, drag, radius, vel, pos0, tau=0.0, jitter=None,
     }
 
 
+def shell_population(launch, v0, drag, birth, rise_time, size_scale):
+    """The rising shell: the body and its short trail."""
+    head = _particle(birth, rise_time, drag, 0.09 * size_scale, v0, launch,
+                     use_decay=0.0, role="shell")
+    trail = []
+    for step in range(SAMPLES):
+        profile = step / (SAMPLES - 1.0)
+        trail.append(_particle(
+            birth, rise_time, drag, 0.6 + 0.4 * profile, v0, launch,
+            tau=rise_time * (1.0 - profile), use_decay=0.0, role="shell_trail",
+            spoke=0, trail=rise_time))
+    return {"head": head, "trail": trail}
+
+
 def burst_population(seed, index, config, birth, center, size_scale,
-                     spoke_count):
+                     spoke_count, shell_velocity=None):
     """Deterministic initial conditions of one burst.
 
     The same data feeds the Geometry Nodes attributes and the Python writer:
-    the two backends cannot diverge.
+    the two backends cannot diverge. ``shell_velocity`` is the residual
+    velocity of the rising shell: the stars inherit its momentum, so the burst
+    continues the motion of the shell without a discontinuity.
     """
+    inherit = Vector(shell_velocity) if shell_velocity is not None \
+        else Vector((0.0, 0.0, 0.0))
     heads = []
     grains = []
     trail = []
     for spoke in range(spoke_count):
         life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
+        v0 = v0 + inherit
         heads.append(_particle(birth, life, config["drag"],
                                0.13 * size_scale, v0, center, role="head",
                                spoke=spoke))
@@ -341,6 +360,7 @@ def burst_population(seed, index, config, birth, center, size_scale,
                             config["speed"] * 0.75 * 0.68,
                             config["speed"] * 1.15 * 0.68)
         v0 = direction * speed
+        v0 = v0 + inherit
         drag = config["drag"] * 1.2
         pistil.append(_particle(birth, life, drag, 0.10 * size_scale, v0, center,
                                 role="pistil"))
@@ -520,6 +540,100 @@ def _gn_flash_particles(birth, core, center, size_scale):
         "pos0": center, "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)),
         "use_decay": 1.0,
     }]
+
+
+def _gravity(scene):
+    """The world gravity used by the FX."""
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return GRAVITY
+    return Vector(settings.fx_gravity)
+
+
+def _launch_point(origin, forward, up, right, target):
+    """The default launcher: below the burst point, in the world space.
+
+    The shell rises vertically, so the shot shows a real ascent.
+    """
+    return Vector(target) - Vector((0.0, 0.0, 26.0))
+
+
+def _rise_time(scene, index):
+    """The rise time of the shell of a burst."""
+    settings = getattr(scene, "ald", None)
+    if settings is not None and settings.fx_systems:
+        system = settings.fx_systems[0]
+        for event in system.events:
+            if event.kind == "FIREWORK":
+                return float(event.rise_time)
+    return 1.2
+
+
+def _event_drag(scene, config):
+    """The drag of the rising shell."""
+    settings = getattr(scene, "ald", None)
+    if settings is not None and settings.fx_systems:
+        for event in settings.fx_systems[0].events:
+            if event.kind == "FIREWORK":
+                return float(event.drag)
+    return float(config["drag"])
+
+
+def _rise_velocity(launcher, target, rise_time, drag, gravity, mode="DIRECTOR",
+                   speed=0.0, direction=None):
+    """The initial velocity of the rising shell.
+
+    Director mode: the burst target and the rise time define the shot.
+    Physical mode: the launcher, the direction and the speed define the shot.
+    With a linear drag and a constant wind:
+
+        v_inf = w + g / k
+        A(T)  = (1 - exp(-k T)) / k
+        v0    = v_inf + (pB - pL - v_inf T) / A(T)
+
+    Without drag the limit is ``v0 = (pB - pL - 0.5 g T^2) / T``.
+    """
+    launcher = Vector(launcher)
+    delta = Vector(target) - launcher
+    gravity = Vector(gravity)
+    if rise_time <= 1e-6:
+        return delta
+    if mode == "PHYSICAL":
+        if direction is None:
+            return delta / rise_time
+        direction = Vector(direction)
+        if direction.length < 1e-6:
+            return delta / rise_time
+        return direction.normalized() * float(speed)
+    if drag < 1e-4:
+        return (delta - 0.5 * gravity * rise_time * rise_time) / rise_time
+    v_inf = gravity / drag
+    a = (1.0 - math.exp(-drag * rise_time)) / drag
+    if a < 1e-9:
+        return delta / rise_time
+    return v_inf + (delta - v_inf * rise_time) / a
+
+
+def _rise_position(launcher, v0, drag, gravity, elapsed):
+    """The position of the rising shell after ``elapsed`` seconds."""
+    launcher = Vector(launcher)
+    gravity = Vector(gravity)
+    if elapsed <= 0.0:
+        return launcher.copy()
+    if drag < 1e-4:
+        return launcher + v0 * elapsed + 0.5 * gravity * elapsed * elapsed
+    v_inf = gravity / drag
+    a = (1.0 - math.exp(-drag * elapsed)) / drag
+    return launcher + v_inf * elapsed + (v0 - v_inf) * a
+
+
+def _rise_velocity_at(v0, drag, gravity, elapsed):
+    """The residual velocity of the rising shell."""
+    gravity = Vector(gravity)
+    if drag < 1e-4:
+        return v0 + gravity * elapsed
+    v_inf = gravity / drag
+    return v_inf + (v0 - v_inf) * math.exp(-drag * elapsed)
 
 
 def _star_state(seed, index, spoke, count, config, age, speed_scale=1.0,
@@ -704,9 +818,20 @@ def _build_fireworks(scene, count, seed, distance, family):
         spoke_count = config["spokes"]
         sample_count = SAMPLES
         pistil_count = config["pistil"]
+        # The complete event: a launcher, a rising shell and a burst point.
+        gravity = _gravity(scene)
+        launch = _launch_point(origin, forward, up, right, center)
+        rise_time = _rise_time(scene, index)
+        drag = _event_drag(scene, config)
+        target = center
+        v0 = _rise_velocity(launch, target, rise_time, drag, gravity)
+        burst_birth = birth + rise_time
+        residual = _rise_velocity_at(v0, drag, gravity, rise_time)
+        shell = shell_population(launch, v0, drag, birth, rise_time, size_scale)
         # The deterministic data is built once and feeds both backends.
-        population = burst_population(seed, index, config, birth, center,
-                                      size_scale, spoke_count)
+        population = burst_population(seed, index, config, burst_birth, target,
+                                      size_scale, spoke_count,
+                                      shell_velocity=residual)
         family_colors = PALETTES[index % len(PALETTES)]
         materials = [
             _material("ALD FX %s %d A" % (family_key, index), family_colors[0],
@@ -835,6 +960,19 @@ def _build_fireworks(scene, count, seed, distance, family):
                     camera_position=camera_position,
                     atmospheric_fade=fade)
                 created.append(gn_flash)
+                # The rising shell and its short trail.
+                gn_shell = _gn_points_object(
+                    scene, "ALD FX GN Shell %d" % index, materials[0],
+                    [shell["head"]], trail=0.0, age_offset=age_offset,
+                    energy_power=powers.get("head", 1.0),
+                    camera_position=camera_position,
+                    atmospheric_fade=fade)
+                created.append(gn_shell)
+                gn_shell_trail = _gn_trail_object(
+                    scene, "ALD FX GN Shell Trail %d" % index, materials[0],
+                    shell["trail"], trail=rise_time, age_offset=age_offset,
+                    radius=0.03 * size_scale)
+                created.append(gn_shell_trail)
                 for obj in created:
                     obj["ald_fx_kind"] = kind
                 # The Python meshes are replaced by the node group.
@@ -871,7 +1009,10 @@ def _build_fireworks(scene, count, seed, distance, family):
             "index": index, "family": family_key, "config": config,
             "center": center, "birth": birth, "seed": seed,
             "size_scale": size_scale, "materials": materials,
-            "population": population,
+            "population": population, "shell": shell,
+            "launch": launch, "shell_velocity": v0, "drag": drag,
+            "rise_time": rise_time, "target": target,
+            "burst_birth": burst_birth, "residual": residual,
             "spread_x": (-0.18 + 0.36 * (index + 0.5) / burst_count) * spread,
             "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
             "gn_heads": gn_heads, "gn_beads": gn_beads,
@@ -1268,9 +1409,12 @@ def store_system(scene, kind, count, seed, distance, family, time):
             event.size = burst.get("size_scale", 1.0)
             event.count = 1
             event.target = tuple(burst["center"])
-            event.launcher = tuple(origin)
+            event.launcher = tuple(burst.get("launch", origin))
             event.duration = burst["config"].get("life", 1.0)
             event.life = event.duration
+            event.rise_time = float(burst.get("rise_time", 1.2))
+            event.drag = float(burst.get("drag", 1.3))
+            event.launch_mode = "DIRECTOR"
             event.glow = 0.6
     else:
         populations = registry.get("meteors", {}).get("populations", [])

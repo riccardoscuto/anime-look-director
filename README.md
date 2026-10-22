@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.15.0)
+## What it does (v2.16.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -167,7 +167,10 @@ Expected output: `ALD GATE: PASS`.
   (OFF / Legacy World / FX 3D), the FX system editor and the look controls
 - v2.15.0 - phase P1-B: the state of the user is snapshotted before the first
   modification and "Remove ALD from Scene" restores the world, the sun, the
-  materials, the passes and the compositor (current)
+  materials, the passes and the compositor
+- v2.16.0 - phase P1-C: the firework is a complete event, from the launcher
+  to the rising shell, the burst without discontinuity and the residuals
+  (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

@@ -28,7 +28,9 @@ ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SEED = 7
 DISTANCE = 60.0
 COUNT = 4
-SEQUENCE_FRAMES = (1, 4, 8, 12, 16, 20)
+SEQUENCE_FRAMES = (1, 14, 24, 30, 40, 56)
+#: The burst happens at the end of the rise: the stills show the expansion.
+STILL_FRAME = 44
 
 
 def parse_args():
@@ -83,6 +85,9 @@ def build_scene():
 def apply_look(scene, palette="TWILIGHT_DUSK"):
     settings = scene.ald
     settings.palette = palette
+    # The event starts at the first frame: the sequence shows the launch, the
+    # rise, the burst and the fade.
+    settings.fx_age = 0.0
     settings.halation_strength = 0.5
     settings.kuwahara_size = 6.0
     settings.light_wrap_strength = 0.4
@@ -178,17 +183,17 @@ def main():
 
     # Without the dedicated FX glow.
     scene.ald.fx_glow_strength = 0.0
-    path = render(scene, os.path.join(out_dir, "fx_noglow.png"), 12)
+    path = render(scene, os.path.join(out_dir, "fx_noglow.png"), STILL_FRAME)
     stills.append(path)
 
     # With the dedicated FX glow.
     scene.ald.fx_glow_strength = 0.6
-    path = render(scene, os.path.join(out_dir, "fx_glow.png"), 12)
+    path = render(scene, os.path.join(out_dir, "fx_glow.png"), STILL_FRAME)
     stills.append(path)
 
     # The burst hidden behind a building.
     cube = make_occluder(scene, camera)
-    path = render(scene, os.path.join(out_dir, "fx_occluder.png"), 12)
+    path = render(scene, os.path.join(out_dir, "fx_occluder.png"), STILL_FRAME)
     stills.append(path)
     bpy.data.objects.remove(cube, do_unlink=True)
 
@@ -198,7 +203,7 @@ def main():
         scene.render.motion_blur_shutter = 0.5
     except Exception:
         pass
-    path = render(scene, os.path.join(out_dir, "fx_motionblur.png"), 12)
+    path = render(scene, os.path.join(out_dir, "fx_motionblur.png"), STILL_FRAME)
     stills.append(path)
     try:
         scene.render.use_motion_blur = False

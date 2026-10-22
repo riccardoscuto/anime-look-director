@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.16.0 - 2026-10-22
+Phase P1-C of the operational plan: the firework is a complete event.
+
+### Added
+- The rising shell: the firework now starts from a launcher, climbs with a
+  short trail and bursts at the target. The shell is a body of the node group
+  (and of the Python writer) with its own birth, drag and lifetime.
+- The operational equations of the plan, in `fx._rise_velocity()`:
+  `v_inf = w + g/k`, `A(T) = (1 - exp(-kT))/k`,
+  `v0 = v_inf + (pB - pL - v_inf T)/A(T)` and the stable limit without drag
+  `v0 = (pB - pL - 0.5 g T^2)/T`.
+- The continuity at the burst: the stars are born exactly at `p_rise(T)` and
+  their initial velocity includes the residual velocity of the shell
+  (`v_star0 = v_rise(T) + s_i d_i`).
+- The event properties: the launch mode (Director or Physical), the rise
+  time, the drag, the speed and the gravity of the FX.
+- The gate runs the acceptance condition of the phase: the shell reaches the
+  burst point, the stars are born there, they inherit the velocity of the
+  shell, the shell disappears at the burst and the event is identical after a
+  frame jump.
+
+### Changed
+- The burst happens at the end of the rise: the lookdev renders follow the
+  new timing (the sequence shows the launch, the rise, the burst and the
+  expansion).
+
 ## 2.15.0 - 2026-10-22
 Phase P1-B of the operational plan: the scene can be restored.
 

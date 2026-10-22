@@ -985,3 +985,22 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The gate runs the acceptance condition of the plan: a scene with a world of
   its own, a custom sun, an emissive material and a pre-existing compositor
   stack returns to the registered state after the removal.
+### v2.16.0 notes (phase P1-C: the complete firework event)
+- The event now has a launcher, a rising shell and a burst point. The shell is
+  a body of the node group with its own birth (the launch), drag and lifetime
+  (the rise time) and a short trail; it disappears at the burst.
+- The initial velocity follows the equations of the plan: with a linear drag
+  and a constant wind, `v_inf = w + g/k`, `A(T) = (1 - exp(-kT))/k` and
+  `v0 = v_inf + (pB - pL - v_inf T)/A(T)`; without drag the limit is
+  `v0 = (pB - pL - 0.5 g T^2)/T`. The branch stays stable for `k` close to
+  zero.
+- The continuity at the burst is structural: the stars are born exactly at
+  `p_rise(T)` and their initial velocity includes the residual velocity of
+  the shell (`v_star0 = v_rise(T) + s_i d_i`). The population builder takes
+  the `shell_velocity` and adds it to every star.
+- The launcher sits below the burst point in the world space: a launcher on
+  the line of sight makes the shell read as an object coming towards the
+  camera instead of an ascent.
+- The burst happens at the end of the rise: the `Burst Age` measures the
+  time since the launch, the lookdev renders follow the new timing and the
+  sequence shows the launch, the rise, the burst and the expansion.
