@@ -282,8 +282,11 @@ def draw_fx_launch(layout, context, compact=False):
         col.prop(event, "speed")
         col.prop(event, "life")
     else:
+        col.prop(event, "launch_mode")
         col.prop(event, "launcher")
         col.prop(event, "target")
+        col.prop(event, "rise_time", text="Rise Time")
+        col.prop(event, "drag")
         col.prop(event, "duration", text="Burst Duration")
         col.prop(event, "birth", text="Birth")
 
@@ -350,6 +353,7 @@ def draw_fx_actions(layout, context, compact=False):
     col = box.column(align=True)
     col.operator("ald.fx_fireworks", icon="LIGHT")
     col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
+    col.operator("ald.fx_bolide", icon="TRIA_RIGHT_BAR")
     col.operator("ald.fx_update", icon="FILE_REFRESH")
     col.operator("ald.fx_clear", icon="TRASH")
     col.operator("ald.remove_from_scene", icon="LOOP_BACK")

@@ -53,6 +53,17 @@ PALETTES = (
     ((0.04, 0.72, 1.0), (0.05, 1.0, 0.32), (1.0, 0.22, 0.02)),
 )
 
+#: The meteor presets. A bolide is a cinematic meteor: bigger, brighter, with
+#: a long persistent train. A true comet is a different feature, not a meteor.
+METEOR_PRESETS = {
+    "METEOR": {"life": (0.55, 1.15), "speed": (26.0, 38.0), "radius": 0.18,
+               "train": 0.32, "emission": 9.0, "spacing": 0.9, "jitter": 0.03,
+               "fragments": 3, "drag": 0.08},
+    "BOLIDE": {"life": (1.6, 2.4), "speed": (44.0, 62.0), "radius": 0.5,
+               "train": 1.2, "emission": 16.0, "spacing": 2.2, "jitter": 0.012,
+               "fragments": 8, "drag": 0.05},
+}
+
 GRAVITY = Vector((0.0, 0.0, -9.81))
 SAMPLES = 16
 SYSTEMS = {}
@@ -1118,13 +1129,13 @@ def _update_fireworks(system, time):
 # ---------------------------------------------------------------------------
 
 def _meteor_population(seed, index, start, v0, drag, event_birth, life, train,
-                      persistence):
+                      persistence, radius=0.18, fragments=3):
     """Deterministic data of one meteor: head, train and fragments.
 
     Every component shares the same ``event_birth``: the train and the
     fragments can never appear before the body.
     """
-    head = _particle(event_birth, life, drag, 0.18, v0, start, use_decay=0.0,
+    head = _particle(event_birth, life, drag, radius, v0, start, use_decay=0.0,
                      role="meteor_head", spoke=index)
     train_samples = []
     for step in range(SAMPLES):
@@ -1133,8 +1144,8 @@ def _meteor_population(seed, index, start, v0, drag, event_birth, life, train,
             event_birth, life + persistence, drag, 0.2 + 0.8 * profile, v0,
             start, tau=train * (1.0 - profile), use_decay=0.0,
             role="meteor_train", spoke=index, trail=train))
-    fragments = []
-    for fragment in range(3):
+    fragment_points = []
+    for fragment in range(fragments):
         emit = _hash_range(seed, index, 30 + fragment, 7, 0.05, life * 0.8)
         frag_life = _hash_range(seed, index, 30 + fragment, 8, 0.4, 1.4)
         # The origin is the position of the body at the emission instant.
@@ -1145,19 +1156,21 @@ def _meteor_population(seed, index, start, v0, drag, event_birth, life, train,
             _hash_range(seed, index, 30 + fragment, 10, -2.4, 2.4),
             _hash_range(seed, index, 30 + fragment, 11, -3.2, 1.2),
         ))
-        fragments.append(_particle(
+        fragment_points.append(_particle(
             event_birth + emit, frag_life, 1.6, 0.05, parent_vel * 0.25 + push,
             parent, role="meteor_fragment", spoke=index))
-    return {"head": head, "train": train_samples, "fragments": fragments}
+    return {"head": head, "train": train_samples, "fragments": fragment_points}
 
 
-def _build_meteors(scene, count, seed, distance):
+def _build_meteors(scene, count, seed, distance, kind="METEOR"):
     origin, forward, up, right = _camera_basis(scene)
+    preset = METEOR_PRESETS.get(kind, METEOR_PRESETS["METEOR"])
     # The shower direction is a world direction, almost lateral: the meteors
     # cross the sky instead of moving along the line of sight. The radiant
     # emerges from the convergence of the parallel trajectories.
     shower = (forward * 0.16 + right * 0.94 + up * 0.30).normalized()
-    material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0)
+    material = _material("ALD FX Meteor %s" % kind, (0.85, 0.94, 1.0),
+                          preset["emission"])
     settings = getattr(scene, "ald", None)
     use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
         else False
@@ -1168,12 +1181,15 @@ def _build_meteors(scene, count, seed, distance):
     system = {"kind": "meteors", "count": total, "seed": seed,
               "distance": distance, "shower": shower, "origin": origin,
               "material": material, "gn": False, "trail": None,
+              "preset": kind,
               "heads": None, "head_ranges": [], "fragments": None,
               "fragment_ranges": [], "populations": []}
     populations = []
     for index in range(total):
-        life = _hash_range(seed, index, 0, 2, 0.55, 1.15)
-        event_birth = index * 0.9 + _hash_range(seed, index, 0, 1, 0.0, 0.6)
+        life = _hash_range(seed, index, 0, 2, preset["life"][0],
+                            preset["life"][1])
+        event_birth = index * preset["spacing"] + _hash_range(
+            seed, index, 0, 1, 0.0, 0.6)
         # The start points are spread on a plane far away from the camera.
         plane_center = origin + forward * distance
         lateral_x = _hash_range(seed, index, 10, 11, -0.55, 0.55) * distance
@@ -1181,17 +1197,21 @@ def _build_meteors(scene, count, seed, distance):
         start = plane_center + right * lateral_x + up * lateral_y
         # The velocities are almost parallel in world space, with a small
         # angular jitter so the radiant is not a perfect point.
+        jitter_range = preset["jitter"]
         jitter = Vector((
-            _hash_range(seed, index, 0, 3, -0.03, 0.03),
-            _hash_range(seed, index, 0, 4, -0.03, 0.03),
-            _hash_range(seed, index, 0, 5, -0.02, 0.02),
+            _hash_range(seed, index, 0, 3, -jitter_range, jitter_range),
+            _hash_range(seed, index, 0, 4, -jitter_range, jitter_range),
+            _hash_range(seed, index, 0, 5, -jitter_range * 0.7,
+                        jitter_range * 0.7),
         ))
         direction = (shower + jitter).normalized()
-        speed = _hash_range(seed, index, 0, 6, 26.0, 38.0)
+        speed = _hash_range(seed, index, 0, 6, preset["speed"][0],
+                            preset["speed"][1])
         v0 = direction * speed
-        populations.append(_meteor_population(seed, index, start, v0, 0.08,
-                                             event_birth, life, 0.32,
-                                             persistence))
+        populations.append(_meteor_population(
+            seed, index, start, v0, preset["drag"], event_birth, life,
+            preset["train"], persistence, radius=preset["radius"],
+            fragments=preset["fragments"]))
     system["populations"] = populations
     if use_gn:
         created = []
@@ -1213,7 +1233,8 @@ def _build_meteors(scene, count, seed, distance):
             created.append(gn_heads)
             gn_train = _gn_trail_object(
                 scene, "ALD FX GN Meteor Trails", material, train_points,
-                trail=0.32, age_offset=age_offset, radius=0.07,
+                trail=preset["train"], age_offset=age_offset,
+                radius=0.07 * (preset["radius"] / 0.18),
                 fade_window=persistence)
             created.append(gn_train)
             gn_fragments = _gn_points_object(
@@ -1347,10 +1368,10 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
 
 
 def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
-                   fps=24.0):
+                   fps=24.0, kind="METEOR"):
     """Create (or replace) a deterministic meteor shower."""
     _remove_kind(scene, "meteors")
-    system = _build_meteors(scene, count, seed, distance)
+    system = _build_meteors(scene, count, seed, distance, kind)
     _update_system(system, time)
     _registry(scene)["meteors"] = system
     return count
@@ -1418,11 +1439,12 @@ def store_system(scene, kind, count, seed, distance, family, time):
             event.glow = 0.6
     else:
         populations = registry.get("meteors", {}).get("populations", [])
+        preset = registry.get("meteors", {}).get("preset", "METEOR")
         for population in populations:
             head = population["head"]
             event = system.events.add()
             event.uid = uuid.uuid4().hex
-            event.kind = "METEOR"
+            event.kind = "BOLIDE" if preset == "BOLIDE" else "METEOR"
             event.enabled = True
             event.seed = seed
             event.birth = head["birth"]

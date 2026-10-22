@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.17.0 - 2026-10-22
+Phase P1-D of the operational plan: the meteors are events and the Hero
+Meteor has its own preset.
+
+### Added
+- The meteor presets (`fx.METEOR_PRESETS`): a normal meteor and the
+  **Bolide**, the cinematic one: bigger head, brighter emission, longer life,
+  a long persistent train, more fragments and a smaller angular jitter.
+- The operator `ald.fx_bolide` ("Create Hero Meteor") and its button in the
+  FX section.
+- The gate verifies the preset: the bolide is more than twice as big, it
+  lives longer, its train is more than twice as long and outlives the head,
+  it leaves more fragments and the velocities of the shower stay almost
+  parallel, so the radiant emerges.
+
+### Changed
+- The meteors are built from the preset: the birth spacing, the life range,
+  the speed range, the drag, the radius of the head, the length of the train
+  and the number of fragments follow the chosen kind.
+- The event kind of the persistent schema knows the `BOLIDE`.
+
 ## 2.16.0 - 2026-10-22
 Phase P1-C of the operational plan: the firework is a complete event.
 

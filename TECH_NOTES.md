@@ -1004,3 +1004,15 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The burst happens at the end of the rise: the `Burst Age` measures the
   time since the launch, the lookdev renders follow the new timing and the
   sequence shows the launch, the rise, the burst and the expansion.
+### v2.17.0 notes (phase P1-D: the meteors are events, the Hero Meteor)
+- `fx.METEOR_PRESETS` holds the two kinds: a normal meteor and the Bolide,
+  the cinematic one (head radius 0.18 against 0.5, emission 9 against 16,
+  life 0.55-1.15 s against 1.6-2.4 s, train 0.32 s against 1.2 s, three
+  fragments against eight, jitter 0.03 against 0.012).
+- The operator `ald.fx_bolide` creates the Hero Meteor, and the kind is part
+  of the persistent event (`ALD_FX_Event.kind`).
+- The gate verifies the preset and the geometry of the shower: the velocities
+  stay almost parallel in the world space (the radiant emerges from their
+  convergence) and the meteors cross the screen.
+- A meteor is never called a comet in the technical model: a real comet, with
+  a nucleus and a coma, is a separate feature.

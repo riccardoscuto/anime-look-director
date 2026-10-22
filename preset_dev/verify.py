@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 16, 0)
+EXPECTED_VERSION = (2, 17, 0)
 TOLERANCE = 1e-4
 
 
@@ -2365,7 +2365,7 @@ PANEL_ICONS = {
     "EMPTY_AXIS", "ERROR", "EVENT", "FILE_REFRESH", "INFO", "KEYFRAME_HLT",
     "LIGHT", "MARKER", "MATERIAL", "NODETREE", "OUTLINER", "PARTICLE_DATA",
     "PLAY", "PREFERENCES", "RESTRICT_SELECT_OFF", "RESTRICT_VIEW_OFF", "TIME",
-    "TRASH", "WORLD", "X", "LOOP_BACK",
+    "TRASH", "WORLD", "X", "LOOP_BACK", "TRIA_RIGHT_BAR",
 }
 
 
@@ -2578,6 +2578,59 @@ def check_fx_event_continuity(scene):
     scene.frame_set(previous_frame)
 
 
+def check_fx_bolide(scene):
+    """The Hero Meteor preset is bigger and its train lasts longer."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    fx_module.clear(scene)
+    fx_module.create_meteors(scene, 2, seed=21, distance=40.0, time=0.6)
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    normal = registry["meteors"]
+    normal_population = normal["populations"][0]
+    normal_radius = normal_population["head"]["radius"]
+    normal_life = normal_population["head"]["life"]
+    normal_train = normal_population["train"][0]["trail"]
+    normal_fragments = len(normal_population["fragments"])
+    fx_module.clear(scene)
+
+    fx_module.create_meteors(scene, 2, seed=21, distance=40.0, time=0.6,
+                             kind="BOLIDE")
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    bolide = registry["meteors"]
+    population = bolide["populations"][0]
+    check(bolide.get("preset") == "BOLIDE",
+          "the bolide preset is not recorded")
+    check(population["head"]["radius"] > normal_radius * 2.0,
+          "the bolide is not bigger than a meteor")
+    check(population["head"]["life"] > normal_life,
+          "the bolide does not live longer than a meteor")
+    check(population["train"][0]["trail"] > normal_train * 2.0,
+          "the train of the bolide is not longer")
+    check(len(population["fragments"]) > normal_fragments,
+          "the bolide does not leave more fragments")
+    # The train of the bolide persists after the head is gone.
+    head_life = population["head"]["life"]
+    train_life = population["train"][0]["life"]
+    check(train_life > head_life,
+          "the train of the bolide does not outlive the head")
+    # The velocities stay almost parallel: the radiant emerges.
+    directions = []
+    for item in bolide["populations"]:
+        velocity = item["head"]["vel"]
+        if velocity.length > 1e-6:
+            directions.append(velocity.normalized())
+    if len(directions) > 1:
+        worst = min((first - second).length
+                    for index, first in enumerate(directions)
+                    for second in directions[index + 1:])
+        check(worst < 0.2,
+              "the meteors of the shower are not parallel (%.3f)" % worst)
+    fx_module.clear(scene)
+    scene.frame_set(previous_frame)
+
+
 def main():
     enable_addon()
     check_versions()
@@ -2605,6 +2658,7 @@ def main():
         check_camera_override(scene, settings)
         check_fx(scene)
         check_fx_event_continuity(scene)
+        check_fx_bolide(scene)
 
         ng = scene.compositing_node_group
         check(ng is not None and ng.name == "ALD | Compositor Stack",

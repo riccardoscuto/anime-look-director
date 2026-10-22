@@ -411,6 +411,37 @@ class ALD_OT_fx_remove_system(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_bolide(bpy.types.Operator):
+    bl_idname = "ald.fx_bolide"
+    bl_label = "Create Hero Meteor"
+    bl_description = ("Create a cinematic bolide: bigger, brighter, with a "
+                     "long persistent train")
+    bl_options = {"REGISTER", "UNDO"}
+
+    count: bpy.props.IntProperty(name="Bolides", default=1, min=1, max=4)
+    seed: bpy.props.IntProperty(name="Seed", default=33, min=0, max=99999)
+    distance: bpy.props.FloatProperty(name="Distance", default=90.0,
+                                      min=5.0, max=400.0)
+    age: bpy.props.FloatProperty(name="Age", default=0.6, min=0.0, max=6.0,
+                                 description="Seconds after the event")
+
+    def execute(self, context):
+        scene = context.scene
+        scene.ald.fx_age = self.age
+        time = _scene_time(scene) + self.age
+        count = fx.create_meteors(scene, self.count, self.seed, self.distance,
+                                  time, kind="BOLIDE")
+        fx.store_system(scene, "METEORS", self.count, self.seed,
+                        self.distance, "WILLOW", time)
+        scene["ald_fx_config"] = {
+            "kind": "meteors", "count": self.count, "seed": self.seed,
+            "distance": self.distance, "age": self.age, "preset": "BOLIDE",
+        }
+        self.report({"INFO"},
+                    "Anime Look Director: %d bolides created" % count)
+        return {"FINISHED"}
+
+
 class ALD_OT_fx_update(bpy.types.Operator):
     bl_idname = "ald.fx_update"
     bl_label = "Update FX"
@@ -467,7 +498,8 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_clear_shadow_tint, ALD_OT_toggle_exclude_material,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
-            ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_update,
+            ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_bolide,
+            ALD_OT_fx_update,
             ALD_OT_fx_clear, ALD_OT_fx_clear_kind, ALD_OT_fx_select_system,
             ALD_OT_fx_select_event, ALD_OT_fx_duplicate_system,
             ALD_OT_fx_remove_system, ALD_OT_remove_from_scene)

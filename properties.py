@@ -225,7 +225,9 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
     kind: EnumProperty(
         name="Kind",
         items=[("FIREWORK", "Firework", "A firework with a launcher and a burst"),
-               ("METEOR", "Meteor", "A meteor with a start region")],
+               ("METEOR", "Meteor", "A meteor with a start region"),
+               ("BOLIDE", "Bolide",
+                "A cinematic meteor: bigger, brighter, with a long train")],
         default="FIREWORK")
     enabled: BoolProperty(
         name="Enabled", default=True,
@@ -263,6 +265,19 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
                 "The launcher and the initial speed define the shot")],
         default="DIRECTOR",
         description="How the firework reaches its burst point")
+    rise_time: FloatProperty(
+        name="Rise Time", default=1.2, min=0.05, max=12.0,
+        description="Seconds the shell takes to reach the burst point")
+    drag: FloatProperty(
+        name="Drag", default=1.3, min=0.0, max=8.0,
+        description="Linear drag of the rising shell")
+    speed: FloatProperty(
+        name="Speed", default=26.0, min=0.0, max=200.0,
+        description="Initial speed of the shell in physical mode")
+    gravity: FloatVectorProperty(
+        name="Gravity", size=3, subtype="DIRECTION",
+        default=(0.0, 0.0, -9.81),
+        description="World gravity of the FX")
     launcher: FloatVectorProperty(
         name="Launcher", size=3, subtype="TRANSLATION",
         description="World position the firework starts from")
@@ -640,6 +655,11 @@ class ALD_Settings(bpy.types.PropertyGroup):
     fx_atmospheric_fade: FloatProperty(
         name="Atmospheric Fade", default=0.0, min=0.0, max=1.0,
         description="Fades the FX with the distance, like the atmosphere",
+        update=_on_fx_age)
+    fx_gravity: FloatVectorProperty(
+        name="FX Gravity", size=3, subtype="DIRECTION",
+        default=(0.0, 0.0, -9.81),
+        description="World gravity used by the FX",
         update=_on_fx_age)
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,

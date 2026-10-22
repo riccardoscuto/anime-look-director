@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.16.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.17.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -314,4 +314,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.14.0** - Fase P1-A: interfaccia unica tra Properties e sidebar, backend esclusivi (OFF / Legacy World / FX 3D), editor dei sistemi FX e controlli di look (energie per ruolo, attenuazione atmosferica).
 - **2.15.0** - Fase P1-B: snapshot dello stato utente prima della prima modifica e operatore "Remove ALD from Scene" che ripristina mondo, sole, materiali, pass e compositor.
 - **2.16.0** - Fase P1-C: il fuoco d'artificio è un evento completo (launcher, guscio in salita, scoppio senza discontinuità con le equazioni del piano, residui).
+- **2.17.0** - Fase P1-D: le meteore sono eventi e il preset Hero Meteor (Bolide) è più grande, più luminoso e con una scia lunga e persistente.
 

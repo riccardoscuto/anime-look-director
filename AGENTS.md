@@ -287,6 +287,16 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     the line of sight: the shell must read as a real ascent;
   - the burst happens at the end of the rise: the lookdev renders follow the
     new timing.
+- FX 2.17 rules (phase P1-D of the operational plan):
+  - the meteors are built from a preset (`fx.METEOR_PRESETS`): the birth
+    spacing, the life, the speed, the drag, the radius of the head, the length
+    of the train and the number of fragments follow the kind;
+  - the Bolide is the cinematic preset: bigger, brighter, longer life, a long
+    persistent train that outlives the head and more fragments;
+  - a meteor is never called a comet in the technical model: a real comet is
+    a separate feature;
+  - the velocities of a shower stay almost parallel in the world space, the
+    radiant emerges from their convergence and the meteors cross the screen.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth
