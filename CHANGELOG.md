@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.11.0 - 2026-10-22
+### Changed
+- The Burst Age slider no longer rebuilds the FX system: it writes the age
+  offset of the node group modifiers, so the deterministic data stays
+  untouched and the slider is real time (2.3 ms instead of 428 ms per step,
+  189 times faster). The Composition Offset is applied immediately as well.
+- The spread, the composition offset and the Geometry Nodes toggle keep the
+  rebuild, because they change the geometry itself.
+### Added
+- The gate checks that the Burst Age slider moves the burst without creating
+  a single object and without rewriting the deterministic data.
+
 ## 2.10.1 - 2026-10-22
 ### Added
 - `preset_dev/lookdev_families.py`: renders Chrysanthemum, Peony and Willow

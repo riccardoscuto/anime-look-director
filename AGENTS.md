@@ -208,6 +208,12 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   families with the same palette, camera and seed: they must stay readable
   by shape alone (dense sphere with trails, short dashes, few long drooping
   trails).
+- FX 2.11 rules: `fx.set_age(scene, age)` writes the age offset of the node
+  group modifiers instead of rebuilding the system: the Burst Age slider must
+  never recreate an object nor rewrite the deterministic data. Only the
+  spread, the composition offset and the Geometry Nodes toggle rebuild, they
+  change the geometry itself. The gate checks that the slider moves the burst
+  and keeps the objects and the attributes untouched.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

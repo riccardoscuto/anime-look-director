@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 10, 1)
+EXPECTED_VERSION = (2, 11, 0)
 TOLERANCE = 1e-4
 
 
@@ -1789,6 +1789,7 @@ def check_fx_gn_parity(scene):
     check_fx_gn_limits(scene)
     check_fx_gn_children(scene)
     check_fx_occlusion(scene)
+    check_fx_age_no_rebuild(scene)
 
     # The Python solver stays available as a fallback.
     scene.ald.fx_gn_prototype = False
@@ -2001,6 +2002,42 @@ def check_fx_new_file(scene):
     check(bool(fx_module.SYSTEMS.get(owner)),
           "the FX cannot be created after a file load")
     fx_module.clear(new_scene)
+
+
+def check_fx_age_no_rebuild(scene):
+    """The Burst Age slider must move the systems, not rebuild them."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_age = float(scene.ald.fx_age)
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    scene.frame_set(12)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    heads = bpy.data.objects.get("ALD FX GN Heads 1")
+    check(heads is not None, "geometry nodes burst heads missing")
+    if heads is None:
+        return
+    before_signature = _fx_signature(scene)
+    before_names = sorted(obj.name for obj in bpy.data.objects
+                          if obj.get("ald_fx"))
+    before = fx_nodes.realized_centers(heads, depsgraph)
+
+    scene.ald.fx_age = previous_age + 0.5
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    after = fx_nodes.realized_centers(heads, depsgraph)
+    after_names = sorted(obj.name for obj in bpy.data.objects
+                         if obj.get("ald_fx"))
+    check(before_names == after_names,
+          "the Burst Age slider rebuilt the FX objects")
+    check(_fx_signature(scene) == before_signature,
+          "the Burst Age slider rewrote the deterministic data")
+    moved = max((first - second).length
+                for first, second in zip(before, after)) if before else 0.0
+    check(moved > 0.5,
+          "the Burst Age slider did not move the burst (%.3f m)" % moved)
+    scene.ald.fx_age = previous_age
+    fx_module.clear(scene)
 
 
 def main():

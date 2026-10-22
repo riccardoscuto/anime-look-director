@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.10.1)
+## What it does (v2.11.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -153,7 +153,9 @@ Expected output: `ALD GATE: PASS`.
 - v2.10.0 - the caches are invalidated when a new file is loaded and the
   frame handler no longer touches the node group systems
 - v2.10.1 - family comparison renders (Chrysanthemum, Peony and Willow with
-  the same palette and seed) (current)
+  the same palette and seed)
+- v2.11.0 - the Burst Age slider moves the systems without rebuilding the
+  geometry: real time, 189 times faster (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

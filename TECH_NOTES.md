@@ -868,3 +868,15 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   (high drag, no trail), the Willow has few spokes with long drooping trails
   (low drag, long life). The families are readable without the colours, the
   acceptance condition of the phase 5 of the guide.
+### v2.11.0 notes (the Burst Age slider does not rebuild)
+- `fx.set_age(scene, age)` writes the `Age Offset` input of the node group
+  modifiers of the scene: the deterministic data (birth, life, velocity,
+  drag, radius, pos0, tau, jitter) is never rewritten and no object is
+  created or destroyed. The Python path is re-evaluated at the new instant.
+- Measured on the reference machine with 4 bursts and 4 meteors: 2.3 ms per
+  slider step instead of 428 ms for a full rebuild, 189 times faster. The
+  slider is now usable while dragging.
+- The spread, the composition offset and the Geometry Nodes toggle keep the
+  rebuild path (`_on_fx_rebuild`): they change the geometry itself.
+- The gate verifies that the slider moves the burst, keeps the same objects
+  and the same attributes.

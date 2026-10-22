@@ -1105,6 +1105,39 @@ def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
     return count
 
 
+def set_age(scene, age):
+    """Move the FX systems in time without rebuilding the geometry.
+
+    The Geometry Nodes systems only need the age offset of their modifiers:
+    the deterministic data stays untouched. The Python systems are re-evaluated
+    at the new instant.
+    """
+    from . import fx_nodes
+    registry = SYSTEMS.get(_scene_id(scene))
+    if not registry:
+        return False
+    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+    now = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
+    updated = False
+    collection = _collection(scene)
+    for system in registry.values():
+        if not system:
+            continue
+        if system.get("gn"):
+            for obj in collection.objects:
+                if obj.get("ald_fx"):
+                    fx_nodes.set_age_offset(obj, age)
+            system["time"] = None
+            updated = True
+        else:
+            try:
+                _update_system(system, now + age)
+                updated = True
+            except Exception:
+                pass
+    return updated
+
+
 def update(scene, time=None):
     """Re-evaluate every FX system of a scene at the given time."""
     registry = SYSTEMS.get(_scene_id(scene))

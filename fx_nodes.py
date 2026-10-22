@@ -466,6 +466,27 @@ def attach_trail_modifier(obj, group, sockets, gravity, material, trail=0.0,
     return modifier
 
 
+def set_age_offset(obj, age):
+    """Move an object in time by writing the age offset of its modifier.
+
+    The geometry is not rebuilt: the node group reads the offset every frame.
+    """
+    for modifier in obj.modifiers:
+        if modifier.type != "NODES" or modifier.node_group is None:
+            continue
+        group = modifier.node_group
+        if group.name == GROUP_NAME:
+            defaults = BURST_SOCKET_DEFAULTS
+        elif group.name == TRAIL_GROUP_NAME:
+            defaults = TRAIL_SOCKET_DEFAULTS
+        else:
+            continue
+        identifier = _socket_ids(group, defaults)["age_offset"]
+        if identifier in modifier:
+            modifier[identifier] = float(age)
+    return True
+
+
 #: vertices of the icosphere instance used by the group.
 INSTANCE_VERTS = 12
 

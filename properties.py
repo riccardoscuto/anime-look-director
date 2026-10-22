@@ -138,7 +138,22 @@ def _on_params(self, context):
 
 
 def _on_fx_age(self, context):
-    """Re-evaluate (or rebuild) the FX system when the burst age changes."""
+    """Move the FX systems in time without rebuilding the geometry."""
+    try:
+        from . import fx
+        scene = context.scene
+        config = scene.get("ald_fx_config")
+        if isinstance(config, dict):
+            config["age"] = self.fx_age
+            scene["ald_fx_config"] = config
+        if not fx.set_age(scene, self.fx_age):
+            fx.update(scene)
+    except Exception:
+        pass
+
+
+def _on_fx_rebuild(self, context):
+    """Rebuild the FX systems when the composition changes."""
     try:
         from . import fx
         scene = context.scene
@@ -431,16 +446,17 @@ class ALD_Settings(bpy.types.PropertyGroup):
     fx_composition_offset: FloatVectorProperty(
         name="Composition Offset", size=3, subtype="TRANSLATION",
         default=(0.0, 0.0, 0.0),
-        description="World-space offset applied to the whole firework group")
+        description="World-space offset applied to the whole firework group",
+        update=_on_fx_rebuild)
     fx_burst_spread: FloatProperty(
         name="Burst Spread", default=1.0, min=0.2, max=3.0,
         description="Horizontal and vertical spread of the bursts",
-        update=_on_fx_age)
+        update=_on_fx_rebuild)
     fx_gn_prototype: BoolProperty(
         name="GN Particles (Prototype)", default=True,
         description="Evaluate the burst particles with Geometry Nodes "
                     "instead of the Python solver",
-        update=_on_fx_age)
+        update=_on_fx_rebuild)
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,
         description="Dedicated glow for the 3D FX layer",
