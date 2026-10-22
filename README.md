@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.11.1)
+## What it does (v2.12.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -157,7 +157,10 @@ Expected output: `ALD GATE: PASS`.
 - v2.11.0 - the Burst Age slider moves the systems without rebuilding the
   geometry: real time, 189 times faster
 - v2.11.1 - the UI verification is a tool of the repository
-  (`preset_dev/ui_probe.py`) (current)
+  (`preset_dev/ui_probe.py`)
+- v2.12.0 - phase P0-A of the operational plan: the decay, the composition
+  rule, the meteor geometry and the child origins are corrected and the two
+  backends share the same deterministic data (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

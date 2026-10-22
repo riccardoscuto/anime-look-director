@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.12.0 - 2026-10-22
+Phase P0-A of the operational plan: the dynamics are corrected and the two
+backends share the same deterministic data.
+
+### Fixed
+- **FX-01**: the Geometry Nodes decay was inverted: the scale grew with the
+  age instead of shrinking, and the flash grew until the death. The shape
+  decay is now `s(u) = m + (1 - m) * (1 - u) ** p` with `u = age / life`.
+- **FX-01**: the brightness is no longer only a scale: the energy
+  `e(u) = (1 - u) ** q` is written as the `energy` attribute and the material
+  multiplies the emission strength by it.
+- **FX-02**: the number of samples of the grains overwrote the number of
+  bursts, so the composition rule used a wrong total and every burst was
+  pushed to the left of the frame. The names are now `burst_count`,
+  `spoke_count` and `sample_count`.
+- **FX-03**: the meteors moved along their own line of sight. The start
+  points are now spread on a distant plane and the velocities are almost
+  parallel in world space, so the radiant emerges perspectively and the
+  meteors cross the screen.
+- **FX-04**: the head, the train and the fragments share a single
+  `event_birth`; the train lifetime derives from the body and from the
+  persistence window. `Fade Window = 0` means explicitly no persistence.
+- **FX-05**: the origin of the child sparks and of the fragments is computed
+  once at the emission instant and reused by both backends.
+
+### Added
+- `fx.burst_population()` builds the deterministic initial conditions of a
+  burst once: the Geometry Nodes attributes and the Python writer consume the
+  same data, so the backends cannot diverge.
+- The gate runs the P0-A tests: the decay at u = 0, .25, .5, .75 and 1 for the
+  head and the flash, the parity of the positions and the scales between the
+  two backends, the future event (nothing visible and no overflow before the
+  birth), the composition rule with 1, 3 and 5 bursts, the meteor timing and
+  the screen travel of the meteors.
+- `Meteor Persistence` in the FX panel.
+
 ## 2.11.1 - 2026-10-22
 ### Added
 - `preset_dev/ui_probe.py`: the UI verification is now a tool of the

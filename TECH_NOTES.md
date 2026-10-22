@@ -889,3 +889,33 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   `ShowWindow(hwnd, 9)` and move it with `MoveWindow`, otherwise the capture
   is black. The `--wait` argument leaves the time to scroll the properties
   with the mouse wheel before the capture.
+### v2.12.0 notes (phase P0-A of the operational plan)
+- The shape decay was inverted in the node group: the chain computed
+  `m + (1 - m) * (1 - (1 - u) ** p)`, so the scale grew with the age and the
+  flash reached its maximum size at the death. The correct law is
+  `s(u) = m + (1 - m) * (1 - u) ** p`: full size at the birth, the minimum at
+  the death.
+- The energy is now a separate curve: `e(u) = (1 - u) ** q` is written as the
+  `energy` attribute by a Store Named Attribute node and the material
+  multiplies the Emission Strength by it. The geometry shrinks while the
+  emission fades on its own law.
+- The number of samples of the grains overwrote the `count` of the bursts:
+  the composition rule (`-0.18 + 0.36 * (index + 0.5) / total`) was computed
+  with the sample count, so every burst was pushed to the left of the frame.
+  The rule uses the burst count and the gate checks it with 1, 3 and 5 bursts.
+- The meteors started along their own velocity, so they moved away from the
+  camera. The start points are now spread on a plane at the camera distance
+  and the velocities are almost parallel in world space (a lateral shower
+  direction with a small jitter): the radiant emerges perspectively and the
+  meteors cross the screen.
+- The head, the train and the fragments of a meteor share one `event_birth`.
+  The train lifetime is the lifetime of the body plus the persistence window
+  and `Fade Window = 0` means explicitly no persistence (the magic 0.5
+  threshold is gone).
+- The child sparks and the fragments compute their origin once, at the
+  emission instant: the Python writer used the current age, so the origin
+  moved with the parent.
+- `fx.burst_population()` is now the single source of the deterministic data:
+  the Geometry Nodes attributes and the Python writer consume the same
+  particles, and the gate compares the positions and the scales of the two
+  backends (within 1 mm and 2 mm).

@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 11, 1)
+EXPECTED_VERSION = (2, 12, 0)
 TOLERANCE = 1e-4
 
 
@@ -1790,6 +1790,12 @@ def check_fx_gn_parity(scene):
     check_fx_gn_children(scene)
     check_fx_occlusion(scene)
     check_fx_age_no_rebuild(scene)
+    check_fx_decay_curve(scene)
+    check_fx_gn_python_parity(scene)
+    check_fx_future_event(scene)
+    check_fx_burst_centers(scene)
+    check_fx_meteor_timing(scene)
+    check_fx_meteor_travel(scene)
 
     # The Python solver stays available as a fallback.
     scene.ald.fx_gn_prototype = False
@@ -1835,7 +1841,7 @@ def check_fx_gn_meteors(scene):
         check(len(centers) == 3,
               "geometry nodes meteors produced %d heads" % len(centers))
         origin = system["origin"]
-        radiant = system["radiant"]
+        shower = system["shower"]
         seed = system["seed"]
         distance = system["distance"]
         fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
@@ -1848,13 +1854,22 @@ def check_fx_gn_meteors(scene):
             age = time - birth
             if not (0.0 < age <= life):
                 continue
-            spread = fx_module.Vector((
-                fx_module._hash_range(seed, index, 0, 3, -0.09, 0.09),
-                fx_module._hash_range(seed, index, 0, 4, -0.06, 0.06),
-                fx_module._hash_range(seed, index, 0, 5, -0.04, 0.04),
+            forward = (shower * 0.0)  # placeholder, replaced below
+            plane_center = origin + fx_module.Vector(
+                fx_module._camera_basis(scene)[1]) * distance
+            right = fx_module._camera_basis(scene)[3]
+            up = fx_module._camera_basis(scene)[2]
+            lateral_x = fx_module._hash_range(seed, index, 10, 11, -0.55,
+                                              0.55) * distance
+            lateral_y = fx_module._hash_range(seed, index, 10, 12, -0.30,
+                                              0.34) * distance
+            start = plane_center + right * lateral_x + up * lateral_y
+            jitter = fx_module.Vector((
+                fx_module._hash_range(seed, index, 0, 3, -0.03, 0.03),
+                fx_module._hash_range(seed, index, 0, 4, -0.03, 0.03),
+                fx_module._hash_range(seed, index, 0, 5, -0.02, 0.02),
             ))
-            direction = (radiant + spread).normalized()
-            start = origin + direction * distance * 0.9
+            direction = (shower + jitter).normalized()
             speed = fx_module._hash_range(seed, index, 0, 6, 26.0, 38.0)
             v0 = direction * speed
             expected = fx_module._position(start, v0, 0.08, age)
@@ -2038,6 +2053,282 @@ def check_fx_age_no_rebuild(scene):
           "the Burst Age slider did not move the burst (%.3f m)" % moved)
     scene.ald.fx_age = previous_age
     fx_module.clear(scene)
+
+
+def _python_instances(obj):
+    """Centers and radii of the particles written by the Python mesh."""
+    from mathutils import Vector
+
+    verts = obj.data.vertices
+    count = 12  # the icosphere of the unit sphere
+    instances = []
+    for start in range(0, len(verts), count):
+        chunk = verts[start:start + count]
+        if len(chunk) < count:
+            break
+        total = Vector((0.0, 0.0, 0.0))
+        for vertex in chunk:
+            total += vertex.co
+        center = total / len(chunk)
+        radius = max((vertex.co - center).length for vertex in chunk)
+        instances.append((center, radius))
+    return instances
+
+
+def check_fx_decay_curve(scene):
+    """The scale must shrink with the age: s(u) = m + (1 - m) * (1 - u) ** p."""
+    from mathutils import Vector
+
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    previous_age = float(scene.ald.fx_age)
+    scene.ald.fx_age = 0.0
+    material = fx_module._material("ALD FX Gate Decay", (1.0, 1.0, 1.0), 1.0)
+    life = 4.0
+    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+    cases = (
+        ("head", 0.35, 1.0),
+        ("flash", 0.0, 0.5),
+    )
+    for role, min_scale, decay_power in cases:
+        particles = [{
+            "birth": 0.0, "life": life, "drag": 0.0, "radius": 1.0,
+            "vel": Vector((0.0, 0.0, 0.0)), "pos0": Vector((0.0, 0.0, 0.0)),
+            "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
+            "min_scale": min_scale, "decay_power": decay_power,
+            "energy_power": 1.0, "role": role, "spoke": 0,
+        }]
+        obj = fx_module._gn_points_object(
+            scene, "ALD FX Gate Decay %s" % role, material, particles,
+            gravity=(0.0, 0.0, 0.0), min_scale=min_scale,
+            decay_power=decay_power)
+        obj["ald_fx_kind"] = "gate"
+        for step in (0.0, 0.25, 0.5, 0.75, 1.0):
+            frame = 1 + int(round(step * life * fps))
+            scene.frame_set(frame)
+            age = frame / fps
+            u = min(age / life, 1.0)
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            instances = fx_nodes.realized_instances(obj, depsgraph)
+            radius = instances[0][1] if instances else 0.0
+            expected = min_scale + (1.0 - min_scale) * (1.0 - u) ** decay_power
+            if age >= life:
+                expected = 0.0  # the body is dead
+            check(abs(radius - expected) < 2e-3,
+                  "the %s scale is wrong at u=%.2f: %.4f instead of %.4f"
+                  % (role, u, radius, expected))
+        bpy.data.objects.remove(obj, do_unlink=True)
+    scene.ald.fx_age = previous_age
+    scene.frame_set(previous_frame)
+
+
+def check_fx_gn_python_parity(scene):
+    """The Geometry Nodes and the Python backends must agree."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    previous_backend = bool(scene.ald.fx_gn_prototype)
+    # Geometry Nodes evaluation.
+    scene.ald.fx_gn_prototype = True
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.0)
+    scene.frame_set(12)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    gn = {}
+    for name, key in (("ALD FX GN Heads 1", "heads"),
+                      ("ALD FX GN Beads 1 0", "grains"),
+                      ("ALD FX GN Pistil 1", "pistil"),
+                      ("ALD FX GN Sparks 1", "sparks"),
+                      ("ALD FX GN Flash 1", "flash")):
+        obj = bpy.data.objects.get(name)
+        check(obj is not None, "geometry nodes object missing: %s" % name)
+        if obj is not None:
+            gn[key] = fx_nodes.realized_instances(obj, depsgraph)
+    fx_module.clear(scene)
+    # Python writer.
+    scene.ald.fx_gn_prototype = False
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.0)
+    scene.frame_set(12)
+    fx_module.update(scene)
+    python = {}
+    for name, key in (("ALD FX CHRYSANTHEMUM 1 Heads", "heads"),
+                      ("ALD FX CHRYSANTHEMUM 1 Beads 0", "grains"),
+                      ("ALD FX CHRYSANTHEMUM 1 Pistil Heads", "pistil"),
+                      ("ALD FX CHRYSANTHEMUM 1 Sparks", "sparks"),
+                      ("ALD FX CHRYSANTHEMUM 1 Flash", "flash")):
+        obj = bpy.data.objects.get(name)
+        check(obj is not None, "python object missing: %s" % name)
+        if obj is not None:
+            python[key] = _python_instances(obj)
+    for key in ("heads", "grains", "pistil", "sparks", "flash"):
+        left = gn.get(key, [])
+        right = python.get(key, [])
+        if not left or not right:
+            continue
+        check(len(left) == len(right),
+              "the %s population differs: %d against %d"
+              % (key, len(left), len(right)))
+        worst_position = 0.0
+        worst_radius = 0.0
+        for (center_a, radius_a), (center_b, radius_b) in zip(left, right):
+            # The dead particles are hidden differently by the two backends:
+            # only the living ones can be compared.
+            if radius_a < 1e-4 or radius_b < 1e-4:
+                continue
+            worst_position = max(worst_position, (center_a - center_b).length)
+            worst_radius = max(worst_radius, abs(radius_a - radius_b))
+        check(worst_position < 1e-3,
+              "the %s positions differ between the backends (%.6f m)"
+              % (key, worst_position))
+        check(worst_radius < 2e-3,
+              "the %s scales differ between the backends (%.6f m)"
+              % (key, worst_radius))
+    fx_module.clear(scene)
+    scene.ald.fx_gn_prototype = previous_backend
+    scene.frame_set(previous_frame)
+
+
+def check_fx_future_event(scene):
+    """Before the birth nothing may be visible and nothing may overflow."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    previous_age = float(scene.ald.fx_age)
+    scene.ald.fx_age = 0.0
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.0)
+    # The second burst is born at 0.25 s: the first frame is before it.
+    scene.frame_set(1)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    for name in ("ALD FX GN Heads 1", "ALD FX GN Beads 1 0", "ALD FX GN Sparks 1"):
+        obj = bpy.data.objects.get(name)
+        if obj is None:
+            continue
+        for center, radius in fx_nodes.realized_instances(obj, depsgraph):
+            check(all(abs(value) < 1e6 for value in center),
+                  "the %s overflows before its birth" % name)
+            check(radius < 1e-3,
+                  "the %s is visible before its birth" % name)
+    fx_module.clear(scene)
+    scene.ald.fx_age = previous_age
+    scene.frame_set(previous_frame)
+
+
+def check_fx_burst_centers(scene):
+    """The number of bursts must not change the composition rules."""
+    from anime_look_director import fx as fx_module
+
+    previous_frame = scene.frame_current
+    for burst_count in (1, 3, 5):
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, burst_count, seed=3, distance=60.0,
+                                   time=0.0)
+        registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+        bursts = registry["fireworks"]["bursts"]
+        check(len(bursts) == burst_count,
+              "the system holds %d bursts instead of %d"
+              % (len(bursts), burst_count))
+        # The horizontal rule must use the number of bursts, never the
+        # number of samples of another population.
+        for index, burst in enumerate(bursts):
+            expected = (-0.18 + 0.36 * (index + 0.5) / burst_count) \
+                * float(scene.ald.fx_burst_spread)
+            check(abs(burst["spread_x"] - expected) < 1e-6,
+                  "the burst %d is not placed by the composition rule "
+                  "(%.4f instead of %.4f)"
+                  % (index, burst["spread_x"], expected))
+        # The composition stays symmetric around the centre of the frame.
+        values = [burst["spread_x"] for burst in bursts]
+        for index, value in enumerate(values):
+            mirror = values[-index - 1]
+            check(abs(value + mirror) < 1e-6,
+                  "the composition of %d bursts is not symmetric" % burst_count)
+    fx_module.clear(scene)
+    scene.frame_set(previous_frame)
+
+
+def check_fx_meteor_timing(scene):
+    """No train or fragment may appear before the birth of the meteor."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    previous_age = float(scene.ald.fx_age)
+    scene.ald.fx_age = 0.0
+    fx_module.clear(scene)
+    fx_module.create_meteors(scene, 3, seed=21, distance=40.0, time=0.0)
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    populations = registry["meteors"]["populations"]
+    # The components share the same event birth.
+    for population in populations:
+        head_birth = population["head"]["birth"]
+        for sample in population["train"]:
+            check(abs(sample["birth"] - head_birth) < 1e-6,
+                  "the train of a meteor is not born with the body")
+        for fragment in population["fragments"]:
+            check(fragment["birth"] >= head_birth - 1e-6,
+                  "a fragment is born before the meteor")
+    # The frame before the first birth: nothing may be visible.
+    first_birth = min(population["head"]["birth"] for population in populations)
+    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+    frame = max(1, int(max(first_birth - 0.05, 0.0) * fps))
+    scene.frame_set(frame)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    for name in ("ALD FX GN Meteor Heads", "ALD FX GN Meteor Trails",
+                 "ALD FX GN Meteor Fragments"):
+        obj = bpy.data.objects.get(name)
+        check(obj is not None, "geometry nodes meteor missing: %s" % name)
+        if obj is None:
+            continue
+        if obj.type == "MESH":
+            for center, radius in fx_nodes.realized_instances(obj, depsgraph):
+                check(radius < 1e-3,
+                      "the %s is visible before the birth of the meteor" % name)
+        else:
+            evaluated = obj.evaluated_get(depsgraph)
+            mesh = evaluated.to_mesh()
+            check(len(mesh.vertices) == 0,
+                  "the %s is visible before the birth of the meteor" % name)
+            evaluated.to_mesh_clear()
+    fx_module.clear(scene)
+    scene.ald.fx_age = previous_age
+    scene.frame_set(previous_frame)
+
+
+def check_fx_meteor_travel(scene):
+    """With no gravity a meteor must cross the screen."""
+    from anime_look_director import fx as fx_module
+
+    previous_frame = scene.frame_current
+    fx_module.clear(scene)
+    fx_module.create_meteors(scene, 3, seed=21, distance=40.0, time=0.0)
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    system = registry["meteors"]
+    shower = system["shower"]
+    forward = system["origin"]
+    check(abs(shower.dot(_forward_of(scene))) < 0.9,
+          "the shower direction is aligned with the line of sight")
+    # The trajectory of a meteor must move laterally on the screen.
+    right = _right_of(scene)
+    check(abs(shower.dot(right)) > 0.5,
+          "the meteors do not cross the screen")
+    fx_module.clear(scene)
+    scene.frame_set(previous_frame)
+
+
+def _forward_of(scene):
+    from anime_look_director import fx as fx_module
+    return fx_module._camera_basis(scene)[1]
+
+
+def _right_of(scene):
+    from anime_look_director import fx as fx_module
+    return fx_module._camera_basis(scene)[3]
 
 
 def main():

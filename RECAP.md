@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.11.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.12.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -309,4 +309,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.10.1** - Render di confronto delle famiglie (Chrysanthemum, Peony, Willow) con stessa palette e seed: sono distinguibili per forma.
 - **2.11.0** - Lo slider "Burst Age" sposta i sistemi senza ricostruire la geometria: 2.3 ms invece di 428 ms per passo (189x più veloce).
 - **2.11.1** - La verifica UI diventa uno strumento del repository (`preset_dev/ui_probe.py`).
+- **2.12.0** - Fase P0-A del piano operativo: decadimento corretto, energia separata dalla scala, regola di composizione dei burst, geometria delle meteore e origini delle figlie. GN e Python condividono gli stessi dati deterministici.
 

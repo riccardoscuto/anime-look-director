@@ -457,6 +457,11 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Evaluate the burst particles with Geometry Nodes "
                     "instead of the Python solver",
         update=_on_fx_rebuild)
+    fx_meteor_persistence: FloatProperty(
+        name="Meteor Persistence", default=0.32, min=0.0, max=2.0,
+        description="Seconds the train of a meteor survives the head; "
+                    "0 means no persistence at all",
+        update=_on_fx_age)
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,
         description="Dedicated glow for the 3D FX layer",

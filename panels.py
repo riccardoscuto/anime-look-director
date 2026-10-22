@@ -433,6 +433,7 @@ class ALD_PT_fx(bpy.types.Panel):
         col.prop(context.scene.ald, "fx_burst_spread")
         col.prop(context.scene.ald, "fx_composition_offset")
         col.prop(context.scene.ald, "fx_gn_prototype")
+        col.prop(context.scene.ald, "fx_meteor_persistence")
         glow = layout.column(align=True)
         glow.prop(context.scene.ald, "fx_glow_strength")
         glow.prop(context.scene.ald, "fx_glow_size")

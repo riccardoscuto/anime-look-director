@@ -218,6 +218,22 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   a fresh Blender (it enables the add-on, creates the FX systems, maximises
   the Scene properties and writes the screenshots). The window must be on
   screen, a minimized window produces a black capture.
+- FX 2.12 rules (phase P0-A of the operational plan):
+  - the shape decay is `s(u) = m + (1 - m) * (1 - u) ** p` with
+    `u = age / life`: the scale must shrink with the age, never grow;
+  - the energy `e(u) = (1 - u) ** q` is the `energy` attribute and the
+    material multiplies the emission strength by it: the energy is not a
+    scale;
+  - the number of bursts, the number of spokes and the number of samples are
+    three different names: the composition rule uses the burst count;
+  - the meteors spread their start points on a distant plane and move with
+    almost parallel world velocities, so they cross the screen;
+  - the head, the train and the fragments of a meteor share one `event_birth`
+    and `Fade Window = 0` means no persistence;
+  - the origin of a child is computed once at the emission instant and
+    reused by both backends;
+  - `fx.burst_population()` is the single source of the deterministic data:
+    the Geometry Nodes attributes and the Python writer consume it.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

@@ -85,7 +85,7 @@ def _socket_ids(ng, defaults):
 BURST_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
                           "material": "Socket_2", "trail": "Socket_3",
                           "age_offset": "Socket_4", "min_scale": "Socket_5",
-                          "decay_power": "Socket_6"}
+                          "decay_power": "Socket_6", "energy_power": "Socket_7"}
 TRAIL_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
                           "material": "Socket_2", "trail": "Socket_3",
                           "age_offset": "Socket_4", "radius": "Socket_5",
@@ -241,6 +241,7 @@ def build_burst_group():
         ("Age Offset", "NodeSocketFloat", 0.0),
         ("Min Scale", "NodeSocketFloat", 0.35),
         ("Decay Power", "NodeSocketFloat", 1.0),
+        ("Energy Power", "NodeSocketFloat", 1.0),
     ))
     nodes = ng.nodes
     links = ng.links
@@ -284,26 +285,28 @@ def build_burst_group():
     links.new(rad.outputs["Attribute"], scale_vec.inputs["Z"])
 
     # Brightness decay: the head fades with its age, the grains keep their size.
+    # Shape decay: s(u) = m + (1 - m) * (1 - u) ** p, with u = age / life.
+    # The scale must shrink with the age, never grow.
     head_frac = _math(nodes, links, "DIVIDE", motion["head_age"],
                       motion["life"], (-880, -700))
-    head_decay = _math(nodes, links, "SUBTRACT", None, head_frac.outputs[0],
-                       (-720, -700))
-    head_decay.inputs[0].default_value = 1.0
-    head_decay_pos = _math(nodes, links, "MAXIMUM", head_decay.outputs[0], None,
-                           (-560, -700))
-    head_decay_pos.inputs[1].default_value = 0.0
-    head_power = _math(nodes, links, "POWER", head_decay_pos.outputs[0],
-                       group_in.outputs["Decay Power"], (-480, -700))
-    scale_range = _math(nodes, links, "SUBTRACT", None, head_power.outputs[0],
-                        (-400, -700))
-    scale_range.inputs[0].default_value = 1.0
+    head_frac_low = _math(nodes, links, "MAXIMUM", head_frac.outputs[0], None,
+                          (-720, -760))
+    head_frac_low.inputs[1].default_value = 0.0
+    head_frac_clamped = _math(nodes, links, "MINIMUM", head_frac_low.outputs[0],
+                              None, (-560, -760))
+    head_frac_clamped.inputs[1].default_value = 1.0
+    one_minus = _math(nodes, links, "SUBTRACT", None,
+                      head_frac_clamped.outputs[0], (-400, -760))
+    one_minus.inputs[0].default_value = 1.0
+    shape = _math(nodes, links, "POWER", one_minus.outputs[0],
+                  group_in.outputs["Decay Power"], (-240, -760))
     span = _math(nodes, links, "SUBTRACT", None, group_in.outputs["Min Scale"],
-                 (-400, -820))
+                 (-400, -860))
     span.inputs[0].default_value = 1.0
-    decay_scaled = _math(nodes, links, "MULTIPLY", scale_range.outputs[0],
-                         span.outputs[0], (-240, -760))
+    decay_scaled = _math(nodes, links, "MULTIPLY", shape.outputs[0],
+                         span.outputs[0], (-80, -800))
     decay_base = _math(nodes, links, "ADD", decay_scaled.outputs[0],
-                       group_in.outputs["Min Scale"], (-80, -760))
+                       group_in.outputs["Min Scale"], (80, -800))
     decay_mix = _math(nodes, links, "MULTIPLY", decay_base.outputs[0],
                       use_decay.outputs["Attribute"], (80, -760))
     decay_const = _math(nodes, links, "SUBTRACT", None,
@@ -314,12 +317,24 @@ def build_burst_group():
     alive_decay = _math(nodes, links, "MULTIPLY", alive.outputs[0],
                         decay_final.outputs[0], (400, -800))
 
+    # Energy decay: e(u) = (1 - u) ** q. The energy is an attribute, not a
+    # scale: the geometry shrinks while the emission fades on its own curve.
+    energy = _math(nodes, links, "POWER", one_minus.outputs[0],
+                   group_in.outputs["Energy Power"], (240, -960))
+    store = nodes.new("GeometryNodeStoreNamedAttribute")
+    store.location = (620, -200)
+    store.data_type = "FLOAT"
+    store.domain = "POINT"
+    store.inputs["Name"].default_value = "energy"
+    links.new(set_pos.outputs["Geometry"], store.inputs["Geometry"])
+    links.new(energy.outputs[0], store.inputs["Value"])
+
     scale_alive = _vector(nodes, links, "SCALE", scale_vec.outputs["Vector"],
                           None, (560, -800), scale=alive_decay.outputs[0])
 
     instance = nodes.new("GeometryNodeInstanceOnPoints")
     instance.location = (740, -200)
-    links.new(set_pos.outputs["Geometry"], instance.inputs["Points"])
+    links.new(store.outputs["Geometry"], instance.inputs["Points"])
     links.new(ico.outputs["Mesh"], instance.inputs["Instance"])
     links.new(scale_alive.outputs["Vector"], instance.inputs["Scale"])
 
@@ -373,7 +388,9 @@ def build_trail_group():
                  motion["life"], (420, -520))
     no_fade = _math(nodes, links, "LESS_THAN", group_in.outputs["Fade Window"],
                     None, (420, -620))
-    no_fade.inputs[1].default_value = 0.5
+    # Fade Window = 0 means explicitly no persistence: the train dies with
+    # the body. There is no magic threshold.
+    no_fade.inputs[1].default_value = 0.0001
     dead_gated = _math(nodes, links, "MULTIPLY", dead.outputs[0],
                        no_fade.outputs[0], (620, -560))
     remove = _math(nodes, links, "MAXIMUM", unborn.outputs[0],
@@ -439,7 +456,8 @@ def build_trail_group():
 
 
 def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
-                          age_offset=0.0, min_scale=0.35, decay_power=1.0):
+                          age_offset=0.0, min_scale=0.35, decay_power=1.0,
+                          energy_power=1.0):
     """Add the burst modifier to a points object and set its inputs."""
     modifier = obj.modifiers.new("ALD FX Burst", "NODES")
     modifier.node_group = group
@@ -449,6 +467,7 @@ def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
     modifier[sockets["age_offset"]] = float(age_offset)
     modifier[sockets["min_scale"]] = float(min_scale)
     modifier[sockets["decay_power"]] = float(decay_power)
+    modifier[sockets["energy_power"]] = float(energy_power)
     return modifier
 
 

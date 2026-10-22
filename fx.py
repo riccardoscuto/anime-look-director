@@ -97,11 +97,31 @@ def _material(name, color, strength):
         if "Emission Color" in bsdf.inputs:
             bsdf.inputs["Emission Color"].default_value = rgba
             bsdf.inputs["Emission Strength"].default_value = strength
+            _bind_energy(mat, bsdf, strength)
         elif "Emission" in bsdf.inputs:
             bsdf.inputs["Emission"].default_value = rgba
             bsdf.inputs["Emission Strength"].default_value = strength
+            _bind_energy(mat, bsdf, strength)
         bsdf.inputs["Roughness"].default_value = 0.4
     return mat
+
+
+def _bind_energy(mat, bsdf, strength):
+    """Drive the emission strength with the per particle energy attribute.
+
+    The geometry scale and the emissive energy are two different curves: the
+    particle shrinks and fades on its own law.
+    """
+    node_tree = mat.node_tree
+    attribute = node_tree.nodes.new("ShaderNodeAttribute")
+    attribute.attribute_name = "energy"
+    attribute.location = (-520, -160)
+    multiply = node_tree.nodes.new("ShaderNodeMath")
+    multiply.operation = "MULTIPLY"
+    multiply.location = (-300, -160)
+    multiply.inputs[1].default_value = float(strength)
+    node_tree.links.new(attribute.outputs["Fac"], multiply.inputs[0])
+    node_tree.links.new(multiply.outputs[0], bsdf.inputs["Emission Strength"])
 
 
 # ---------------------------------------------------------------------------
@@ -179,29 +199,39 @@ def _gn_star_data(seed, index, config, spoke, spoke_count):
     return life, direction * speed
 
 
-def _gn_head_particles(seed, index, config, birth, center, size_scale,
-                       spoke_count):
-    """Point data of the star heads, evaluated by Geometry Nodes."""
-    particles = []
+def _particle(birth, life, drag, radius, vel, pos0, tau=0.0, jitter=None,
+              use_decay=1.0, min_scale=0.35, decay_power=1.0, energy_power=1.0,
+              role="head", spoke=0, trail=0.0):
+    """One deterministic particle: the data shared by both backends."""
+    return {
+        "birth": float(birth), "life": float(life), "drag": float(drag),
+        "radius": float(radius), "vel": Vector(vel), "pos0": Vector(pos0),
+        "tau": float(tau), "jitter": Vector(jitter or (0.0, 0.0, 0.0)),
+        "use_decay": float(use_decay), "min_scale": float(min_scale),
+        "decay_power": float(decay_power),
+        "energy_power": float(energy_power), "role": role, "spoke": int(spoke),
+        "trail": float(trail),
+    }
+
+
+def burst_population(seed, index, config, birth, center, size_scale,
+                     spoke_count):
+    """Deterministic initial conditions of one burst.
+
+    The same data feeds the Geometry Nodes attributes and the Python writer:
+    the two backends cannot diverge.
+    """
+    heads = []
+    grains = []
+    trail = []
     for spoke in range(spoke_count):
         life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
-        particles.append({
-            "birth": birth, "life": life, "drag": config["drag"],
-            "radius": 0.13 * size_scale, "vel": v0, "pos0": center,
-            "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
-        })
-    return particles
-
-
-def _gn_bead_particles(seed, index, config, birth, center, size_scale,
-                       spoke_count, slot):
-    """Point data of the trail grains of one colour slot."""
-    particles = []
-    spokes = [s for s in range(spoke_count) if s % 3 == slot]
-    for spoke in spokes:
-        life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
+        heads.append(_particle(birth, life, config["drag"],
+                               0.13 * size_scale, v0, center, role="head",
+                               spoke=spoke))
         for step in range(SAMPLES):
             profile = step / (SAMPLES - 1.0)
+            tau = config["trail"] * (1.0 - profile)
             scatter = 0.10 * size_scale * (1.0 - profile)
             jitter = Vector((
                 _hash_range(seed, index, spoke * 16 + step, 20,
@@ -212,20 +242,20 @@ def _gn_bead_particles(seed, index, config, birth, center, size_scale,
                             -scatter, scatter),
             ))
             grain = 0.65 + 0.7 * _hash_unit(seed, index, spoke * 16 + step, 23)
-            particles.append({
-                "birth": birth, "life": life, "drag": config["drag"],
-                "radius": 0.05 * size_scale * (0.25 + 0.75 * profile) * grain,
-                "vel": v0, "pos0": center,
-                "tau": config["trail"] * (1.0 - profile),
-                "jitter": jitter, "use_decay": 0.0,
-            })
-    return particles
+            grains.append(_particle(
+                birth, life, config["drag"],
+                0.05 * size_scale * (0.25 + 0.75 * profile) * grain, v0, center,
+                tau=tau, jitter=jitter, use_decay=0.0, role="grain",
+                spoke=spoke, trail=config["trail"]))
+            trail.append(_particle(
+                birth, life, config["drag"],
+                0.25 + 0.9 * profile ** 1.4, v0, center, tau=tau,
+                use_decay=0.0, role="filament", spoke=spoke,
+                trail=config["trail"]))
 
-
-def _gn_pistil_particles(seed, index, config, birth, center, size_scale,
-                         pistil_count, grains=False):
-    """Point data of the inner pistil population (heads or trail grains)."""
-    particles = []
+    pistil = []
+    pistil_grains = []
+    pistil_count = config["pistil"]
     for spoke in range(pistil_count):
         life = _hash_range(seed, index, spoke + 500, 2,
                            config["life"] * 0.6 * 0.85, config["life"] * 0.85)
@@ -235,33 +265,17 @@ def _gn_pistil_particles(seed, index, config, birth, center, size_scale,
                             config["speed"] * 1.15 * 0.68)
         v0 = direction * speed
         drag = config["drag"] * 1.2
-        if grains:
-            for step in range(SAMPLES):
-                profile = step / (SAMPLES - 1.0)
-                particles.append({
-                    "birth": birth, "life": life, "drag": drag,
-                    "radius": 0.028 * size_scale * (0.25 + 0.75 * profile),
-                    "vel": v0, "pos0": center,
-                    "tau": config["trail"] * 0.6 * (1.0 - profile),
-                    "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 0.0,
-                })
-        else:
-            particles.append({
-                "birth": birth, "life": life, "drag": drag,
-                "radius": 0.10 * size_scale, "vel": v0, "pos0": center,
-                "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
-            })
-    return particles
+        pistil.append(_particle(birth, life, drag, 0.10 * size_scale, v0, center,
+                                role="pistil"))
+        for step in range(SAMPLES):
+            profile = step / (SAMPLES - 1.0)
+            pistil_grains.append(_particle(
+                birth, life, drag,
+                0.028 * size_scale * (0.25 + 0.75 * profile), v0, center,
+                tau=config["trail"] * 0.6 * (1.0 - profile), use_decay=0.0,
+                role="pistil_grain", trail=config["trail"] * 0.6))
 
-
-def _gn_spark_particles(seed, index, config, birth, center, size_scale,
-                         spoke_count):
-    """Point data of the child sparks.
-
-    The emission point is the position of the parent star at the emission
-    time: the spark is a body of its own, not a particle of a moving source.
-    """
-    particles = []
+    sparks = []
     for spoke in range(spoke_count):
         life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
         for child in range(config["sparks"]):
@@ -269,6 +283,8 @@ def _gn_spark_particles(seed, index, config, birth, center, size_scale,
                                life * 0.55)
             child_life = _hash_range(seed, index, spoke * 8 + child, 5, 0.45,
                                      1.5)
+            # The origin is fixed at the emission instant: the spark is a
+            # body of its own, not a particle of a moving source.
             parent_pos = _position(center, v0, config["drag"], emit)
             parent_vel = _velocity(v0, config["drag"], emit)
             perturb = Vector((
@@ -276,13 +292,67 @@ def _gn_spark_particles(seed, index, config, birth, center, size_scale,
                 _hash_range(seed, index, spoke * 8 + child, 7, -1.6, 1.6),
                 _hash_range(seed, index, spoke * 8 + child, 8, -1.6, 1.6),
             )) * 1.2
-            particles.append({
-                "birth": birth + emit, "life": child_life, "drag": 2.4,
-                "radius": 0.045 * size_scale,
-                "vel": parent_vel * 0.35 + perturb, "pos0": parent_pos,
-                "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
-            })
-    return particles
+            sparks.append(_particle(
+                birth + emit, child_life, 2.4, 0.045 * size_scale,
+                parent_vel * 0.35 + perturb, parent_pos, min_scale=0.0,
+                role="spark"))
+
+    flash = [_particle(birth, config["core"], 100.0, 0.25 * size_scale,
+                        Vector((0.0, 0.0, 0.0)), center, min_scale=0.0,
+                        decay_power=0.5, role="flash")]
+    return {"heads": heads, "grains": grains, "trail": trail,
+            "pistil": pistil, "pistil_grains": pistil_grains,
+            "sparks": sparks, "flash": flash}
+
+
+def _particle_state(particle, time):
+    """Evaluate one particle: position, scale, energy and alive flag."""
+    age = time - particle["birth"]
+    life = max(particle["life"], 1e-3)
+    # The trail window: the sample is an older point of the same trajectory.
+    window = particle.get("trail", 0.0)
+    if window > 0.0:
+        train = max(0.0, min(max(age, 0.0), window)
+                    - max(0.0, age - particle["life"]))
+        tau = particle["tau"] * (train / window)
+    else:
+        tau = 0.0
+    sample_age = age - tau
+    alive = 0.0 <= age <= particle["life"] and sample_age >= 0.0
+    u = min(max(age / life, 0.0), 1.0)
+    if sample_age <= 0.0:
+        position = particle["pos0"].copy()
+    else:
+        position = _position(particle["pos0"], particle["vel"],
+                             particle["drag"], sample_age)
+    position = position + particle["jitter"]
+    minimum = particle["min_scale"]
+    shape = minimum + (1.0 - minimum) * (1.0 - u) ** particle["decay_power"]
+    scale = particle["radius"] * (shape if particle["use_decay"] else 1.0)
+    energy = (1.0 - u) ** particle["energy_power"]
+    return position, scale, energy, alive
+
+
+def _population_particles(population, role, slot=None):
+    """Particles of one role, optionally filtered by colour slot."""
+    particles = population[role]
+    if slot is None:
+        return particles
+    return [particle for index, particle in enumerate(particles)
+            if index % 3 == slot]
+
+
+def _population_trail(population, role, slot=None):
+    """Filament samples of one role, optionally filtered by colour slot."""
+    samples = population["trail"] if role == "heads" else population[
+        "pistil_grains"]
+    if slot is None:
+        return samples
+    grouped = []
+    for index, sample in enumerate(samples):
+        if index % SAMPLES == 0 and (index // SAMPLES) % 3 == slot:
+            grouped.append(sample)
+    return grouped
 
 
 def _gn_trail_object(scene, name, material, particles, trail=0.0,
@@ -300,8 +370,10 @@ def _gn_trail_object(scene, name, material, particles, trail=0.0,
             ("drag", "FLOAT", [p["drag"] for p in particles]),
             ("radius", "FLOAT", [p["radius"] for p in particles]),
             ("tau", "FLOAT", [p["tau"] for p in particles]),
-            ("weight", "FLOAT", [float(p["weight"]) for p in particles]),
-            ("curve_id", "INT", [int(p["curve_id"]) for p in particles]),
+            ("weight", "FLOAT", [float(index % SAMPLES)
+                                 for index in range(len(particles))]),
+            ("curve_id", "INT", [int(p.get("spoke", index // SAMPLES))
+                                 for index, p in enumerate(particles)]),
             ("vel", "FLOAT_VECTOR", [p["vel"] for p in particles]),
             ("pos0", "FLOAT_VECTOR", [p["pos0"] for p in particles]),
             ("jitter", "FLOAT_VECTOR", [p["jitter"] for p in particles])):
@@ -431,7 +503,7 @@ def _build_particle_mesh(name, centers, radii, material):
     return obj, ranges
 
 
-def _write_particle_mesh(mesh, ranges, centers, radii):
+def _write_particle_mesh(mesh, ranges, centers, radii, energies=None):
     verts, _faces = _unit_sphere()
     count = len(verts)
     data = []
@@ -444,6 +516,16 @@ def _write_particle_mesh(mesh, ranges, centers, radii):
     if data:
         mesh.vertices.foreach_set("co", data)
         mesh.update()
+    if energies:
+        # The energy is an attribute: the material fades the particle without
+        # touching its size.
+        attribute = mesh.attributes.get("energy")
+        if attribute is None:
+            attribute = mesh.attributes.new("energy", "FLOAT", "POINT")
+        values = []
+        for index, energy in enumerate(energies):
+            values.extend([float(energy)] * count)
+        attribute.data.foreach_set("value", values)
 
 
 def _build_curve(scene, name, spline_count, materials, width):
@@ -505,8 +587,10 @@ def _build_fireworks(scene, count, seed, distance, family):
     spread = float(getattr(settings, "fx_burst_spread", 1.0)) if settings else 1.0
     offset = Vector(getattr(settings, "fx_composition_offset", (0.0, 0.0, 0.0))) \
         if settings else Vector((0.0, 0.0, 0.0))
+    # The number of bursts never changes during the construction.
+    burst_count = max(1, int(count))
     bursts = []
-    for index in range(max(1, count)):
+    for index in range(burst_count):
         # Composition: the first burst is the hero, the others are secondary
         # and staggered in time so the sky is never a uniform field.
         role = index % 3
@@ -514,11 +598,17 @@ def _build_fireworks(scene, count, seed, distance, family):
         config = FAMILY_CONFIG[family_key]
         family_distance = distance * (1.0 if index == 0 else
                                       (0.78 if role == 1 else 0.58))
-        center = _burst_center(origin, forward, up, right, index, count,
+        center = _burst_center(origin, forward, up, right, index, burst_count,
                                 family_distance * (0.85 + 0.25 *
                                                    _hash_unit(seed, index, 0, 1)),
                                 spread) + offset
         birth = 0.0 if index == 0 else (0.25 if role == 1 else 0.85)
+        spoke_count = config["spokes"]
+        sample_count = SAMPLES
+        pistil_count = config["pistil"]
+        # The deterministic data is built once and feeds both backends.
+        population = burst_population(seed, index, config, birth, center,
+                                      size_scale, spoke_count)
         family_colors = PALETTES[index % len(PALETTES)]
         materials = [
             _material("ALD FX %s %d A" % (family_key, index), family_colors[0],
@@ -528,33 +618,26 @@ def _build_fireworks(scene, count, seed, distance, family):
             _material("ALD FX %s %d C" % (family_key, index), family_colors[2],
                       6.0),
         ]
-        spoke_count = config["spokes"]
+        # Python meshes: the fallback writer.
         trail_obj = _build_curve(scene, "ALD FX %s %d Filament" % (family_key, index),
                                  spoke_count, materials, 0.022 * size_scale)
         trail_obj["ald_fx_kind"] = kind
-        # Beaded spark trails: a chain of small emissive grains per star,
-        # exactly like the granular string of sparks in the references.
         bead_objects = []
         for slot in range(3):
-            spokes = [s for s in range(spoke_count) if s % 3 == slot]
-            count = len(spokes) * SAMPLES
+            grains = [p for p in population["grains"]
+                      if p["spoke"] % 3 == slot]
             bead_obj, bead_ranges = _build_particle_mesh(
                 "ALD FX %s %d Beads %d" % (family_key, index, slot),
-                [center] * count, [0.001] * count, materials[slot])
+                [center] * len(grains), [0.001] * len(grains), materials[slot])
             _collection(scene).objects.link(bead_obj)
             bead_obj["ald_fx_kind"] = kind
-            bead_objects.append((bead_obj, bead_ranges, spokes))
+            bead_objects.append((bead_obj, bead_ranges, grains))
         head_obj, head_ranges = _build_particle_mesh(
             "ALD FX %s %d Heads" % (family_key, index),
             [center] * spoke_count, [0.001] * spoke_count, materials[0])
         _collection(scene).objects.link(head_obj)
         head_obj["ald_fx_kind"] = kind
-        gn_heads = None
-        gn_beads = []
-        gn_pistil = None
-        gn_sparks = None
         # Inner contrasting pistil population (the classic Hanabi core).
-        pistil_count = config["pistil"]
         pistil_obj, pistil_ranges = _build_particle_mesh(
             "ALD FX %s %d Pistil Heads" % (family_key, index),
             [center] * pistil_count, [0.001] * pistil_count, materials[1])
@@ -562,8 +645,8 @@ def _build_fireworks(scene, count, seed, distance, family):
         pistil_obj["ald_fx_kind"] = kind
         pistil_bead_obj, pistil_bead_ranges = _build_particle_mesh(
             "ALD FX %s %d Pistil Beads" % (family_key, index),
-            [center] * (pistil_count * SAMPLES),
-            [0.001] * (pistil_count * SAMPLES), materials[1])
+            [center] * (pistil_count * sample_count),
+            [0.001] * (pistil_count * sample_count), materials[1])
         _collection(scene).objects.link(pistil_bead_obj)
         pistil_bead_obj["ald_fx_kind"] = kind
         spark_total = spoke_count * config["sparks"]
@@ -577,8 +660,13 @@ def _build_fireworks(scene, count, seed, distance, family):
             materials[1])
         _collection(scene).objects.link(core_obj)
         core_obj["ald_fx_kind"] = kind
-        # Geometry Nodes prototype: the burst particles are evaluated by the
-        # node group instead of Python.
+        gn_heads = None
+        gn_beads = []
+        gn_pistil = None
+        gn_sparks = None
+        gn_flash = None
+        gn_trails = []
+        # Geometry Nodes path: the node group evaluates the same data.
         use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
             else False
         if use_gn:
@@ -588,53 +676,45 @@ def _build_fireworks(scene, count, seed, distance, family):
                     if settings else 0.0
                 gn_heads = _gn_points_object(
                     scene, "ALD FX GN Heads %d" % index, materials[0],
-                    _gn_head_particles(seed, index, config, birth, center,
-                                       size_scale, spoke_count),
-                    trail=0.0, age_offset=age_offset)
+                    population["heads"], trail=0.0, age_offset=age_offset)
                 created.append(gn_heads)
                 for slot in range(3):
+                    grains = [p for p in population["grains"]
+                              if p["spoke"] % 3 == slot]
                     bead_gn = _gn_points_object(
                         scene, "ALD FX GN Beads %d %d" % (index, slot),
-                        materials[slot],
-                        _gn_bead_particles(seed, index, config, birth, center,
-                                           size_scale, spoke_count, slot),
-                        trail=config["trail"], age_offset=age_offset)
+                        materials[slot], grains, trail=config["trail"],
+                        age_offset=age_offset)
                     created.append(bead_gn)
                     gn_beads.append(bead_gn)
                 gn_pistil = _gn_points_object(
                     scene, "ALD FX GN Pistil %d" % index, materials[1],
-                    _gn_pistil_particles(seed, index, config, birth, center,
-                                         size_scale, pistil_count),
-                    trail=0.0, age_offset=age_offset)
+                    population["pistil"], trail=0.0, age_offset=age_offset)
                 created.append(gn_pistil)
                 gn_pistil_grains = _gn_points_object(
                     scene, "ALD FX GN Pistil Grains %d" % index, materials[1],
-                    _gn_pistil_particles(seed, index, config, birth, center,
-                                         size_scale, pistil_count, grains=True),
+                    population["pistil_grains"],
                     trail=config["trail"] * 0.6, age_offset=age_offset)
                 created.append(gn_pistil_grains)
                 gn_beads.append(gn_pistil_grains)
                 gn_sparks = _gn_points_object(
                     scene, "ALD FX GN Sparks %d" % index, materials[2],
-                    _gn_spark_particles(seed, index, config, birth, center,
-                                        size_scale, spoke_count),
-                    trail=0.0, age_offset=age_offset, min_scale=0.0)
+                    population["sparks"], trail=0.0, age_offset=age_offset,
+                    min_scale=0.0)
                 created.append(gn_sparks)
                 for slot in range(3):
+                    samples = [p for p in population["trail"]
+                               if p["spoke"] % 3 == slot]
                     trail_gn = _gn_trail_object(
                         scene, "ALD FX GN Trail %d %d" % (index, slot),
-                        materials[slot],
-                        _gn_trail_particles(seed, index, config, birth, center,
-                                            spoke_count, slot),
-                        trail=config["trail"], age_offset=age_offset,
-                        radius=0.022 * size_scale)
+                        materials[slot], samples, trail=config["trail"],
+                        age_offset=age_offset, radius=0.022 * size_scale)
                     created.append(trail_gn)
+                    gn_trails.append(trail_gn)
                 gn_flash = _gn_points_object(
                     scene, "ALD FX GN Flash %d" % index, materials[1],
-                    _gn_flash_particles(birth, config["core"], center,
-                                        size_scale),
-                    trail=0.0, age_offset=age_offset, min_scale=0.0,
-                    decay_power=0.5)
+                    population["flash"], trail=0.0, age_offset=age_offset,
+                    min_scale=0.0, decay_power=0.5)
                 created.append(gn_flash)
                 for obj in created:
                     obj["ald_fx_kind"] = kind
@@ -642,7 +722,7 @@ def _build_fireworks(scene, count, seed, distance, family):
                 for python_obj in (head_obj, pistil_obj, pistil_bead_obj,
                                    spark_obj, trail_obj, core_obj):
                     bpy.data.objects.remove(python_obj, do_unlink=True)
-                for bead_obj, _bead_ranges, _spokes in bead_objects:
+                for bead_obj, _bead_ranges, _grains in bead_objects:
                     bpy.data.objects.remove(bead_obj, do_unlink=True)
                 head_obj = None
                 head_ranges = []
@@ -666,13 +746,18 @@ def _build_fireworks(scene, count, seed, distance, family):
                 gn_beads = []
                 gn_pistil = None
                 gn_sparks = None
+                gn_flash = None
+                gn_trails = []
         bursts.append({
             "index": index, "family": family_key, "config": config,
             "center": center, "birth": birth, "seed": seed,
             "size_scale": size_scale, "materials": materials,
+            "population": population,
+            "spread_x": (-0.18 + 0.36 * (index + 0.5) / burst_count) * spread,
             "trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
             "gn_heads": gn_heads, "gn_beads": gn_beads,
             "gn_pistil": gn_pistil, "gn_sparks": gn_sparks,
+            "gn_flash": gn_flash, "gn_trails": gn_trails,
             "beads": bead_objects,
             "pistil": (pistil_obj, pistil_ranges, pistil_bead_obj,
                        pistil_bead_ranges, pistil_count),
@@ -683,193 +768,109 @@ def _build_fireworks(scene, count, seed, distance, family):
             "gn": all(burst.get("gn_heads") is not None for burst in bursts)}
 
 
+def _evaluate(population, role, time):
+    """Evaluate a population: (centers, radii, energies, alive flags).
+
+    A dead particle is moved away and shrunk: the Geometry Nodes path hides it
+    with a zero scale, the Python path cannot write a zero radius.
+    """
+    centers = []
+    radii = []
+    energies = []
+    alive_flags = []
+    for particle in population[role]:
+        position, scale, energy, alive = _particle_state(particle, time)
+        if not alive:
+            position = particle["pos0"] + Vector((0.0, 0.0, 1000.0))
+            scale = 0.0001
+        centers.append(position)
+        radii.append(scale)
+        energies.append(energy)
+        alive_flags.append(alive)
+    return centers, radii, energies, alive_flags
+
+
 def _update_fireworks(system, time):
     for burst in system["bursts"]:
-        config = burst["config"]
+        population = burst["population"]
+        if burst.get("gn_heads") is not None:
+            # The node group evaluates every particle of the burst.
+            continue
         center = burst["center"]
-        seed = burst["seed"]
-        index = burst["index"]
-        age = time - burst["birth"]
-        spoke_count = config["spokes"]
-        gn_heads = burst.get("gn_heads")
-        gn_pistil = burst.get("gn_pistil")
-        gn_sparks = burst.get("gn_sparks")
+        # Filament: the thin trail of every star.
         trail_data = burst["trail"].data if burst["trail"] is not None else None
-        head_centers = []
-        head_radii = []
-        spark_centers = []
-        spark_radii = []
-        bead_centers = [[], [], []]
-        bead_radii = [[], [], []]
-        for spoke in range(spoke_count) if gn_heads is None else ():
-            life = _hash_range(seed, index, spoke, 2, config["life"] * 0.6,
-                               config["life"])
-            direction = _fibonacci_direction(spoke, spoke_count, 0.35, seed,
-                                             index)
-            speed = _hash_range(seed, index, spoke, 3, config["speed"] * 0.75,
-                                config["speed"] * 1.15)
-            v0 = direction * speed
-            alive = 0.0 <= age <= life
-            spline = trail_data.splines[spoke] if trail_data else None
-            trail_time = min(age, config["trail"]) if alive else 0.0
-            for step in range(SAMPLES):
-                tau = trail_time * (1.0 - step / (SAMPLES - 1.0))
-                sample_age = max(0.0, age - tau)
-                point = _position(center, v0, config["drag"], sample_age)
-                profile = step / (SAMPLES - 1.0)
+        if trail_data is not None:
+            for spoke in range(len(trail_data.splines)):
+                samples = [p for p in population["trail"]
+                           if p["spoke"] == spoke]
+                spline = trail_data.splines[spoke]
+                for step, particle in enumerate(samples):
+                    position, _scale, _energy, alive = _particle_state(
+                        particle, time)
+                    if not alive:
+                        position = center + Vector((0.0, 0.0, 1000.0))
+                    spline.points[step].co = (position.x, position.y,
+                                              position.z, 1.0)
+                    spline.points[step].radius = particle["radius"]
+        heads = _evaluate(population, "heads", time)
+        _write_particle_mesh(burst["heads"].data, burst["head_ranges"],
+                             heads[0], heads[1], heads[2])
+        for slot, (bead_obj, bead_ranges, grains) in enumerate(burst["beads"]):
+            centers = []
+            radii = []
+            energies = []
+            for particle in grains:
+                position, scale, energy, alive = _particle_state(particle, time)
                 if not alive:
-                    point = center + Vector((0.0, 0.0, 1000.0))
-                if spline is not None:
-                    spline.points[step].co = (point.x, point.y, point.z, 1.0)
-                    spline.points[step].radius = 0.25 + 0.9 * profile ** 1.4
-                slot = spoke % 3
-                bead_centers[slot].append(point)
-                if alive:
-                    scatter = 0.10 * burst["size_scale"] * (1.0 - profile)
-                    jitter = Vector((
-                        _hash_range(seed, index, spoke * 16 + step, 20,
-                                    -scatter, scatter),
-                        _hash_range(seed, index, spoke * 16 + step, 21,
-                                    -scatter, scatter),
-                        _hash_range(seed, index, spoke * 16 + step, 22,
-                                    -scatter, scatter),
-                    ))
-                    bead_centers[slot][-1] = point + jitter
-                    grain = 0.65 + 0.7 * _hash_unit(seed, index,
-                                                   spoke * 16 + step, 23)
-                    bead_radii[slot].append(
-                        0.05 * burst["size_scale"] * (0.25 + 0.75 * profile)
-                        * grain)
-                else:
-                    bead_radii[slot].append(0.0001)
-            head = _position(center, v0, config["drag"], max(0.0, age))
-            radius = 0.13 * burst["size_scale"]
-            if not alive:
-                head = center + Vector((0.0, 0.0, 1000.0))
-                radius = 0.0001
-            else:
-                radius *= 0.35 + 0.65 * (1.0 - age / max(life, 1e-3))
-            head_centers.append(head)
-            head_radii.append(radius)
-            for child in range(config["sparks"]) if not gn_sparks else ():
-                emit = _hash_range(seed, index, spoke * 8 + child, 4, 0.05,
-                                  life * 0.55)
-                child_age = age - emit
-                child_life = _hash_range(seed, index, spoke * 8 + child, 5,
-                                         0.45, 1.5)
-                if child_age <= 0.0 or child_age > child_life:
-                    spark_centers.append(center + Vector((0.0, 0.0, 1000.0)))
-                    spark_radii.append(0.0001)
-                    continue
-                parent_pos = _position(center, v0, config["drag"], age - emit)
-                parent_vel = _velocity(v0, config["drag"], age - emit)
-                perturb = Vector((
-                    _hash_range(seed, index, spoke * 8 + child, 6, -1.6, 1.6),
-                    _hash_range(seed, index, spoke * 8 + child, 7, -1.6, 1.6),
-                    _hash_range(seed, index, spoke * 8 + child, 8, -1.6, 1.6),
-                )) * 1.2
-                child_v0 = parent_vel * 0.35 + perturb
-                spark_centers.append(_position(parent_pos, child_v0, 2.4,
-                                              child_age))
-                spark_radii.append(0.045 * burst["size_scale"]
-                                   * (1.0 - child_age / max(child_life, 1e-3)))
-        # Inner contrasting pistil: a smaller, slower population.
+                    position = center + Vector((0.0, 0.0, 1000.0))
+                    scale = 0.0001
+                centers.append(position)
+                radii.append(scale)
+                energies.append(energy)
+            _write_particle_mesh(bead_obj.data, bead_ranges, centers, radii,
+                                 energies)
         (pistil_obj, pistil_ranges, pistil_bead_obj, pistil_bead_ranges,
-         pistil_count) = burst["pistil"]
-        pistil_centers = []
-        pistil_radii = []
-        pistil_bead_centers = []
-        pistil_bead_radii = []
-        for spoke in range(pistil_count) if not gn_pistil else ():
-            direction, life, v0, alive = _star_state(
-                seed, index, spoke, pistil_count, config, age,
-                speed_scale=0.68, life_scale=0.85, hash_offset=500)
-            drag = config["drag"] * 1.2
-            if alive:
-                head = _position(center, v0, drag, age)
-                pistil_centers.append(head)
-                pistil_radii.append(
-                    0.10 * burst["size_scale"]
-                    * (0.35 + 0.65 * (1.0 - age / max(life, 1e-3))))
-            else:
-                pistil_centers.append(center + Vector((0.0, 0.0, 1000.0)))
-                pistil_radii.append(0.0001)
-            trail_time = min(age, config["trail"] * 0.6) if alive else 0.0
-            for step in range(SAMPLES):
-                tau = trail_time * (1.0 - step / (SAMPLES - 1.0))
-                point = _position(center, v0, drag, max(0.0, age - tau))
-                profile = step / (SAMPLES - 1.0)
-                if not alive:
-                    point = center + Vector((0.0, 0.0, 1000.0))
-                pistil_bead_centers.append(point)
-                if alive:
-                    pistil_bead_radii.append(
-                        0.028 * burst["size_scale"] * (0.25 + 0.75 * profile))
-                else:
-                    pistil_bead_radii.append(0.0001)
-
-        if burst.get("gn_heads") is None:
-            _write_particle_mesh(burst["heads"].data, burst["head_ranges"],
-                                 head_centers, head_radii)
-        if gn_pistil is None:
-            _write_particle_mesh(pistil_obj.data, pistil_ranges,
-                                 pistil_centers, pistil_radii)
-            _write_particle_mesh(pistil_bead_obj.data, pistil_bead_ranges,
-                                 pistil_bead_centers, pistil_bead_radii)
-        for slot, (bead_obj, bead_ranges, _spokes) in enumerate(burst["beads"]):
-            _write_particle_mesh(bead_obj.data, bead_ranges,
-                                 bead_centers[slot], bead_radii[slot])
-        if spark_centers and gn_sparks is None:
-            _write_particle_mesh(burst["sparks"].data, burst["spark_ranges"],
-                                 spark_centers, spark_radii)
-        # Central flash: bright for a fraction of a second only.
-        if burst["core"] is not None:
-            core_centers = [center]
-            core_radii = [0.001]
-            if 0.0 <= age < config["core"]:
-                energy = 1.0 - age / max(config["core"], 1e-3)
-                core_radii = [0.25 * burst["size_scale"] * energy ** 0.5]
-            else:
-                core_centers = [center + Vector((0.0, 0.0, 1000.0))]
-            _write_particle_mesh(burst["core"].data, burst["core_ranges"],
-                                 core_centers, core_radii)
+         _pistil_count) = burst["pistil"]
+        pistil = _evaluate(population, "pistil", time)
+        _write_particle_mesh(pistil_obj.data, pistil_ranges, pistil[0],
+                             pistil[1], pistil[2])
+        pistil_grains = _evaluate(population, "pistil_grains", time)
+        _write_particle_mesh(pistil_bead_obj.data, pistil_bead_ranges,
+                             pistil_grains[0], pistil_grains[1],
+                             pistil_grains[2])
+        sparks = _evaluate(population, "sparks", time)
+        _write_particle_mesh(burst["sparks"].data, burst["spark_ranges"],
+                             sparks[0], sparks[1], sparks[2])
+        flash = _evaluate(population, "flash", time)
+        _write_particle_mesh(burst["core"].data, burst["core_ranges"],
+                             flash[0], flash[1], flash[2])
 
 
 # ---------------------------------------------------------------------------
 # shooting stars
 # ---------------------------------------------------------------------------
 
-def _gn_meteor_particles(seed, index, life, start, v0, drag, size):
-    """Point data of one meteor head."""
-    return [{
-        "birth": 0.0, "life": life, "drag": drag, "radius": 0.18,
-        "vel": v0, "pos0": start, "tau": 0.0,
-        "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 0.0,
-    }]
+def _meteor_population(seed, index, start, v0, drag, event_birth, life, train,
+                      persistence):
+    """Deterministic data of one meteor: head, train and fragments.
 
-
-def _gn_meteor_train_particles(seed, index, start, v0, drag, train):
-    """Point data of the persistent train of one meteor."""
-    particles = []
+    Every component shares the same ``event_birth``: the train and the
+    fragments can never appear before the body.
+    """
+    head = _particle(event_birth, life, drag, 0.18, v0, start, use_decay=0.0,
+                     role="meteor_head", spoke=index)
+    train_samples = []
     for step in range(SAMPLES):
         profile = step / (SAMPLES - 1.0)
-        particles.append({
-            "birth": 0.0, "life": 10.0, "drag": drag,
-            "radius": 0.2 + 0.8 * profile,
-            "vel": v0, "pos0": start,
-            "tau": train * (1.0 - profile),
-            "jitter": Vector((0.0, 0.0, 0.0)),
-            "curve_id": index, "weight": step,
-        })
-    return particles
-
-
-def _gn_meteor_fragment_particles(seed, index, life, start, v0, drag):
-    """Point data of the burning fragments of one meteor."""
-    particles = []
+        train_samples.append(_particle(
+            event_birth, life + persistence, drag, 0.2 + 0.8 * profile, v0,
+            start, tau=train * (1.0 - profile), use_decay=0.0,
+            role="meteor_train", spoke=index, trail=train))
+    fragments = []
     for fragment in range(3):
         emit = _hash_range(seed, index, 30 + fragment, 7, 0.05, life * 0.8)
         frag_life = _hash_range(seed, index, 30 + fragment, 8, 0.4, 1.4)
+        # The origin is the position of the body at the emission instant.
         parent = _position(start, v0, drag, emit)
         parent_vel = v0 * math.exp(-drag * emit)
         push = Vector((
@@ -877,56 +878,63 @@ def _gn_meteor_fragment_particles(seed, index, life, start, v0, drag):
             _hash_range(seed, index, 30 + fragment, 10, -2.4, 2.4),
             _hash_range(seed, index, 30 + fragment, 11, -3.2, 1.2),
         ))
-        particles.append({
-            "birth": emit, "life": frag_life, "drag": 1.6, "radius": 0.05,
-            "vel": parent_vel * 0.25 + push, "pos0": parent,
-            "tau": 0.0, "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 1.0,
-        })
-    return particles
+        fragments.append(_particle(
+            event_birth + emit, frag_life, 1.6, 0.05, parent_vel * 0.25 + push,
+            parent, role="meteor_fragment", spoke=index))
+    return {"head": head, "train": train_samples, "fragments": fragments}
 
 
 def _build_meteors(scene, count, seed, distance):
     origin, forward, up, right = _camera_basis(scene)
-    radiant = (forward * 0.86 + up * 0.42 + right * 0.28).normalized()
+    # The shower direction is a world direction, almost lateral: the meteors
+    # cross the sky instead of moving along the line of sight. The radiant
+    # emerges from the convergence of the parallel trajectories.
+    shower = (forward * 0.16 + right * 0.94 + up * 0.30).normalized()
     material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0)
     settings = getattr(scene, "ald", None)
     use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
         else False
     age_offset = float(getattr(settings, "fx_age", 0.0)) if settings else 0.0
-    system = {"kind": "meteors", "count": count, "seed": seed,
-              "distance": distance, "radiant": radiant, "origin": origin,
+    persistence = float(getattr(settings, "fx_meteor_persistence", 0.32)) \
+        if settings else 0.32
+    total = max(1, int(count))
+    system = {"kind": "meteors", "count": total, "seed": seed,
+              "distance": distance, "shower": shower, "origin": origin,
               "material": material, "gn": False, "trail": None,
               "heads": None, "head_ranges": [], "fragments": None,
-              "fragment_ranges": []}
-    total = max(1, count)
+              "fragment_ranges": [], "populations": []}
+    populations = []
+    for index in range(total):
+        life = _hash_range(seed, index, 0, 2, 0.55, 1.15)
+        event_birth = index * 0.9 + _hash_range(seed, index, 0, 1, 0.0, 0.6)
+        # The start points are spread on a plane far away from the camera.
+        plane_center = origin + forward * distance
+        lateral_x = _hash_range(seed, index, 10, 11, -0.55, 0.55) * distance
+        lateral_y = _hash_range(seed, index, 10, 12, -0.30, 0.34) * distance
+        start = plane_center + right * lateral_x + up * lateral_y
+        # The velocities are almost parallel in world space, with a small
+        # angular jitter so the radiant is not a perfect point.
+        jitter = Vector((
+            _hash_range(seed, index, 0, 3, -0.03, 0.03),
+            _hash_range(seed, index, 0, 4, -0.03, 0.03),
+            _hash_range(seed, index, 0, 5, -0.02, 0.02),
+        ))
+        direction = (shower + jitter).normalized()
+        speed = _hash_range(seed, index, 0, 6, 26.0, 38.0)
+        v0 = direction * speed
+        populations.append(_meteor_population(seed, index, start, v0, 0.08,
+                                             event_birth, life, 0.32,
+                                             persistence))
+    system["populations"] = populations
     if use_gn:
         created = []
         try:
-            head_points = []
+            head_points = [population["head"] for population in populations]
             train_points = []
             fragment_points = []
-            for index in range(total):
-                life = _hash_range(seed, index, 0, 2, 0.55, 1.15)
-                spread = Vector((
-                    _hash_range(seed, index, 0, 3, -0.09, 0.09),
-                    _hash_range(seed, index, 0, 4, -0.06, 0.06),
-                    _hash_range(seed, index, 0, 5, -0.04, 0.04),
-                ))
-                direction = (radiant + spread).normalized()
-                start = origin + direction * distance * 0.9
-                speed = _hash_range(seed, index, 0, 6, 26.0, 38.0)
-                v0 = direction * speed
-                head_points.append({
-                    "birth": index * 0.9 + _hash_range(seed, index, 0, 1,
-                                                       0.0, 0.6),
-                    "life": life, "drag": 0.08, "radius": 0.18,
-                    "vel": v0, "pos0": start, "tau": 0.0,
-                    "jitter": Vector((0.0, 0.0, 0.0)), "use_decay": 0.0,
-                })
-                train_points.extend(_gn_meteor_train_particles(
-                    seed, index, start, v0, 0.08, 0.32))
-                fragment_points.extend(_gn_meteor_fragment_particles(
-                    seed, index, life, start, v0, 0.08))
+            for population in populations:
+                train_points.extend(population["train"])
+                fragment_points.extend(population["fragments"])
             gn_heads = _gn_points_object(
                 scene, "ALD FX GN Meteor Heads", material, head_points,
                 trail=0.0, age_offset=age_offset)
@@ -934,7 +942,7 @@ def _build_meteors(scene, count, seed, distance):
             gn_train = _gn_trail_object(
                 scene, "ALD FX GN Meteor Trails", material, train_points,
                 trail=0.32, age_offset=age_offset, radius=0.07,
-                fade_window=0.32)
+                fade_window=persistence)
             created.append(gn_train)
             gn_fragments = _gn_points_object(
                 scene, "ALD FX GN Meteor Fragments", material, fragment_points,
@@ -974,76 +982,45 @@ def _update_meteors(system, time):
     if system.get("gn"):
         # The node group evaluates the meteors: no Python work per frame.
         return
-    count = system["count"]
-    seed = system["seed"]
     origin = system["origin"]
-    radiant = system["radiant"]
-    distance = system["distance"]
+    populations = system["populations"]
     trail_data = system["trail"].data
     head_centers = []
     head_radii = []
+    head_energies = []
     fragment_centers = []
     fragment_radii = []
-    for index in range(max(1, count)):
-        birth = index * 0.9 + _hash_range(seed, index, 0, 1, 0.0, 0.6)
-        age = time - birth
-        life = _hash_range(seed, index, 0, 2, 0.55, 1.15)
+    fragment_energies = []
+    for index, population in enumerate(populations):
+        head = population["head"]
+        position, scale, energy, alive = _particle_state(head, time)
+        if not alive:
+            position = origin + Vector((0.0, 0.0, 1000.0))
+            scale = 0.0001
+        head_centers.append(position)
+        head_radii.append(scale)
+        head_energies.append(energy)
         spline = trail_data.splines[index]
-        alive = 0.0 < age <= life
-        # The persistent train outlives the head for a short while.
-        train = min(max(age, 0.0), 0.32)
-        if age > life:
-            train = max(0.0, 0.32 - (age - life)) if age - life < 0.32 else 0.0
-        spread = Vector((
-            _hash_range(seed, index, 0, 3, -0.09, 0.09),
-            _hash_range(seed, index, 0, 4, -0.06, 0.06),
-            _hash_range(seed, index, 0, 5, -0.04, 0.04),
-        ))
-        direction = (radiant + spread).normalized()
-        start = origin + direction * distance * 0.9
-        speed = _hash_range(seed, index, 0, 6, 26.0, 38.0)
-        v0 = direction * speed
-        for step in range(SAMPLES):
-            tau = train * (1.0 - step / (SAMPLES - 1.0))
-            point = _position(start, v0, 0.08, max(0.0, age - tau))
-            if train <= 0.0:
+        for step, particle in enumerate(population["train"]):
+            point, _scale, _energy, sample_alive = _particle_state(particle,
+                                                                   time)
+            if not sample_alive:
                 point = origin + Vector((0.0, 0.0, 1000.0))
             spline.points[step].co = (point.x, point.y, point.z, 1.0)
-            fade = 1.0
-            if age > life:
-                fade = max(0.0, 1.0 - (age - life) / 0.32)
-            spline.points[step].radius = (0.2 + 0.8 * (step / (SAMPLES - 1.0))) \
-                * fade
-        head = _position(start, v0, 0.08, max(0.0, age))
-        radius = 0.18
-        if not alive:
-            head = origin + Vector((0.0, 0.0, 1000.0))
-            radius = 0.0001
-        head_centers.append(head)
-        head_radii.append(radius)
-        # Fragments: small embers that keep burning after the meteor.
-        for fragment in range(3):
-            emit = _hash_range(seed, index, 30 + fragment, 7, 0.05, life * 0.8)
-            frag_age = age - emit
-            frag_life = _hash_range(seed, index, 30 + fragment, 8, 0.4, 1.4)
-            if frag_age <= 0.0 or frag_age > frag_life:
-                fragment_centers.append(origin + Vector((0.0, 0.0, 1000.0)))
-                fragment_radii.append(0.0001)
-                continue
-            parent = _position(start, v0, 0.08, age - emit)
-            parent_vel = v0 * math.exp(-0.08 * (age - emit))
-            push = Vector((
-                _hash_range(seed, index, 30 + fragment, 9, -2.4, 2.4),
-                _hash_range(seed, index, 30 + fragment, 10, -2.4, 2.4),
-                _hash_range(seed, index, 30 + fragment, 11, -3.2, 1.2),
-            ))
-            fragment_centers.append(_position(parent, parent_vel * 0.25 + push,
-                                               1.6, frag_age))
-            fragment_radii.append(0.05 * (1.0 - frag_age / max(frag_life, 1e-3)))
+            spline.points[step].radius = particle["radius"]
+        for particle in population["fragments"]:
+            point, scale, energy, fragment_alive = _particle_state(particle,
+                                                                    time)
+            if not fragment_alive:
+                point = origin + Vector((0.0, 0.0, 1000.0))
+                scale = 0.0001
+            fragment_centers.append(point)
+            fragment_radii.append(scale)
+            fragment_energies.append(energy)
     _write_particle_mesh(system["heads"].data, system["head_ranges"],
-                         head_centers, head_radii)
+                         head_centers, head_radii, head_energies)
     _write_particle_mesh(system["fragments"].data, system["fragment_ranges"],
-                         fragment_centers, fragment_radii)
+                         fragment_centers, fragment_radii, fragment_energies)
 
 
 # ---------------------------------------------------------------------------
@@ -1105,6 +1082,18 @@ def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
     return count
 
 
+def _age_offset(scene):
+    """The Burst Age offset applied to every FX system of a scene."""
+    settings = getattr(scene, "ald", None)
+    offset = float(getattr(settings, "fx_age", 0.0)) if settings else 0.0
+    if offset:
+        return offset
+    config = scene.get("ald_fx_config") or {}
+    if isinstance(config, dict):
+        return float(config.get("age", 0.0))
+    return 0.0
+
+
 def set_age(scene, age):
     """Move the FX systems in time without rebuilding the geometry.
 
@@ -1146,6 +1135,7 @@ def update(scene, time=None):
     if time is None:
         fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
         time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
+        time += _age_offset(scene)
     for system in registry.values():
         if system:
             _update_system(system, time)
@@ -1208,14 +1198,8 @@ def _on_frame_change(scene, *_args):
     if not registry:
         return
     fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
-    settings = getattr(scene, "ald", None)
-    age_offset = float(getattr(settings, "fx_age", 0.0)) if settings else 0.0
-    if not age_offset:
-        config = scene.get("ald_fx_config") or {}
-        if isinstance(config, dict):
-            age_offset = float(config.get("age", 0.0))
     time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
-    time += age_offset
+    time += _age_offset(scene)
     for system in registry.values():
         if not system:
             continue
