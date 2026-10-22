@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.19.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.20.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -317,4 +317,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.17.0** - Fase P1-D: le meteore sono eventi e il preset Hero Meteor (Bolide) è più grande, più luminoso e con una scia lunga e persistente.
 - **2.18.0** - Fase P2: contratto materiale delle particelle (role, age_norm, energy, trail_u, stable_noise, event_color) e isolamento del layer FX nel compositor.
 - **2.19.0** - Fase P3: solver numericamente stabile, camera valutata (constraint e parent), nuvole e shooting star legacy in secondi, famiglia Kamuro e backend scelto prima dell'allocazione.
+- **2.20.0** - Milestone del piano: un singolo fuoco d'artificio completo e reversibile, il launcher visibile e la Definition of Done verificata da `preset_dev/milestone.py` (13/13).
 

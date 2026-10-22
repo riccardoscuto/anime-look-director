@@ -1059,3 +1059,18 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   Nodes path no longer creates and deletes the Python meshes.
 - The Kamuro family: 48 thick stars, a slow speed, a low drag, a 2.2 s trail
   and a small pistil: a few bold strokes with a long drooping tail.
+### v2.20.0 notes (the milestone of the plan)
+- `preset_dev/milestone.py` verifies the Definition of Done point by point
+  (thirteen checks) and writes the filmstrip of the event plus a JSON
+  report. It never saves the .blend of the user: the fixture lives in the
+  temporary directory and it is removed at the end.
+- The launcher of a burst is a visible empty (`ALD FX Launcher <n>`): the user
+  can grab it in the viewport, the build reads its position back and "Update
+  FX" rebuilds the system to apply the new position. The empty is tagged with
+  the kind of the system, so it is removed with it and it is not counted in
+  the system list.
+- Every path writes the persistent configuration: `fx.create_fireworks` and
+  `fx.create_meteors` call `store_system`, not only the operators. A project
+  saved after a direct call keeps its systems and its events.
+- The shell is a visible ball (`0.20 * size_scale`): the rising body and its
+  short trail must be readable in the shot.

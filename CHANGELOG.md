@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.20.0 - 2026-10-22
+The milestone of the operational plan: a single complete and reversible
+firework, with the Definition of Done verified by a script.
+
+### Added
+- `preset_dev/milestone.py`: the acceptance of the Definition of Done of the
+  plan, point by point, with the filmstrip of the event and a JSON report.
+  The thirteen checks: the visible launcher, the continuous rise, the burst
+  at the expected point, the transfer of the position and the velocity to the
+  stars, the decay of every component, the flash that turns off and the embers
+  that survive, the energy that fades in time, the isolation of the FX layer,
+  the systems manageable from both interfaces, the configuration kept by a
+  reopened project, the restoration of the registered state by "Remove ALD
+  from Scene" and the absence of a global purge.
+- The launcher of a burst is a visible empty in the world: the user can grab
+  it and the build reads its position back, so the shell really starts from
+  the launcher. "Update FX" rebuilds the system and applies the new position.
+
+### Fixed
+- The persistent configuration is written by every path: `create_fireworks` and
+  `create_meteors` store the system and its events, not only the operators. A
+  project saved after a direct call keeps its configuration.
+
 ## 2.19.0 - 2026-10-22
 Phase P3 of the operational plan: the cleanups and the refinements.
 

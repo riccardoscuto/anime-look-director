@@ -325,6 +325,14 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the backend is chosen before any allocation: the Python meshes are only
     created when the Python writer is the chosen backend;
   - the Kamuro family: few thick stars, a long drooping tail, a warm core.
+- FX 2.20 rules (the milestone of the plan):
+  - the launcher of a burst is a visible empty: the build reads its position
+    back, so the shell really starts from the launcher, and "Update FX"
+    rebuilds the system to apply the new position;
+  - every path writes the persistent configuration: `create_fireworks` and
+    `create_meteors` store the system and its events, not only the operators;
+  - `preset_dev/milestone.py` verifies the Definition of Done of the plan
+    point by point and writes the filmstrip of the event.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

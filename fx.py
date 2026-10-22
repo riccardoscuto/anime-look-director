@@ -350,17 +350,18 @@ def _particle(birth, life, drag, radius, vel, pos0, tau=0.0, jitter=None,
     }
 
 
-def shell_population(launch, v0, drag, birth, rise_time, size_scale):
+def shell_population(launch, v0, drag, birth, rise_time, size_scale,
+                     color=None):
     """The rising shell: the body and its short trail."""
-    head = _particle(birth, rise_time, drag, 0.09 * size_scale, v0, launch,
-                     use_decay=0.0, role="shell")
+    head = _particle(birth, rise_time, drag, 0.20 * size_scale, v0, launch,
+                     use_decay=0.0, role="shell", color=color)
     trail = []
     for step in range(SAMPLES):
         profile = step / (SAMPLES - 1.0)
         trail.append(_particle(
             birth, rise_time, drag, 0.6 + 0.4 * profile, v0, launch,
             tau=rise_time * (1.0 - profile), use_decay=0.0, role="shell_trail",
-            spoke=0, trail=rise_time))
+            spoke=0, trail=rise_time, color=color))
     return {"head": head, "trail": trail}
 
 
@@ -624,6 +625,27 @@ def _launch_point(origin, forward, up, right, target):
     The shell rises vertically, so the shot shows a real ascent.
     """
     return Vector(target) - Vector((0.0, 0.0, 26.0))
+
+
+def _launcher_empty(scene, index, position):
+    """The visible launcher of a burst: an empty the user can grab.
+
+    The position of the empty is the origin of the shell: moving it moves the
+    shot, and the build reads it back.
+    """
+    name = "ALD FX Launcher %d" % index
+    empty = bpy.data.objects.get(name)
+    if empty is None:
+        empty = bpy.data.objects.new(name, None)
+        empty.empty_display_type = "SPHERE"
+        empty.empty_display_size = 1.2
+        _collection(scene).objects.link(empty)
+    empty["ald_fx"] = True
+    empty["ald_fx_kind"] = "fireworks"
+    empty["ald_fx_role"] = "launcher"
+    empty["ald_fx_index"] = index
+    empty.location = position
+    return empty
 
 
 def _rise_time(scene, index):
@@ -970,6 +992,14 @@ def _build_fireworks(scene, count, seed, distance, family):
         # The complete event: a launcher, a rising shell and a burst point.
         gravity = _gravity(scene)
         launch = _launch_point(origin, forward, up, right, center)
+        # The launcher of the scene wins: the user can grab it.
+        empty = bpy.data.objects.get("ALD FX Launcher %d" % index)
+        if empty is not None and empty.get("ald_fx"):
+            if empty.parent is None:
+                # The local transform is always up to date, the matrix is not.
+                launch = empty.location.copy()
+            else:
+                launch = empty.matrix_world.translation.copy()
         rise_time = _rise_time(scene, index)
         drag = _event_drag(scene, config)
         target = center
@@ -977,6 +1007,7 @@ def _build_fireworks(scene, count, seed, distance, family):
         burst_birth = birth + rise_time
         residual = _rise_velocity_at(v0, drag, gravity, rise_time)
         shell = shell_population(launch, v0, drag, birth, rise_time, size_scale)
+        _launcher_empty(scene, index, launch)
         # The deterministic data is built once and feeds both backends.
         population = burst_population(seed, index, config, burst_birth, target,
                                       size_scale, spoke_count,
@@ -1482,6 +1513,9 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
     system = _build_fireworks(scene, count, seed, distance, family)
     _update_system(system, time)
     _registry(scene)["fireworks"] = system
+    # The persistent configuration is the source of truth: it is written by
+    # every path, not only by the operator.
+    store_system(scene, "FIREWORKS", count, seed, distance, family, time)
     return count
 
 
@@ -1492,6 +1526,7 @@ def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
     system = _build_meteors(scene, count, seed, distance, kind)
     _update_system(system, time)
     _registry(scene)["meteors"] = system
+    store_system(scene, "METEORS", count, seed, distance, "WILLOW", time)
     return count
 
 
@@ -1750,7 +1785,8 @@ def systems_info(scene):
             if coll.get(OWNER_KEY) != owner:
                 continue
             for obj in coll.objects:
-                if obj.get("ald_fx") and obj.get("ald_fx_kind") == kind:
+                if obj.get("ald_fx") and obj.get("ald_fx_kind") == kind \
+                        and obj.get("ald_fx_role") != "launcher":
                     count += 1
         info.append((kind, count))
     return info
