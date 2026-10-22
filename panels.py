@@ -385,6 +385,17 @@ def draw_fx_advanced(layout, context):
     else:
         col.label(text="Anchor exists: ALD Sky/FX Anchor", icon="CHECKMARK")
 
+    # --- Ground object -----------------------------------------------------
+    col.separator()
+    col.label(text="Ground Object", icon="MESH_PLANE")
+    col.prop_search(s, "fx_ground_object", scene, "objects",
+                    text="Terrain Mesh")
+    if s.fx_ground_object is None:
+        col.operator("ald.fx_ground_create", icon="ADD")
+    else:
+        col.label(text="Ground exists: %s" % s.fx_ground_object.name,
+                  icon="CHECKMARK")
+
 
 def draw_scene_actions(layout, context):
     """The three actions of the plan on the scene itself.

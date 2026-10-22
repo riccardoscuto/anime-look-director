@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.26.0 - 2026-10-22
+The ALD Sky/FX Anchor is completed with an explicit terrain object and the
+camera/terrain conflict check now reads the real ground mesh.
+
+### Added
+- **Ground Object** (Fase 4 of the plan): a mesh plane at the anchor
+  elevation used as the terrain reference for conflict checks. The pointer
+  `Scene.ald.fx_ground_object` holds the terrain mesh; operators and UI
+  controls to create and inspect it (both surfaces).
+- The conflict warning (T15) now reads the ground object's world matrix when
+  a terrain mesh is assigned, falling back to the numeric elevation.
+
 ## 2.25.0 - 2026-10-22
 The v2.24 compositor isolation is consolidated: the registration crash is
 fixed, the ALD Sky/FX Anchor is added, and the acceptance matrix T25-T28 is

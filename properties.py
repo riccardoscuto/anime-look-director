@@ -740,6 +740,11 @@ class ALD_Settings(bpy.types.PropertyGroup):
     fx_anchor_created: BoolProperty(
         name="Anchor Created", default=False,
         description="Whether the ALD Sky/FX Anchor empty exists in the scene")
+    fx_ground_object: PointerProperty(
+        name="Ground Object",
+        type=bpy.types.Object,
+        description="Mesh used as the terrain reference for conflict checks",
+        update=_on_fx_rebuild)
 
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,

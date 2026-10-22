@@ -502,6 +502,41 @@ class ALD_OT_fx_anchor_create(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_ground_create(bpy.types.Operator):
+    bl_idname = "ald.fx_ground_create"
+    bl_label = "Create Ground Plane"
+    bl_description = ("Create a mesh plane at the anchor elevation to serve "
+                     "as the terrain reference for conflict checks")
+    bl_options = {"REGISTER", "UNDO"}
+
+    size: bpy.props.FloatProperty(name="Size", default=200.0, min=1.0)
+
+    def execute(self, context):
+        scene = context.scene
+        settings = scene.ald
+        name = "ALD FX Ground"
+        ground = bpy.data.objects.get(name)
+        if ground is None:
+            mesh = bpy.data.meshes.new(name)
+            from mathutils import Vector
+            bpy.ops.mesh.primitive_plane_add(size=self.size)
+            ground = context.active_object
+            ground.name = name
+            ground["ald_fx_ground"] = True
+            # Place at the anchor elevation along the vertical axis.
+            axis = settings.fx_anchor_axis
+            axis_index = {"Z": 2, "Y": 1, "X": 0,
+                          "-Z": 2, "-Y": 1, "-X": 0}.get(axis, 2)
+            sign = -1.0 if axis.startswith("-") else 1.0
+            ground.location = (0.0, 0.0, 0.0)
+            ground.location[axis_index] = sign * float(
+                settings.fx_anchor_ground_elevation)
+        settings.fx_ground_object = ground
+        self.report({"INFO"},
+                    "Anime Look Director: ground plane created")
+        return {"FINISHED"}
+
+
 class ALD_OT_fx_update(bpy.types.Operator):
     bl_idname = "ald.fx_update"
     bl_label = "Update FX"
@@ -569,7 +604,8 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_bolide,
-            ALD_OT_fx_anchor_create, ALD_OT_fx_update,
+            ALD_OT_fx_anchor_create, ALD_OT_fx_ground_create,
+            ALD_OT_fx_update,
             ALD_OT_fx_clear, ALD_OT_fx_clear_kind, ALD_OT_fx_select_system,
             ALD_OT_fx_select_event, ALD_OT_fx_duplicate_system,
             ALD_OT_fx_remove_system, ALD_OT_remove_from_scene,

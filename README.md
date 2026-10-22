@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.25.0)
+## What it does (v2.26.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -200,7 +200,10 @@ Expected output: `ALD GATE: PASS`.
 - v2.25.0 - fixes the `Writing to ID classes` crash during panel draw, adds the
   ALD Sky/FX Anchor (vertical axis, ground elevation, units scale), the camera
   below-ground conflict warning (T15) and the acceptance tests T25-T28
-  (migration, undo/redo, failed build, UI screenshots) (current)
+  (migration, undo/redo, failed build, UI screenshots)
+- v2.26.0 - completes the ALD Sky/FX Anchor with an explicit terrain object:
+  the conflict warning reads the ground mesh world matrix when assigned,
+  falling back to the numeric elevation (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

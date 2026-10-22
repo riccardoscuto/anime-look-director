@@ -1347,10 +1347,12 @@ def _build_fireworks(scene, system):
     # conflict instead of silently generating underground coordinates.
     conflict = False
     if settings is not None and scene.camera is not None:
-        ground = float(getattr(settings, "fx_anchor_ground_elevation", 0.0))
         axis = getattr(settings, "fx_anchor_axis", "Z")
         axis_index = {"Z": 2, "Y": 1, "X": 0}.get(axis, 2)
         axis_sign = -1.0 if axis.startswith("-") else 1.0
+        ground_obj = getattr(settings, "fx_ground_object", None)
+        ground_elev = float(getattr(settings, "fx_anchor_ground_elevation",
+                                    0.0))
         cam = scene.camera
         cam_matrix = cam.matrix_world
         cam_forward = (cam_matrix.to_3x3() @ Vector((0.0, 0.0, -1.0))).normalized()
@@ -1359,7 +1361,16 @@ def _build_fireworks(scene, system):
             conflict = True
         # Any burst target under the ground?
         for burst in bursts:
-            if burst["center"][axis_index] < ground + 1.0:
+            target = burst["center"]
+            if ground_obj is not None and ground_obj.type == "MESH":
+                # Use the ground object's world matrix for the check.
+                gm = ground_obj.matrix_world
+                # Ground height along the vertical axis at the target position.
+                ground_h = gm.translation[axis_index]
+                if target[axis_index] < ground_h + 1.0:
+                    conflict = True
+                    break
+            elif target[axis_index] < ground_elev + 1.0:
                 conflict = True
                 break
     if conflict:
