@@ -191,6 +191,14 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   mandatory tests of the guide: frame jump, 24/30/60 fps, drag free and
   gravity free limits, the sparks that outlive the head and the occlusion of
   the burst behind a building.
+- FX 2.9.2 rules: every object built by the Geometry Nodes path must carry
+  the `ald_fx_kind` tag, otherwise the FX panel lists the system as empty and
+  the per system clear cannot remove it. `preset_dev/lookdev_fx.py` renders
+  the comparison set of the guide with the recorded metadata. A screenshot of
+  the Blender window is black when the window is minimized or off screen:
+  restore it with `ShowWindow(hwnd, 9)` and move it on screen first. Re
+  registering the panels at runtime leaves the sub panels of the Properties
+  editor out of the panel list: verify the UI in a fresh Blender instance.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

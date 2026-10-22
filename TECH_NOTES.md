@@ -826,3 +826,24 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
     realized instance radius is read with x_nodes.realized_instances);
   - the burst behind a building is hidden (the occluder is a plane between
     the camera and the burst, the gate geometry is hidden for the render).
+
+### v2.9.2 notes (FX lookdev renders and UI verification)
+- `preset_dev/lookdev_fx.py` renders the comparison set required by the
+  guide: `fx_noglow.png`, `fx_glow.png`, `fx_occluder.png`,
+  `fx_motionblur.png` and the sequence `seq_XX.png`, plus `sheet.png`,
+  `sequence.png` and `metadata.json` (resolution, camera, seed, exposure,
+  view transform, renderer, frame range, FX settings).
+- The occluder render places a building between the camera and the burst, on
+  the direction of the hero burst, so the occlusion is visible in the sheet.
+- UI verification with real screenshots: the Blender window must be restored
+  and moved on screen (`ShowWindow(hwnd, 9)` then `MoveWindow`), otherwise the
+  capture is black. The MCP screenshot of an area works once the window is
+  visible; the Properties editor can be maximised with
+  `bpy.ops.screen.screen_full_area` under a `temp_override`.
+- The screenshot revealed a real bug: the objects built by the Geometry Nodes
+  path had no `ald_fx_kind` tag, so the FX panel listed the fireworks system
+  as empty and the per system clear could not remove it. The gate now checks
+  the listing.
+- Re-registering the panels at runtime (add-on reload) leaves the sub panels
+  of the Properties editor out of the panel list: verify the UI in a fresh
+  Blender instance.

@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 9, 1)
+EXPECTED_VERSION = (2, 9, 2)
 TOLERANCE = 1e-4
 
 
@@ -1613,6 +1613,12 @@ def check_fx(scene):
                   if obj.type == "MESH"
                   and any(mod.type == "NODES" for mod in obj.modifiers)]
     check(gn_objects, "no FX object uses the Geometry Nodes burst")
+    # The FX panel lists the systems: every object must be tagged with its kind.
+    info = dict(fx_module.systems_info(scene))
+    check(info.get("fireworks", 0) > 0,
+          "the fireworks system is not listed (%s)" % info)
+    check(all(obj.get("ald_fx_kind") == "fireworks" for obj in gn_objects),
+          "a Geometry Nodes burst is not tagged with its kind")
     fx_module.clear(scene)
     check_fx_gn_parity(scene)
 

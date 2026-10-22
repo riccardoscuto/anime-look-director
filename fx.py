@@ -636,6 +636,8 @@ def _build_fireworks(scene, count, seed, distance, family):
                     trail=0.0, age_offset=age_offset, min_scale=0.0,
                     decay_power=0.5)
                 created.append(gn_flash)
+                for obj in created:
+                    obj["ald_fx_kind"] = kind
                 # The Python meshes are replaced by the node group.
                 for python_obj in (head_obj, pistil_obj, pistil_bead_obj,
                                    spark_obj, trail_obj, core_obj):

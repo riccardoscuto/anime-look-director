@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.9.2 - 2026-10-22
+### Fixed
+- The objects built by the Geometry Nodes path are tagged with their kind:
+  the FX panel listed the fireworks system as empty and the per system
+  clear button could not remove them.
+### Added
+- `preset_dev/lookdev_fx.py`: the comparison renders required by the technical
+  guide (with and without the dedicated FX glow, with an occluder, with motion
+  blur and a short animated sequence) plus a `metadata.json` with the
+  resolution, the camera, the seed, the exposure, the view transform and the
+  renderer.
+- The gate checks that the FX systems are listed by the panel and that every
+  node group object carries its kind.
+- The UI was verified with real screenshots of the sidebar panel and of the
+  Scene properties (Anime Look Director, World & Shadows, Compositor Stack
+  and FX Particles).
+
 ## 2.9.1 - 2026-10-22
 ### Added
 - The node group reproduces the drag free limit with the ballistic solution
