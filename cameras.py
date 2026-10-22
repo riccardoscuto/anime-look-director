@@ -101,6 +101,13 @@ def _on_depsgraph(scene, depsgraph=None):
         pass
 
 
+@persistent
+def _on_load_post(*_args):
+    """A new file invalidates the cached camera and transform states."""
+    _last_camera.clear()
+    _last_transforms.clear()
+
+
 def register():
     bpy.utils.register_class(ALD_CameraSettings)
     bpy.types.Camera.ald = PointerProperty(type=ALD_CameraSettings)
@@ -108,11 +115,15 @@ def register():
     _last_transforms.clear()
     if _on_depsgraph not in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.append(_on_depsgraph)
+    if _on_load_post not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(_on_load_post)
 
 
 def unregister():
     if _on_depsgraph in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(_on_depsgraph)
+    if _on_load_post in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(_on_load_post)
     _last_camera.clear()
     _last_transforms.clear()
     del bpy.types.Camera.ald

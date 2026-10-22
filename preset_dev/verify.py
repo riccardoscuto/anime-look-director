@@ -15,7 +15,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 9, 2)
+EXPECTED_VERSION = (2, 10, 0)
 TOLERANCE = 1e-4
 
 
@@ -1967,6 +1967,42 @@ def check_fx_gn_children(scene):
     fx_module.clear(scene)
 
 
+def check_fx_new_file(scene):
+    """Opening a new file must reinitialise the handlers and the caches."""
+    from anime_look_director import cameras as cameras_module
+    from anime_look_director import fx as fx_module
+
+    fx_module.create_fireworks(scene, 1, seed=3, distance=30.0, time=0.6)
+    check(bool(fx_module.SYSTEMS), "the FX cache is empty before the file load")
+    bpy.ops.wm.read_homefile(use_empty=True)
+    new_scene = bpy.context.scene
+    check(hasattr(bpy.types.Scene, "ald"),
+          "the add-on is not registered after a file load")
+    check(fx_module._on_frame_change in bpy.app.handlers.frame_change_post,
+          "the frame handler was lost after a file load")
+    check(fx_module._on_load_post in bpy.app.handlers.load_post,
+          "the load handler was lost after a file load")
+    owner = fx_module._scene_id(new_scene)
+    check(not fx_module.SYSTEMS.get(owner),
+          "the FX cache survived the file load")
+    check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
+          "the FX objects survived the file load")
+    check(not cameras_module._last_camera,
+          "the camera cache survived the file load")
+    check(not cameras_module._last_transforms,
+          "the transform cache survived the file load")
+    # The add-on must still work on the new file.
+    new_scene.ald.palette = "TWILIGHT_DUSK"
+    bpy.ops.ald.apply_palette()
+    bpy.ops.ald.build()
+    check(new_scene.compositing_node_group is not None,
+          "the stack was not built on the new file")
+    fx_module.create_fireworks(new_scene, 1, seed=3, distance=30.0, time=0.6)
+    check(bool(fx_module.SYSTEMS.get(owner)),
+          "the FX cannot be created after a file load")
+    fx_module.clear(new_scene)
+
+
 def main():
     enable_addon()
     check_versions()
@@ -2013,18 +2049,24 @@ def main():
         check(scene.compositing_node_group is None, "stack not removed")
         check(bpy.data.node_groups.get("ALD | Compositor Stack") is None,
               "compositor group not deleted")
+        # The last check: a new file must reinitialise the add-on.
+        check_fx_new_file(scene)
     finally:
-        for obj in list(bpy.data.objects):
-            if not obj.get("ald_auto_sun"):
-                continue
-            light = obj.data
-            bpy.data.objects.remove(obj, do_unlink=True)
-            if light is not None and light.users == 0:
-                bpy.data.lights.remove(light)
-        bpy.data.objects.remove(data["object"], do_unlink=True)
-        bpy.data.meshes.remove(data["mesh"])
-        for mat in (data["plain"], data["linked"]):
-            bpy.data.materials.remove(mat)
+        try:
+            for obj in list(bpy.data.objects):
+                if not obj.get("ald_auto_sun"):
+                    continue
+                light = obj.data
+                bpy.data.objects.remove(obj, do_unlink=True)
+                if light is not None and light.users == 0:
+                    bpy.data.lights.remove(light)
+            bpy.data.objects.remove(data["object"], do_unlink=True)
+            bpy.data.meshes.remove(data["mesh"])
+            for mat in (data["plain"], data["linked"]):
+                bpy.data.materials.remove(mat)
+        except (ReferenceError, RuntimeError):
+            # The file load of the new file check removed the test data.
+            pass
 
     print("ALD GATE: PASS")
 

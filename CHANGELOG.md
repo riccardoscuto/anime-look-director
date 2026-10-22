@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.10.0 - 2026-10-22
+### Fixed
+- Opening a new file no longer leaves a stale FX system in the panel: the FX
+  registry and the camera/transform caches are cleared by a `load_post`
+  handler. The scene identity is the name of the scene, so a new file with the
+  same scene name used to inherit the systems of the previous one.
+### Changed
+- The frame handler skips the systems evaluated by the node group: in the
+  Geometry Nodes path it does not touch a single vertex.
+### Added
+- The gate runs the last mandatory test of the technical guide: opening a new
+  file with the add-on active must keep the handlers registered, clear the
+  caches and still allow the palette, the stack and the FX to be built.
+
 ## 2.9.2 - 2026-10-22
 ### Fixed
 - The objects built by the Geometry Nodes path are tagged with their kind:

@@ -1186,6 +1186,9 @@ def _on_frame_change(scene, *_args):
     for system in registry.values():
         if not system:
             continue
+        if system.get("gn"):
+            # Every particle is evaluated by the node group.
+            continue
         if system.get("time") is not None \
                 and abs(time - system["time"]) < 1e-6:
             continue
@@ -1195,12 +1198,22 @@ def _on_frame_change(scene, *_args):
             pass
 
 
+@persistent
+def _on_load_post(*_args):
+    """A new file invalidates every cached FX system."""
+    SYSTEMS.clear()
+
+
 def register():
     if _on_frame_change not in bpy.app.handlers.frame_change_post:
         bpy.app.handlers.frame_change_post.append(_on_frame_change)
+    if _on_load_post not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(_on_load_post)
 
 
 def unregister():
     if _on_frame_change in bpy.app.handlers.frame_change_post:
         bpy.app.handlers.frame_change_post.remove(_on_frame_change)
+    if _on_load_post in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(_on_load_post)
     SYSTEMS.clear()

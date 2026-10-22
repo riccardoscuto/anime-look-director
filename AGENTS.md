@@ -199,6 +199,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   restore it with `ShowWindow(hwnd, 9)` and move it on screen first. Re
   registering the panels at runtime leaves the sub panels of the Properties
   editor out of the panel list: verify the UI in a fresh Blender instance.
+- FX 2.10 rules: the scene identity is the hash of the scene name, so a new
+  file with the same scene name would inherit the previous systems: a
+  persistent `load_post` handler clears the FX registry and the camera and
+  transform caches on every file load. The frame handler must skip the
+  systems evaluated by the node group.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

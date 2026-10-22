@@ -847,3 +847,17 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - Re-registering the panels at runtime (add-on reload) leaves the sub panels
   of the Properties editor out of the panel list: verify the UI in a fresh
   Blender instance.
+
+### v2.10.0 notes (new file resets the caches)
+- The FX systems are keyed by the hash of the scene name (`ald_fx_id`), the
+  same key stored in the `ALD | FX` collection so the ownership survives a
+  save. A new file whose scene has the same name therefore collided with the
+  systems of the previous file: the panel showed a phantom system and the
+  frame handler updated objects that no longer existed.
+- Fix: a persistent `load_post` handler in `fx.py` clears the `SYSTEMS`
+  registry and a second one in `cameras.py` clears the camera and transform
+  caches. The gate now opens a new file and checks that the handlers are
+  still registered, that the caches are empty, that the palette, the stack and
+  the FX can still be built.
+- The frame handler skips the systems evaluated by the node group: in the
+  Geometry Nodes path it never touches a vertex.
