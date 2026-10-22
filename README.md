@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.21.0)
+## What it does (v2.22.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -185,7 +185,10 @@ Expected output: `ALD GATE: PASS`.
   only appear in the legacy backend and the FX section comes first in the
   sidebar
 - v2.21.0 - the View3D sidebar and the Scene properties expose exactly the
-  same controls, with the same structure (current)
+  same controls, with the same structure
+- v2.22.0 - the three actions on the scene (Bypass, Remove ALD from Scene,
+  Detach and Keep Result), the FX are visible at once after the creation and
+  the icons of the panels are validated against the real list (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

@@ -350,6 +350,20 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     then World & Shadows, Compositor Stack and FX Particles;
   - the gate compares the controls drawn by the two surfaces: a control that
     exists in one surface only is a failure.
+- UI 2.22 rules:
+  - the three actions on the scene are separated: **Bypass** (the add-on stops
+    touching the scene), **Remove ALD from Scene** (the complete removal) and
+    **Detach and Keep Result** (the look is kept, the add-on stops managing
+    it);
+  - the removal always happens: without a registered state the conservative
+    clean up is done and the limit is reported;
+  - the identity of the scene is never deleted: it is the ownership key of the
+    collection of the add-on;
+  - the icons of the panels are validated against the real list of the layout
+    (`UILayout.label` exposes 1017 of them in Blender 5.1): an icon that does
+    not exist breaks the whole panel at draw time;
+  - the FX are 3D objects: the creation puts the viewport in the camera view
+    with the rendered shading, otherwise they are invisible in the solid mode.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

@@ -1100,3 +1100,29 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The gate compares the controls drawn by the two surfaces (the set of the
   shared functions called by the panels) and fails when they diverge or when
   a drawing function keeps a compact mode.
+### v2.22.0 notes (the three actions on the scene)
+- The plan asks for three distinct actions: a temporary bypass, a complete
+  removal from the scene and a detach that keeps the result. They are now
+  three buttons in a "Scene" section, in both surfaces:
+  - **Bypass** (`Scene.ald.bypass`): the handlers and the callbacks do
+    nothing, the scene keeps the look;
+  - **Remove ALD from Scene** (`ald.remove_from_scene`): the snapshot is
+    restored and the datablocks of the add-on are removed (the objects, the
+    collection, the orphan materials, the node groups, the markers and the
+    internal properties);
+  - **Detach and Keep Result** (`ald.detach`): the world, the materials, the
+    lights and the compositor stay as they are, the FX objects, the markers
+    and the internal properties go away and the scene is marked as detached.
+- The removal always happens: when the original state was never registered
+  (an old scene, a direct call without a palette) the conservative clean up
+  is done and the operator reports the limit, as the plan requires.
+- The identity of the scene (`ald_fx_id`) is not one of the internal
+  properties: it is the ownership key of the collection of the add-on and
+  deleting it changed the identity before the ownership was resolved.
+- The panel used the icon `EVENT`, which does not exist in Blender 5.1: the
+  whole FX panel broke at draw time. The gate now validates the icons
+  against the real list of the layout (`UILayout.label` exposes 1017 of them)
+  instead of a curated list.
+- The FX are real objects with a material: in the solid mode they are
+  invisible. The creation of the FX now puts the 3D viewport in the camera
+  view with the rendered shading.

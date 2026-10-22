@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 21, 0)
+EXPECTED_VERSION = (2, 22, 0)
 TOLERANCE = 1e-4
 
 
@@ -2405,329 +2405,18 @@ def check_ui_parity(scene):
 
 def check_panel_icons():
     """Every icon used by the panels must exist in this Blender version."""
+    import inspect
     import re
 
     from anime_look_director import panels
 
+    parameter = bpy.types.UILayout.bl_rna.functions["label"].parameters["icon"]
+    valid = {item.identifier for item in parameter.enum_items}
+    check(valid, "the icon list of the layout is not available")
     source = inspect.getsource(panels)
     used = set(re.findall(r'icon="([A-Z0-9_]+)"', source))
-    unknown = sorted(icon for icon in used if icon not in PANEL_ICONS)
+    unknown = sorted(icon for icon in used if icon not in valid)
     check(not unknown, "the panels use unknown icons: %s" % unknown)
-
-
-def check_fx_reversibility(scene):
-    """Remove ALD from Scene must restore the state of the user."""
-    from anime_look_director import fx as fx_module
-    from anime_look_director import snapshot
-
-    # The gate already modified the scene: the snapshot is taken again with
-    # the state of this test.
-    if snapshot.SNAPSHOT_KEY in scene:
-        del scene[snapshot.SNAPSHOT_KEY]
-
-    # A scene with a world of its own, a sun, an emissive material and a
-    # compositor stack.
-    world = bpy.data.worlds.new("ALD Gate User World")
-    world.use_nodes = True
-    background = next((node for node in world.node_tree.nodes
-                        if node.bl_idname == "ShaderNodeBackground"), None)
-    background.inputs["Color"].default_value = (0.1, 0.2, 0.3, 1.0)
-    background.inputs["Strength"].default_value = 2.5
-    scene.world = world
-    sun_data = bpy.data.lights.new("ALD Gate User Sun", type="SUN")
-    sun_data.energy = 3.0
-    sun_data.color = (1.0, 0.9, 0.8)
-    sun = bpy.data.objects.new("ALD Gate User Sun", sun_data)
-    sun.rotation_euler = (0.5, 0.25, -0.75)
-    scene.collection.objects.link(sun)
-    material = bpy.data.materials.new("ALD Gate User Material")
-    material.use_nodes = True
-    bsdf = material.node_tree.nodes.get("Principled BSDF")
-    bsdf.inputs["Base Color"].default_value = (0.4, 0.5, 0.6, 1.0)
-    if "Emission Color" in bsdf.inputs:
-        bsdf.inputs["Emission Color"].default_value = (0.9, 0.2, 0.1, 1.0)
-        bsdf.inputs["Emission Strength"].default_value = 4.0
-    plane = bpy.data.meshes.new("ALD Gate User Plane")
-    plane.from_pydata([(-5, -5, 0), (5, -5, 0), (5, 5, 0), (-5, 5, 0)],
-                       [], [(0, 1, 2, 3)])
-    plane.update()
-    obj = bpy.data.objects.new("ALD Gate User Plane", plane)
-    obj.data.materials.append(material)
-    scene.collection.objects.link(obj)
-    user_group = bpy.data.node_groups.new("ALD Gate User Stack",
-                                          "CompositorNodeTree")
-    scene.compositing_node_group = user_group
-    scene.render.use_compositing = True
-    view_layer = scene.view_layers[0]
-    view_layer.use_pass_z = False
-    view_layer.use_pass_emit = False
-    view_layer.use_pass_normal = False
-    state = {
-        "world": world.name,
-        "bg_color": list(background.inputs["Color"].default_value),
-        "bg_strength": float(background.inputs["Strength"].default_value),
-        "sun_energy": float(sun_data.energy),
-        "sun_color": list(sun_data.color),
-        "sun_rotation": [float(value) for value in sun.rotation_euler],
-        "base_color": list(bsdf.inputs["Base Color"].default_value),
-        "emission": list(bsdf.inputs["Emission Color"].default_value),
-        "emission_strength": float(bsdf.inputs["Emission Strength"].default_value),
-        "stack": user_group.name,
-        "use_compositing": True,
-    }
-
-    # The add-on modifies the scene.
-    bpy.ops.ald.apply_palette()
-    bpy.ops.ald.build()
-    bpy.ops.ald.fx_fireworks(count=2, age=0.8)
-    check(snapshot.SNAPSHOT_KEY in scene,
-          "the state of the user was not saved before the modification")
-    check(scene.compositing_node_group is not user_group,
-          "the stack of the user was not replaced")
-
-    # The full removal restores everything.
-    bpy.ops.ald.remove_from_scene()
-    check(scene.world is not None and scene.world.name == state["world"],
-          "the world of the user was not restored")
-    background = next((node for node in scene.world.node_tree.nodes
-                        if node.bl_idname == "ShaderNodeBackground"), None)
-    check(background is not None, "the background node is missing")
-    if background is not None:
-        check(abs(background.inputs["Strength"].default_value
-                  - state["bg_strength"]) < 1e-4,
-              "the strength of the world was not restored")
-        check(all(abs(a - b) < 1e-4 for a, b in
-                  zip(background.inputs["Color"].default_value,
-                      state["bg_color"])),
-              "the colour of the world was not restored")
-    check(sun_data.energy == state["sun_energy"],
-          "the energy of the sun was not restored")
-    check(all(abs(a - b) < 1e-4 for a, b in
-              zip(sun_data.color, state["sun_color"])),
-          "the colour of the sun was not restored")
-    check(all(abs(a - b) < 1e-4 for a, b in
-              zip(sun.rotation_euler, state["sun_rotation"])),
-          "the rotation of the sun was not restored")
-    check(all(abs(a - b) < 1e-4 for a, b in
-              zip(bsdf.inputs["Base Color"].default_value,
-                  state["base_color"])),
-          "the base colour of the material was not restored")
-    check(all(abs(a - b) < 1e-4 for a, b in
-              zip(bsdf.inputs["Emission Color"].default_value,
-                  state["emission"])),
-          "the emission of the material was not restored")
-    check(abs(bsdf.inputs["Emission Strength"].default_value
-              - state["emission_strength"]) < 1e-4,
-          "the emission strength of the material was not restored")
-    check(scene.compositing_node_group is not None
-          and scene.compositing_node_group.name == state["stack"],
-          "the stack of the user was not restored")
-    check(not view_layer.use_pass_z and not view_layer.use_pass_emit,
-          "the render passes were not restored")
-    check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
-          "the FX objects were not removed")
-
-    # The cleanup of the test data.
-    bpy.data.objects.remove(obj, do_unlink=True)
-    bpy.data.meshes.remove(plane)
-    bpy.data.materials.remove(material)
-    bpy.data.objects.remove(sun, do_unlink=True)
-    bpy.data.lights.remove(sun_data)
-    bpy.data.node_groups.remove(user_group)
-    bpy.data.worlds.remove(world)
-
-
-def check_fx_event_continuity(scene):
-    """A complete firework: the launcher, the rise and the burst."""
-    from mathutils import Vector
-
-    from anime_look_director import fx as fx_module
-    from anime_look_director import fx_nodes
-
-    previous_frame = scene.frame_current
-    fx_module.clear(scene)
-    fx_module.create_fireworks(scene, 1, seed=9, distance=60.0, time=0.0)
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    burst = registry["fireworks"]["bursts"][0]
-    population = burst["population"]
-    gravity = fx_module._gravity(scene)
-    launch = Vector(burst["launch"])
-    v0 = Vector(burst["shell_velocity"])
-    drag = float(burst["drag"])
-    rise = float(burst["rise_time"])
-    target = Vector(burst["target"])
-    residual = Vector(burst["residual"])
-
-    # The shell reaches the burst point at the end of the rise.
-    at_burst = fx_module._rise_position(launch, v0, drag, gravity, rise)
-    check((at_burst - target).length < 1e-3,
-          "the shell does not reach the burst point (%.4f m)"
-          % (at_burst - target).length)
-    # The stars are born exactly at the burst point.
-    head = population["heads"][0]
-    check((Vector(head["pos0"]) - target).length < 1e-6,
-          "the stars are not born at the burst point")
-    check(abs(head["birth"] - (burst["birth"] + rise)) < 1e-6,
-          "the stars are not born at the end of the rise")
-    # The stars inherit the residual velocity of the shell.
-    spread = Vector(head["vel"]) - residual
-    check(spread.length > 0.5,
-          "the stars do not inherit the velocity of the shell")
-    # The shell is visible during the rise and gone at the burst.
-    scene.frame_set(2)
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    shell_obj = bpy.data.objects.get("ALD FX GN Shell 0")
-    check(shell_obj is not None, "the rising shell is missing")
-    if shell_obj is not None:
-        instances = fx_nodes.realized_instances(shell_obj, depsgraph)
-        check(instances and instances[0][1] > 1e-4,
-              "the shell is not visible during the rise")
-    scene.frame_set(2 + int(rise * 24) + 4)
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    if shell_obj is not None:
-        instances = fx_nodes.realized_instances(shell_obj, depsgraph)
-        check(instances and instances[0][1] < 1e-4,
-              "the shell is still visible after the burst")
-    # The stars are alive at the burst and the event is reproducible.
-    scene.frame_set(2 + int(rise * 24) + 1)
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    heads = bpy.data.objects.get("ALD FX GN Heads 0")
-    check(heads is not None, "the burst heads are missing")
-    if heads is not None:
-        instances = fx_nodes.realized_instances(heads, depsgraph)
-        check(instances and instances[0][1] > 1e-4,
-              "the stars are not alive at the burst")
-        first = [center for center, _radius in instances]
-        scene.frame_set(60)
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        again = fx_nodes.realized_centers(heads, depsgraph)
-        scene.frame_set(2 + int(rise * 24) + 1)
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        back = fx_nodes.realized_centers(heads, depsgraph)
-        check(len(again) == len(back)
-              and all((a - b).length < 1e-5
-                      for a, b in zip(first, back)),
-              "the event is not reproducible after a frame jump")
-    fx_module.clear(scene)
-    scene.frame_set(previous_frame)
-
-
-def check_fx_bolide(scene):
-    """The Hero Meteor preset is bigger and its train lasts longer."""
-    from anime_look_director import fx as fx_module
-    from anime_look_director import fx_nodes
-
-    previous_frame = scene.frame_current
-    fx_module.clear(scene)
-    fx_module.create_meteors(scene, 2, seed=21, distance=40.0, time=0.6)
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    normal = registry["meteors"]
-    normal_population = normal["populations"][0]
-    normal_radius = normal_population["head"]["radius"]
-    normal_life = normal_population["head"]["life"]
-    normal_train = normal_population["train"][0]["trail"]
-    normal_fragments = len(normal_population["fragments"])
-    fx_module.clear(scene)
-
-    fx_module.create_meteors(scene, 2, seed=21, distance=40.0, time=0.6,
-                             kind="BOLIDE")
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    bolide = registry["meteors"]
-    population = bolide["populations"][0]
-    check(bolide.get("preset") == "BOLIDE",
-          "the bolide preset is not recorded")
-    check(population["head"]["radius"] > normal_radius * 2.0,
-          "the bolide is not bigger than a meteor")
-    check(population["head"]["life"] > normal_life,
-          "the bolide does not live longer than a meteor")
-    check(population["train"][0]["trail"] > normal_train * 2.0,
-          "the train of the bolide is not longer")
-    check(len(population["fragments"]) > normal_fragments,
-          "the bolide does not leave more fragments")
-    # The train of the bolide persists after the head is gone.
-    head_life = population["head"]["life"]
-    train_life = population["train"][0]["life"]
-    check(train_life > head_life,
-          "the train of the bolide does not outlive the head")
-    # The velocities stay almost parallel: the radiant emerges.
-    directions = []
-    for item in bolide["populations"]:
-        velocity = item["head"]["vel"]
-        if velocity.length > 1e-6:
-            directions.append(velocity.normalized())
-    if len(directions) > 1:
-        worst = min((first - second).length
-                    for index, first in enumerate(directions)
-                    for second in directions[index + 1:])
-        check(worst < 0.2,
-              "the meteors of the shower are not parallel (%.3f)" % worst)
-    fx_module.clear(scene)
-    scene.frame_set(previous_frame)
-
-
-def check_fx_foreign_emission(scene):
-    """An emissive surface that is not ALD must not enter the FX mask."""
-    from anime_look_director import fx as fx_module
-
-    previous_frame = scene.frame_current
-    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
-    previous_engine = scene.render.engine
-    path = os.path.join(tempfile.getdir() if False else tempfile.gettempdir(),
-                        "ald_gate_sign.png")
-    # A bright sign, far from the bursts: it is not an ALD object.
-    sign_material = bpy.data.materials.new("ALD Gate Sign")
-    sign_material.use_nodes = True
-    bsdf = sign_material.node_tree.nodes.get("Principled BSDF")
-    bsdf.inputs["Base Color"].default_value = (0.0, 0.0, 0.0, 1.0)
-    if "Emission Color" in bsdf.inputs:
-        bsdf.inputs["Emission Color"].default_value = (4.0, 1.0, 0.2, 1.0)
-        bsdf.inputs["Emission Strength"].default_value = 1.0
-    sign_mesh = bpy.data.meshes.new("ALD Gate Sign")
-    sign_mesh.from_pydata([(-4, -4, 0), (4, -4, 0), (4, 4, 0), (-4, 4, 0)],
-                           [], [(0, 1, 2, 3)])
-    sign_mesh.update()
-    sign = bpy.data.objects.new("ALD Gate Sign", sign_mesh)
-    sign.data.materials.append(sign_material)
-    sign.location = (0.0, -14.0, 1.0)
-    scene.collection.objects.link(sign)
-
-    def render_sign():
-        scene.render.engine = "BLENDER_EEVEE"
-        scene.render.resolution_x = 64
-        scene.render.resolution_y = 64
-        scene.render.resolution_percentage = 100
-        scene.render.filepath = path
-        bpy.ops.render.render(write_still=True)
-        image = bpy.data.images.load(path)
-        pixels = list(image.pixels)
-        width, height = image.size
-        index = ((height // 2) * width + (width // 2)) * 4
-        value = (round(pixels[index], 4), round(pixels[index + 1], 4),
-                 round(pixels[index + 2], 4))
-        bpy.data.images.remove(image)
-        return value
-
-    try:
-        fx_module.clear(scene)
-        bpy.ops.ald.build()
-        scene.frame_set(12)
-        without = render_sign()
-        # The same scene with the bursts: the sign must not change.
-        bpy.ops.ald.fx_fireworks(count=2, age=0.8)
-        scene.frame_set(12)
-        with_fx = render_sign()
-        worst = max(abs(a - b) for a, b in zip(without, with_fx))
-        check(worst < 0.05,
-              "the foreign emissive surface enters the FX mask: %s against %s"
-              % (without, with_fx))
-    finally:
-        fx_module.clear(scene)
-        bpy.data.objects.remove(sign, do_unlink=True)
-        bpy.data.meshes.remove(sign_mesh)
-        bpy.data.materials.remove(sign_material)
-        scene.render.resolution_x, scene.render.resolution_y = previous_size
-        scene.render.engine = previous_engine
-        scene.frame_set(previous_frame)
 
 
 def check_fx_solver_stability(scene):
@@ -2861,6 +2550,365 @@ def check_fx_kamuro(scene):
     scene.frame_set(previous_frame)
 
 
+def check_fx_reversibility(scene):
+    """Remove ALD from Scene must restore the state of the user."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import snapshot
+
+    # The gate already modified the scene: the snapshot is taken again with
+    # the state of this test.
+    if snapshot.SNAPSHOT_KEY in scene:
+        del scene[snapshot.SNAPSHOT_KEY]
+
+    # A scene with a world of its own, a sun, an emissive material and a
+    # compositor stack.
+    world = bpy.data.worlds.new("ALD Gate User World")
+    world.use_nodes = True
+    background = next((node for node in world.node_tree.nodes
+                        if node.bl_idname == "ShaderNodeBackground"), None)
+    background.inputs["Color"].default_value = (0.1, 0.2, 0.3, 1.0)
+    background.inputs["Strength"].default_value = 2.5
+    scene.world = world
+    sun_data = bpy.data.lights.new("ALD Gate User Sun", type="SUN")
+    sun_data.energy = 3.0
+    sun_data.color = (1.0, 0.9, 0.8)
+    sun = bpy.data.objects.new("ALD Gate User Sun", sun_data)
+    sun.rotation_euler = (0.5, 0.25, -0.75)
+    scene.collection.objects.link(sun)
+    material = bpy.data.materials.new("ALD Gate User Material")
+    material.use_nodes = True
+    bsdf = material.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = (0.4, 0.5, 0.6, 1.0)
+    if "Emission Color" in bsdf.inputs:
+        bsdf.inputs["Emission Color"].default_value = (0.9, 0.2, 0.1, 1.0)
+        bsdf.inputs["Emission Strength"].default_value = 4.0
+    plane = bpy.data.meshes.new("ALD Gate User Plane")
+    plane.from_pydata([(-5, -5, 0), (5, -5, 0), (5, 5, 0), (-5, 5, 0)],
+                       [], [(0, 1, 2, 3)])
+    plane.update()
+    obj = bpy.data.objects.new("ALD Gate User Plane", plane)
+    obj.data.materials.append(material)
+    scene.collection.objects.link(obj)
+    user_group = bpy.data.node_groups.new("ALD Gate User Stack",
+                                          "CompositorNodeTree")
+    scene.compositing_node_group = user_group
+    scene.render.use_compositing = True
+    view_layer = scene.view_layers[0]
+    view_layer.use_pass_z = False
+    view_layer.use_pass_emit = False
+    view_layer.use_pass_normal = False
+    state = {
+        "world": world.name,
+        "bg_color": list(background.inputs["Color"].default_value),
+        "bg_strength": float(background.inputs["Strength"].default_value),
+        "sun_energy": float(sun_data.energy),
+        "sun_color": list(sun_data.color),
+        "sun_rotation": [float(value) for value in sun.rotation_euler],
+        "base_color": list(bsdf.inputs["Base Color"].default_value),
+        "emission": list(bsdf.inputs["Emission Color"].default_value),
+        "emission_strength": float(bsdf.inputs["Emission Strength"].default_value),
+        "stack": user_group.name,
+        "use_compositing": True,
+    }
+
+    # The add-on modifies the scene.
+    bpy.ops.ald.apply_palette()
+    bpy.ops.ald.build()
+    bpy.ops.ald.fx_fireworks(count=2, age=0.8)
+    check(snapshot.SNAPSHOT_KEY in scene,
+          "the state of the user was not saved before the modification")
+    check(scene.compositing_node_group is not user_group,
+          "the stack of the user was not replaced")
+
+    # The full removal restores everything.
+    bpy.ops.ald.remove_from_scene()
+    check(scene.world is not None and scene.world.name == state["world"],
+          "the world of the user was not restored")
+    background = next((node for node in scene.world.node_tree.nodes
+                        if node.bl_idname == "ShaderNodeBackground"), None)
+    check(background is not None, "the background node is missing")
+    if background is not None:
+        check(abs(background.inputs["Strength"].default_value
+                  - state["bg_strength"]) < 1e-4,
+              "the strength of the world was not restored")
+        check(all(abs(a - b) < 1e-4 for a, b in
+                  zip(background.inputs["Color"].default_value,
+                      state["bg_color"])),
+              "the colour of the world was not restored")
+    check(sun_data.energy == state["sun_energy"],
+          "the energy of the sun was not restored")
+    check(all(abs(a - b) < 1e-4 for a, b in
+              zip(sun_data.color, state["sun_color"])),
+          "the colour of the sun was not restored")
+    check(all(abs(a - b) < 1e-4 for a, b in
+              zip(sun.rotation_euler, state["sun_rotation"])),
+          "the rotation of the sun was not restored")
+    check(all(abs(a - b) < 1e-4 for a, b in
+              zip(bsdf.inputs["Base Color"].default_value,
+                  state["base_color"])),
+          "the base colour of the material was not restored")
+    check(all(abs(a - b) < 1e-4 for a, b in
+              zip(bsdf.inputs["Emission Color"].default_value,
+                  state["emission"])),
+          "the emission of the material was not restored")
+    check(abs(bsdf.inputs["Emission Strength"].default_value
+              - state["emission_strength"]) < 1e-4,
+          "the emission strength of the material was not restored")
+    check(scene.compositing_node_group is not None
+          and scene.compositing_node_group.name == state["stack"],
+          "the stack of the user was not restored")
+    check(not view_layer.use_pass_z and not view_layer.use_pass_emit,
+          "the render passes were not restored")
+    check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
+          "the FX objects were not removed")
+
+    # The cleanup of the test data.
+    bpy.data.objects.remove(obj, do_unlink=True)
+    bpy.data.meshes.remove(plane)
+    bpy.data.materials.remove(material)
+    bpy.data.objects.remove(sun, do_unlink=True)
+    bpy.data.lights.remove(sun_data)
+    bpy.data.node_groups.remove(user_group)
+    bpy.data.worlds.remove(world)
+
+
+
+def check_fx_event_continuity(scene):
+    """A complete firework: the launcher, the rise and the burst."""
+    from mathutils import Vector
+
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    fx_module.clear(scene)
+    fx_module.create_fireworks(scene, 1, seed=9, distance=60.0, time=0.0)
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    burst = registry["fireworks"]["bursts"][0]
+    population = burst["population"]
+    gravity = fx_module._gravity(scene)
+    launch = Vector(burst["launch"])
+    v0 = Vector(burst["shell_velocity"])
+    drag = float(burst["drag"])
+    rise = float(burst["rise_time"])
+    target = Vector(burst["target"])
+    residual = Vector(burst["residual"])
+
+    # The shell reaches the burst point at the end of the rise.
+    at_burst = fx_module._rise_position(launch, v0, drag, gravity, rise)
+    check((at_burst - target).length < 1e-3,
+          "the shell does not reach the burst point (%.4f m)"
+          % (at_burst - target).length)
+    # The stars are born exactly at the burst point.
+    head = population["heads"][0]
+    check((Vector(head["pos0"]) - target).length < 1e-6,
+          "the stars are not born at the burst point")
+    check(abs(head["birth"] - (burst["birth"] + rise)) < 1e-6,
+          "the stars are not born at the end of the rise")
+    # The stars inherit the residual velocity of the shell.
+    spread = Vector(head["vel"]) - residual
+    check(spread.length > 0.5,
+          "the stars do not inherit the velocity of the shell")
+    # The shell is visible during the rise and gone at the burst.
+    scene.frame_set(2)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    shell_obj = bpy.data.objects.get("ALD FX GN Shell 0")
+    check(shell_obj is not None, "the rising shell is missing")
+    if shell_obj is not None:
+        instances = fx_nodes.realized_instances(shell_obj, depsgraph)
+        check(instances and instances[0][1] > 1e-4,
+              "the shell is not visible during the rise")
+    scene.frame_set(2 + int(rise * 24) + 4)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    if shell_obj is not None:
+        instances = fx_nodes.realized_instances(shell_obj, depsgraph)
+        check(instances and instances[0][1] < 1e-4,
+              "the shell is still visible after the burst")
+    # The stars are alive at the burst and the event is reproducible.
+    scene.frame_set(2 + int(rise * 24) + 1)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    heads = bpy.data.objects.get("ALD FX GN Heads 0")
+    check(heads is not None, "the burst heads are missing")
+    if heads is not None:
+        instances = fx_nodes.realized_instances(heads, depsgraph)
+        check(instances and instances[0][1] > 1e-4,
+              "the stars are not alive at the burst")
+        first = [center for center, _radius in instances]
+        scene.frame_set(60)
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        again = fx_nodes.realized_centers(heads, depsgraph)
+        scene.frame_set(2 + int(rise * 24) + 1)
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        back = fx_nodes.realized_centers(heads, depsgraph)
+        check(len(again) == len(back)
+              and all((a - b).length < 1e-5
+                      for a, b in zip(first, back)),
+              "the event is not reproducible after a frame jump")
+    fx_module.clear(scene)
+    scene.frame_set(previous_frame)
+
+
+
+def check_fx_bolide(scene):
+    """The Hero Meteor preset is bigger and its train lasts longer."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import fx_nodes
+
+    previous_frame = scene.frame_current
+    fx_module.clear(scene)
+    fx_module.create_meteors(scene, 2, seed=21, distance=40.0, time=0.6)
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    normal = registry["meteors"]
+    normal_population = normal["populations"][0]
+    normal_radius = normal_population["head"]["radius"]
+    normal_life = normal_population["head"]["life"]
+    normal_train = normal_population["train"][0]["trail"]
+    normal_fragments = len(normal_population["fragments"])
+    fx_module.clear(scene)
+
+    fx_module.create_meteors(scene, 2, seed=21, distance=40.0, time=0.6,
+                             kind="BOLIDE")
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    bolide = registry["meteors"]
+    population = bolide["populations"][0]
+    check(bolide.get("preset") == "BOLIDE",
+          "the bolide preset is not recorded")
+    check(population["head"]["radius"] > normal_radius * 2.0,
+          "the bolide is not bigger than a meteor")
+    check(population["head"]["life"] > normal_life,
+          "the bolide does not live longer than a meteor")
+    check(population["train"][0]["trail"] > normal_train * 2.0,
+          "the train of the bolide is not longer")
+    check(len(population["fragments"]) > normal_fragments,
+          "the bolide does not leave more fragments")
+    # The train of the bolide persists after the head is gone.
+    head_life = population["head"]["life"]
+    train_life = population["train"][0]["life"]
+    check(train_life > head_life,
+          "the train of the bolide does not outlive the head")
+    # The velocities stay almost parallel: the radiant emerges.
+    directions = []
+    for item in bolide["populations"]:
+        velocity = item["head"]["vel"]
+        if velocity.length > 1e-6:
+            directions.append(velocity.normalized())
+    if len(directions) > 1:
+        worst = min((first - second).length
+                    for index, first in enumerate(directions)
+                    for second in directions[index + 1:])
+        check(worst < 0.2,
+              "the meteors of the shower are not parallel (%.3f)" % worst)
+    fx_module.clear(scene)
+    scene.frame_set(previous_frame)
+
+
+
+def check_fx_foreign_emission(scene):
+    """An emissive surface that is not ALD must not enter the FX mask."""
+    from anime_look_director import fx as fx_module
+
+    previous_frame = scene.frame_current
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_engine = scene.render.engine
+    path = os.path.join(tempfile.getdir() if False else tempfile.gettempdir(),
+                        "ald_gate_sign.png")
+    # A bright sign, far from the bursts: it is not an ALD object.
+    sign_material = bpy.data.materials.new("ALD Gate Sign")
+    sign_material.use_nodes = True
+    bsdf = sign_material.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = (0.0, 0.0, 0.0, 1.0)
+    if "Emission Color" in bsdf.inputs:
+        bsdf.inputs["Emission Color"].default_value = (4.0, 1.0, 0.2, 1.0)
+        bsdf.inputs["Emission Strength"].default_value = 1.0
+    sign_mesh = bpy.data.meshes.new("ALD Gate Sign")
+    sign_mesh.from_pydata([(-4, -4, 0), (4, -4, 0), (4, 4, 0), (-4, 4, 0)],
+                           [], [(0, 1, 2, 3)])
+    sign_mesh.update()
+    sign = bpy.data.objects.new("ALD Gate Sign", sign_mesh)
+    sign.data.materials.append(sign_material)
+    sign.location = (0.0, -14.0, 1.0)
+    scene.collection.objects.link(sign)
+
+    def render_sign():
+        scene.render.engine = "BLENDER_EEVEE"
+        scene.render.resolution_x = 64
+        scene.render.resolution_y = 64
+        scene.render.resolution_percentage = 100
+        scene.render.filepath = path
+        bpy.ops.render.render(write_still=True)
+        image = bpy.data.images.load(path)
+        pixels = list(image.pixels)
+        width, height = image.size
+        index = ((height // 2) * width + (width // 2)) * 4
+        value = (round(pixels[index], 4), round(pixels[index + 1], 4),
+                 round(pixels[index + 2], 4))
+        bpy.data.images.remove(image)
+        return value
+
+    try:
+        fx_module.clear(scene)
+        bpy.ops.ald.build()
+        scene.frame_set(12)
+        without = render_sign()
+        # The same scene with the bursts: the sign must not change.
+        bpy.ops.ald.fx_fireworks(count=2, age=0.8)
+        scene.frame_set(12)
+        with_fx = render_sign()
+        worst = max(abs(a - b) for a, b in zip(without, with_fx))
+        check(worst < 0.05,
+              "the foreign emissive surface enters the FX mask: %s against %s"
+              % (without, with_fx))
+    finally:
+        fx_module.clear(scene)
+        bpy.data.objects.remove(sign, do_unlink=True)
+        bpy.data.meshes.remove(sign_mesh)
+        bpy.data.materials.remove(sign_material)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        scene.render.engine = previous_engine
+        scene.frame_set(previous_frame)
+
+def check_scene_actions(scene):
+    """Bypass, complete removal and detach keep the scene under control."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import snapshot
+
+    # Bypass: the add-on stops touching the scene.
+    scene.ald.bypass = True
+    check(snapshot.is_inactive(scene), "the bypass does not stop the add-on")
+    scene.ald.bypass = False
+    check(not snapshot.is_inactive(scene), "the bypass is still active")
+
+    # Detach: the look is kept, the systems are removed.
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    check([obj for obj in bpy.data.objects if obj.get("ald_fx")],
+          "no FX object to detach")
+    bpy.ops.ald.detach()
+    check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
+          "the detach left the FX objects in the scene")
+    check(scene.ald.detached, "the detach did not mark the scene")
+    check(snapshot.is_inactive(scene),
+          "the detached scene is still managed by the add-on")
+    scene.ald.detached = False
+
+    # Complete removal: the scene comes back to the registered state.
+    fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
+    check(snapshot.SNAPSHOT_KEY in scene,
+          "the state of the user was not saved")
+    bpy.ops.ald.remove_from_scene()
+    check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
+          "the removal left the FX objects in the scene")
+    check(not [coll for coll in bpy.data.collections
+               if coll.get("ald_fx_owner") == fx_module._scene_id(scene)],
+          "the removal left the collection of the add-on")
+    check(snapshot.SNAPSHOT_KEY not in scene,
+          "the removal left the snapshot in the scene")
+    check(not scene.ald.detached and not scene.ald.bypass,
+          "the removal left the scene detached")
+    orphans = [mat for mat in bpy.data.materials
+               if mat.get("ald_fx_material") and mat.users == 0]
+    check(not orphans, "the removal left %d orphan materials" % len(orphans))
+
+
 def main():
     enable_addon()
     check_versions()
@@ -2923,6 +2971,8 @@ def main():
         scene = bpy.context.scene
         check_fx_scene_duplicate(scene)
         check_fx_gn_schema(scene)
+        # The reversibility check restores the scene: it runs last.
+        check_scene_actions(scene)
         # The reversibility check restores the scene: it runs last.
         check_fx_reversibility(scene)
     finally:

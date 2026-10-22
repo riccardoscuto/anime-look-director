@@ -17,16 +17,28 @@ SNAPSHOT_KEY = "ald_snapshot"
 MAINTENANCE_KEY = "ald_maintenance"
 
 #: The internal properties of the add-on, removed after a successful restore.
+#: The identity of the scene is not one of them: the scene keeps it.
 INTERNAL_KEYS = (
     "ald_last_palette", "ald_effective_palette", "ald_effective_source",
     "ald_world_bg_color", "ald_world_bg_strength", "ald_fx_config",
-    "ald_shadow_materials", "ald_fx_id", "ald_maintenance",
+    "ald_shadow_materials", "ald_maintenance",
 )
 
 
 def is_maintenance(scene):
     """True while the add-on restores the scene: the handlers stay quiet."""
     return bool(scene.get(MAINTENANCE_KEY))
+
+
+def is_inactive(scene):
+    """True when the add-on must not touch the scene any more."""
+    if is_maintenance(scene):
+        return True
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return False
+    return bool(getattr(settings, "bypass", False)
+                or getattr(settings, "detached", False))
 
 
 def _world_state(scene):
@@ -189,29 +201,82 @@ def _restore_view_layer(scene, states):
         view_layer.use_pass_combined = bool(state.get("use_pass_combined", True))
 
 
+def detach(scene):
+    """Keep the current result but stop managing the scene.
+
+    The world, the materials, the lights and the compositor stay as they are:
+    only the live systems (the FX objects), the markers and the internal
+    properties are removed, and the add-on is told to leave the scene alone.
+    """
+    from . import fx, materials
+
+    fx.clear(scene)
+    materials.clear_scene(scene)
+    for marker in list(scene.timeline_markers):
+        if marker.name.startswith("ALD"):
+            scene.timeline_markers.remove(marker)
+    for key in INTERNAL_KEYS:
+        if key in scene:
+            del scene[key]
+    settings = getattr(scene, "ald", None)
+    if settings is not None:
+        settings.detached = True
+    return True
+
+
+def _remove_orphans(scene, owner=None):
+    """Remove the datablocks of the add-on that nothing uses any more."""
+    from . import fx
+
+    if owner is None:
+        owner = fx._scene_id(scene)
+    for coll in list(bpy.data.collections):
+        if coll.get(fx.OWNER_KEY) == owner:
+            bpy.data.collections.remove(coll)
+    for mat in list(bpy.data.materials):
+        if mat.get("ald_fx_material") and mat.users == 0:
+            bpy.data.materials.remove(mat)
+    for group in list(bpy.data.node_groups):
+        if group.get("ald_fx") and group.users == 0:
+            bpy.data.node_groups.remove(group)
+
+
 def restore(scene):
-    """Restore the state saved before the first ALD modification."""
+    """Restore the state saved before the first ALD modification.
+
+    The removal always happens: when the original state is not available
+    (an old scene, a direct call without a palette) the conservative clean up
+    is done and the limit is reported.
+    """
     from . import fx, materials
 
     state = snapshot(scene)
-    if not state:
-        return False
+    owner = fx._scene_id(scene)
     scene[MAINTENANCE_KEY] = True
     try:
         # The FX systems and the objects they own.
         fx.clear(scene)
         # The materials: the original base colour and emission come back.
         materials.clear_scene(scene)
-        _restore_world(scene, state.get("world", {}))
-        _restore_sun(scene, state.get("sun", {}))
-        _restore_compositor(scene, state.get("compositor", {}))
-        _restore_view_layer(scene, state.get("view_layer", []))
-        # The internal properties are removed only after a successful restore.
+        if state:
+            _restore_world(scene, state.get("world", {}))
+            _restore_sun(scene, state.get("sun", {}))
+            _restore_compositor(scene, state.get("compositor", {}))
+            _restore_view_layer(scene, state.get("view_layer", []))
+        # The internal properties are removed only after the restore.
         for key in INTERNAL_KEYS:
             if key in scene:
                 del scene[key]
         if SNAPSHOT_KEY in scene:
             del scene[SNAPSHOT_KEY]
+        for marker in list(scene.timeline_markers):
+            if marker.name.startswith("ALD"):
+                scene.timeline_markers.remove(marker)
+        _remove_orphans(scene, owner)
+        settings = getattr(scene, "ald", None)
+        if settings is not None:
+            settings.detached = False
+            settings.bypass = False
     finally:
         scene[MAINTENANCE_KEY] = False
-    return True
+    return bool(state)

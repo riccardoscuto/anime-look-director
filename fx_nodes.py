@@ -283,6 +283,7 @@ def _create_burst_group():
         ("Atmospheric Fade", "NodeSocketFloat", 0.0),
         ("Role Energy", "NodeSocketFloat", 1.0),
     ))
+    ng["ald_fx"] = True
     nodes = ng.nodes
     links = ng.links
 
@@ -451,6 +452,7 @@ def _create_trail_group():
         ("Radius", "NodeSocketFloat", 0.02),
         ("Fade Window", "NodeSocketFloat", 0.0),
     ))
+    ng["ald_fx"] = True
     nodes = ng.nodes
     links = ng.links
 

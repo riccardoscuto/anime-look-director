@@ -44,7 +44,7 @@ def _in_maintenance(context):
     try:
         from . import snapshot
         scene = getattr(context, "scene", None)
-        return scene is not None and snapshot.is_maintenance(scene)
+        return scene is not None and snapshot.is_inactive(scene)
     except Exception:
         return False
 
@@ -628,6 +628,14 @@ class ALD_Settings(bpy.types.PropertyGroup):
     fx_schema: IntProperty(
         name="Schema", default=FX_SCHEMA, min=0,
         description="Version of the persistent FX layout")
+    bypass: BoolProperty(
+        name="Bypass", default=False,
+        description="The add-on stops touching the scene: the current look is "
+                    "kept and nothing is updated any more")
+    detached: BoolProperty(
+        name="Detached", default=False,
+        description="The look was kept but the add-on does not manage it any "
+                    "more")
     fx_uid: StringProperty(
         name="Scene UID", default="",
         description="Stable identity of the scene for the FX ownership")

@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.22.0 - 2026-10-22
+The three actions on the scene are separated and the FX are visible at once.
+
+### Added
+- The three actions of the plan on the scene itself, in a "Scene" section of
+  both surfaces:
+  - **Bypass**: the add-on stops touching the scene, the look is kept;
+  - **Remove ALD from Scene**: the complete removal, the scene comes back to
+    the state registered before the first modification;
+  - **Detach and Keep Result**: the look is kept but the add-on stops
+    managing it (the FX objects, the markers and the internal properties are
+    removed, the world, the materials and the compositor stay).
+- The creation of the FX puts the 3D viewport in the camera view with the
+  rendered shading: the bursts are visible at once instead of an empty sky in
+  the solid mode.
+- The gate verifies the three actions and the removal of the collection, of
+  the orphan materials and of the node groups.
+
+### Fixed
+- The panel used the icon `EVENT`, which does not exist in Blender 5.1: the
+  whole FX panel broke at draw time. The gate now validates the icons against
+  the real list of the layout (1017 icons) instead of a curated one.
+- "Remove ALD from Scene" did nothing when the original state was not
+  registered (an old scene, a direct call without a palette): the removal now
+  always happens and the limit is reported, as the plan requires.
+- The removal of the internal properties changed the identity of the scene
+  before the ownership was resolved, so the collection of the add-on survived.
+
 ## 2.21.0 - 2026-10-22
 The two surfaces are now exactly the same.
 

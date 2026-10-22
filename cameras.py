@@ -81,6 +81,9 @@ def update_transforms(scene, force=False):
 
 @persistent
 def _on_depsgraph(scene, depsgraph=None):
+    from . import snapshot
+    if snapshot.is_inactive(scene):
+        return
     try:
         camera = scene.camera
         name = camera.name if camera is not None else ""

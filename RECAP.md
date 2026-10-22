@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.21.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.22.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -320,4 +320,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.20.0** - Milestone del piano: un singolo fuoco d'artificio completo e reversibile, il launcher visibile e la Definition of Done verificata da `preset_dev/milestone.py` (13/13).
 - **2.20.1** - Le meteore legacy seguono il backend, i controlli legacy compaiono solo in Legacy World e la sezione FX è in cima nella sidebar.
 - **2.21.0** - La sidebar View3D e le Scene properties espongono esattamente gli stessi controlli, con la stessa struttura.
+- **2.22.0** - Le tre azioni sulla scena (Bypass, Remove ALD from Scene, Detach e Keep Result), i FX sono visibili subito dopo la creazione e le icone dei pannelli sono validate sull'elenco reale.
 

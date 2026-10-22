@@ -46,6 +46,9 @@ def apply_for_frame(scene, force=False):
 
 @persistent
 def _on_frame_change(scene, *_args):
+    from . import snapshot
+    if snapshot.is_inactive(scene):
+        return
     try:
         apply_for_frame(scene)
     except Exception:

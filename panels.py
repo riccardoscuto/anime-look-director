@@ -366,17 +366,40 @@ def draw_fx_advanced(layout, context):
     col.label(text="UID %s" % (s.fx_uid or "-"))
 
 
+def draw_scene_actions(layout, context):
+    """The three actions of the plan on the scene itself.
+
+    Bypass: the add-on stops touching the scene, the look is kept.
+    Remove ALD from Scene: the complete removal, the scene comes back to the
+    state registered before the first modification.
+    Detach and Keep Result: the look is kept but the add-on stops managing it.
+    """
+    scene = context.scene
+    s = scene.ald
+    box = layout.box()
+    box.label(text="Scene", icon="SCENE")
+    col = box.column(align=True)
+    col.prop(s, "bypass", toggle=True)
+    col.operator("ald.remove_from_scene", icon="TRASH")
+    col.operator("ald.detach", icon="UNLINKED")
+    if s.bypass:
+        box.label(text="Bypassed: the scene is not touched", icon="INFO")
+    if s.detached:
+        box.label(text="Detached: the look is kept", icon="INFO")
+
+
 def draw_fx_actions(layout, context):
     """The FX actions."""
     box = layout.box()
-    box.label(text="Actions", icon="EVENT")
+    box.label(text="Actions", icon="PLAY")
     col = box.column(align=True)
     col.operator("ald.fx_fireworks", icon="LIGHT")
     col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
     col.operator("ald.fx_bolide", icon="TRIA_RIGHT_BAR")
     col.operator("ald.fx_update", icon="FILE_REFRESH")
     col.operator("ald.fx_clear", icon="TRASH")
-    col.operator("ald.remove_from_scene", icon="LOOP_BACK")
+    box.label(text="The FX are 3D objects: use the rendered viewport "
+                    "(Z > Rendered) or render the frame", icon="INFO")
 
 
 def draw_fx(layout, context):
@@ -388,6 +411,7 @@ def draw_fx(layout, context):
     draw_fx_look(layout, context)
     draw_fx_advanced(layout, context)
     draw_fx_actions(layout, context)
+    draw_scene_actions(layout, context)
 
 
 def draw_all(layout, context):

@@ -233,6 +233,23 @@ def _scene_time(scene):
     return (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
 
 
+def _show_in_viewport(context):
+    """Show the FX in the viewport: the camera view and the rendered shading.
+
+    The FX are real objects: in the solid mode they are invisible.
+    """
+    scene = context.scene
+    for window in context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type != "VIEW_3D":
+                continue
+            space = area.spaces.active
+            if space.region_3d is not None and scene.camera is not None:
+                space.region_3d.view_perspective = "CAMERA"
+            space.shading.type = "RENDERED"
+            area.tag_redraw()
+
+
 class ALD_OT_fx_fireworks(bpy.types.Operator):
     bl_idname = "ald.fx_fireworks"
     bl_label = "Create Fireworks"
@@ -263,6 +280,7 @@ class ALD_OT_fx_fireworks(bpy.types.Operator):
             "kind": "fireworks", "count": self.count, "seed": self.seed,
             "distance": self.distance, "family": self.family, "age": self.age,
         }
+        _show_in_viewport(context)
         self.report({"INFO"}, "Anime Look Director: %d fireworks created" %
                     count)
         return {"FINISHED"}
@@ -293,6 +311,7 @@ class ALD_OT_fx_meteors(bpy.types.Operator):
             "kind": "meteors", "count": self.count, "seed": self.seed,
             "distance": self.distance, "age": self.age,
         }
+        _show_in_viewport(context)
         self.report({"INFO"}, "Anime Look Director: %d shooting stars created" %
                     count)
         return {"FINISHED"}
@@ -309,13 +328,31 @@ class ALD_OT_remove_from_scene(bpy.types.Operator):
     def execute(self, context):
         from . import snapshot
         scene = context.scene
-        if not snapshot.snapshot(scene):
+        restored = snapshot.restore(scene)
+        if restored:
+            self.report({"INFO"},
+                        "Anime Look Director: the scene was restored")
+        else:
             self.report({"WARNING"},
-                        "Anime Look Director: no saved state to restore")
-            return {"CANCELLED"}
-        snapshot.restore(scene)
+                        "Anime Look Director: the FX were removed but the "
+                        "original state was not registered, the world, the "
+                        "materials and the compositor were kept")
+        return {"FINISHED"}
+
+
+class ALD_OT_detach(bpy.types.Operator):
+    bl_idname = "ald.detach"
+    bl_label = "Detach and Keep Result"
+    bl_description = ("Keep the current look but stop managing the scene: the "
+                     "FX objects, the markers and the internal properties are "
+                     "removed, the world, the materials and the compositor stay")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import snapshot
+        snapshot.detach(context.scene)
         self.report({"INFO"},
-                    "Anime Look Director: the scene was restored")
+                    "Anime Look Director: the look was kept and detached")
         return {"FINISHED"}
 
 
@@ -437,6 +474,7 @@ class ALD_OT_fx_bolide(bpy.types.Operator):
             "kind": "meteors", "count": self.count, "seed": self.seed,
             "distance": self.distance, "age": self.age, "preset": "BOLIDE",
         }
+        _show_in_viewport(context)
         self.report({"INFO"},
                     "Anime Look Director: %d bolides created" % count)
         return {"FINISHED"}
@@ -445,7 +483,8 @@ class ALD_OT_fx_bolide(bpy.types.Operator):
 class ALD_OT_fx_update(bpy.types.Operator):
     bl_idname = "ald.fx_update"
     bl_label = "Update FX"
-    bl_description = "Re-evaluate the FX system at the current frame"
+    bl_description = ("Rebuild the FX systems: a moved launcher or a new "
+                     "setting is applied to the shot")
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
@@ -458,7 +497,16 @@ class ALD_OT_fx_update(bpy.types.Operator):
         age = float(getattr(scene.ald, "fx_age", config.get("age", 0.8)))
         time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
         time += age
-        fx.update(scene, time)
+        if config.get("kind") == "meteors":
+            fx.create_meteors(scene, config.get("count", 4),
+                              config.get("seed", 21),
+                              config.get("distance", 140.0), time,
+                              kind=config.get("preset", "METEOR"))
+        else:
+            fx.create_fireworks(scene, config.get("count", 3),
+                                config.get("seed", 7),
+                                config.get("distance", 110.0), time,
+                                family=config.get("family", "CHRYSANTHEMUM"))
         return {"FINISHED"}
 
 
@@ -502,7 +550,8 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_fx_update,
             ALD_OT_fx_clear, ALD_OT_fx_clear_kind, ALD_OT_fx_select_system,
             ALD_OT_fx_select_event, ALD_OT_fx_duplicate_system,
-            ALD_OT_fx_remove_system, ALD_OT_remove_from_scene)
+            ALD_OT_fx_remove_system, ALD_OT_remove_from_scene,
+            ALD_OT_detach)
 
 
 def register():
