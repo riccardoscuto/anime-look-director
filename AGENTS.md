@@ -214,6 +214,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   spread, the composition offset and the Geometry Nodes toggle rebuild, they
   change the geometry itself. The gate checks that the slider moves the burst
   and keeps the objects and the attributes untouched.
+- UI 2.11.1 rules: `preset_dev/ui_probe.py` reproduces the UI verification in
+  a fresh Blender (it enables the add-on, creates the FX systems, maximises
+  the Scene properties and writes the screenshots). The window must be on
+  screen, a minimized window produces a black capture.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

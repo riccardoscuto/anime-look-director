@@ -880,3 +880,12 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   rebuild path (`_on_fx_rebuild`): they change the geometry itself.
 - The gate verifies that the slider moves the burst, keeps the same objects
   and the same attributes.
+### v2.11.1 notes (the UI probe is a repository tool)
+- `preset_dev/ui_probe.py` reproduces the UI verification: it enables the
+  add-on in a fresh Blender, creates the FX systems, maximises the Scene
+  properties with `bpy.ops.screen.screen_full_area` and writes the
+  screenshots of the properties and of the sidebar.
+- The window must be on screen: restore a minimized window with
+  `ShowWindow(hwnd, 9)` and move it with `MoveWindow`, otherwise the capture
+  is black. The `--wait` argument leaves the time to scroll the properties
+  with the mouse wheel before the capture.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.11.1 - 2026-10-22
+### Added
+- `preset_dev/ui_probe.py`: the UI verification is now a tool of the
+  repository. It opens a fresh Blender, enables the add-on, creates the FX
+  systems and writes the screenshots of the sidebar panel and of the Scene
+  properties (Anime Look Director, World & Shadows, Compositor Stack and FX
+  Particles). The `--wait` argument gives the time to scroll the properties
+  before the capture.
+
 ## 2.11.0 - 2026-10-22
 ### Changed
 - The Burst Age slider no longer rebuilds the FX system: it writes the age
