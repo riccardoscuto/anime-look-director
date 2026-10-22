@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.27.0 - 2026-10-22
+Critical bug fix in the FX Python writer plus completion of the T24 visual
+profile acceptance test.
+
+### Fixed
+- `_update_meteors` crashed with `'NoneType' object has no attribute 'data'`
+  because the non-GN path of `_build_meteors` stores trail/head/fragment
+  objects per-event (in `system["events"]`) but `_update_meteors` tried to
+  read them from `system["trail"]`, `system["heads"]`, `system["fragments"]`
+  which were always None. The updater now iterates over `system["events"]`
+  and uses each event's own objects.
+
+### Added
+- Gate test T24 (Sunset/night, three FX profiles): renders Firework, Meteor
+  and Bolide at fixed exposure and Standard view transform, verifying each
+  profile is visible without diffuse clipping.
+
 ## 2.26.0 - 2026-10-22
 The ALD Sky/FX Anchor is completed with an explicit terrain object and the
 camera/terrain conflict check now reads the real ground mesh.

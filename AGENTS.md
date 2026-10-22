@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.26.0**).
+  (currently **2.27.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -418,6 +418,14 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     controls to create and inspect it in both surfaces;
   - The conflict warning (T15) reads the ground object's world matrix when a
     terrain mesh is assigned, falling back to the numeric elevation.
+- 2.27 rules:
+  - `_update_meteors` iterates over `system["events"]` and uses each event's
+    own objects (trail/head/fragment), instead of reading `system["trail"]`,
+    `system["heads"]`, `system["fragments"]` which are always None in the
+    non-GN path. Prevents `'NoneType' object has no attribute 'data'` crash;
+  - Gate test T24 (Sunset/night, three FX profiles): renders Firework,
+    Meteor and Bolide at fixed exposure with Standard view transform,
+    verifying each profile is visible without diffuse clipping.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

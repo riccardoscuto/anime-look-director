@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 26, 0)
+EXPECTED_VERSION = (2, 27, 0)
 TOLERANCE = 1e-4
 
 
@@ -2795,6 +2795,126 @@ def check_fx_failed_build(scene):
     fx_module.clear(scene, kind="fireworks")
 
 
+def check_fx_visual_profiles(scene):
+    """T24: Sunset/night, three FX profiles.
+
+    The three profiles (Firework, Meteor, Bolide) must be readable at a fixed
+    exposure: no diffuse clipping, no unintentional flicker. The render uses
+    the Standard view transform with exposure 0 so the measurement is on the
+    linear result.
+    """
+    from anime_look_director import fx as fx_module
+
+    previous_engine = scene.render.engine
+    previous_vt = scene.view_settings.view_transform
+    previous_exp = float(scene.view_settings.exposure)
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+
+    try:
+        scene.render.engine = "BLENDER_EEVEE"
+        scene.render.resolution_x = 64
+        scene.render.resolution_y = 64
+        scene.render.resolution_percentage = 100
+        scene.view_settings.view_transform = "Standard"
+        scene.view_settings.exposure = 0.0
+
+        # Ensure a camera exists and is active.
+        if scene.camera is None:
+            cam_data = bpy.data.cameras.new("T24 Cam")
+            cam = bpy.data.objects.new("T24 Cam", cam_data)
+            scene.collection.objects.link(cam)
+            cam.location = (0.0, -10.0, 0.0)
+            cam.rotation_euler = (0.0, 0.0, 0.0)
+            scene.camera = cam
+        scene.camera.data.lens = 50.0
+        scene.camera.data.clip_start = 0.1
+        scene.camera.data.clip_end = 1000.0
+
+        scene.frame_set(30)
+        bpy.context.view_layer.update()
+
+        # Use the Python backend for the visual-profile test so the mesh
+        # vertices are authored directly (no GN re-evaluation needed).
+        scene.ald.fx_gn_prototype = False
+
+        import os
+        import tempfile
+        path = os.path.join(tempfile.gettempdir(), "ald_gate_t24.png")
+
+        profiles = {
+            "Firework": ("CHRYSANTHEMUM", 0, 10.0),
+            "Meteor": ("WILLOW", 1, 15.0),
+            "Bolide": ("WILLOW", 2, 15.0),
+        }
+        import traceback
+        for name, (family, slot, dist) in profiles.items():
+            fx_module.clear(scene)
+            # Ensure a valid camera exists after clear() (it may unlink objects).
+            cam_valid = (
+                scene.camera is not None
+                and scene.camera.data is not None
+                and scene.camera.name in bpy.data.objects
+            )
+            if not cam_valid:
+                cam_data = bpy.data.cameras.new("T24 Cam")
+                cam = bpy.data.objects.new("T24 Cam", cam_data)
+                scene.collection.objects.link(cam)
+                cam.location = (0.0, -10.0, 0.0)
+                cam.rotation_euler = (0.0, 0.0, 0.0)
+                scene.camera = cam
+                bpy.context.view_layer.camera = scene.camera
+            try:
+                if name == "Firework":
+                    fx_module.create_fireworks(scene, 1, seed=13,
+                                               distance=dist, time=0.0,
+                                               family=family)
+                elif name == "Meteor":
+                    fx_module.create_meteors(scene, 1, seed=21,
+                                             distance=dist, time=0.6,
+                                             kind="METEOR")
+                else:
+                    fx_module.create_meteors(scene, 1, seed=33,
+                                             distance=dist, time=0.6,
+                                             kind="BOLIDE")
+            except Exception as exc:
+                traceback.print_exc()
+                check(False, "%s creation failed: %s" % (name, exc))
+                continue
+
+            scene.render.filepath = path
+            bpy.ops.render.render(write_still=True)
+            image = bpy.data.images.load(path)
+            pixels = list(image.pixels)
+            width, height = image.size
+            # Sample the whole image for the brightest pixel.
+            max_rgb = 0.0
+            for py in range(0, height, 2):
+                for px in range(0, width, 2):
+                    index = ((height - 1 - py) * width + px) * 4
+                    r = pixels[index]
+                    g = pixels[index + 1]
+                    b = pixels[index + 2]
+                    if r > max_rgb:
+                        max_rgb = r
+                    if g > max_rgb:
+                        max_rgb = g
+                    if b > max_rgb:
+                        max_rgb = b
+            bpy.data.images.remove(image)
+            # Readable: some emission present, not fully clipped white.
+            check(max_rgb > 0.05,
+                  "%s profile is invisible (max rgb %.4f)" % (name, max_rgb))
+            check(max_rgb < 1.9,
+                  "%s profile clips diffusely (max rgb %.4f)" % (name, max_rgb))
+        fx_module.clear(scene)
+        fx_module.clear(scene)
+    finally:
+        scene.render.engine = previous_engine
+        scene.view_settings.view_transform = previous_vt
+        scene.view_settings.exposure = previous_exp
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+
+
 def check_fx_ui_screenshots(scene):
     """T28: Screenshots of both UI surfaces must show the same controls."""
     from anime_look_director import panels
@@ -3139,10 +3259,11 @@ def main():
         check_scene_actions(scene)
         # The reversibility check restores the scene: it runs last.
         check_fx_reversibility(scene)
-        # Fase 6 (T25-T28): migration, undo/redo, failed build, UI screenshots.
+        # Fase 6 (T24-T28): visual profiles, migration, undo/redo, failed build, UI screenshots.
         check_fx_migration(scene)
         check_fx_undo_redo(scene)
         check_fx_failed_build(scene)
+        check_fx_visual_profiles(scene)
         check_fx_ui_screenshots(scene)
     finally:
         try:

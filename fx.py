@@ -1646,44 +1646,46 @@ def _update_meteors(system, time):
         # The node group evaluates the meteors: no Python work per frame.
         return
     origin = system["origin"]
-    populations = system["populations"]
-    trail_data = system["trail"].data
-    head_centers = []
-    head_radii = []
-    head_energies = []
-    fragment_centers = []
-    fragment_radii = []
-    fragment_energies = []
-    for index, population in enumerate(populations):
+    for entry in system["events"]:
+        population = entry["population"]
         head = population["head"]
         position, scale, energy, alive = _particle_state(head, time)
         if not alive:
             position = origin + Vector((0.0, 0.0, 1000.0))
             scale = 0.0001
-        head_centers.append(position)
-        head_radii.append(scale)
-        head_energies.append(energy)
-        spline = trail_data.splines[index]
-        for step, particle in enumerate(population["train"]):
-            point, _scale, _energy, sample_alive = _particle_state(particle,
-                                                                   time)
-            if not sample_alive:
-                point = origin + Vector((0.0, 0.0, 1000.0))
-            spline.points[step].co = (point.x, point.y, point.z, 1.0)
-            spline.points[step].radius = particle["radius"]
+        # Update the head mesh for this event.
+        if entry["heads"] is not None:
+            _write_particle_mesh(entry["heads"].data, entry["head_ranges"],
+                                 [position], [scale], [energy])
+        # Update the trail curve for this event.
+        if entry["trail"] is not None:
+            trail_data = entry["trail"].data
+            spline = trail_data.splines[0]
+            for step, particle in enumerate(population["train"]):
+                point, _scale, _energy, sample_alive = _particle_state(
+                    particle, time)
+                if not sample_alive:
+                    point = origin + Vector((0.0, 0.0, 1000.0))
+                spline.points[step].co = (point.x, point.y, point.z, 1.0)
+                spline.points[step].radius = particle["radius"]
+        # Update the fragment mesh for this event.
+        fragment_centers = []
+        fragment_radii = []
+        fragment_energies = []
         for particle in population["fragments"]:
-            point, scale, energy, fragment_alive = _particle_state(particle,
-                                                                    time)
+            point, scale, energy, fragment_alive = _particle_state(
+                particle, time)
             if not fragment_alive:
                 point = origin + Vector((0.0, 0.0, 1000.0))
                 scale = 0.0001
             fragment_centers.append(point)
             fragment_radii.append(scale)
             fragment_energies.append(energy)
-    _write_particle_mesh(system["heads"].data, system["head_ranges"],
-                         head_centers, head_radii, head_energies)
-    _write_particle_mesh(system["fragments"].data, system["fragment_ranges"],
-                         fragment_centers, fragment_radii, fragment_energies)
+        if entry["fragments"] is not None:
+            _write_particle_mesh(entry["fragments"].data,
+                                 entry["fragment_ranges"],
+                                 fragment_centers, fragment_radii,
+                                 fragment_energies)
 
 
 # ---------------------------------------------------------------------------

@@ -260,7 +260,8 @@ def build_report():
                           ("Foreign emission", "check_fx_foreign_emission"),
                           ("Occlusion", "check_fx_occlusion"),
                           ("GN migration", "check_fx_gn_schema"),
-                          ("UI parity", "check_ui_parity")):
+                          ("UI parity", "check_ui_parity"),
+                          ("Visual profiles T24", "check_fx_visual_profiles")):
         item("12", "The test matrix: %s" % label, needle in verify, needle)
 
     # 13. the documentation

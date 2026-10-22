@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.26.0)
+## What it does (v2.27.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -203,7 +203,12 @@ Expected output: `ALD GATE: PASS`.
   (migration, undo/redo, failed build, UI screenshots)
 - v2.26.0 - completes the ALD Sky/FX Anchor with an explicit terrain object:
   the conflict warning reads the ground mesh world matrix when assigned,
-  falling back to the numeric elevation (current)
+  falling back to the numeric elevation
+- v2.27.0 - critical bug fix in the FX Python writer: `_update_meteors`
+  crashed with `'NoneType' object has no attribute 'data'` because the
+  non-GN path stores trail/head/fragment objects per-event but the updater
+  read them from the wrong place. Gate test T24 (three FX profiles at fixed
+  exposure) added (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

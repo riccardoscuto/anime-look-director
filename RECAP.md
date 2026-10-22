@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.26.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.27.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -325,4 +325,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.24.0** - L'isolamento FX nel compositor è corretto: la DIFFERENCE algebraicamente non valida è sostituita da `C = (1-A)*Painted_B + F + Glare(F)` con layer base e layer FX-only; pannello diagnostico per evento; fisica corretta (gravità ovunque, derivata della velocità, eredità dei figli, traino del meteorita, clamp età negativa) e orologio reale per sistema.
 - **2.25.0** - Risolto il crash `Writing to ID classes` durante il draw dei pannelli, aggiunto l'ALD Sky/FX Anchor (asse verticale, quota terreno, scala unità), l'avviso di conflitto camera-sotto-terreno (T15) e i test di accettazione T25-T28 (migrazione schema, undo/redo, build fallita, screenshot UI).
 - **2.26.0** - Completa l'ALD Sky/FX Anchor con l'oggetto terreno esplicito: l'avviso di conflitto legge la world matrix della mesh del terreno quando assegnata, altrimenti ricade sulla quota numerica.
+- **2.27.0** - Fix critico nello scrittore Python dei FX: `_update_meteors` crashava con `'NoneType' object has no attribute 'data'` perché il percorso non-GN salva trail/testa/fragmenti per evento ma l'aggiornatore li leggeva dal posto sbagliato. Aggiunto il test di accettazione T24 (tre profili FX a esposizione fissa).
 
