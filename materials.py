@@ -655,6 +655,9 @@ def remove_material(mat):
 
 
 def sync_scene(scene, tint, strength, distance):
+    from . import snapshot
+    # The state of the user is saved before the first modification.
+    snapshot.ensure(scene)
     settings = getattr(scene, "ald", None)
     look = _look(scene, settings)
     count = 0

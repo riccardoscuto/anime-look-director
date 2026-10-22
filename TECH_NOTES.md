@@ -1126,3 +1126,28 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The FX are real objects with a material: in the solid mode they are
   invisible. The creation of the FX now puts the 3D viewport in the camera
   view with the rendered shading.
+
+### v2.22.1 notes (the reload and the plan audit)
+- `register_class(...): already registered as a subclass 'ALD_FX_Event'` was
+  raised when Blender reloaded the add-on. Blender does it automatically when
+  the files change on disk while the add-on is enabled: the package is
+  reloaded, but the sub modules keep their registered classes, and the second
+  registration of the same PropertyGroup raises.
+- The registration is now idempotent (`properties.register_classes`): the
+  classes are unregistered in the reverse order first (a class that
+  references another one, like `ALD_FX_System` with its CollectionProperty of
+  `ALD_FX_Event`, must be released before the one it points to) and the
+  pointer `Scene.ald` is removed before the settings class is unregistered
+  (a pointer property holds a reference to its class: the unregister fails
+  with "missing bl_rna attribute" otherwise).
+- `cameras._transform_state` used the raw `matrix_world`: it can be stale
+  right after a move and it ignores the constraints. The evaluated matrix
+  (`obj.evaluated_get(depsgraph).matrix_world`) is used now, like the FX
+  already did in `fx._camera_basis`.
+- `preset_dev/audit_plan.py` audits the operational plan in the source: the
+  eight invariants, the phases P0 to P3, the file map, the test matrix, the
+  documentation and the Definition of Done. The result is 69/70: the only
+  open item is the optional atmospheric smoke ("solo se davvero necessario").
+- The gate gained two checks: the occlusion of the burst with the motion
+  blur on, and the real travel of the meteors across the screen (not only
+  the alignment of the velocities).

@@ -364,6 +364,19 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     not exist breaks the whole panel at draw time;
   - the FX are 3D objects: the creation puts the viewport in the camera view
     with the rendered shading, otherwise they are invisible in the solid mode.
+- 2.22.1 rules:
+  - the registration is **idempotent**: `properties.register_classes`
+    unregisters the classes in the reverse order and registers them again, so
+    a reload of Blender (it happens automatically when the files change on
+    disk) does not raise "already registered as a subclass";
+  - the pointer property `Scene.ald` is removed **before** the settings class
+    is unregistered: a pointer holds a reference to its class and the
+    unregister fails with "missing bl_rna attribute" otherwise;
+  - the camera and the sun of `cameras._transform_state` use the **evaluated**
+    matrix (`evaluated_get(depsgraph).matrix_world`): the raw `matrix_world`
+    can be stale and it ignores the constraints;
+  - `preset_dev/audit_plan.py` audits the operational plan requirement by
+    requirement: 69/70, the only open item is the optional atmospheric smoke.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

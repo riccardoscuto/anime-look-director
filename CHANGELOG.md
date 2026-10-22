@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.22.1 - 2026-10-22
+The add-on survives a reload of Blender, and the compliance with the
+operational plan is now a script that can be run at any time.
+
+### Fixed
+- `register_class(...): already registered as a subclass 'ALD_FX_Event'` when
+  Blender reloaded the add-on (it happens automatically when the files change
+  on disk while the add-on is enabled): the registration is now idempotent.
+  The classes are unregistered in the reverse order before being registered
+  again, and the pointer on the scene is removed first, otherwise the settings
+  class cannot be released.
+- The camera and the sun of the transform state used the raw `matrix_world`:
+  a stale matrix (or a missing constraint) was sent to the world, to the
+  materials and to the God Rays. The evaluated matrix is used now.
+
+### Added
+- `preset_dev/audit_plan.py`: the audit of the operational plan, requirement
+  by requirement (the eight invariants, the phases P0 to P3, the file map, the
+  test matrix, the documentation and the Definition of Done). It prints
+  `ALD PLAN AUDIT 69/70`: the only open item is the optional atmospheric
+  smoke, that the plan asks to build only when it is really necessary.
+- The gate checks the occlusion of the burst with the motion blur on: the
+  particles stay behind the geometry.
+- The gate checks that the meteors really cross the screen, not only that they
+  are not aligned with the line of sight.
+
 ## 2.22.0 - 2026-10-22
 The three actions on the scene are separated and the FX are visible at once.
 

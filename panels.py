@@ -551,10 +551,11 @@ _classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor, ALD_PT_fx,
 
 
 def register():
-    for cls in _classes:
-        bpy.utils.register_class(cls)
+    from .properties import register_classes
+    register_classes(_classes)
 
 
 def unregister():
+    from .properties import unregister_class
     for cls in reversed(_classes):
-        bpy.utils.unregister_class(cls)
+        unregister_class(cls)

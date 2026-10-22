@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 22, 0)
+EXPECTED_VERSION = (2, 22, 1)
 TOLERANCE = 1e-4
 
 
@@ -1445,6 +1445,12 @@ def check_fx_occlusion(scene):
         scene.render.resolution_x = 64
         scene.render.resolution_y = 64
         scene.render.resolution_percentage = 100
+        # The motion blur must not break the occlusion.
+        try:
+            scene.render.use_motion_blur = True
+            scene.render.motion_blur_shutter = 0.5
+        except Exception:
+            pass
         scene.render.filepath = path
         bpy.ops.render.render(write_still=True)
         if os.path.exists(path):
@@ -1460,6 +1466,10 @@ def check_fx_occlusion(scene):
                   % (red, green, blue))
             bpy.data.images.remove(image)
     finally:
+        try:
+            scene.render.use_motion_blur = False
+        except Exception:
+            pass
         for obj, state in hidden:
             obj.hide_render = state
         bpy.data.objects.remove(occluder, do_unlink=True)
@@ -2178,27 +2188,6 @@ def check_fx_meteor_timing(scene):
     scene.frame_set(previous_frame)
 
 
-def check_fx_meteor_travel(scene):
-    """With no gravity a meteor must cross the screen."""
-    from anime_look_director import fx as fx_module
-
-    previous_frame = scene.frame_current
-    fx_module.clear(scene)
-    fx_module.create_meteors(scene, 3, seed=21, distance=40.0, time=0.0)
-    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
-    system = registry["meteors"]
-    shower = system["shower"]
-    forward = system["origin"]
-    check(abs(shower.dot(_forward_of(scene))) < 0.9,
-          "the shower direction is aligned with the line of sight")
-    # The trajectory of a meteor must move laterally on the screen.
-    right = _right_of(scene)
-    check(abs(shower.dot(right)) > 0.5,
-          "the meteors do not cross the screen")
-    fx_module.clear(scene)
-    scene.frame_set(previous_frame)
-
-
 def _forward_of(scene):
     from anime_look_director import fx as fx_module
     return fx_module._camera_basis(scene)[1]
@@ -2909,6 +2898,35 @@ def check_scene_actions(scene):
     check(not orphans, "the removal left %d orphan materials" % len(orphans))
 
 
+def check_fx_meteor_travel(scene):
+    """A meteor must cross the screen, not move along the line of sight."""
+    from anime_look_director import fx as fx_module
+
+    previous_frame = scene.frame_current
+    fx_module.clear(scene)
+    fx_module.create_meteors(scene, 3, seed=21, distance=40.0, time=0.0)
+    registry = fx_module.SYSTEMS[fx_module._scene_id(scene)]
+    system = registry["meteors"]
+    origin, forward, up, right = fx_module._camera_basis(scene)
+    # The movement is mostly lateral: the meteor crosses the frame.
+    for population in system["populations"]:
+        velocity = population["head"]["vel"]
+        lateral = abs(velocity.dot(right))
+        check(lateral > 0.4 * velocity.length,
+              "the meteor does not cross the screen: %s" % velocity)
+    # And the position really moves across the frame.
+    moved = 0.0
+    for population in system["populations"]:
+        start = population["head"]["pos0"]
+        velocity = population["head"]["vel"]
+        end = start + velocity * 0.5
+        moved = max(moved, abs((end - start).dot(right)))
+    check(moved > 5.0, "the meteor barely moves across the frame (%.2f m)"
+          % moved)
+    fx_module.clear(scene)
+    scene.frame_set(previous_frame)
+
+
 def main():
     enable_addon()
     check_versions()
@@ -2938,6 +2956,7 @@ def main():
         check_fx_event_continuity(scene)
         check_fx_bolide(scene)
         check_fx_foreign_emission(scene)
+        check_fx_meteor_travel(scene)
         check_fx_solver_stability(scene)
         check_fx_camera_evaluated(scene)
         check_world_time_seconds(scene)

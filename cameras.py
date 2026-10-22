@@ -46,6 +46,19 @@ _last_camera = {}
 _last_transforms = {}
 
 
+def _evaluated_matrix(obj):
+    """The evaluated world matrix: the constraints and the parents included.
+
+    The raw matrix can be stale right after a change and it ignores the
+    constraints of the camera and of the sun.
+    """
+    try:
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        return obj.evaluated_get(depsgraph).matrix_world
+    except Exception:
+        return obj.matrix_world
+
+
 def _transform_state(scene):
     sun = next((o for o in scene.objects
                 if o.type == "LIGHT" and o.data is not None
@@ -53,11 +66,11 @@ def _transform_state(scene):
     camera = scene.camera
     sun_key = None
     if sun is not None and sun.data is not None:
-        matrix = sun.matrix_world
+        matrix = _evaluated_matrix(sun)
         sun_key = (tuple(matrix.col[2][:3]), tuple(sun.data.color))
     cam_key = None
     if camera is not None and camera.data is not None:
-        matrix = camera.matrix_world
+        matrix = _evaluated_matrix(camera)
         data = camera.data
         cam_key = (tuple(matrix.col[2][:3]), tuple(matrix.translation),
                    float(data.lens), float(data.shift_x), float(data.shift_y),
@@ -112,7 +125,8 @@ def _on_load_post(*_args):
 
 
 def register():
-    bpy.utils.register_class(ALD_CameraSettings)
+    from .properties import register_classes, remove_property
+    register_classes((ALD_CameraSettings,))
     bpy.types.Camera.ald = PointerProperty(type=ALD_CameraSettings)
     _last_camera.clear()
     _last_transforms.clear()
@@ -123,11 +137,12 @@ def register():
 
 
 def unregister():
+    from .properties import unregister_class, remove_property
     if _on_depsgraph in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(_on_depsgraph)
     if _on_load_post in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(_on_load_post)
     _last_camera.clear()
     _last_transforms.clear()
-    del bpy.types.Camera.ald
-    bpy.utils.unregister_class(ALD_CameraSettings)
+    remove_property(bpy.types.Camera, "ald")
+    unregister_class(ALD_CameraSettings)

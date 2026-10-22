@@ -555,10 +555,11 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
 
 
 def register():
-    for cls in _classes:
-        bpy.utils.register_class(cls)
+    from .properties import register_classes
+    register_classes(_classes)
 
 
 def unregister():
+    from .properties import unregister_class
     for cls in reversed(_classes):
-        bpy.utils.unregister_class(cls)
+        unregister_class(cls)

@@ -49,6 +49,56 @@ def _in_maintenance(context):
         return False
 
 
+def register_class(cls):
+    """Register a class, tolerating a registration that already exists.
+
+    Blender reloads an add-on when its files change on disk: the sub modules
+    keep their registered classes and the second registration would raise
+    "already registered as a subclass".
+    """
+    try:
+        bpy.utils.register_class(cls)
+    except RuntimeError as exc:
+        if "already registered" not in str(exc):
+            raise
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            pass
+        bpy.utils.register_class(cls)
+
+
+def register_classes(classes):
+    """Register a list of classes, tolerating a previous registration.
+
+    Blender reloads an add-on when its files change on disk: the sub modules
+    keep their registered classes and the second registration would raise
+    "already registered as a subclass". The classes are unregistered in the
+    reverse order first, so a class that references another one (a
+    CollectionProperty of a PropertyGroup) is always released before it.
+    """
+    for cls in reversed(list(classes)):
+        unregister_class(cls)
+    for cls in classes:
+        register_class(cls)
+
+
+def unregister_class(cls):
+    """Unregister a class, ignoring the ones that are not registered."""
+    try:
+        bpy.utils.unregister_class(cls)
+    except RuntimeError:
+        pass
+
+
+def remove_property(owner, name):
+    """Remove a pointer property, ignoring the ones that are not there."""
+    try:
+        delattr(owner, name)
+    except (AttributeError, TypeError):
+        pass
+
+
 def _on_world(self, context):
     try:
         from . import look, palette
@@ -814,12 +864,14 @@ _classes = (ALD_FX_Event, ALD_FX_System, ALD_Settings)
 
 
 def register():
-    for cls in _classes:
-        bpy.utils.register_class(cls)
+    # The pointer on the scene holds a reference to the settings class: it is
+    # removed first, otherwise the class cannot be unregistered.
+    remove_property(bpy.types.Scene, "ald")
+    register_classes(_classes)
     bpy.types.Scene.ald = PointerProperty(type=ALD_Settings)
 
 
 def unregister():
-    del bpy.types.Scene.ald
+    remove_property(bpy.types.Scene, "ald")
     for cls in reversed(_classes):
-        bpy.utils.unregister_class(cls)
+        unregister_class(cls)
