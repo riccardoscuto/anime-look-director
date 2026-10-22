@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.10.1 - 2026-10-22
+### Added
+- `preset_dev/lookdev_families.py`: renders Chrysanthemum, Peony and Willow
+  with the same palette, the same camera and the same seed, so the families
+  can be compared by shape alone (acceptance condition of the phase 5 of the
+  technical guide), with a contact sheet and the recorded metadata.
+
 ## 2.10.0 - 2026-10-22
 ### Fixed
 - Opening a new file no longer leaves a stale FX system in the panel: the FX

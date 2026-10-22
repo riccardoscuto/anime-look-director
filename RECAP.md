@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.10.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.10.1** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -306,4 +306,5 @@ material presets, idempotenza, multi-scena, render EEVEE e coerenza versione
 - **2.9.1** - Limite senza drag nel gruppo di nodi e i test obbligatori della guida ancora mancanti nel gate (salto di frame, 24/30/60 fps, limiti matematici, figlie che sopravvivono alla testa, occlusione).
 - **2.9.2** - Render di confronto FX con metadati registrati (`preset_dev/lookdev_fx.py`), correzione dell'elenco dei sistemi nel pannello e verifica UI con screenshot reali.
 - **2.10.0** - Le cache vengono invalidate all'apertura di un nuovo file (handler `load_post`) e l'handler dei frame salta i sistemi valutati dai nodi.
+- **2.10.1** - Render di confronto delle famiglie (Chrysanthemum, Peony, Willow) con stessa palette e seed: sono distinguibili per forma.
 

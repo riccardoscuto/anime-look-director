@@ -204,6 +204,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   persistent `load_post` handler clears the FX registry and the camera and
   transform caches on every file load. The frame handler must skip the
   systems evaluated by the node group.
+- FX 2.10.1 rules: `preset_dev/lookdev_families.py` renders the three
+  families with the same palette, camera and seed: they must stay readable
+  by shape alone (dense sphere with trails, short dashes, few long drooping
+  trails).
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

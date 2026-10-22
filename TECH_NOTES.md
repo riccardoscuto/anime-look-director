@@ -861,3 +861,10 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   the FX can still be built.
 - The frame handler skips the systems evaluated by the node group: in the
   Geometry Nodes path it never touches a vertex.
+### v2.10.1 notes (family comparison)
+- `preset_dev/lookdev_families.py` renders the three families with the same
+  palette, camera, seed and frame: the Chrysanthemum is a dense sphere with
+  long trails and a visible pistil, the Peony is a set of short bright dashes
+  (high drag, no trail), the Willow has few spokes with long drooping trails
+  (low drag, long life). The families are readable without the colours, the
+  acceptance condition of the phase 5 of the guide.
