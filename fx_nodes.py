@@ -91,7 +91,8 @@ BURST_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
                           "age_offset": "Socket_4", "min_scale": "Socket_5",
                           "decay_power": "Socket_6", "energy_power": "Socket_7",
                           "camera_position": "Socket_8",
-                          "atmospheric_fade": "Socket_9"}
+                          "atmospheric_fade": "Socket_9",
+                          "role_energy": "Socket_10"}
 TRAIL_SOCKET_DEFAULTS = {"geometry": "Socket_0", "gravity": "Socket_1",
                           "material": "Socket_2", "trail": "Socket_3",
                           "age_offset": "Socket_4", "radius": "Socket_5",
@@ -280,6 +281,7 @@ def _create_burst_group():
         ("Energy Power", "NodeSocketFloat", 1.0),
         ("Camera Position", "NodeSocketVector", None),
         ("Atmospheric Fade", "NodeSocketFloat", 0.0),
+        ("Role Energy", "NodeSocketFloat", 1.0),
     ))
     nodes = ng.nodes
     links = ng.links
@@ -291,6 +293,7 @@ def _create_burst_group():
 
     motion = _motion(nodes, links, group_in)
     rad = _attribute(nodes, links, "radius", "FLOAT", (-1700, -760))
+    tau_attr = _attribute(nodes, links, "tau", "FLOAT", (-1700, -860))
     use_decay = _attribute(nodes, links, "use_decay", "FLOAT", (-1700, -1060))
 
     alive_a = _math(nodes, links, "GREATER_THAN", motion["sample_age"], None,
@@ -377,20 +380,49 @@ def _create_burst_group():
                         (1040, -1120))
     energy_final = _math(nodes, links, "MULTIPLY", energy.outputs[0],
                          fade_factor.outputs[0], (1200, -960))
+    # The role scales the emission: a filament is less energetic than a spark.
+    role_energy = _math(nodes, links, "MULTIPLY", energy_final.outputs[0],
+                         group_in.outputs["Role Energy"], (1360, -960))
     store = nodes.new("GeometryNodeStoreNamedAttribute")
     store.location = (620, -200)
     store.data_type = "FLOAT"
     store.domain = "POINT"
     store.inputs["Name"].default_value = "energy"
     links.new(set_pos.outputs["Geometry"], store.inputs["Geometry"])
-    links.new(energy_final.outputs[0], store.inputs["Value"])
+    links.new(role_energy.outputs[0], store.inputs["Value"])
+
+    # The material contract: age_norm and trail_u describe the state of the
+    # particle along its life and along its trail.
+    age_store = nodes.new("GeometryNodeStoreNamedAttribute")
+    age_store.location = (620, -60)
+    age_store.data_type = "FLOAT"
+    age_store.domain = "POINT"
+    age_store.inputs["Name"].default_value = "age_norm"
+    links.new(store.outputs["Geometry"], age_store.inputs["Geometry"])
+    links.new(head_frac_clamped.outputs[0], age_store.inputs["Value"])
+
+    trail_ratio = _math(nodes, links, "DIVIDE", tau_attr.outputs["Attribute"],
+                        group_in.outputs["Trail"], (240, -1200))
+    trail_profile = _math(nodes, links, "SUBTRACT", None,
+                          trail_ratio.outputs[0], (400, -1200))
+    trail_profile.inputs[0].default_value = 1.0
+    trail_clamped = _math(nodes, links, "MAXIMUM", trail_profile.outputs[0], None,
+                          (560, -1200))
+    trail_clamped.inputs[1].default_value = 0.0
+    trail_store = nodes.new("GeometryNodeStoreNamedAttribute")
+    trail_store.location = (620, -340)
+    trail_store.data_type = "FLOAT"
+    trail_store.domain = "POINT"
+    trail_store.inputs["Name"].default_value = "trail_u"
+    links.new(age_store.outputs["Geometry"], trail_store.inputs["Geometry"])
+    links.new(trail_clamped.outputs[0], trail_store.inputs["Value"])
 
     scale_alive = _vector(nodes, links, "SCALE", scale_vec.outputs["Vector"],
                           None, (560, -800), scale=alive_decay.outputs[0])
 
     instance = nodes.new("GeometryNodeInstanceOnPoints")
     instance.location = (740, -200)
-    links.new(store.outputs["Geometry"], instance.inputs["Points"])
+    links.new(trail_store.outputs["Geometry"], instance.inputs["Points"])
     links.new(ico.outputs["Mesh"], instance.inputs["Instance"])
     links.new(scale_alive.outputs["Vector"], instance.inputs["Scale"])
 
@@ -516,7 +548,7 @@ def _create_trail_group():
 def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
                           age_offset=0.0, min_scale=0.35, decay_power=1.0,
                           energy_power=1.0, camera_position=None,
-                          atmospheric_fade=0.0):
+                          atmospheric_fade=0.0, role_energy=1.0):
     """Add the burst modifier to a points object and set its inputs."""
     modifier = obj.modifiers.new("ALD FX Burst", "NODES")
     modifier.node_group = group
@@ -530,6 +562,7 @@ def attach_burst_modifier(obj, group, sockets, gravity, material, trail=0.0,
     modifier[sockets["camera_position"]] = tuple(camera_position or
                                                  (0.0, 0.0, 0.0))
     modifier[sockets["atmospheric_fade"]] = float(atmospheric_fade)
+    modifier[sockets["role_energy"]] = float(role_energy)
     return modifier
 
 

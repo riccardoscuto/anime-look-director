@@ -3,6 +3,8 @@
 import bpy
 from bpy.app.handlers import persistent
 
+from .fx import FX_PASS_INDEX
+
 GROUP_NAME = "ALD | Compositor Stack"
 SCENE_TAG = "ald_scene"
 
@@ -600,6 +602,30 @@ def _glare_color(scene, settings, palette_module, key):
     return palette_module.glare_tint(key)
 
 
+FX_LAYER_NAME = "ALD FX"
+
+
+def ensure_fx_layer(scene):
+    """Create the view layer that isolates the FX from the rest of the scene.
+
+    The layer excludes the collection of the add-on, so its emission pass
+    holds only the other emissive surfaces of the scene. The difference
+    between the two layers is exactly the contribution of the FX.
+    """
+    layer = scene.view_layers.get(FX_LAYER_NAME)
+    if layer is None:
+        layer = scene.view_layers.new(FX_LAYER_NAME)
+    layer.use_pass_emit = True
+    layer.use_pass_z = True
+    if scene.view_layers[0] is not layer:
+        scene.view_layers[0].use = True
+    # The collection of the add-on is excluded from the FX layer.
+    for child in layer.layer_collection.children:
+        if child.collection.get("ald_fx_owner"):
+            child.exclude = True
+    return layer
+
+
 def build(scene):
     """Create or refresh the stack and assign it to the scene."""
     settings = getattr(scene, "ald", None)
@@ -608,9 +634,11 @@ def build(scene):
 
     for layer in scene.view_layers:
         layer.use_pass_z = True
-        # The emission pass isolates the 3D FX (fireworks, meteors) from the
-        # painted sky so the painterly filters never smear their cores.
+        # The emission pass carries the energy of the FX and the object index
+        # pass isolates them exactly, so the painterly filters never smear
+        # their cores and the other emissive surfaces never enter the mask.
         layer.use_pass_emit = True
+        layer.use_pass_object_index = True
         if settings.ink_lines:
             layer.use_pass_normal = True
 
@@ -638,6 +666,49 @@ def build(scene):
     current = rl.outputs["Image"]
     depth = rl.outputs.get("Depth")
     emission = rl.outputs.get("Emission")
+
+
+    # The FX mask: the objects of the add-on are excluded from a dedicated
+    # view layer, so the difference between the two emission passes is
+    # exactly their contribution. The other emissive surfaces of the scene
+    # never enter the mask.
+    fx_mask = None
+    fx_contribution = None
+    if emission is not None:
+        fx_layer = ensure_fx_layer(scene)
+        rl_fx = nodes.new("CompositorNodeRLayers")
+        rl_fx.scene = scene
+        rl_fx.layer = fx_layer.name
+        rl_fx.location = (-1500, -320)
+        other_emission = rl_fx.outputs.get("Emission")
+        if other_emission is not None:
+            contribution = nodes.new("ShaderNodeMix")
+            contribution.location = (-1000, -260)
+            contribution.name = "ALD | FX Contribution"
+            contribution.data_type = "RGBA"
+            contribution.blend_type = "DIFFERENCE"
+            a_sock, b_sock, contribution_sock = _mix_sockets(contribution)
+            links.new(emission, a_sock)
+            links.new(other_emission, b_sock)
+            contribution.inputs["Factor"].default_value = 1.0
+            fx_contribution = contribution_sock
+            mask = nodes.new("CompositorNodeRGBToBW")
+            mask.location = (-800, -260)
+            mask.name = "ALD | FX Mask"
+            links.new(fx_contribution, mask.inputs[0])
+            fx_mask = mask.outputs[0]
+            # The painterly filters receive a base without the FX: they never
+            # drag the colour of a core in the neighbouring pixels.
+            punch = nodes.new("ShaderNodeMix")
+            punch.location = (-600, -120)
+            punch.name = "ALD | FX Punch Out"
+            punch.data_type = "RGBA"
+            punch.blend_type = "DIFFERENCE"
+            a_sock, b_sock, punch_sock = _mix_sockets(punch)
+            links.new(fx_contribution, a_sock)
+            links.new(current, b_sock)
+            punch.inputs["Factor"].default_value = 1.0
+            current = punch_sock
 
     from . import palette as palette_module
     palette_key = scene.get("ald_effective_palette", settings.palette)
@@ -751,28 +822,22 @@ def build(scene):
         current = _ink_lines(nodes, links, current, rl, settings, clip_end,
                              geometry, ink_color)
 
-    # FX separation: the 3D particles are restored on top of the painted
-    # result, so Kuwahara, Ink and Haze never blur their cores, and they get
-    # their own glow instead of the sun-tinted atmospheric bloom.
-    if emission is not None:
-        bw = nodes.new("CompositorNodeRGBToBW")
-        bw.location = (560, 320)
-        bw.name = "ALD | FX Mask"
-        links.new(emission, bw.inputs[0])
-
+    # FX recomposition: the particles are added back on top of the painted
+    # result with their exact coverage and they get their own glow, once.
+    if fx_mask is not None:
         restore = nodes.new("ShaderNodeMix")
-        restore.location = (700, 240)
+        restore.location = (1000, 240)
         restore.name = NODE_FX_RESTORE
         restore.data_type = "RGBA"
-        restore.blend_type = "MIX"
+        restore.blend_type = "ADD"
         a_sock, b_sock, result_sock = _mix_sockets(restore)
         links.new(current, a_sock)
-        links.new(emission, b_sock)
-        links.new(bw.outputs[0], restore.inputs["Factor"])
+        links.new(fx_contribution, b_sock)
+        restore.inputs["Factor"].default_value = 1.0
         current = result_sock
 
         fx_glare = nodes.new("CompositorNodeGlare")
-        fx_glare.location = (560, 460)
+        fx_glare.location = (1000, 520)
         fx_glare.name = NODE_FX_GLOW
         fx_glare.inputs["Type"].default_value = "Bloom"
         fx_glare.inputs["Threshold"].default_value = getattr(
@@ -782,18 +847,18 @@ def build(scene):
         if "Size" in fx_glare.inputs:
             fx_glare.inputs["Size"].default_value = getattr(
                 settings, "fx_glow_size", 0.7)
-        links.new(emission, fx_glare.inputs["Image"])
+        links.new(fx_contribution, fx_glare.inputs["Image"])
         glare_out = fx_glare.outputs.get("Glare")
         if glare_out is None:
             glare_out = fx_glare.outputs["Image"]
-        fx_add = nodes.new("ShaderNodeMix")
-        fx_add.location = (780, 300)
-        fx_add.data_type = "RGBA"
-        fx_add.blend_type = "ADD"
-        a_sock, b_sock, result_sock = _mix_sockets(fx_add)
+        glow_add = nodes.new("ShaderNodeMix")
+        glow_add.location = (1180, 240)
+        glow_add.data_type = "RGBA"
+        glow_add.blend_type = "ADD"
+        a_sock, b_sock, result_sock = _mix_sockets(glow_add)
         links.new(current, a_sock)
         links.new(glare_out, b_sock)
-        fx_add.inputs["Factor"].default_value = 1.0
+        glow_add.inputs["Factor"].default_value = 1.0
         current = result_sock
 
     if settings.dispersion:

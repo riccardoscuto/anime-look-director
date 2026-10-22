@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.17.0)
+## What it does (v2.18.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -171,7 +171,10 @@ Expected output: `ALD GATE: PASS`.
 - v2.16.0 - phase P1-C: the firework is a complete event, from the launcher
   to the rising shell, the burst without discontinuity and the residuals
 - v2.17.0 - phase P1-D: the meteors are events and the Hero Meteor (Bolide)
-  has its own preset, bigger and with a long persistent train (current)
+  has its own preset, bigger and with a long persistent train
+- v2.18.0 - phase P2: the material contract of the particles (role, age_norm,
+  energy, trail_u, stable_noise, event_color) and the isolation of the FX
+  layer in the compositor (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

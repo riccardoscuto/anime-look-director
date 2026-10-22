@@ -297,6 +297,22 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     a separate feature;
   - the velocities of a shower stay almost parallel in the world space, the
     radiant emerges from their convergence and the meteors cross the screen.
+- UI 2.18 rules (phase P2 of the operational plan):
+  - the material contract of the particles: the points carry `role`,
+    `age_norm`, `energy`, `trail_u`, `stable_noise` and `event_color`; the
+    static ones are written by Python, the dynamic ones by the node group;
+  - `fx.ROLE_ENERGY` holds the visual profile of every role: the head is the
+    brightest, the filament is less energetic than the sparks, the embers
+    fade slowly, the flash is a very short impulse;
+  - the FX mask is never the emission pass alone: it contains the other
+    emissive surfaces of the scene. The dedicated view layer "ALD FX"
+    excludes the collection of the add-on, and the difference between the two
+    emission passes is exactly the contribution of the FX;
+  - the painterly filters receive a base without the FX (the punch out) and
+    the particles are recomposed with their exact coverage; the dedicated
+    glow is added once, on the FX only;
+  - the Object Index pass is not exposed by the Render Layers node of
+    Blender 5.1: the view layer difference is the reliable isolation.
 - Horizon Offset shifts `shifted_z = Z - 0.22 * Horizon Offset` for the ground,
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth

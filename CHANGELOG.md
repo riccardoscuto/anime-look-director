@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.18.0 - 2026-10-22
+Phase P2 of the operational plan: the material contract of the particles and
+the isolation of the FX layer in the compositor.
+
+### Added
+- The material contract of the plan: the points carry `role` (head, filament,
+  grain, ember, flash, shell, pistil, spark, meteor), `age_norm`, `energy`,
+  `trail_u`, `stable_noise` and `event_color`. The static ones are written by
+  Python, the dynamic ones by the node group.
+- The visual profile of every role (`fx.ROLE_ENERGY`): the head is the
+  brightest, the filament is thinner and less energetic than the sparks, the
+  embers fade slowly, the flash is a very short impulse.
+- The dedicated view layer "ALD FX": the collection of the add-on is excluded
+  from it, so the difference between the two emission passes is exactly the
+  contribution of the FX. The other emissive surfaces of the scene never
+  enter the mask.
+- The punch out: the painterly filters receive a base without the FX, then
+  the particles are recomposed with their exact coverage and the dedicated
+  glow is added once, on the FX only.
+- The FX Glow Threshold is exposed in the FX section.
+- The gate verifies the isolation: an emissive surface that is not ALD keeps
+  the same value with and without the bursts.
+
+### Changed
+- The mask of the FX is not the emission pass any more (it also contained the
+  other emissive surfaces of the scene) but the difference between the main
+  layer and the dedicated FX layer.
+- The cost of the isolation is one more view layer in the render.
+
 ## 2.17.0 - 2026-10-22
 Phase P1-D of the operational plan: the meteors are events and the Hero
 Meteor has its own preset.

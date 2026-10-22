@@ -320,6 +320,7 @@ def draw_fx_look(layout, context, compact=False):
     col.prop(s, "fx_glow_strength", text="FX Glow")
     if not compact:
         col.prop(s, "fx_glow_size", text="Glow Size")
+        col.prop(s, "fx_glow_threshold", text="Glow Threshold")
         col.prop(s, "fx_energy_head", text="Head Energy")
         col.prop(s, "fx_energy_grain", text="Grain Energy")
         col.prop(s, "fx_energy_ember", text="Ember Energy")

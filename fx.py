@@ -64,7 +64,28 @@ METEOR_PRESETS = {
                "fragments": 8, "drag": 0.05},
 }
 
+#: The material contract of the plan: the role of a particle, its code and
+#: the energy of the role relative to the head.
+ROLE_CODES = {
+    "head": 0, "filament": 1, "grain": 2, "ember": 3, "flash": 4, "smoke": 5,
+    "shell": 6, "shell_trail": 7, "pistil": 8, "pistil_grain": 9, "spark": 10,
+    "meteor_head": 11, "meteor_train": 12, "meteor_fragment": 13,
+}
+
+#: The visual profile of every role: the energy of the role relative to the
+#: head. A filament is thinner and less energetic than a spark.
+ROLE_ENERGY = {
+    "head": 1.0, "filament": 0.45, "grain": 0.8, "ember": 0.6, "flash": 1.0,
+    "smoke": 0.3, "shell": 0.9, "shell_trail": 0.5, "pistil": 1.0,
+    "pistil_grain": 0.8, "spark": 0.9, "meteor_head": 1.0,
+    "meteor_train": 0.55, "meteor_fragment": 0.6,
+}
+
 GRAVITY = Vector((0.0, 0.0, -9.81))
+#: The object index of the FX in the render: the compositor uses it to build
+#: an exact mask, so the other emissive surfaces of the scene never enter the
+#: FX layer.
+FX_PASS_INDEX = 12
 SAMPLES = 16
 SYSTEMS = {}
 #: Identity of the scene that owns each identifier: the first claim wins, a
@@ -232,10 +253,24 @@ def _fibonacci_direction(index, count, jitter, seed, burst):
     return Vector((math.cos(theta) * radius, math.sin(theta) * radius, z))
 
 
+def _stable_noise(index, particle):
+    """A deterministic per particle variation: never a per frame flicker."""
+    key = int(index) * 2654435761 % 1000003
+    return _hash_unit(0, 0, key, 17)
+
+
+def _event_color(particle):
+    """The colour of the event of a particle."""
+    color = particle.get("color")
+    if color is None:
+        return (1.0, 1.0, 1.0)
+    return tuple(color[:3])
+
+
 def _gn_points_object(scene, name, material, particles, trail=0.0,
                       age_offset=0.0, min_scale=0.35, decay_power=1.0,
                       energy_power=1.0, gravity=None, camera_position=None,
-                      atmospheric_fade=0.0):
+                      atmospheric_fade=0.0, role_energy=1.0):
     """Build a points object whose motion is evaluated by Geometry Nodes."""
     from . import fx_nodes
     count = len(particles)
@@ -250,11 +285,16 @@ def _gn_points_object(scene, name, material, particles, trail=0.0,
             ("radius", "FLOAT", [p["radius"] for p in particles]),
             ("tau", "FLOAT", [p["tau"] for p in particles]),
             ("use_decay", "FLOAT", [p["use_decay"] for p in particles]),
+            ("role", "INT", [ROLE_CODES.get(p["role"], 0) for p in particles]),
+            ("stable_noise", "FLOAT",
+             [_stable_noise(index, p) for index, p in enumerate(particles)]),
+            ("event_color", "FLOAT_VECTOR",
+             [tuple(_event_color(p)) for p in particles]),
             ("vel", "FLOAT_VECTOR", [p["vel"] for p in particles]),
             ("pos0", "FLOAT_VECTOR", [p["pos0"] for p in particles]),
             ("jitter", "FLOAT_VECTOR", [p["jitter"] for p in particles])):
         attribute = mesh.attributes.new(attr_name, attr_type, "POINT")
-        if attr_type == "FLOAT":
+        if attr_type in ("FLOAT", "INT"):
             attribute.data.foreach_set("value", values)
         else:
             flat = []
@@ -263,6 +303,7 @@ def _gn_points_object(scene, name, material, particles, trail=0.0,
             attribute.data.foreach_set("vector", flat)
     obj = bpy.data.objects.new(name, mesh)
     obj["ald_fx"] = True
+    obj.pass_index = FX_PASS_INDEX
     _collection(scene).objects.link(obj)
     group, sockets = fx_nodes.build_burst_group()
     fx_nodes.attach_burst_modifier(obj, group, sockets,
@@ -273,7 +314,8 @@ def _gn_points_object(scene, name, material, particles, trail=0.0,
                                    decay_power=decay_power,
                                    energy_power=energy_power,
                                    camera_position=camera_position,
-                                   atmospheric_fade=atmospheric_fade)
+                                   atmospheric_fade=atmospheric_fade,
+                                   role_energy=role_energy)
     return obj
 
 
@@ -289,7 +331,7 @@ def _gn_star_data(seed, index, config, spoke, spoke_count):
 
 def _particle(birth, life, drag, radius, vel, pos0, tau=0.0, jitter=None,
               use_decay=1.0, min_scale=0.35, decay_power=1.0, energy_power=1.0,
-              role="head", spoke=0, trail=0.0):
+              role="head", spoke=0, trail=0.0, color=None):
     """One deterministic particle: the data shared by both backends."""
     return {
         "birth": float(birth), "life": float(life), "drag": float(drag),
@@ -298,7 +340,7 @@ def _particle(birth, life, drag, radius, vel, pos0, tau=0.0, jitter=None,
         "use_decay": float(use_decay), "min_scale": float(min_scale),
         "decay_power": float(decay_power),
         "energy_power": float(energy_power), "role": role, "spoke": int(spoke),
-        "trail": float(trail),
+        "trail": float(trail), "color": tuple(color) if color else None,
     }
 
 
@@ -317,7 +359,7 @@ def shell_population(launch, v0, drag, birth, rise_time, size_scale):
 
 
 def burst_population(seed, index, config, birth, center, size_scale,
-                     spoke_count, shell_velocity=None):
+                     spoke_count, shell_velocity=None, colors=None):
     """Deterministic initial conditions of one burst.
 
     The same data feeds the Geometry Nodes attributes and the Python writer:
@@ -325,6 +367,7 @@ def burst_population(seed, index, config, birth, center, size_scale,
     velocity of the rising shell: the stars inherit its momentum, so the burst
     continues the motion of the shell without a discontinuity.
     """
+    palette = colors or ((1.0, 1.0, 1.0),) * 3
     inherit = Vector(shell_velocity) if shell_velocity is not None \
         else Vector((0.0, 0.0, 0.0))
     heads = []
@@ -333,9 +376,10 @@ def burst_population(seed, index, config, birth, center, size_scale,
     for spoke in range(spoke_count):
         life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
         v0 = v0 + inherit
+        slot = spoke % 3
         heads.append(_particle(birth, life, config["drag"],
                                0.13 * size_scale, v0, center, role="head",
-                               spoke=spoke))
+                               spoke=spoke, color=palette[0]))
         for step in range(SAMPLES):
             profile = step / (SAMPLES - 1.0)
             tau = config["trail"] * (1.0 - profile)
@@ -353,12 +397,12 @@ def burst_population(seed, index, config, birth, center, size_scale,
                 birth, life, config["drag"],
                 0.05 * size_scale * (0.25 + 0.75 * profile) * grain, v0, center,
                 tau=tau, jitter=jitter, use_decay=0.0, role="grain",
-                spoke=spoke, trail=config["trail"]))
+                spoke=spoke, trail=config["trail"], color=palette[slot]))
             trail.append(_particle(
                 birth, life, config["drag"],
                 0.25 + 0.9 * profile ** 1.4, v0, center, tau=tau,
                 use_decay=0.0, role="filament", spoke=spoke,
-                trail=config["trail"]))
+                trail=config["trail"], color=palette[slot]))
 
     pistil = []
     pistil_grains = []
@@ -374,14 +418,15 @@ def burst_population(seed, index, config, birth, center, size_scale,
         v0 = v0 + inherit
         drag = config["drag"] * 1.2
         pistil.append(_particle(birth, life, drag, 0.10 * size_scale, v0, center,
-                                role="pistil"))
+                                role="pistil", color=palette[1]))
         for step in range(SAMPLES):
             profile = step / (SAMPLES - 1.0)
             pistil_grains.append(_particle(
                 birth, life, drag,
                 0.028 * size_scale * (0.25 + 0.75 * profile), v0, center,
                 tau=config["trail"] * 0.6 * (1.0 - profile), use_decay=0.0,
-                role="pistil_grain", trail=config["trail"] * 0.6))
+                role="pistil_grain", trail=config["trail"] * 0.6,
+                color=palette[1]))
 
     sparks = []
     for spoke in range(spoke_count):
@@ -403,11 +448,11 @@ def burst_population(seed, index, config, birth, center, size_scale,
             sparks.append(_particle(
                 birth + emit, child_life, 2.4, 0.045 * size_scale,
                 parent_vel * 0.35 + perturb, parent_pos, min_scale=0.0,
-                role="spark"))
+                role="spark", color=palette[2]))
 
     flash = [_particle(birth, config["core"], 100.0, 0.25 * size_scale,
                         Vector((0.0, 0.0, 0.0)), center, min_scale=0.0,
-                        decay_power=0.5, role="flash")]
+                        decay_power=0.5, role="flash", color=palette[1])]
     return {"heads": heads, "grains": grains, "trail": trail,
             "pistil": pistil, "pistil_grains": pistil_grains,
             "sparks": sparks, "flash": flash}
@@ -418,9 +463,13 @@ def _energy_powers(scene):
     settings = getattr(scene, "ald", None)
     if settings is None:
         return {}
-    return {"head": float(settings.fx_energy_head),
-            "grain": float(settings.fx_energy_grain),
-            "ember": float(settings.fx_energy_ember)}
+    head = float(settings.fx_energy_head)
+    grain = float(settings.fx_energy_grain)
+    ember = float(settings.fx_energy_ember)
+    return {"head": head, "pistil": head, "flash": head, "shell": head,
+            "meteor_head": head, "filament": grain, "grain": grain,
+            "pistil_grain": grain, "shell_trail": grain, "meteor_train": grain,
+            "ember": ember, "spark": ember, "meteor_fragment": ember}
 
 
 def _atmospheric_fade(scene):
@@ -457,6 +506,7 @@ def _particle_state(particle, time, powers=None, fade=0.0, camera=None):
     if powers:
         power = powers.get(particle["role"], power)
     energy = (1.0 - u) ** power
+    energy *= ROLE_ENERGY.get(particle["role"], 1.0)
     if fade > 0.0 and camera is not None:
         energy *= math.exp(-fade * (position - camera).length / 100.0)
     return position, scale, energy, alive
@@ -516,6 +566,7 @@ def _gn_trail_object(scene, name, material, particles, trail=0.0,
             attribute.data.foreach_set("value", values)
     obj = bpy.data.objects.new(name, mesh)
     obj["ald_fx"] = True
+    obj.pass_index = FX_PASS_INDEX
     _collection(scene).objects.link(obj)
     group, sockets = fx_nodes.build_trail_group()
     fx_nodes.attach_trail_modifier(obj, group, sockets, GRAVITY, material,
@@ -721,6 +772,7 @@ def _build_particle_mesh(name, centers, radii, material):
     mesh.materials.append(material)
     obj = bpy.data.objects.new(name, mesh)
     obj["ald_fx"] = True
+    obj.pass_index = FX_PASS_INDEX
     ranges = [(index * len(verts), len(verts))
               for index in range(len(centers))]
     return obj, ranges
@@ -766,6 +818,7 @@ def _build_curve(scene, name, spline_count, materials, width):
         spline.material_index = index % max(len(materials), 1)
     obj = bpy.data.objects.new(name, curve)
     obj["ald_fx"] = True
+    obj.pass_index = FX_PASS_INDEX
     _collection(scene).objects.link(obj)
     return obj
 
@@ -916,7 +969,8 @@ def _build_fireworks(scene, count, seed, distance, family):
                     population["heads"], trail=0.0, age_offset=age_offset,
                     energy_power=powers.get("head", 1.0),
                     camera_position=camera_position,
-                    atmospheric_fade=fade)
+                    atmospheric_fade=fade,
+                    role_energy=ROLE_ENERGY["head"])
                 created.append(gn_heads)
                 for slot in range(3):
                     grains = [p for p in population["grains"]
@@ -927,32 +981,36 @@ def _build_fireworks(scene, count, seed, distance, family):
                         age_offset=age_offset,
                         energy_power=powers.get("grain", 1.0),
                         camera_position=camera_position,
-                        atmospheric_fade=fade)
+                        atmospheric_fade=fade,
+                        role_energy=ROLE_ENERGY["grain"])
                     created.append(bead_gn)
                     gn_beads.append(bead_gn)
                 gn_pistil = _gn_points_object(
                     scene, "ALD FX GN Pistil %d" % index, materials[1],
                     population["pistil"], trail=0.0, age_offset=age_offset,
-                    energy_power=powers.get("head", 1.0),
+                    energy_power=powers.get("pistil", 1.0),
                     camera_position=camera_position,
-                    atmospheric_fade=fade)
+                    atmospheric_fade=fade,
+                    role_energy=ROLE_ENERGY["pistil"])
                 created.append(gn_pistil)
                 gn_pistil_grains = _gn_points_object(
                     scene, "ALD FX GN Pistil Grains %d" % index, materials[1],
                     population["pistil_grains"],
                     trail=config["trail"] * 0.6, age_offset=age_offset,
-                    energy_power=powers.get("grain", 1.0),
+                    energy_power=powers.get("pistil_grain", 1.0),
                     camera_position=camera_position,
-                    atmospheric_fade=fade)
+                    atmospheric_fade=fade,
+                    role_energy=ROLE_ENERGY["pistil_grain"])
                 created.append(gn_pistil_grains)
                 gn_beads.append(gn_pistil_grains)
                 gn_sparks = _gn_points_object(
                     scene, "ALD FX GN Sparks %d" % index, materials[2],
                     population["sparks"], trail=0.0, age_offset=age_offset,
                     min_scale=0.0,
-                    energy_power=powers.get("ember", 1.0),
+                    energy_power=powers.get("spark", 1.0),
                     camera_position=camera_position,
-                    atmospheric_fade=fade)
+                    atmospheric_fade=fade,
+                    role_energy=ROLE_ENERGY["spark"])
                 created.append(gn_sparks)
                 for slot in range(3):
                     samples = [p for p in population["trail"]
@@ -967,17 +1025,19 @@ def _build_fireworks(scene, count, seed, distance, family):
                     scene, "ALD FX GN Flash %d" % index, materials[1],
                     population["flash"], trail=0.0, age_offset=age_offset,
                     min_scale=0.0, decay_power=0.5,
-                    energy_power=powers.get("head", 1.0),
+                    energy_power=powers.get("flash", 1.0),
                     camera_position=camera_position,
-                    atmospheric_fade=fade)
+                    atmospheric_fade=fade,
+                    role_energy=ROLE_ENERGY["flash"])
                 created.append(gn_flash)
                 # The rising shell and its short trail.
                 gn_shell = _gn_points_object(
                     scene, "ALD FX GN Shell %d" % index, materials[0],
                     [shell["head"]], trail=0.0, age_offset=age_offset,
-                    energy_power=powers.get("head", 1.0),
+                    energy_power=powers.get("shell", 1.0),
                     camera_position=camera_position,
-                    atmospheric_fade=fade)
+                    atmospheric_fade=fade,
+                    role_energy=ROLE_ENERGY["shell"])
                 created.append(gn_shell)
                 gn_shell_trail = _gn_trail_object(
                     scene, "ALD FX GN Shell Trail %d" % index, materials[0],
@@ -1006,7 +1066,8 @@ def _build_fireworks(scene, count, seed, distance, family):
                 core_ranges = []
                 # The replaced Python meshes must not survive as orphans.
                 _cleanup_orphans()
-            except Exception:
+            except Exception as exc:
+                print("ALD FX GN BUILD FAILED", exc)
                 for obj in created:
                     if obj.name in bpy.data.objects:
                         bpy.data.objects.remove(obj, do_unlink=True)
@@ -1228,8 +1289,9 @@ def _build_meteors(scene, count, seed, distance, kind="METEOR"):
             gn_heads = _gn_points_object(
                 scene, "ALD FX GN Meteor Heads", material, head_points,
                 trail=0.0, age_offset=age_offset,
-                energy_power=powers.get("head", 1.0),
-                camera_position=camera_position, atmospheric_fade=fade)
+                energy_power=powers.get("meteor_head", 1.0),
+                camera_position=camera_position, atmospheric_fade=fade,
+                role_energy=ROLE_ENERGY["meteor_head"])
             created.append(gn_heads)
             gn_train = _gn_trail_object(
                 scene, "ALD FX GN Meteor Trails", material, train_points,
@@ -1240,8 +1302,9 @@ def _build_meteors(scene, count, seed, distance, kind="METEOR"):
             gn_fragments = _gn_points_object(
                 scene, "ALD FX GN Meteor Fragments", material, fragment_points,
                 trail=0.0, age_offset=age_offset, min_scale=0.0,
-                energy_power=powers.get("ember", 1.0),
-                camera_position=camera_position, atmospheric_fade=fade)
+                energy_power=powers.get("meteor_fragment", 1.0),
+                camera_position=camera_position, atmospheric_fade=fade,
+                role_energy=ROLE_ENERGY["meteor_fragment"])
             created.append(gn_fragments)
             for obj in created:
                 obj["ald_fx_kind"] = "meteors"

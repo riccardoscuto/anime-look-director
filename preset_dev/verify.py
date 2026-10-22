@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 17, 0)
+EXPECTED_VERSION = (2, 18, 0)
 TOLERANCE = 1e-4
 
 
@@ -1589,12 +1589,31 @@ def check_fx(scene):
     if ng is not None:
         mask = ng.nodes.get("ALD | FX Mask")
         restore = ng.nodes.get("ALD | FX Restore")
+        contribution = ng.nodes.get("ALD | FX Contribution")
+        punch = ng.nodes.get("ALD | FX Punch Out")
         check(mask is not None, "FX mask node missing")
         check(restore is not None, "FX restore node missing")
-        if mask is not None and restore is not None:
-            check(any(link.from_node == mask
-                      for link in restore.inputs["Factor"].links),
-                  "FX restore is not driven by the emission mask")
+        check(contribution is not None, "FX contribution node missing")
+        check(punch is not None, "FX punch out node missing")
+        if mask is not None and contribution is not None:
+            check(any(link.from_node == contribution
+                      for socket in mask.inputs
+                      for link in socket.links),
+                  "the FX mask is not driven by the contribution")
+        if restore is not None and contribution is not None:
+            check(any(link.from_node == contribution
+                      for socket in restore.inputs
+                      for link in socket.links),
+                  "the FX restore is not driven by the contribution")
+        # The contribution is the difference between the two view layers: the
+        # other emissive surfaces never enter the mask.
+        if contribution is not None:
+            layers = [link.from_node
+                      for socket in contribution.inputs
+                      for link in socket.links
+                      if link.from_node.bl_idname == "CompositorNodeRLayers"]
+            check(len(layers) == 2,
+                  "the FX contribution does not use two view layers")
 
     fx_module.clear(scene)
     bpy.data.scenes.remove(other)
@@ -2631,6 +2650,71 @@ def check_fx_bolide(scene):
     scene.frame_set(previous_frame)
 
 
+def check_fx_foreign_emission(scene):
+    """An emissive surface that is not ALD must not enter the FX mask."""
+    from anime_look_director import fx as fx_module
+
+    previous_frame = scene.frame_current
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_engine = scene.render.engine
+    path = os.path.join(tempfile.getdir() if False else tempfile.gettempdir(),
+                        "ald_gate_sign.png")
+    # A bright sign, far from the bursts: it is not an ALD object.
+    sign_material = bpy.data.materials.new("ALD Gate Sign")
+    sign_material.use_nodes = True
+    bsdf = sign_material.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = (0.0, 0.0, 0.0, 1.0)
+    if "Emission Color" in bsdf.inputs:
+        bsdf.inputs["Emission Color"].default_value = (4.0, 1.0, 0.2, 1.0)
+        bsdf.inputs["Emission Strength"].default_value = 1.0
+    sign_mesh = bpy.data.meshes.new("ALD Gate Sign")
+    sign_mesh.from_pydata([(-4, -4, 0), (4, -4, 0), (4, 4, 0), (-4, 4, 0)],
+                           [], [(0, 1, 2, 3)])
+    sign_mesh.update()
+    sign = bpy.data.objects.new("ALD Gate Sign", sign_mesh)
+    sign.data.materials.append(sign_material)
+    sign.location = (0.0, -14.0, 1.0)
+    scene.collection.objects.link(sign)
+
+    def render_sign():
+        scene.render.engine = "BLENDER_EEVEE"
+        scene.render.resolution_x = 64
+        scene.render.resolution_y = 64
+        scene.render.resolution_percentage = 100
+        scene.render.filepath = path
+        bpy.ops.render.render(write_still=True)
+        image = bpy.data.images.load(path)
+        pixels = list(image.pixels)
+        width, height = image.size
+        index = ((height // 2) * width + (width // 2)) * 4
+        value = (round(pixels[index], 4), round(pixels[index + 1], 4),
+                 round(pixels[index + 2], 4))
+        bpy.data.images.remove(image)
+        return value
+
+    try:
+        fx_module.clear(scene)
+        bpy.ops.ald.build()
+        scene.frame_set(12)
+        without = render_sign()
+        # The same scene with the bursts: the sign must not change.
+        bpy.ops.ald.fx_fireworks(count=2, age=0.8)
+        scene.frame_set(12)
+        with_fx = render_sign()
+        worst = max(abs(a - b) for a, b in zip(without, with_fx))
+        check(worst < 0.05,
+              "the foreign emissive surface enters the FX mask: %s against %s"
+              % (without, with_fx))
+    finally:
+        fx_module.clear(scene)
+        bpy.data.objects.remove(sign, do_unlink=True)
+        bpy.data.meshes.remove(sign_mesh)
+        bpy.data.materials.remove(sign_material)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        scene.render.engine = previous_engine
+        scene.frame_set(previous_frame)
+
+
 def main():
     enable_addon()
     check_versions()
@@ -2659,6 +2743,7 @@ def main():
         check_fx(scene)
         check_fx_event_continuity(scene)
         check_fx_bolide(scene)
+        check_fx_foreign_emission(scene)
 
         ng = scene.compositing_node_group
         check(ng is not None and ng.name == "ALD | Compositor Stack",

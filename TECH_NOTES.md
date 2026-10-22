@@ -1016,3 +1016,26 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   convergence) and the meteors cross the screen.
 - A meteor is never called a comet in the technical model: a real comet, with
   a nucleus and a coma, is a separate feature.
+### v2.18.0 notes (phase P2: the material contract and the FX isolation)
+- The material contract of the plan: the points carry `role` (an integer
+  code), `age_norm` (the normalised age), `energy` (the emissive energy,
+  independent of the scale), `trail_u` (the profile along the trail),
+  `stable_noise` (a deterministic variation, never a per frame flicker) and
+  `event_color`. Python writes the static ones, the node group writes the
+  dynamic ones.
+- `fx.ROLE_ENERGY` holds the visual profile of every role: the head is the
+  brightest, the filament is less energetic than the sparks, the embers fade
+  slowly, the flash is a very short impulse. The value is applied both by the
+  node group (the `Role Energy` input) and by the Python writer.
+- The FX mask is not the emission pass any more: the emission pass contains
+  every emissive surface of the scene. The dedicated view layer `ALD FX`
+  excludes the collection of the add-on, so the difference between the two
+  emission passes is exactly the contribution of the FX. The Object Index
+  pass would be cleaner but the Render Layers node of Blender 5.1 does not
+  expose it.
+- The painterly filters receive a base without the FX (`ALD | FX Punch Out`),
+  then the particles are recomposed with their exact coverage (`ALD | FX
+  Restore`) and the dedicated glow is added once, on the FX only.
+- The gate verifies the isolation: an emissive surface that is not ALD keeps
+  the same value with and without the bursts.
+- The cost of the isolation is one more view layer in the render.
