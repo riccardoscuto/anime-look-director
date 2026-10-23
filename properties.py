@@ -745,6 +745,13 @@ class ALD_Settings(bpy.types.PropertyGroup):
         type=bpy.types.Object,
         description="Mesh used as the terrain reference for conflict checks",
         update=_on_fx_rebuild)
+    fx_diagnostic_report: StringProperty(
+        name="Diagnostic Report",
+        default="",
+        description="Cached FX diagnostic report (JSON), computed by the "
+                    "Diagnose FX operator. Read-only in the UI panels.",
+        options={"HIDDEN"},
+    )
 
     fx_glow_strength: FloatProperty(
         name="FX Glow", default=0.6, min=0.0, max=3.0,

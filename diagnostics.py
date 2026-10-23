@@ -225,6 +225,9 @@ def event_state(scene, system, event):
         state["state"] = "HIDDEN"
         state["reason"] = "the objects are hidden: %s" % ", ".join(hidden[:3])
         return state
+    # Read-only part: timing only. Position/projection requires evaluating the
+    # depsgraph (which may modify shared Geometry Nodes groups) and must be
+    # done by an explicit operator, not during panel draw.
     time = fx_module.system_time(scene, system)
     local = time - float(event.birth)
     state["local_time"] = round(local, 4)
@@ -237,23 +240,69 @@ def event_state(scene, system, event):
         state["state"] = "ENDED"
         state["reason"] = "the event ended %.3f s ago" % (local - life)
         return state
-    position = _head_position(scene, objects)
-    if position is not None:
-        state["position"] = [round(value, 3) for value in position]
-        projected = _projection(scene, position)
-        if projected is not None:
-            state["projected"] = [round(float(projected.x), 3),
-                                  round(float(projected.y), 3),
-                                  round(float(projected.z), 3)]
-            if projected.z <= 0.0:
-                state["state"] = "OFF_CLIPPING"
-                state["reason"] = "the event is behind the camera"
-                return state
-            if not (0.0 <= projected.x <= 1.0 and 0.0 <= projected.y <= 1.0):
-                state["state"] = "OFF_CAMERA"
-                state["reason"] = "the event is outside the frame"
-                return state
+    state["position"] = None
+    state["projected"] = None
     return state
+
+
+def diagnose_event(scene, system, event):
+    """Full diagnostic of one event, including position/projection.
+
+    This evaluates the depsgraph and may temporarily modify shared Geometry
+    Nodes groups (via realized_centers). Call only from an explicit operator,
+    never during panel draw.
+    """
+    state = event_state(scene, system, event)
+    # If the event passed all read-only checks, go deeper: evaluate position.
+    if state["state"] == "OK":
+        objects = _objects_of_event(scene, event.uid)
+        position = _head_position(scene, objects)
+        if position is not None:
+            state["position"] = [round(value, 3) for value in position]
+            projected = _projection(scene, position)
+            if projected is not None:
+                state["projected"] = [round(float(projected.x), 3),
+                                      round(float(projected.y), 3),
+                                      round(float(projected.z), 3)]
+                if projected.z <= 0.0:
+                    state["state"] = "OFF_CLIPPING"
+                    state["reason"] = "the event is behind the camera"
+                elif not (0.0 <= projected.x <= 1.0
+                          and 0.0 <= projected.y <= 1.0):
+                    state["state"] = "OFF_CAMERA"
+                    state["reason"] = "the event is outside the frame"
+    return state
+
+
+def diagnose_scene(scene):
+    """Full diagnostic of all events in the scene, including position.
+
+    Intended to be called by an explicit operator, not during panel draw.
+    Returns a JSON-serializable dict.
+    """
+    settings = getattr(scene, "ald", None)
+    data = {"runtime": runtime_info(scene), "systems": []}
+    if settings is None:
+        return data
+    for system in settings.fx_systems:
+        runtime = fx_module.runtime_by_uid(scene, system.uid)
+        entry = {
+            "uid": system.uid,
+            "kind": system.kind,
+            "enabled": bool(system.enabled),
+            "timing_mode": system.timing_mode,
+            "origin_frame": int(system.origin_frame),
+            "origin_time": round(float(system.origin_time), 4),
+            "local_time": round(fx_module.system_time(scene, system), 4),
+            "compiled": runtime is not None,
+            "backend": "Geometry Nodes" if (runtime or {}).get("gn")
+            else ("Python" if runtime else "none"),
+            "events": [],
+        }
+        for event in system.events:
+            entry["events"].append(diagnose_event(scene, system, event))
+        data["systems"].append(entry)
+    return data
 
 
 def report(scene):

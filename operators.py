@@ -537,6 +537,24 @@ class ALD_OT_fx_ground_create(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_diagnose(bpy.types.Operator):
+    bl_idname = "ald.fx_diagnose"
+    bl_label = "Diagnose FX"
+    bl_description = ("Run a full FX diagnostic: reads evaluated data and "
+                      "reports why each event is or is not visible. "
+                      "Result is cached and shown in the Diagnostics panel.")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import diagnostics
+        import json
+        report = diagnostics.diagnose_scene(context.scene)
+        context.scene.ald.fx_diagnostic_report = json.dumps(report)
+        self.report({"INFO"},
+                    "Anime Look Director: FX diagnosis complete")
+        return {"FINISHED"}
+
+
 class ALD_OT_fx_update(bpy.types.Operator):
     bl_idname = "ald.fx_update"
     bl_label = "Update FX"
@@ -605,6 +623,7 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_bolide,
             ALD_OT_fx_anchor_create, ALD_OT_fx_ground_create,
+            ALD_OT_fx_diagnose,
             ALD_OT_fx_update,
             ALD_OT_fx_clear, ALD_OT_fx_clear_kind, ALD_OT_fx_select_system,
             ALD_OT_fx_select_event, ALD_OT_fx_duplicate_system,

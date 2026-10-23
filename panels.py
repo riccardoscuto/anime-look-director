@@ -420,7 +420,12 @@ def draw_scene_actions(layout, context):
 
 
 def draw_fx_diagnostics(layout, context):
-    """The state of the selected event: why it is or it is not visible."""
+    """The state of the selected event: why it is or it is not visible.
+
+    Reads from the cached diagnostic report (computed by the Diagnose FX
+    operator). Never modifies the depsgraph or shared Geometry Nodes groups
+    during draw.
+    """
     from . import diagnostics
 
     system, event = _selected_system(context)
@@ -429,7 +434,27 @@ def draw_fx_diagnostics(layout, context):
     if system is None or event is None:
         box.label(text="No event selected", icon="INFO")
         return
-    state = diagnostics.event_state(context.scene, system, event)
+    # Read from the cached report computed by the explicit operator.
+    settings = context.scene.ald
+    state = None
+    report_json = settings.fx_diagnostic_report
+    if report_json:
+        try:
+            import json
+            report = json.loads(report_json)
+            for sys_entry in report.get("systems", []):
+                if sys_entry["uid"] == system.uid:
+                    for ev_entry in sys_entry.get("events", []):
+                        if ev_entry["uid"] == event.uid:
+                            state = ev_entry
+                            break
+                if state is not None:
+                    break
+        except Exception:
+            state = None
+    if state is None:
+        # Fallback: read-only event_state (no depsgraph evaluation).
+        state = diagnostics.event_state(context.scene, system, event)
     row = box.row(align=True)
     row.label(text=state["state"], icon="CHECKMARK" if state["state"] == "OK"
               else "ERROR")
@@ -442,6 +467,12 @@ def draw_fx_diagnostics(layout, context):
                   % (state["projected"][0], state["projected"][1],
                      state["projected"][2]))
     col.label(text="Objects %d" % state["objects"])
+    if settings.fx_diagnostic_report:
+        col.operator("ald.fx_diagnose", icon="FILE_REFRESH",
+                     text="Refresh Diagnosis")
+    else:
+        col.operator("ald.fx_diagnose", icon="ZOOM_IN",
+                     text="Run FX Diagnosis")
 
 
 def draw_fx_actions(layout, context):
