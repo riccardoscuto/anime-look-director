@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.46.5**).
+  (currently **2.46.6**).
 
 ## Verify (run after every change)
 ```powershell
@@ -840,6 +840,12 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - `snapshot.restore` skips a world shared with another scene and a sun linked
     into another scene: restoring them would change the original. The removal
     reports the skipped world;
+  - `ownership.repair` copies a shared world for the copy (`scene.world =
+    world.copy()`): a palette applied to the copy must not rewrite the original
+    sky;
+  - the auto sun carries `ald_sun_owner` (the scene identity). A copy with a
+    different identity skips the retint instead of changing the shared light; an
+    older single-user auto sun is tagged on the next apply;
   - the duplicate fixture also removes ALD from a copy and checks the original's
     clouds, FX, materials, material nodes and world;
 - PA2 volume spike 2.45 rules:

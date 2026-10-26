@@ -85,6 +85,12 @@ def repair(scene):
     new_id = uuid.uuid4().hex
     scene[fx.ID_KEY] = new_id
     scene["ald_fx_owner"] = scene.name
+    world = scene.world
+    if world is not None and any(other != scene and other.world is world
+                                 for other in bpy.data.scenes):
+        # A shared world would carry the palette of this scene into the other:
+        # the copy gets its own world.
+        scene.world = world.copy()
     settings = getattr(scene, "ald", None)
     if settings is not None and hasattr(settings, "fx_uid"):
         try:

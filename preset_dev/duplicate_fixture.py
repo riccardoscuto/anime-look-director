@@ -33,6 +33,18 @@ def check(condition, message):
         raise SystemExit(1)
 
 
+def world_values(world):
+    if world is None or not world.use_nodes or world.node_tree is None:
+        return None
+    node = next((node for node in world.node_tree.nodes
+                 if node.bl_idname == "ShaderNodeGroup" and node.node_tree
+                 and node.node_tree.name.startswith("ALD | World")), None)
+    if node is None:
+        return None
+    return [tuple(round(value, 4) for value in node.inputs[name].default_value)
+            for name in ("Horizon Color", "Mid Sky Color", "Sun Color")]
+
+
 def main():
     scene, camera = baseline_fx.build_scene(None)
     baseline_fx.enable_addon()
@@ -98,6 +110,23 @@ def main():
               "Build makes the cloud objects independent")
         check(all(name in bpy.data.objects for name in cloud_names),
               "the original cloud objects survive the Build on a copy")
+
+        # A palette on the copy must not change the original's world or sun.
+        original_world = world_values(scene.world)
+        check(original_world is not None,
+              "the original world gradient exists")
+        sun = next((obj for obj in scene.objects
+                    if obj.get("ald_auto_sun")), None)
+        sun_color = tuple(sun.data.color) if sun is not None else None
+        sun_energy = sun.data.energy if sun is not None else None
+        with bpy.context.temp_override(scene=automatic):
+            automatic.ald.palette = "NEON_NIGHT"
+            bpy.ops.ald.apply_palette()
+        check(world_values(scene.world) == original_world,
+              "applying a palette to the copy kept the original world")
+        check(sun is None or (tuple(sun.data.color) == sun_color
+                              and sun.data.energy == sun_energy),
+              "applying a palette to the copy kept the original sun")
     finally:
         if bpy.data.scenes.get(automatic.name) is not None:
             clouds.remove(automatic)

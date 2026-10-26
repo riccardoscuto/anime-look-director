@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.46.5)
+## What it does (v2.46.6)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -271,7 +271,7 @@ Expected output: `ALD GATE: PASS` and `ALD ALL: PASS`.
   and suns are never restored
 - v2.46.4 - per-frame pass signature for animated cameras
 - v2.46.5 - per-scene default pass path (two scenes no longer share EXRs)
-  (current)
+- v2.46.6 - the copy owns its world; the auto sun is scene-owned (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

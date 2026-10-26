@@ -506,6 +506,18 @@
     },
     {
       "evidence": "",
+      "label": "The copy owns its world",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The auto sun is owned by its scene",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The default FX pass path is per scene",
       "phase": "VI-SC",
       "state": "OK"
@@ -614,7 +626,7 @@
     }
   ],
   "partial": 0,
-  "passed": 102,
+  "passed": 104,
   "plan": "v2.27.0 P0-P3",
-  "total": 102
+  "total": 104
 }

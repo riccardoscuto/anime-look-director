@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.46.5** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.46.6** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,16 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.46.6 — world e sole di proprietà della scena
+
+- **World isolato**: `ownership.repair` copia il world condiviso per la copia;
+  applicare una palette alla copia non riscrive più il cielo dell'originale.
+- **Sole auto di scena**: il sole creato dall'add-on porta `ald_sun_owner` con
+  l'identità della scena; una copia non lo ritinta. Un file vecchio con sole a
+  uso singolo riceve il tag alla successiva applicazione.
+- **Fixture**: applica una palette diversa a una copia e verifica che world e
+  sole dell'originale restino invariati.
 
 ## Novità 2.46.5 — path del pass per scena
 

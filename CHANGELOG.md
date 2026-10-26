@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.46.6 - 2026-10-26
+World and sun ownership on duplicated scenes.
+
+### Fixed
+- `ownership.repair` gives the copy its own world when the world is shared: a
+  palette applied to the copy no longer rewrites the original sky.
+- The auto sun is tagged with the scene identity; a copy does not retint the
+  original's shared sun. An older file with a single-user auto sun receives the
+  tag on the next apply.
+- The duplicate fixture applies a different palette to a copy and checks that
+  the original's world gradient and sun are unchanged.
+
 ## 2.46.5 - 2026-10-26
 Per-scene default path for the FX pass.
 

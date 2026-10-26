@@ -7,6 +7,7 @@ from bpy.app.handlers import persistent
 
 GRADIENT_GROUP = "ALD | World Gradient"
 AUTO_SUN_TAG = "ald_auto_sun"
+SUN_OWNER_TAG = "ald_sun_owner"
 
 PRESETS = {
     "GOLDEN_HOUR": {
@@ -3711,12 +3712,21 @@ def ensure_sun(scene, p, reset_rotation=True):
         data.angle = 0.05
         sun = bpy.data.objects.new("ALD | Sun", data)
         sun[AUTO_SUN_TAG] = True
+        from . import fx
+        sun[SUN_OWNER_TAG] = fx._scene_id(scene)
         sun.rotation_euler = rotation
         scene.collection.objects.link(sun)
         created = True
 
     if sun is not None and sun.data is not None:
-        if sun.library is None and sun.data.library is None:
+        from . import fx
+        owner = sun.get(SUN_OWNER_TAG)
+        if owner is None and sun.get(AUTO_SUN_TAG) \
+                and len(sun.users_scene) <= 1:
+            # An older file: the only scene using the sun is its owner.
+            owner = sun[SUN_OWNER_TAG] = fx._scene_id(scene)
+        foreign = bool(owner) and owner != fx._scene_id(scene)
+        if not foreign and sun.library is None and sun.data.library is None:
             sun.data.color = p["sun_color"]
             sun.data.energy = p["sun_energy"]
             if sun.get(AUTO_SUN_TAG) and reset_rotation:
