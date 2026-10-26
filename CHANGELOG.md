@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.32.0 - 2026-10-26
+P2 of the visual integration milestone: filament geometry.
+
+### Fixed
+- The Geometry Nodes filament was **empty**: `Points to Curves` consumed the
+  loose vertices of a mesh without a `Mesh to Points` conversion, so the tube
+  never existed and the FX read as a field of dots. The trail group schema is 4:
+  saved groups are rebuilt and the modifiers remapped.
+- The apparent width of a filament is now computed from the camera (sensor,
+  lens, resolution, depth, orthographic scale): physical radius 0.022 m was
+  sub-pixel at 55 m. `Trail Min Pixels` (1.5) and `Trail Max Pixels` (6) bound it.
+
+### Changed
+- About 35 % of the stars are a secondary population with 0.62x life and speed;
+  every star keeps its own 0.45..1.0 fraction of the family trail. The burst is
+  less regular and has an inner shell.
+- The filament is a round tube, not a ribbon: `preset_dev/trail_shape_spike.py`
+  measures tube 1.00 and ribbon 0.00 coverage edge-on.
+
+### Tests
+- Gate: the trail geometry is realized and must produce at least
+  `spokes x (SAMPLES - 1)` faces; the modifier radius must reach the apparent
+  minimum in pixels.
+- `preset_dev/baseline_fx_p2/` and `preset_dev/p2_age_strip.py`: emission, glow
+  and full renders plus four ages, so continuity is judged without Bloom.
+- Audit 45/45.
+
 ## 2.31.0 - 2026-10-26
 P1 of the visual integration milestone (3D fireworks and anime sky).
 

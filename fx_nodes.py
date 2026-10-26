@@ -38,7 +38,7 @@ TRAIL_GROUP_NAME = "ALD | FX Trail GN"
 #: Build marker of the node groups: a group saved with an older marker is
 #: rebuilt and the modifiers are remapped on the new structure.
 #: 3: the clock accepts a time override (the preview mode of a system).
-SCHEMA = 3
+SCHEMA = 4
 
 
 def _math(nodes, links, operation, x, y, location):
@@ -544,7 +544,12 @@ def _create_trail_group():
 
     to_curves = nodes.new("GeometryNodePointsToCurves")
     to_curves.location = (980, -200)
-    links.new(delete.outputs["Geometry"], to_curves.inputs["Points"])
+    # Points to Curves consumes a point cloud, not the vertices of a mesh:
+    # without this conversion the whole filament is empty (P2).
+    to_points = nodes.new("GeometryNodeMeshToPoints")
+    to_points.location = (900, -200)
+    links.new(delete.outputs["Geometry"], to_points.inputs["Mesh"])
+    links.new(to_points.outputs["Points"], to_curves.inputs["Points"])
     links.new(curve_id.outputs["Attribute"], to_curves.inputs["Curve Group ID"])
     links.new(weight.outputs["Attribute"], to_curves.inputs["Weight"])
 

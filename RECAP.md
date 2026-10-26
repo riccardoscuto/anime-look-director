@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.31.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.32.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,23 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.32.0 — P2 geometria delle scie
+
+- **Bug di fondo corretto**: `Points to Curves` richiede una *point cloud*, non
+  le vertici di una mesh. Mancava `Mesh to Points`, quindi il tubo della scia era
+  vuoto e si vedevano solo i grani: da qui i "puntini". Lo schema del gruppo è 4
+  e i file salvati vengono ricostruiti.
+- **Larghezza apparente**: il raggio fisico (0.022 m) è sub-pixel a 55 m.
+  `Trail Min Pixels` (1.5) e `Trail Max Pixels` (6) lo portano in pixel usando
+  sensore, lens, risoluzione, profondità e scala ortografica.
+- **Tubo, non ribbon**: misurato in `preset_dev/trail_shape_spike.py`
+  (tubo 1.00, ribbon 0.00 di copertura edge-on). Un burst è tridimensionale.
+- **Meno regolarità**: ~35% di stelle secondarie (0.62× vita e velocità) e ogni
+  stella tiene il 45–100% della coda: niente più dente di leone uniforme.
+- Evidence in `preset_dev/baseline_fx_p2/` (emission/glow/full, 800×450 e
+  1920×1080) più `p2_age_strip.py` a 0.12/0.30/0.60/1.10 s: la continuità si
+  giudica senza Bloom. Gate 45/45.
 
 ## Novità 2.31.0 — P1 compositing FX
 

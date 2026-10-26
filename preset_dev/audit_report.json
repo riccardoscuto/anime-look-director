@@ -239,10 +239,40 @@
       "label": "Smoke follows the Anchor axis (Y-up/X-up)",
       "phase": "P3",
       "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Points to Curves is fed by Mesh to Points",
+      "phase": "VI-P2",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The filament keeps an apparent width in pixels",
+      "phase": "VI-P2",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Trail geometry realized: the width reaches real faces",
+      "phase": "VI-P2",
+      "state": "OK"
+    },
+    {
+      "evidence": "preset_dev/trail_shape_spike.py: tube 1.00, ribbon 0.00 edge-on",
+      "label": "Tube chosen over ribbon with a measured spike",
+      "phase": "VI-P2",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Secondary stars and a per-star trail cap",
+      "phase": "VI-P2",
+      "state": "OK"
     }
   ],
   "partial": 0,
-  "passed": 40,
+  "passed": 45,
   "plan": "v2.27.0 P0-P3",
-  "total": 40
+  "total": 45
 }

@@ -690,6 +690,25 @@ def remove_fx_layers(scene):
         bpy.data.worlds.remove(world)
 
 
+def refresh_fx_matte(scene):
+    """Keep the Cryptomatte material list in sync with the live FX materials.
+
+    The matte is baked in the node at build time; creating or removing an FX
+    system after the build would otherwise leave a stale list and the new
+    particles would be invisible.
+    """
+    ng = scene.compositing_node_group
+    if ng is None or not _is_stack(ng):
+        return False
+    matte = ng.nodes.get(NODE_FX_MATTE)
+    if matte is None:
+        return False
+    materials = [material.name for material in bpy.data.materials
+                 if material.get("ald_fx_material") and material.users > 0]
+    matte.matte_id = ",".join(materials) or "ALD | FX None"
+    return True
+
+
 def build(scene):
     """Create or refresh the stack and assign it to the scene."""
     settings = getattr(scene, "ald", None)

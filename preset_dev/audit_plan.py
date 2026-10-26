@@ -178,6 +178,22 @@ CHECKS = [
     ("P3", "Smoke follows the Anchor axis (Y-up/X-up)",
      lambda: has("smoke.py", "def _place", "rotation_difference",
                  "fx._anchor")),
+    # ---- Visual integration P2 (filament geometry) -----------------------
+    ("VI-P2", "Points to Curves is fed by Mesh to Points",
+     lambda: has("fx_nodes.py", "GeometryNodeMeshToPoints",
+                 "to_points.outputs[\"Points\"]")),
+    ("VI-P2", "The filament keeps an apparent width in pixels",
+     lambda: has("fx.py", "def _world_per_pixel", "def _apparent_radius",
+                 "fx_trail_min_px")
+     and has("preset_dev/verify.py", "check_fx_trail_width")[0]),
+    ("VI-P2", "Trail geometry realized: the width reaches real faces",
+     lambda: has("preset_dev/verify.py", "new_from_object",
+                 "the trail geometry is empty")),
+    ("VI-P2", "Tube chosen over ribbon with a measured spike",
+     lambda: (exists("preset_dev/trail_shape_spike.py")[0],
+              "preset_dev/trail_shape_spike.py: tube 1.00, ribbon 0.00 edge-on")),
+    ("VI-P2", "Secondary stars and a per-star trail cap",
+     lambda: has("fx.py", "spoke, 25) < 0.35", "config[\"trail\"] * cap")),
 ]
 
 

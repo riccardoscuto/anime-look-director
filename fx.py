@@ -424,12 +424,20 @@ def _gn_points_object(scene, name, material, particles, trail=0.0,
 
 
 def _gn_star_data(seed, index, config, spoke, spoke_count):
-    """Deterministic lifetime and initial velocity of one primary star."""
+    """Deterministic lifetime and initial velocity of one primary star.
+
+    About a third of the stars are a secondary population: shorter lived and
+    slower, so the burst has an inner shell instead of a single regular
+    dandelion (P2-D). Both backends read this function, so they stay identical.
+    """
     life = _hash_range(seed, index, spoke, 2, config["life"] * 0.6,
                        config["life"])
     direction = _fibonacci_direction(spoke, spoke_count, 0.35, seed, index)
     speed = _hash_range(seed, index, spoke, 3, config["speed"] * 0.75,
                         config["speed"] * 1.15)
+    if _hash_unit(seed, index, spoke, 25) < 0.35:
+        life *= 0.62
+        speed *= 0.62
     return life, direction * speed
 
 
@@ -487,12 +495,15 @@ def burst_population(seed, index, config, birth, center, size_scale,
         life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
         v0 = v0 + inherit
         slot = spoke % 3
+        # Each star keeps its own fraction of the family trail: a uniform
+        # trail turns the burst into a regular dandelion (P2).
+        cap = _hash_range(seed, index, spoke, 24, 0.45, 1.0)
         heads.append(_particle(birth, life, config["drag"],
                                0.13 * size_scale, v0, center, role="head",
                                spoke=spoke, color=palette[0], gravity=gravity))
         for step in range(SAMPLES):
             profile = step / (SAMPLES - 1.0)
-            tau = config["trail"] * (1.0 - profile)
+            tau = config["trail"] * cap * (1.0 - profile)
             scatter = 0.10 * size_scale * (1.0 - profile)
             jitter = Vector((
                 _hash_range(seed, index, spoke * 16 + step, 20,
@@ -703,25 +714,6 @@ def _gn_trail_object(scene, name, material, particles, trail=0.0,
                                    energy_power=energy_power,
                                    role_energy=role_energy)
     return obj
-
-
-def _gn_trail_particles(seed, index, config, birth, center, spoke_count, slot):
-    """Point data of the thin filament of every star of one colour slot."""
-    particles = []
-    spokes = [s for s in range(spoke_count) if s % 3 == slot]
-    for spoke in spokes:
-        life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
-        for step in range(SAMPLES):
-            profile = step / (SAMPLES - 1.0)
-            particles.append({
-                "birth": birth, "life": life, "drag": config["drag"],
-                "radius": 0.25 + 0.9 * profile ** 1.4,
-                "vel": v0, "pos0": center,
-                "tau": config["trail"] * (1.0 - profile),
-                "jitter": Vector((0.0, 0.0, 0.0)),
-                "curve_id": spoke, "weight": step,
-            })
-    return particles
 
 
 def _gn_flash_particles(birth, core, center, size_scale):
@@ -1105,6 +1097,45 @@ def _build_curve(scene, name, spline_count, materials, width):
     return obj
 
 
+def _world_per_pixel(scene, position):
+    """World size of one pixel at the depth of a world position."""
+    camera = scene.camera
+    if camera is None or camera.data is None:
+        return 0.0
+    data = camera.data
+    origin, forward, _up, _right = _camera_basis(scene)
+    depth = max((Vector(position) - origin).dot(forward), 1e-3)
+    res_x = max(int(scene.render.resolution_x), 1)
+    res_y = max(int(scene.render.resolution_y), 1)
+    if data.type == "ORTHO":
+        return float(data.ortho_scale) / max(res_x, res_y)
+    sensor = float(data.sensor_width)
+    fit = getattr(data, "sensor_fit", "AUTO")
+    if fit == "VERTICAL":
+        sensor = float(getattr(data, "sensor_height", data.sensor_width))
+        pixels = res_y
+    elif fit == "HORIZONTAL":
+        pixels = res_x
+    else:
+        pixels = max(res_x, res_y)
+    return depth * sensor / (max(float(data.lens), 1e-3) * pixels)
+
+
+def _apparent_radius(scene, position, physical=0.022, min_px=1.5, max_px=6.0):
+    """World radius that keeps a trail at least ``min_px`` pixels wide.
+
+    The physical radius remains the artistic base; the apparent minimum makes
+    the filament continuous at any distance and resolution. The maximum keeps
+    a close burst from becoming a solid block.
+    """
+    world_per_px = _world_per_pixel(scene, position)
+    if world_per_px <= 1e-9:
+        return float(physical)
+    radius = max(float(physical), 0.5 * float(min_px) * world_per_px)
+    radius = min(radius, 0.5 * float(max_px) * world_per_px)
+    return radius
+
+
 def _camera_basis(scene):
     """The evaluated camera frame: the constraints and the parents included.
 
@@ -1146,10 +1177,12 @@ def _burst_center(origin, forward, up, right, index, total, distance,
 
 def _build_python_objects(scene, kind, family_key, index, population, config,
                           center, spoke_count, pistil_count, materials,
-                          size_scale, system_uid="", event_uid=""):
+                          size_scale, system_uid="", event_uid="",
+                          trail_width=None):
     """The meshes of the Python writer: the fallback backend."""
+    width = 0.022 * size_scale if trail_width is None else float(trail_width)
     trail_obj = _build_curve(scene, "ALD FX %s %d Filament" % (family_key, index),
-                             spoke_count, materials, 0.022 * size_scale)
+                             spoke_count, materials, width)
     trail_obj["ald_fx_kind"] = kind
     _tag_fx_object(trail_obj, kind, system_uid, event_uid, "trail")
     bead_objects = []
@@ -1272,6 +1305,17 @@ def _build_fireworks(scene, system):
                                       shell_velocity=residual,
                                       gravity=gravity)
         family_colors = PALETTES[key % len(PALETTES)]
+        # The trail keeps a minimum apparent width: the physical radius is
+        # scaled by the camera projection, so a filament is continuous at any
+        # distance and resolution. The burst center is the reference depth.
+        min_px = float(getattr(settings, "fx_trail_min_px", 1.5))
+        max_px = float(getattr(settings, "fx_trail_max_px", 6.0))
+        trail_width = _apparent_radius(scene, center,
+                                       physical=0.022 * size_scale,
+                                       min_px=min_px, max_px=max_px)
+        shell_width = _apparent_radius(scene, center,
+                                       physical=0.03 * size_scale,
+                                       min_px=min_px, max_px=max_px)
         # The backend is chosen before any allocation: the two paths never
         # build the same geometry twice. The material reads the energy from
         # the domain of its backend: the instances or the points.
@@ -1303,7 +1347,8 @@ def _build_fireworks(scene, system):
                 population=population, config=config, center=center,
                 system_uid=system.uid, event_uid=event.uid,
                 spoke_count=spoke_count, pistil_count=pistil_count,
-                materials=materials, size_scale=size_scale)
+                materials=materials, size_scale=size_scale,
+                trail_width=trail_width)
             trail_obj = python_objects["trail"]
             head_obj = python_objects["heads"]
             head_ranges = python_objects["head_ranges"]
@@ -1393,7 +1438,7 @@ def _build_fireworks(scene, system):
                     trail_gn = _gn_trail_object(
                         scene, "ALD FX GN Trail %d %d" % (index, slot),
                         materials[slot], samples, trail=config["trail"],
-                        age_offset=age_offset, radius=0.022 * size_scale,
+                        age_offset=age_offset, radius=trail_width,
                         time_override=clock["override"],
                         use_time_override=clock["use_override"],
                         energy_power=powers.get("filament", 1.0),
@@ -1425,7 +1470,7 @@ def _build_fireworks(scene, system):
                 gn_shell_trail = _gn_trail_object(
                     scene, "ALD FX GN Shell Trail %d" % index, materials[0],
                     shell["trail"], trail=rise_time, age_offset=age_offset,
-                    radius=0.03 * size_scale,
+                    radius=shell_width,
                     time_override=clock["override"],
                     use_time_override=clock["use_override"],
                     energy_power=powers.get("shell_trail", 1.0),
@@ -1713,6 +1758,12 @@ def _build_meteors(scene, system):
             else preset["drag"]
         life = float(event.life)
         start = Vector(event.target)
+        min_px = float(getattr(settings, "fx_trail_min_px", 1.5))
+        max_px = float(getattr(settings, "fx_trail_max_px", 6.0))
+        trail_width = _apparent_radius(
+            scene, start,
+            physical=0.07 * (preset["radius"] / 0.18),
+            min_px=min_px, max_px=max_px)
         direction = Vector(event.direction)
         if direction.length < 1e-6:
             direction = Vector((1.0, 0.0, 0.0))
@@ -1747,7 +1798,7 @@ def _build_meteors(scene, system):
                     scene, "ALD FX GN Meteor Trails %d" % index, material,
                     population["train"], trail=preset["train"],
                     age_offset=age_offset,
-                    radius=0.07 * (preset["radius"] / 0.18),
+                    radius=trail_width,
                     fade_window=persistence,
                     time_override=clock["override"],
                     use_time_override=clock["use_override"],
@@ -1783,8 +1834,7 @@ def _build_meteors(scene, system):
                 _cleanup_orphans()
         if not entry["gn"]:
             trail_obj = _build_curve(scene, "ALD FX Meteor Trails %d" % index,
-                                     1, [material],
-                                     0.07 * (preset["radius"] / 0.18))
+                                     1, [material], trail_width)
             _tag_fx_object(trail_obj, "meteors", system.uid, event.uid,
                            "trail")
             head_obj, head_ranges = _build_particle_mesh(
@@ -2189,6 +2239,8 @@ def compile_system(scene, system):
     registry = _registry(scene)
     registry[uid] = runtime
     _update_system(runtime, system_time(scene, system))
+    from . import compositor
+    compositor.refresh_fx_matte(scene)
     return runtime
 
 
@@ -2245,6 +2297,8 @@ def remove_system(scene, system):
             settings.fx_systems.remove(index)
             break
     _cleanup_orphans()
+    from . import compositor
+    compositor.refresh_fx_matte(scene)
     return removed
 
 
@@ -2636,6 +2690,8 @@ def clear(scene, keep_system=False, kind=None):
         if not keep_system:
             settings.fx_systems.remove(index)
     _cleanup_orphans()
+    from . import compositor
+    compositor.refresh_fx_matte(scene)
     return removed
 
 

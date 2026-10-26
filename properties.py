@@ -810,6 +810,14 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="FX Glow Threshold", default=0.35, min=0.0, max=10.0,
         description="Luminance threshold of the dedicated FX glow",
         update=_on_params)
+    fx_trail_min_px: FloatProperty(
+        name="Trail Min Pixels", default=1.5, min=0.5, max=8.0,
+        description="Minimum apparent width of the filaments, in pixels",
+        update=_on_fx_rebuild)
+    fx_trail_max_px: FloatProperty(
+        name="Trail Max Pixels", default=6.0, min=1.0, max=40.0,
+        description="Maximum apparent width of the filaments, in pixels",
+        update=_on_fx_rebuild)
     fx_style: EnumProperty(
         name="FX Style",
         items=[("CLASSIC", "Classic", "Balanced halo and no fade"),

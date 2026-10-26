@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 31, 0)
+EXPECTED_VERSION = (2, 32, 0)
 TOLERANCE = 1e-4
 
 
@@ -3230,6 +3230,81 @@ def check_fx_p1_visibility(scene):
         scene.frame_set(previous_frame)
 
 
+def check_fx_trail_width(scene):
+    """P2: the filament keeps a minimum apparent width in pixels."""
+    from mathutils import Vector
+    from anime_look_director import fx as fx_module
+
+    previous_gn = bool(scene.ald.fx_gn_prototype)
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    try:
+        scene.ald.fx_gn_prototype = True
+        scene.render.resolution_x = 800
+        scene.render.resolution_y = 450
+        fx_module.clear(scene)
+        bpy.ops.ald.fx_fireworks(count=1, seed=13, distance=55.0, age=0.0)
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        center = Vector(event.target)
+        expected = fx_module._apparent_radius(
+            scene, center, 0.022, scene.ald.fx_trail_min_px,
+            scene.ald.fx_trail_max_px)
+        trail = next((obj for obj in bpy.data.objects
+                      if obj.get("ald_fx_role") in ("gn_trail", "trail")),
+                     None)
+        check(trail is not None, "trail object missing")
+        width = None
+        if trail is not None and trail.type == "CURVE":
+            width = float(trail.data.bevel_depth)
+        elif trail is not None:
+            modifier = next((item for item in trail.modifiers
+                             if item.type == "NODES" and item.node_group
+                             and item.node_group.name
+                             == "ALD | FX Trail GN"), None)
+            if modifier is not None:
+                from anime_look_director import fx_nodes
+                identifiers = fx_nodes._socket_ids(
+                    modifier.node_group, fx_nodes.TRAIL_SOCKET_DEFAULTS)
+                width = float(modifier[identifiers["radius"]])
+        check(width is not None, "trail width input not found")
+        # The width must reach real faces: an empty filament was the P2 bug and
+        # a modifier input alone cannot catch it.
+        frame = int(system.origin_frame
+                    + (event.birth + event.rise_time + 0.3)
+                    * (scene.render.fps / max(scene.render.fps_base, 1e-6)))
+        scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        deps = bpy.context.evaluated_depsgraph_get()
+        spokes = int(fx_module._event_config(event)["spokes"])
+        faces = 0
+        for obj in bpy.data.objects:
+            if obj.get("ald_fx_role") not in ("gn_trail", "trail"):
+                continue
+            if obj.type == "CURVE":
+                faces += max(len(obj.data.splines), 0)
+                continue
+            evaluated = obj.evaluated_get(deps)
+            mesh = bpy.data.meshes.new_from_object(evaluated, depsgraph=deps)
+            faces += len(mesh.polygons)
+            bpy.data.meshes.remove(mesh)
+        check(faces >= spokes * (fx_module.SAMPLES - 1),
+              "the trail geometry is empty (%d faces for %d spokes)"
+              % (faces, spokes))
+        if width is not None:
+            check(width >= expected * 0.99,
+                  "the trail is thinner than the apparent minimum "
+                  "(%.5f < %.5f)" % (width, expected))
+            world_per_px = fx_module._world_per_pixel(scene, center)
+            check(world_per_px > 0.0
+                  and 2.0 * width / world_per_px
+                  >= scene.ald.fx_trail_min_px * 0.99,
+                  "the trail is below the minimum pixel width")
+    finally:
+        scene.ald.fx_gn_prototype = previous_gn
+        fx_module.clear(scene)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+
+
 def check_fx_identity(scene):
     """P0-D: with zero FX the recomposition is the identity."""
     from anime_look_director import fx as fx_module
@@ -3416,6 +3491,10 @@ def check_fx_visual_profiles(scene):
                 check(False, "%s creation failed: %s" % (name, exc))
                 continue
 
+            # The stack must see the new FX materials: build it after the
+            # creation, as the add-on does in the normal workflow.
+            bpy.ops.ald.build()
+
             # The frame is inside the life of the profile: the burst is at
             # its peak for the firework, the meteor is just after its birth.
             from mathutils import Vector
@@ -3436,7 +3515,6 @@ def check_fx_visual_profiles(scene):
                 scene.camera.rotation_euler = direction.to_track_quat(
                     "-Z", "Y").to_euler()
             bpy.context.view_layer.update()
-
             scene.render.filepath = path
             bpy.ops.render.render(write_still=True)
             image = bpy.data.images.load(path)
@@ -3789,6 +3867,7 @@ def main():
         check_fx_diagnostics(scene)
         check_fx_occlusion(scene)
         check_fx_p1_visibility(scene)
+        check_fx_trail_width(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)

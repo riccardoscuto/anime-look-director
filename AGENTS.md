@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.31.0**).
+  (currently **2.32.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -71,6 +71,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   Render Layers node and set `matte_id` to the comma-separated material names. The matte
   is computed from the visible render, so an opaque occluder in front of the FX already
   zeroes it. `CompositorNodeCombineColor` exists with `Red/Green/Blue/Alpha` inputs.
+- **`GeometryNodePointsToCurves` consumes a point cloud, not the vertices of a mesh.**
+  A mesh of loose vertices wired straight into it produces zero curves (and therefore
+  zero faces), silently. Always insert `GeometryNodeMeshToPoints` first. A gate test
+  must realize the geometry: checking the modifier inputs cannot catch an empty output.
 - The FX nodes are `ALD | FX Matte` (Cryptomatte), `ALD | FX Coverage` (CombineColor),
   `ALD | FX Emission` (Emission × coverage), `ALD | FX Painted Punch`,
   `ALD | FX Restore`, `ALD | FX Glow`. There is no `ALD | FX Contribution`, `FX Mask`,
@@ -511,6 +515,24 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     Preview uses `origin_time`, Burst Age shifts every system;
   - the runtime registry is keyed by system identity; two systems of the same
     kind never collide.
+- P2 rules (filament geometry, v2.32):
+  - the filament is a **round tube** (circle profile, 4 points), never a
+    ribbon: `preset_dev/trail_shape_spike.py` measures tube 1.00 and ribbon
+    0.00 coverage edge-on, and a burst is three dimensional;
+  - `Points to Curves` is always fed by `Mesh to Points`; the trail node group
+    schema is 4 and an older saved group is rebuilt with the modifiers remapped;
+  - the physical radius (0.022 m fireworks, 0.03 m shell, meteor preset) is a
+    floor: `_apparent_radius` enforces `fx_trail_min_px..fx_trail_max_px`
+    pixels from the camera sensor, lens, resolution and depth; the
+    orthographic camera uses `ortho_scale`;
+  - the gate realizes the trail geometry and requires at least
+    `spokes × (SAMPLES - 1)` faces: an empty filament is invisible to input
+    checks;
+  - about 35 % of the stars are a secondary population (0.62× life, 0.62×
+    speed) and every star keeps 0.45..1.0 of the family trail (`cap` in
+    `burst_population`), so the burst is not a regular dandelion;
+  - `preset_dev/p2_age_strip.py` renders the emission at 0.12/0.30/0.60/1.10 s:
+    continuity must be judged without Bloom.
 - 2.25 rules:
   - `fx._scene_id` writes `settings.fx_uid` inside a `try/except`: the identity
     lives in `scene[ald_fx_id]` and the settings cache is best-effort only.
