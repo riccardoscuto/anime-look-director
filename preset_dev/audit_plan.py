@@ -301,6 +301,15 @@ CHECKS = [
     ("VI-SC", "Scene copy: removal unlinks shared objects",
      lambda: has("clouds.py", "obj.users_collection",
                  "collection.objects.unlink(obj)")),
+    ("VI-SC", "Duplicated scene repair makes the copy independent",
+     lambda: has("ownership.py", "def repair", "def _duplicate_objects",
+                 "same_identity")
+     and exists("preset_dev/duplicate_fixture.py")[0]),
+    ("VI-SC", "Repair ownership is exposed in the UI",
+     lambda: has("operators.py", "ald.repair_ownership")
+     and has("panels.py", "ald.repair_ownership", "ALD data shared")[0]),
+    ("VI-SC", "The duplicate fixture passes",
+     lambda: has("preset_dev/duplicate_fixture.py", "DUP FIXTURE: PASS")),
     ("VI-SC", "The slab/control defect is reproduced in the baseline",
      lambda: (exists("preset_dev/clouds_baseline/metrics.json")[0]
               and exists("preset_dev/clouds_baseline/h0.35_a0.00_oblique.png")[0],

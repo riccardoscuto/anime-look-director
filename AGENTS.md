@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.44.0**).
+  (currently **2.45.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -35,10 +35,14 @@ TECH_NOTES); move it on-screen before capturing.
 - `shots.py` — timeline marker palette overrides and the frame-change handler.
 - `operators.py` - `ald.build`, `ald.remove`, `ald.apply_palette`,
   `ald.clear_shadow_tint`, `ald.stage_backlight`, `ald.toggle_exclude_material`,
-  `ald.viewport_compositor`.
+  `ald.viewport_compositor`, `ald.repair_ownership`.
+- `ownership.py` — repairs a duplicated scene: new ALD identity, shared
+  collections unlinked, copy objects/meshes/materials made independent.
 - `panels.py` — Scene properties panel plus the View3D sidebar panel.
 - `preset_dev/verify.py` — headless gate.
+- `preset_dev/duplicate_fixture.py` — duplicate-scene fixture (`DUP FIXTURE`).
 - `preset_dev/lookdev.py` — renders all palettes on a fixed scene + contact sheet.
+- `preset_dev/PA2_VOLUME_SPIKE.md` — card vs native volume research note.
 - `RECAP.md` — Italian end-to-end overview for the user.
 
 ## Look-dev
@@ -811,6 +815,27 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - The AO node does produce occlusion in both EEVEE and Cycles in 5.1 (see TECH_NOTES).
 - Comparing two Python node wrappers with `is` can return False for the same node
   after operators run. Compare `as_pointer()` in tests.
+- Ownership 2.45 rules:
+  - `Scene.copy()` shares the ALD collections (or copies them while sharing the
+    objects): a copy never gets the original's ownership by accident. The copy
+    is detected by `ownership.same_identity` (another scene carries the same
+    `ald_fx_id`) or by a collection linked to two scenes;
+  - `ownership.repair(scene)` unlinks the shared collections, gives the copy a
+    new identity and new system/event UIDs, and rebuilds the clouds and the FX
+    from the persistent data. When the collections were copied but the objects
+    are shared it duplicates objects/meshes/materials instead;
+  - the repair is exposed as `ald.repair_ownership` and the panel warns when the
+    scene shares ALD collections. The fixture
+    `preset_dev/duplicate_fixture.py` is the proof, not the multi-scene gate:
+    never assert the copy behaviour inside the gate's shared state.
+- PA2 volume spike 2.45 rules:
+  - the cards stay the default: a native EEVEE volume placed in the same layer
+    is cheaper (1.1 s vs 2.1 s at 640x360) but reads as a soft rectangle with
+    hard edges and no anime silhouette;
+  - a volume backend needs a shaped density field, a volume shading/contour
+    model and its own environment-compositing path before it is comparable;
+  - `preset_dev/pa2_volume_spike.py` regenerates the evidence; no PA2 asset or
+    shader is copied.
 
 ## Rules
 - Never save the user's `.blend` unless asked.

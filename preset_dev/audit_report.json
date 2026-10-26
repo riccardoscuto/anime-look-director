@@ -481,6 +481,24 @@
       "state": "OK"
     },
     {
+      "evidence": "",
+      "label": "Duplicated scene repair makes the copy independent",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Repair ownership is exposed in the UI",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The duplicate fixture passes",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
       "evidence": "preset_dev/clouds_baseline/metrics.json",
       "label": "The slab/control defect is reproduced in the baseline",
       "phase": "VI-SC",
@@ -548,7 +566,7 @@
     }
   ],
   "partial": 0,
-  "passed": 91,
+  "passed": 94,
   "plan": "v2.27.0 P0-P3",
-  "total": 91
+  "total": 94
 }

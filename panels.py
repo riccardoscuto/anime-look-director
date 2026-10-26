@@ -53,6 +53,7 @@ def draw_stack_actions(layout, context):
 
 def draw_world(layout, context):
     """The world, the sun, the clouds and the stars."""
+    _draw_ownership_warning(layout, context)
     scene = context.scene
     s = scene.ald
     box = layout.box()
@@ -172,6 +173,15 @@ def draw_world(layout, context):
         from . import clouds
         for line in clouds.diagnostics(context.scene):
             cloud_box.label(text=line)
+
+
+def _draw_ownership_warning(layout, context):
+    from . import ownership
+    if ownership.has_shared(context.scene):
+        box = layout.box()
+        box.label(text="ALD data shared with another scene",
+                  icon="ERROR")
+        box.operator("ald.repair_ownership", icon="FILE_REFRESH")
 
 
 def draw_shadows(layout, context):

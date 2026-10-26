@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.45.0 - 2026-10-26
+Scene-copy ownership repair and the PA2 volume spike.
+
+### Added
+- `ownership.py` and `ald.repair_ownership`: a duplicated scene gets its own
+  ALD identity, detaches the shared collections and makes its objects, meshes
+  and materials independent. When the collections are shared it rebuilds the
+  clouds and the FX from the persistent data instead. The panel warns when
+  another scene shares the ALD collections.
+- `preset_dev/duplicate_fixture.py`: a dedicated duplicate-scene fixture
+  (`DUP FIXTURE: PASS`) — the copy owns different collections and objects, the
+  original objects/FX/collections survive, and removing the copy's clouds is
+  safe.
+- `preset_dev/pa2_volume_spike.py` and `preset_dev/PA2_VOLUME_SPIKE.md`: the
+  production cards against a native EEVEE volume at the same placement, 640x360.
+  Cards 2.07 s, volume 1.07-1.09 s; the volume reads as a soft rectangle with
+  hard edges and no anime silhouette. Cards remain the default; no backend was
+  changed.
+
+### Fixed
+- The scene-copy ownership item left open in 2.44.0: after `Repair Ownership`
+  the copy no longer shares the cloud/FX collections and removing its clouds
+  keeps the original intact.
+- The duplicated `2.43.0` heading in this file.
+
 ## 2.44.0 - 2026-10-26
 Cloud benchmark and the scene-copy guard.
 
@@ -22,7 +47,7 @@ Cloud benchmark and the scene-copy guard.
   is not shipped green. Do not duplicate a scene with spatial clouds.
 - PA2 volume research.
 
-## 2.43.0 - 2026-10-26## 2.43.0 - 2026-10-26
+## 2.43.0 - 2026-10-26
 Framing envelope: the whole burst is checked, not only its centre.
 
 ### Added

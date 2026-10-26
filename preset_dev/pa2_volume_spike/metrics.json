@@ -1,0 +1,29 @@
+{
+  "resolution": [
+    640,
+    360
+  ],
+  "engine": "BLENDER_EEVEE",
+  "renders": [
+    {
+      "file": "card.png",
+      "render_s": 2.067,
+      "bytes": 204866
+    },
+    {
+      "file": "volume_0.02.png",
+      "render_s": 1.094,
+      "bytes": 203516
+    },
+    {
+      "file": "volume_0.06.png",
+      "render_s": 1.086,
+      "bytes": 203938
+    },
+    {
+      "file": "volume_0.15.png",
+      "render_s": 1.072,
+      "bytes": 205030
+    }
+  ]
+}

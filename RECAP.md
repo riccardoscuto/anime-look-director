@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.44.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.45.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -81,6 +81,22 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
 
+## Novità 2.45.0 — scene duplicate e ricerca volume
+
+- **Repair Ownership** (`ownership.py`, `ald.repair_ownership`): una scena
+  duplicata riceve una identità ALD propria, scollega le collezioni condivise e
+  rende indipendenti oggetti, mesh e materiali della copia. Se le collezioni
+  erano condivise, nuvole e FX vengono ricostruiti dai dati persistenti con
+  nuovi UID; il pannello avvisa quando un'altra scena condivide le collezioni.
+- **Fixture dedicata** (`preset_dev/duplicate_fixture.py`): `DUP FIXTURE: PASS`.
+  La copia ha collezioni e oggetti distinti, l'originale resta intatto e
+  rimuovere le nuvole della copia non tocca l'originale.
+- **Spike volume PA2** (`preset_dev/PA2_VOLUME_SPIKE.md`): stesso
+  posizionamento del primo layer di card, 640x360. Le card rendono in 2.07 s; il
+  volume nativo in 1.07–1.09 s ma appare come un rettangolo morbido con bordi
+  netti, senza sagoma anime. **Le card restano il default**, nessun backend è
+  cambiato e nessun asset PA2 è stato copiato.
+
 ## Novità 2.44.0 — benchmark nuvole e guardia scene
 
 - **Benchmark** (`preset_dev/bench_clouds.py`): coverage 0.16/0.5/0.9/1.0 ×
@@ -88,9 +104,10 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
   layer, refresh ~1 ms, render 2.6–4.3 s. Dati in `clouds_bench/metrics.json`.
 - **Guardia unlink**: rimuovendo le nuvole, un oggetto condiviso con un'altra
   collezione viene scollegato, non cancellato.
-- **Aperto**: la collezione di una scena duplicata è ancora condivisa; il test
-  dedicato mostra che la rimozione nella copia può togliere la collezione
-  originale. Non duplicare una scena con nuvole spaziali finché non è corretto.
+- **Aperto (risolto in 2.45.0 con Repair Ownership)**: la collezione di una
+  scena duplicata è ancora condivisa; il test dedicato mostra che la rimozione
+  nella copia può togliere la collezione originale. Non duplicare una scena con
+  nuvole spaziali finché non è corretto.
 
 ## Novità 2.43.0 — envelope di framing
 

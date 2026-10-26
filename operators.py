@@ -695,6 +695,27 @@ class ALD_OT_smoke_create(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_repair_ownership(bpy.types.Operator):
+    bl_idname = "ald.repair_ownership"
+    bl_label = "Repair Ownership"
+    bl_description = ("Give this duplicated scene its own ALD collections: "
+                      "the original keeps its clouds and FX")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import ownership
+        count = ownership.repair(context.scene)
+        if count:
+            bpy.ops.ald.build()
+            self.report({"INFO"},
+                        "Anime Look Director: repaired the scene ownership "
+                        "(%d shared collections)" % count)
+        else:
+            self.report({"INFO"},
+                        "Anime Look Director: no shared collections")
+        return {"FINISHED"}
+
+
 class ALD_OT_fx_render_pass(bpy.types.Operator):
     bl_idname = "ald.fx_render_pass"
     bl_label = "Render FX Pass"
@@ -764,7 +785,7 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_bolide,
             ALD_OT_fx_show, ALD_OT_smoke_create, ALD_OT_smoke_remove,
             ALD_OT_clouds_create, ALD_OT_clouds_remove,
-            ALD_OT_fx_render_pass,
+            ALD_OT_fx_render_pass, ALD_OT_repair_ownership,
             ALD_OT_fx_anchor_create, ALD_OT_fx_ground_create,
             ALD_OT_fx_diagnose,
             ALD_OT_fx_update,
