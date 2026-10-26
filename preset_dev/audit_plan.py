@@ -308,9 +308,13 @@ CHECKS = [
     ("VI-SC", "The FX pass image belongs to one scene",
      lambda: has("compositor.py", "def _pass_image_name",
                  "ALD | FX Pass | ")),
-    ("VI-SC", "The FX pass state is real, not a path check",
-     lambda: has("compositor.py", "def fx_pass_state", "rendered at frame")
+    ("VI-SC", "The FX pass state is content-aware", 
+     lambda: has("compositor.py", "def fx_pass_state", "pass_signature")
      and has("panels.py", "fx_pass_state")[0]),
+    ("VI-SC", "One command runs gate, fixture and audit",
+     lambda: has("preset_dev/verify_all.py", "ALD ALL: PASS")
+     and has("preset_dev/audit_plan.py",
+             "return 0 if passed == len(results) else 1")[0]),
     ("VI-SC", "Duplicated scene repair makes the copy independent",
      lambda: has("ownership.py", "def repair", "def _duplicate_objects",
                  "same_identity")
@@ -395,7 +399,7 @@ def main():
                  item["evidence"]))
     print("ALD AUDIT %d/%d OK | report %s"
           % (passed, len(results), OUT))
-    return 0 if passed == len(results) else 0
+    return 0 if passed == len(results) else 1
 
 
 if __name__ == "__main__":

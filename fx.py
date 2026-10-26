@@ -13,6 +13,7 @@ The system is evaluated analytically (see the technical guide):
 """
 
 import hashlib
+import json
 import math
 import uuid
 
@@ -911,6 +912,73 @@ def system_time(scene, system=None):
     origin_frame = float(getattr(system, "origin_frame", 1.0)) if system else 1.0
     return (scene.frame_current + scene.frame_subframe - origin_frame) \
         / _fps(scene) + _age_offset(scene)
+
+
+def _signature_value(value):
+    if isinstance(value, (bool, int, float, str)) or value is None:
+        return value
+    try:
+        return [round(float(item), 5) for item in value]
+    except Exception:
+        return str(value)
+
+
+def _block_signature(block, skip):
+    data = {}
+    for prop in block.bl_rna.properties:
+        name = prop.identifier
+        if name in skip or prop.type in {"POINTER", "COLLECTION"}:
+            continue
+        try:
+            data[name] = _signature_value(getattr(block, name))
+        except Exception:
+            continue
+    return data
+
+
+def pass_signature(scene):
+    """A cheap hash of what the FX pass depends on.
+
+    The pass image is only valid for the FX configuration, camera, palette,
+    resolution and clock it was rendered with. The current frame is not part
+    of the hash: ``fx_pass_state`` checks the frame coverage separately.
+    """
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return ""
+    origin, forward, up, right = _camera_basis(scene)
+    camera = scene.camera
+    camera_data = {
+        "origin": [round(value, 4) for value in origin],
+        "forward": [round(value, 4) for value in forward],
+        "up": [round(value, 4) for value in up],
+        "right": [round(value, 4) for value in right],
+    }
+    if camera is not None and camera.data is not None:
+        camera_data.update({
+            "type": camera.data.type,
+            "lens": round(float(camera.data.lens), 3),
+            "sensor": round(float(camera.data.sensor_width), 3),
+            "fit": camera.data.sensor_fit,
+            "ortho": round(float(camera.data.ortho_scale), 3),
+        })
+    data = {
+        "palette": scene.get("ald_effective_palette") or settings.palette,
+        "backend": settings.fx_backend,
+        "style": settings.fx_style,
+        "age": round(float(settings.fx_age), 4),
+        "camera": camera_data,
+        "resolution": [scene.render.resolution_x, scene.render.resolution_y,
+                       scene.render.resolution_percentage],
+        "systems": [],
+    }
+    for system in settings.fx_systems:
+        entry = _block_signature(system, {"rna_type", "name", "events"})
+        entry["events"] = [_block_signature(event, {"rna_type", "name"})
+                           for event in system.events]
+        data["systems"].append(entry)
+    text = json.dumps(data, sort_keys=True, default=str)
+    return hashlib.sha1(text.encode("utf-8")).hexdigest()
 
 
 def _rise_time(scene, index):

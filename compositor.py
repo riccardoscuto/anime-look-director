@@ -6,7 +6,7 @@ import re
 import bpy
 from bpy.app.handlers import persistent
 
-from .fx import FX_PASS_INDEX
+from .fx import FX_PASS_INDEX, pass_signature
 
 GROUP_NAME = "ALD | Compositor Stack"
 SCENE_TAG = "ald_scene"
@@ -771,14 +771,19 @@ def fx_pass_state(scene):
     if end > start:
         if not os.path.exists(bpy.path.abspath(_frame_path(path, end))):
             return "missing", "FX pass sequence incomplete"
-        if start <= scene.frame_current <= end:
-            return "ready", "FX pass: frames %d-%d" % (start, end)
-        return "range", "FX pass covers frames %d-%d" % (start, end)
-    if start == 0:
-        return "ready", "FX pass (frame not recorded)"
-    if start == scene.frame_current:
-        return "ready", "FX pass: frame %d" % start
-    return "stale", "FX pass stale: rendered at frame %d" % start
+        if not start <= scene.frame_current <= end:
+            return "range", "FX pass covers frames %d-%d" % (start, end)
+        text = "FX pass: frames %d-%d" % (start, end)
+    elif start == 0:
+        text = "FX pass (frame not recorded)"
+    elif start != scene.frame_current:
+        return "stale", "FX pass stale: rendered at frame %d" % start
+    else:
+        text = "FX pass: frame %d" % start
+    if settings.fx_pass_signature \
+            and settings.fx_pass_signature != pass_signature(scene):
+        return "stale", "FX pass outdated: the FX, camera or palette changed"
+    return "ready", text
 
 
 def _render_pass_still(scene, path):
@@ -829,6 +834,7 @@ def render_fx_pass(scene, path=None):
     _render_pass_still(scene, path)
     settings.fx_pass_path = path
     settings.fx_pass_frames = (scene.frame_current, scene.frame_current)
+    settings.fx_pass_signature = pass_signature(scene)
     _refresh_pass_image(scene)
     return path
 
@@ -855,6 +861,7 @@ def render_fx_pass_animation(scene, path=None):
         scene.frame_set(current)
     settings.fx_pass_path = first
     settings.fx_pass_frames = (start, end)
+    settings.fx_pass_signature = pass_signature(scene)
     _refresh_pass_image(scene)
     return first
 

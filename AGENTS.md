@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.46.0**).
+  (currently **2.46.1**).
 
 ## Verify (run after every change)
 ```powershell
@@ -14,6 +14,12 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 & $blender -b --factory-startup --python-exit-code 1 --python preset_dev\verify.py
 ```
 Expected output: `ALD GATE: PASS`.
+
+Full chain (gate + duplicate fixture + audit, one fresh Blender per step):
+```powershell
+& $blender -b --factory-startup --python preset_dev\verify_all.py
+```
+Expected output: `ALD ALL: PASS`.
 
 For live work: Blender Lab MCP bridge on `localhost:9876` (keep calls short).
 If window screenshots are black, the Blender window may be off-screen (see
@@ -846,6 +852,13 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - `compositor.fx_pass_state(scene)` is the only source of the panel label:
     ready / stale / range / missing, with a real file check. A path that exists
     is not proof that it covers the current frame;
+  - `fx.pass_signature(scene)` hashes the systems/events, palette, backend,
+    style, age, camera pose, lens and resolution. The signature is stored on
+    render; a change marks the pass "outdated". The current frame is excluded
+    and checked by the range/state logic instead;
+  - with an animated camera the signature stores the pose of the restored frame:
+    the panel may report "outdated" on other frames. It never reports "ready"
+    for a stale pass;
   - both pass operators rebuild the stack after rendering: the still path used
     to leave the pass node unlinked until a manual Build;
   - the gate renders a four-frame sequence and checks the node fields, the

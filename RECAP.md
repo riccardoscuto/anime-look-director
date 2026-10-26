@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.46.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.46.1** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -81,6 +81,19 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
 
+## Novità 2.46.1 — stato del pass consapevole del contenuto
+
+- **Firma del pass** (`fx.pass_signature` + `fx_pass_signature`): hash di
+  sistema/eventi, palette, backend, stile, età, posa camera, lente e risoluzione.
+  Se cambi uno di questi, `fx_pass_state` dice "outdated" — non solo quando
+  cambia il frame.
+- **Verifica unica**: `preset_dev/verify_all.py` esegue gate, fixture duplicazione
+  e audit in Blender freschi; esce 1 se uno fallisce. Anche `audit_plan.py` ora
+  esce 1 su un punto rosso (prima usciva sempre 0).
+- **Limite**: con camera animata la firma usa la posa del frame corrente; su
+  altri frame può dire "outdated" anche se la sequenza è valida. Non dice mai
+  "pronto" per un pass vecchio.
+
 ## Novità 2.46.0 — pass FX per animazione
 
 - **Sequenza per frame** (`compositor.render_fx_pass_animation`,
@@ -91,12 +104,17 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 - **Immagine per scena**: il pass si chiama `ALD | FX Pass | <scena>`; due scene
   non si sovrascrivono più il pass a vicenda.
 - **Stato reale**: `compositor.fx_pass_state` distingue pronto / stale (altro
-  frame) / fuori intervallo / mancante, verificando l'esistenza del file. Il
-  pannello mostra l'intervallo o il frame, non un generico "ready".
+  frame o contenuto cambiato) / fuori intervallo / mancante, verificando
+  l'esistenza del file. `fx.pass_signature` codifica FX, palette, camera e
+  risoluzione: se cambi qualcosa, il pannello dice "outdated".
 - **Pulsante still**: dopo il render ricostruisce lo stack, così il nodo del pass
   è collegato subito senza un Build manuale.
-- **Limite dichiarato**: modificare gli FX non invalida il pass; il pannello
-  conosce frame e file, non un hash del contenuto. Va rigenerato dopo una modifica.
+- **Verifica unica**: `preset_dev/verify_all.py` esegue gate, fixture e audit in
+  Blender freschi e fallisce se uno dei tre fallisce (l'audit ora esce con 1
+  anche quando un punto è rosso).
+- **Limite dichiarato**: con una camera animata la firma usa la posa del frame
+  corrente: su altri frame il pannello può dire "outdated" anche se la sequenza
+  è valida. Non dice mai "pronto" per un pass vecchio.
 
 ## Novità 2.45.0 — scene duplicate e ricerca volume
 

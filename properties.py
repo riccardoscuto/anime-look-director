@@ -926,6 +926,9 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="FX Pass Frames", size=2, default=(0, 0),
         description="Frame range of the rendered FX pass "
                     "(end above start means a sequence)")
+    fx_pass_signature: StringProperty(
+        name="FX Pass Signature", default="",
+        description="Hash of the FX state the pass was rendered with")
 
     # --- Shadow tint ----------------------------------------------------
     shadow_tint: BoolProperty(

@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.46.1 - 2026-10-26
+Content-aware pass state and a single verification command.
+
+### Added
+- `fx.pass_signature` + `fx_pass_signature`: a hash of the FX systems/events,
+  palette, backend, style, age, camera pose, lens and resolution the pass was
+  rendered with. `fx_pass_state` reports "outdated" when any of them changes,
+  not only the frame.
+- `preset_dev/verify_all.py`: runs the gate, the duplicate fixture and the audit
+  in fresh factory-startup Blenders and exits 1 on any failure.
+
+### Fixed
+- `preset_dev/audit_plan.py` exits 1 when an item fails; it always returned 0.
+- The gate checks that an FX edit marks the pass stale, on top of the sequence.
+
+### Open
+- With an animated camera the sequence signature uses the pose of the restored
+  frame: the panel may report "outdated" on other frames even when the sequence
+  is valid. It never reports "ready" for a pass that is not.
+
 ## 2.46.0 - 2026-10-26
 Animated FX pass, scene-owned pass images and a real pass state.
 
@@ -10,7 +30,7 @@ Animated FX pass, scene-owned pass images and a real pass state.
   the compositor follows the animation. Cost: one extra render pass per frame.
 - `fx_pass_frames` on the scene: the frame range of the rendered pass.
 - `compositor.fx_pass_state` and the panel label: ready, stale (another frame),
-  out of range or missing, with a real file check instead of a non-empty path.
+  out of range or missing, with a real file check.
 - The pass controls have their own FX Pass box in the FX section.
 
 ### Fixed
@@ -19,11 +39,7 @@ Animated FX pass, scene-owned pass images and a real pass state.
 - The still operator rebuilds the stack after the render, so the pass node is
   wired at once instead of waiting for a manual Build.
 - The gate now renders a four-frame pass sequence and checks the node fields,
-  the per-scene image and that the EXR frames differ.
-
-### Open
-- The pass is not invalidated when the FX parameters change: the panel reports
-  the frame and the file, not a content hash. Re-render after an edit.
+  the per-scene image and the frame difference.
 
 ## 2.45.0 - 2026-10-26
 Scene-copy ownership repair and the PA2 volume spike.

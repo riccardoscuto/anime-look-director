@@ -494,7 +494,13 @@
     },
     {
       "evidence": "",
-      "label": "The FX pass state is real, not a path check",
+      "label": "The FX pass state is content-aware",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "One command runs gate, fixture and audit",
       "phase": "VI-SC",
       "state": "OK"
     },
@@ -584,7 +590,7 @@
     }
   ],
   "partial": 0,
-  "passed": 97,
+  "passed": 98,
   "plan": "v2.27.0 P0-P3",
-  "total": 97
+  "total": 98
 }

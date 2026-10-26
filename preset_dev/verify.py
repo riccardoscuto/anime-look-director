@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 46, 0)
+EXPECTED_VERSION = (2, 46, 1)
 TOLERANCE = 1e-4
 
 
@@ -3670,6 +3670,7 @@ def check_fx_pass_isolation(scene):
     previous_mode = scene.render.image_settings.color_mode
     previous_pass = scene.ald.fx_pass_path
     previous_frames = tuple(scene.ald.fx_pass_frames)
+    previous_signature = scene.ald.fx_pass_signature
     collection = None
     plane = None
     try:
@@ -3753,6 +3754,7 @@ def check_fx_pass_isolation(scene):
         fx_module.clear(scene)
         scene.ald.fx_pass_path = previous_pass
         scene.ald.fx_pass_frames = previous_frames
+        scene.ald.fx_pass_signature = previous_signature
         scene.render.image_settings.file_format = previous_format
         scene.render.image_settings.color_mode = previous_mode
         scene.render.resolution_x, scene.render.resolution_y = previous_size
@@ -3769,6 +3771,8 @@ def check_fx_pass_sequence(scene):
     previous_frame = scene.frame_current
     previous_pass = scene.ald.fx_pass_path
     previous_frames = tuple(scene.ald.fx_pass_frames)
+    previous_signature = scene.ald.fx_pass_signature
+    previous_age = scene.ald.fx_age
     base = os.path.join(tempfile.gettempdir(), "ald_gate_pass_seq.exr")
     first = None
     try:
@@ -3825,6 +3829,17 @@ def check_fx_pass_sequence(scene):
         delta = np.abs(load(start_path) - load(end_path))
         check(float(delta.max()) > 0.01,
               "the pass sequence does not change between frames")
+
+        # The pass knows the FX it was rendered with, not only the frame.
+        scene.frame_set(start)
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state == "ready",
+              "the pass is not ready on its own frame (%s)" % state)
+        scene.ald.fx_age = previous_age + 0.25
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state == "stale",
+              "an FX change does not invalidate the pass (%s)" % state)
+        scene.ald.fx_age = previous_age
     finally:
         if first is not None:
             for frame in range(previous_range[0], previous_range[1] + 1):
@@ -3834,6 +3849,8 @@ def check_fx_pass_sequence(scene):
         fx_module.clear(scene)
         scene.ald.fx_pass_path = previous_pass
         scene.ald.fx_pass_frames = previous_frames
+        scene.ald.fx_pass_signature = previous_signature
+        scene.ald.fx_age = previous_age
         scene.frame_start, scene.frame_end = previous_range
         scene.frame_set(previous_frame)
         scene.render.resolution_x, scene.render.resolution_y = previous_size
