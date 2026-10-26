@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.48.0**).
+  (currently **2.49.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -584,6 +584,33 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     the screen position and the frame membership in `composition.json`;
   - the gate refuses a show whose depths, births or sizes are not ordered, or
     whose bursts fall outside the frame or overlap on screen.
+- Framing 2.49 rules:
+  - `event_radius` derives from `_family_reach` (family speed x 1.15, drag,
+    life, size); never use the event speed default for a firework;
+  - a firework in Physical mode is bounded at `_burst_origin` (the reached rise
+    point), not at the authored target;
+  - the show layout is symmetric with the hero on the camera forward
+    (`_burst_center`: index 0 offset 0); do not aim the camera at a provisional
+    hero after the fit;
+  - `_fit_show` grows the distance until every envelope is >= 0.95 in frame;
+    an ortho camera or a huge offset returns the measured fraction, never a
+    silent physical scale change;
+  - `fx_fit_override` (Intentional Crop) is the only accepted exception; the
+    gate requires 0.95 unless it is on. The composition report records
+    `intentional_crop`;
+  - the distance-and-spread limit must use the same `_family_reach` as the
+    envelope, otherwise the fit and the report disagree.
+- Light events 2.49 rules:
+  - `fx.light_events(scene, limit)` returns effect-independent sources:
+    firework at the reached burst point, meteor at the head at the current age,
+    with energy, radius and time; never use `rise_time` for a meteor;
+  - `event.cloud_flash` is the cloud response multiplier, separate from
+    `event.glow` (screen flare);
+  - the card shader sums two sources (`ALD | Flash X2/Y2/Energy2` and
+    `total_energy`); `clouds.update_flash` writes both per card, with the world
+    attenuation;
+  - the decay is a function of the age in seconds, so scrubbing and frame
+    jumps stay stable; a dead event writes energy 0, never a ghost.
 - Spatial Clouds 2.0 rules (v2.40):
   - the cards come from a deterministic density field (`_field` + `_field_grid`
     + `_sample`): domain warp, two fBm bands and a border envelope that makes
@@ -600,7 +627,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     triangles only, no non-manifold edge and 1.0 denser than 0.9. It runs on
     `_cloud_mesh` directly, so it does not depend on the scene;
   - `clouds_quality` Preview / Final caps the mesh at 256x64 / 1024x256; the
-    quality is part of the refresh signature, so changing it rebuilds;
+    quality is part of the refresh **and create** signature (the same five
+    parts), so changing it rebuilds and the first refresh does not;
   - `clouds_world_blend` reduces the World Cloud Amount while
     `clouds_created` is true; `ald.clouds_create` and `ald.clouds_remove`
     reapply the World. The direct `clouds.create` API does not (tests own it);

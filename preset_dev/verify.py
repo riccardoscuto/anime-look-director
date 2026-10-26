@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 48, 0)
+EXPECTED_VERSION = (2, 49, 0)
 TOLERANCE = 1e-4
 
 
@@ -3438,9 +3438,11 @@ def check_fx_composition(scene):
     from mathutils import Vector
 
     previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_override = scene.ald.fx_fit_override
     try:
         scene.render.resolution_x = 800
         scene.render.resolution_y = 450
+        scene.ald.fx_fit_override = False
         fx_module.clear(scene)
         count = fx_module.create_fireworks(scene, 3, seed=17, distance=95.0,
                                            time=0.0)
@@ -3466,17 +3468,20 @@ def check_fx_composition(scene):
             check(0.0 <= projected.x <= 1.0 and 0.0 <= projected.y <= 1.0,
                   "a burst centre is outside the camera frame")
             screens.append((round(projected.x, 3), round(projected.y, 3)))
-            # The whole burst must be in frame, not only its centre.
+            # The whole burst must be in frame, not only its centre; a chosen
+            # crop is the only accepted exception.
             fraction = fx_module.event_frame_fraction(scene, event)
             fractions.append(round(fraction, 3))
-            check(fraction > 0.15,
-                  "a burst is almost entirely cut (envelope fraction %.3f)"
-                  % fraction)
+            if not scene.ald.fx_fit_override:
+                check(fraction >= 0.95 - 1e-3,
+                      "a burst is cut beyond the fit target "
+                      "(envelope fraction %.3f)" % fraction)
         check(len(set(screens)) == len(screens),
               "the bursts overlap on screen")
         print("ALD GATE framing envelope", fractions)
     finally:
         fx_module.clear(scene)
+        scene.ald.fx_fit_override = previous_override
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 

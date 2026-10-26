@@ -1223,8 +1223,10 @@ def _world_per_pixel(scene, position):
     data = camera.data
     origin, forward, _up, _right = _camera_basis(scene)
     depth = max((Vector(position) - origin).dot(forward), 1e-3)
-    res_x = max(int(scene.render.resolution_x), 1)
-    res_y = max(int(scene.render.resolution_y), 1)
+    res_x = max(int(scene.render.resolution_x
+                    * max(scene.render.resolution_percentage, 1) / 100.0), 1)
+    res_y = max(int(scene.render.resolution_y
+                    * max(scene.render.resolution_percentage, 1) / 100.0), 1)
     if data.type == "ORTHO":
         return float(data.ortho_scale) / max(res_x, res_y)
     sensor = float(data.sensor_width)
@@ -1283,10 +1285,18 @@ def _camera_basis(scene):
 
 def _burst_center(origin, forward, up, right, index, total, distance,
                  spread=1.0):
-    spread_x = (-0.18 + 0.36 * (index + 0.5) / max(total, 1)) * spread
-    spread_y = (0.05 + 0.05 * math.sin(index * 1.7)) * spread
-    return (origin + forward * distance + right * distance * spread_x
-            + up * distance * spread_y)
+    """Symmetric show: the hero sits on the camera forward, the others around."""
+    if total <= 1 or index == 0:
+        spread_x = 0.0
+        spread_y = 0.0
+    else:
+        step = min(0.18, 0.36 / max(total - 1, 1))
+        slot = (index + 1) // 2
+        sign = 1.0 if index % 2 == 1 else -1.0
+        spread_x = sign * slot * step
+        spread_y = 0.05 + 0.05 * math.sin(index * 1.7)
+    return (origin + forward * distance + right * distance * spread_x * spread
+            + up * distance * spread_y * spread)
 
 
 # ---------------------------------------------------------------------------
@@ -2202,50 +2212,154 @@ def _scene_fx_materials(scene):
     return names
 
 
+def _family_reach(family, size=1.0):
+    """The maximum distance a primary star reaches, from the solver params."""
+    config = FAMILY_CONFIG.get(family, FAMILY_CONFIG["CHRYSANTHEMUM"])
+    speed = float(config["speed"]) * 1.15
+    drag = float(config["drag"])
+    life = float(config["life"])
+    if drag > 1e-4:
+        reach = speed * (-math.expm1(-drag * life)) / drag
+    else:
+        reach = speed * life
+    size = max(0.1, min(4.0, float(size)))
+    return reach * size * 1.08
+
+
 def event_radius(event):
-    """Conservative world radius of the burst at its maximum extent."""
+    """World radius of the burst at its maximum extent, from the solver."""
     config = FAMILY_CONFIG.get(event.family,
                                FAMILY_CONFIG["CHRYSANTHEMUM"])
-    speed = float(event.speed) or config["speed"]
-    life = float(event.life) or config["life"]
+    if event.kind in {"METEOR", "BOLIDE"}:
+        speed = float(event.speed) or config["speed"]
+        drag = float(event.drag) or config["drag"]
+        life = float(event.life) or config["life"]
+    else:
+        speed = float(config["speed"]) * 1.15
+        drag = float(config["drag"])
+        life = float(event.life) or config["life"]
+    if drag > 1e-4:
+        reach = speed * (-math.expm1(-drag * life)) / drag
+    else:
+        reach = speed * life
     size = max(0.1, min(4.0, float(event.size)))
-    return abs(speed) * abs(life) * 0.55 * size
+    return reach * size * 1.08
 
 
-def event_envelope(scene, event):
-    """Projected bounds of the whole burst, not only its centre.
+def _burst_origin(scene, event):
+    """The actual burst centre: the reached rise point in Physical mode."""
+    center = Vector(event.target)
+    if event.kind in {"METEOR", "BOLIDE"}:
+        return center
+    if event.launch_mode != "PHYSICAL":
+        return center
+    gravity = _gravity(scene)
+    v0 = _rise_velocity(event.launcher, event.target, event.rise_time,
+                        float(event.drag), gravity, mode=event.launch_mode,
+                        speed=float(event.speed),
+                        direction=Vector(event.direction))
+    return _rise_position(event.launcher, v0, float(event.drag), gravity,
+                          float(event.rise_time))
 
-    Returns (min_x, min_y, max_x, max_y) in camera screen space. The radius is
-    a conservative estimate from the family speed and life; it is deliberately
-    generous so a centre cannot hide a cut silhouette.
-    """
+
+def _projected_envelope(scene, center, radius):
+    """Projected bounds of a sphere in camera screen space."""
     from bpy_extras.object_utils import world_to_camera_view
 
     camera = scene.camera
     if camera is None:
         return (0.5, 0.5, 0.5, 0.5)
-    center = Vector(event.target)
-    radius = event_radius(event)
     _origin, _forward, up, right = _camera_basis(scene)
     xs = []
     ys = []
     for dx in (-radius, radius):
         for dy in (-radius, radius):
             projected = world_to_camera_view(scene, camera,
-                                             center + right * dx + up * dy)
+                                             Vector(center) + right * dx
+                                             + up * dy)
             xs.append(projected.x)
             ys.append(projected.y)
     return (min(xs), min(ys), max(xs), max(ys))
 
 
-def event_frame_fraction(scene, event):
-    """Fraction of the projected envelope inside the [0, 1] frame."""
-    min_x, min_y, max_x, max_y = event_envelope(scene, event)
+def _envelope_fraction(bounds):
+    min_x, min_y, max_x, max_y = bounds
     width = max(max_x - min_x, 1e-6)
     height = max(max_y - min_y, 1e-6)
     inside_x = max(0.0, min(max_x, 1.0) - max(min_x, 0.0))
     inside_y = max(0.0, min(max_y, 1.0) - max(min_y, 0.0))
     return (inside_x * inside_y) / (width * height)
+
+
+def event_envelope(scene, event):
+    """Projected bounds of the whole burst, not only its centre.
+
+    The centre is the reached point in Physical mode; the radius comes from the
+    same family speed, drag and life as the solver, so the fit and the geometry
+    agree.
+    """
+    return _projected_envelope(scene, _burst_origin(scene, event),
+                               event_radius(event))
+
+
+def event_frame_fraction(scene, event):
+    """Fraction of the projected envelope inside the [0, 1] frame."""
+    return _envelope_fraction(event_envelope(scene, event))
+
+
+LIGHT_COLOR = (1.0, 0.62, 0.32)
+
+
+def light_events(scene, limit=2):
+    """The active FX light sources, strongest first, independent of the effect.
+
+    A firework emits at the reached burst point (the actual point in Physical
+    mode). A meteor emits from the head at the current time, not from a firework
+    rise phase. The decay is a function of the age in seconds.
+    """
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return []
+    sources = []
+    gravity = _gravity(scene)
+    for system in settings.fx_systems:
+        time = system_time(scene, system)
+        for event in system.events:
+            if not event.enabled:
+                continue
+            birth = float(event.birth)
+            if event.kind in {"METEOR", "BOLIDE"}:
+                age = time - birth
+                life = max(float(event.life), 1e-3)
+                if age < 0.0 or age > life:
+                    continue
+                position = _position(
+                    Vector(event.target),
+                    Vector(event.direction) * float(event.speed),
+                    float(event.drag), age, gravity)
+                strength = float(event.glow) * (1.0 - age / life)
+                strength *= float(getattr(event, "cloud_flash", 1.0))
+            else:
+                age = time - (birth + float(event.rise_time))
+                life = max(float(event.life), 1e-3)
+                if age < 0.0 or age > life:
+                    continue
+                position = _burst_origin(scene, event)
+                strength = float(event.glow) * (1.0 - age / life) ** 2
+                strength *= float(getattr(event, "cloud_flash", 1.0))
+            radius = max(event_radius(event) * 0.35, 0.1)
+            sources.append({
+                "position": position,
+                "energy": strength,
+                "age": age,
+                "life": life,
+                "radius": radius,
+                "color": LIGHT_COLOR,
+                "kind": event.kind,
+                "event": event.uid,
+            })
+    sources.sort(key=lambda item: item["energy"], reverse=True)
+    return sources[:max(1, int(limit))]
 
 
 def refresh_widths(scene):
@@ -2348,9 +2462,55 @@ def _fit_distance(scene, families):
     tan_v = max(sensor_v * 0.5 / max(float(data.lens), 1e-3), 1e-4)
     radius = 0.0
     for family in families:
-        config = FAMILY_CONFIG.get(family, FAMILY_CONFIG["CHRYSANTHEMUM"])
-        radius = max(radius, config["speed"] * config["life"] * 0.55)
-    return radius / (0.9 * tan_v)
+        radius = max(radius, _family_reach(family))
+    return radius / (0.95 * tan_v)
+
+
+def _show_layout(origin, forward, up, right, families, seed, total, distance,
+                 spread, offset):
+    """The candidate centres of the show, before the events are written."""
+    centers = []
+    for index in range(total):
+        role = index % 3
+        size = (1.0, 0.9, 0.8)[role]
+        depth = (1.0, 1.18, 1.42)[role]
+        family_distance = distance * depth
+        center = _burst_center(origin, forward, up, right, index, total,
+                               family_distance * (0.85 + 0.25 *
+                                                  _hash_unit(seed, index, 0, 1)),
+                               spread) + offset
+        centers.append((center, families[index], size))
+    return centers
+
+
+def _fit_show(scene, origin, forward, up, right, families, seed, total,
+              distance, spread, offset, target=0.95):
+    """Grow the distance until every envelope is inside the target fraction.
+
+    The solver drives the radius; a show that cannot fit (ortho, a huge
+    composition offset) is returned as is and the report shows the fraction,
+    instead of silently scaling the physical burst.
+    """
+    if scene.camera is None or scene.camera.data is None:
+        return distance, spread
+    ortho = scene.camera.data.type == "ORTHO"
+    for _ in range(12):
+        centers = _show_layout(origin, forward, up, right, families, seed,
+                               total, distance, spread, offset)
+        worst = 1.0
+        for center, family, size in centers:
+            bounds = _projected_envelope(scene, center,
+                                         _family_reach(family, size))
+            fraction = _envelope_fraction(bounds)
+            worst = min(worst, fraction)
+        if worst >= target or ortho:
+            break
+        distance *= 1.1
+        radius = max(_family_reach(item) for item in families)
+        tan_h = _tan_half(scene, horizontal=True)
+        limit = (target * tan_h * distance - radius) / (0.18 * distance)
+        spread = max(0.2, min(spread, limit))
+    return distance, spread
 
 
 def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
@@ -2387,11 +2547,14 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
         # The lateral spread must leave the edge bursts in frame too.
         radius = 0.0
         for item in families:
-            config = FAMILY_CONFIG.get(item, FAMILY_CONFIG["CHRYSANTHEMUM"])
-            radius = max(radius, config["speed"] * config["life"] * 0.55)
+            radius = max(radius, _family_reach(item))
         tan_h = _tan_half(scene, horizontal=True)
-        limit = (0.9 * tan_h * distance - radius) / (0.18 * distance)
+        limit = (0.95 * tan_h * distance - radius) / (0.18 * distance)
         spread = max(0.2, min(spread, limit))
+        if settings is None or not getattr(settings, "fx_fit_override", False):
+            distance, spread = _fit_show(
+                scene, origin, forward, up, right, families, seed, total,
+                distance, spread, offset)
     for index in range(total):
         event = system.events.add()
         event.uid = uuid.uuid4().hex

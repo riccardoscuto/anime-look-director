@@ -404,6 +404,10 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
     glow: FloatProperty(
         name="Glow", default=0.6, min=0.0, max=3.0,
         description="Glow profile of the event")
+    cloud_flash: FloatProperty(
+        name="Cloud Flash", default=1.0, min=0.0, max=4.0,
+        description=("How much this event lights the spatial clouds, "
+                     "independent of the screen glow"))
 
 
 class ALD_CloudLayer(bpy.types.PropertyGroup):
@@ -742,6 +746,11 @@ class ALD_Settings(bpy.types.PropertyGroup):
     fx_burst_spread: FloatProperty(
         name="Burst Spread", default=1.0, min=0.2, max=3.0,
         description="Horizontal and vertical spread of the bursts",
+        update=_on_fx_rebuild)
+    fx_fit_override: BoolProperty(
+        name="Intentional Crop", default=False,
+        description=("Keep the authored distance even when an automatic show "
+                     "would cut a burst: the report marks the crop as chosen"),
         update=_on_fx_rebuild)
     fx_gn_prototype: BoolProperty(
         name="GN Particles (Prototype)", default=True,

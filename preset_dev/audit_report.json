@@ -506,6 +506,36 @@
     },
     {
       "evidence": "",
+      "label": "The show fit uses the solver reach and the 0.95 target",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The hero is centred in the show layout",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "An intentional crop is an explicit override",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Light events are independent of the effect",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Two cloud light sources add",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The FX pass writes atomically and restores the render state",
       "phase": "VI-SC",
       "state": "OK"
@@ -668,7 +698,7 @@
     }
   ],
   "partial": 0,
-  "passed": 111,
+  "passed": 116,
   "plan": "v2.27.0 P0-P3",
-  "total": 111
+  "total": 116
 }

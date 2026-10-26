@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.48.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.49.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,22 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.49.0 — framing dal solver e luci fisiche
+
+- **Envelope dal solver**: `event_radius` usa velocità di famiglia, drag, vita e
+  size; un fuoco PHYSICAL usa il punto di salita raggiunto, non il target
+  autore. Il default speed 30 non guida più l'envelope.
+- **Show simmetrico**: l'hero sta sull'asse camera (0.5/0.5); niente più camera
+  aim dopo il fit.
+- **Auto-fit 0.95**: `_fit_show` allontana finché ogni envelope è ≥95%; l'ORTHO
+  e un offset enorme restituiscono la frazione misurata, senza scalare la
+  fisica. `Intentional Crop` è l'unica eccezione ammessa dal gate.
+- **Light events**: `fx.light_events` restituisce sorgenti indipendenti
+  dall'effetto (fuoco al punto di scoppio, meteora alla testa all'età corrente);
+  `cloud_flash` è separato dal glow; lo shader somma due sorgenti.
+- **Benchmark**: 3 run per scenario, mediane, hardware/Blender registrati;
+  refresh 1.7–6.6 ms dopo il fix della firma di create.
 
 ## Novità 2.48.0 — pass FX robusto e controlli nuvole
 

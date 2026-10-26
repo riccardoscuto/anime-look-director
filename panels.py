@@ -332,6 +332,7 @@ def draw_fx_timing(layout, context):
     col = box.column(align=True)
     col.prop(s, "fx_age", text="Burst Age")
     col.prop(s, "fx_burst_spread", text="Burst Spread")
+    col.prop(s, "fx_fit_override", text="Intentional Crop")
     col.prop(s, "fx_composition_offset", text="Offset")
 
 
@@ -402,6 +403,7 @@ def draw_fx_look(layout, context):
     col.prop(s, "fx_atmospheric_fade", text="Atmospheric Fade")
     if event is not None:
         col.prop(event, "glow", text="Event Glow")
+        col.prop(event, "cloud_flash", text="Cloud Flash")
 
 
 def draw_fx_advanced(layout, context):

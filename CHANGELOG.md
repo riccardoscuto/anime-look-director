@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.49.0 - 2026-10-26
+Solver-driven show framing and physical cloud light events.
+
+### Changed
+- `event_radius` uses the same family speed, drag, life and size as the solver;
+  a firework in Physical mode uses the reached rise point, not the authored
+  target. The old event speed default (30) no longer drives the envelope.
+- The show layout is symmetric and the hero sits on the camera forward; the
+  old left-biased layout required aiming at the hero and invalidated the fit.
+- `_fit_show` grows the distance until every burst envelope is at least 95% in
+  frame (12 steps); an ortho camera or a huge offset returns the measured
+  fraction instead of silently scaling the burst.
+- `fx_fit_override` (Intentional Crop) keeps the authored framing and is the
+  only accepted exception in the gate, which now requires 0.95 instead of 0.15.
+
+### Added
+- `fx.light_events`: effect-independent light sources with the actual firework
+  burst point, the meteor head at the current age, energy, radius and time.
+  `cloud_flash` is a per-event multiplier separate from the screen glow.
+- `clouds.update_flash` feeds two sources; the card shader sums them
+  (`ALD | Flash X2/Y2/Energy2` + `total_energy`).
+
+### Fixed
+- `clouds.create` writes the quality into `ald_clouds_signature` too: the first
+  refresh after a create no longer rebuilds every mesh (it was ~0.8 s; now
+  1.7-6.6 ms at 1-5 layers in Final).
+
+### Evidence
+- `composition.json` regenerated: all 3- and 5-burst events `in_frame`, the
+  hero at 0.5/0.5, fractions 0.954-1.0.
+- `clouds_bench/metrics.json` regenerated with three runs and medians:
+  creation 0.11-1.46 s, refresh 0.0017-0.0066 s, render 2.15-3.20 s at 720p,
+  Windows 11, Blender 5.1.2. The 2.39 comparison is not reproducible: the code
+  is not in the repository; the file records the hardware and the medians.
+
 ## 2.48.0 - 2026-10-26
 FX pass hardening and spatial cloud controls.
 

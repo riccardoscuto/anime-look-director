@@ -9,36 +9,36 @@
         "family": "CHRYSANTHEMUM",
         "birth": 0.0,
         "size": 1.0,
-        "distance": 180.88,
+        "distance": 157.52,
         "screen": [
           0.5,
           0.5
         ],
-        "in_frame": false,
-        "frame_fraction": 0.949
+        "in_frame": true,
+        "frame_fraction": 1.0
       },
       {
         "index": 1,
         "family": "CHRYSANTHEMUM",
         "birth": 0.25,
         "size": 0.9,
-        "distance": 212.21,
+        "distance": 190.06,
         "screen": [
-          0.629,
-          0.607
+          0.749,
+          0.745
         ],
         "in_frame": true,
-        "frame_fraction": 0.983
+        "frame_fraction": 0.992
       },
       {
         "index": 2,
         "family": "PEONY",
         "birth": 0.55,
         "size": 0.8,
-        "distance": 260.63,
+        "distance": 231.75,
         "screen": [
-          0.766,
-          0.495
+          0.251,
+          0.592
         ],
         "in_frame": true,
         "frame_fraction": 1.0
@@ -55,7 +55,7 @@
         "family": "CHRYSANTHEMUM",
         "birth": 0.0,
         "size": 1.0,
-        "distance": 212.42,
+        "distance": 138.12,
         "screen": [
           0.5,
           0.5
@@ -68,10 +68,10 @@
         "family": "CHRYSANTHEMUM",
         "birth": 0.25,
         "size": 0.9,
-        "distance": 249.12,
+        "distance": 163.72,
         "screen": [
-          0.575,
-          0.603
+          0.604,
+          0.704
         ],
         "in_frame": true,
         "frame_fraction": 1.0
@@ -81,10 +81,10 @@
         "family": "PEONY",
         "birth": 0.55,
         "size": 0.8,
-        "distance": 303.69,
+        "distance": 199.91,
         "screen": [
-          0.658,
-          0.489
+          0.396,
+          0.576
         ],
         "in_frame": true,
         "frame_fraction": 1.0
@@ -94,26 +94,26 @@
         "family": "WILLOW",
         "birth": 0.55,
         "size": 1.0,
-        "distance": 215.03,
+        "distance": 142.71,
         "screen": [
-          0.74,
-          0.431
+          0.708,
+          0.508
         ],
-        "in_frame": false,
-        "frame_fraction": 0.525
+        "in_frame": true,
+        "frame_fraction": 1.0
       },
       {
         "index": 4,
         "family": "KAMURO",
         "birth": 0.25,
         "size": 0.9,
-        "distance": 243.12,
+        "distance": 160.43,
         "screen": [
-          0.818,
-          0.578
+          0.292,
+          0.653
         ],
-        "in_frame": false,
-        "frame_fraction": 0.45
+        "in_frame": true,
+        "frame_fraction": 0.954
       }
     ]
   },
@@ -127,36 +127,36 @@
         "family": "CHRYSANTHEMUM",
         "birth": 0.0,
         "size": 1.0,
-        "distance": 180.88,
+        "distance": 157.52,
         "screen": [
           0.5,
           0.5
         ],
-        "in_frame": false,
-        "frame_fraction": 0.949
+        "in_frame": true,
+        "frame_fraction": 1.0
       },
       {
         "index": 1,
         "family": "CHRYSANTHEMUM",
         "birth": 0.25,
         "size": 0.9,
-        "distance": 212.21,
+        "distance": 190.06,
         "screen": [
-          0.629,
-          0.607
+          0.749,
+          0.745
         ],
         "in_frame": true,
-        "frame_fraction": 0.983
+        "frame_fraction": 0.992
       },
       {
         "index": 2,
         "family": "PEONY",
         "birth": 0.55,
         "size": 0.8,
-        "distance": 260.63,
+        "distance": 231.75,
         "screen": [
-          0.766,
-          0.495
+          0.251,
+          0.592
         ],
         "in_frame": true,
         "frame_fraction": 1.0

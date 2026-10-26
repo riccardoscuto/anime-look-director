@@ -366,6 +366,49 @@ def _material(name, colors):
     energy.operation = "MULTIPLY"
     links.new(falloff.outputs[0], energy.inputs[0])
     links.new(flash_energy.outputs[0], energy.inputs[1])
+
+    # A second light source: simultaneous bursts must add, not replace.
+    flash_x2 = _value(nodes, "ALD | Flash X2", 0.0, (-660, -900))
+    flash_y2 = _value(nodes, "ALD | Flash Y2", 0.0, (-660, -980))
+    flash_energy2 = _value(nodes, "ALD | Flash Energy2", 0.0, (-660, -1060))
+    combine2 = nodes.new("ShaderNodeCombineXYZ")
+    combine2.location = (-460, -940)
+    links.new(flash_x2.outputs[0], combine2.inputs["X"])
+    links.new(flash_y2.outputs[0], combine2.inputs["Y"])
+    distance2 = nodes.new("ShaderNodeVectorMath")
+    distance2.location = (-460, -780)
+    distance2.operation = "DISTANCE"
+    links.new(point.outputs[0], distance2.inputs[0])
+    links.new(combine2.outputs[0], distance2.inputs[1])
+    ratio2 = nodes.new("ShaderNodeMath")
+    ratio2.location = (-260, -800)
+    ratio2.operation = "MULTIPLY"
+    links.new(distance2.outputs["Value"], ratio2.inputs[0])
+    ratio2.inputs[1].default_value = 1.0 / FLASH_RADIUS
+    square2 = nodes.new("ShaderNodeMath")
+    square2.location = (-80, -800)
+    square2.operation = "MULTIPLY"
+    links.new(ratio2.outputs[0], square2.inputs[0])
+    links.new(ratio2.outputs[0], square2.inputs[1])
+    negative2 = nodes.new("ShaderNodeMath")
+    negative2.location = (100, -800)
+    negative2.operation = "MULTIPLY"
+    links.new(square2.outputs[0], negative2.inputs[0])
+    negative2.inputs[1].default_value = -1.0
+    falloff2 = nodes.new("ShaderNodeMath")
+    falloff2.location = (280, -800)
+    falloff2.operation = "EXPONENT"
+    links.new(negative2.outputs[0], falloff2.inputs[0])
+    energy2 = nodes.new("ShaderNodeMath")
+    energy2.location = (100, -1000)
+    energy2.operation = "MULTIPLY"
+    links.new(falloff2.outputs[0], energy2.inputs[0])
+    links.new(flash_energy2.outputs[0], energy2.inputs[1])
+    total_energy = nodes.new("ShaderNodeMath")
+    total_energy.location = (280, -620)
+    total_energy.operation = "ADD"
+    links.new(energy.outputs[0], total_energy.inputs[0])
+    links.new(energy2.outputs[0], total_energy.inputs[1])
     tinted = nodes.new("ShaderNodeMix")
     tinted.data_type = "RGBA"
     tinted.blend_type = "ADD"
@@ -378,7 +421,7 @@ def _material(name, colors):
                       if s.name == "Result" and s.type == "RGBA")
     links.new(second_out, tinted_a)
     links.new(flash_color.outputs[0], tinted_b)
-    links.new(energy.outputs[0], tinted.inputs["Factor"])
+    links.new(total_energy.outputs[0], tinted.inputs["Factor"])
     links.new(tinted_out, emission.inputs["Color"])
     emission.inputs["Strength"].default_value = 1.0
     return material
@@ -579,9 +622,10 @@ def create(scene, coverage=None, altitude=None):
         _layout(scene, layer)
         _rebuild_mesh(scene, layer)
     settings.clouds_created = True
-    scene["ald_clouds_signature"] = "%s|%s|%d|%s" % (
+    scene["ald_clouds_signature"] = "%s|%s|%d|%s|%s" % (
         settings.clouds_coverage, settings.clouds_scale, count,
-        [round(layer.seed, 3) for layer in settings.cloud_layers])
+        [round(layer.seed, 3) for layer in settings.cloud_layers],
+        getattr(settings, "clouds_quality", "FINAL"))
     bpy.context.view_layer.update()
     update_flash(scene)
     return count
@@ -684,30 +728,18 @@ def update_orientation(scene):
 
 
 def update_flash(scene):
-    """Stylised local response: the strongest burst lights the nearby cards."""
+    """Two physical light sources light the nearby cards, not one target."""
     settings = _settings(scene)
     collection = _collection(scene)
     if settings is None or collection is None:
         return False
-    energy = 0.0
-    position = None
+    sources = []
     if getattr(settings, "clouds_flash", True):
         from . import fx
-        best = 0.0
-        for system in settings.fx_systems:
-            time = fx.system_time(scene, system)
-            for event in system.events:
-                if not event.enabled:
-                    continue
-                age = time - (float(event.birth) + float(event.rise_time))
-                if age < 0.0 or age > float(event.life):
-                    continue
-                decay = 1.0 - age / max(float(event.life), 1e-3)
-                value = float(event.glow) * decay
-                if value > best:
-                    best = value
-                    position = Vector(event.target)
-        energy = best * float(settings.clouds_flash_strength)
+        sources = fx.light_events(scene, 2)
+    strength = float(settings.clouds_flash_strength)
+    strongest = 0.0
+    strongest_position = None
     for obj in collection.objects:
         if obj.type != "MESH":
             continue
@@ -715,27 +747,33 @@ def update_flash(scene):
         if material is None or not material.get(TAG):
             continue
         nodes = material.node_tree.nodes
-        local = Vector((0.0, 0.0, 0.0))
-        if position is not None:
-            matrix = obj.matrix_world.inverted()
-            local = matrix @ position
-        node = nodes.get("ALD | Flash X")
-        if node is not None:
-            node.outputs[0].default_value = float(local.x)
-        node = nodes.get("ALD | Flash Y")
-        if node is not None:
-            node.outputs[0].default_value = float(local.y)
-        node = nodes.get("ALD | Flash Energy")
-        if node is not None:
-            # World distance, on top of the local XY falloff: a burst far
-            # behind or beside the card must light it less.
-            world_distance = ((position - obj.location).length
-                              if position is not None else 0.0)
-            attenuation = 1.0 / (1.0 + (world_distance / 120.0) ** 2)
-            node.outputs[0].default_value = energy * attenuation
-    flash = [round(energy, 4), 0.0, 0.0, 0.0]
-    if position is not None:
-        flash[1:] = [round(v, 2) for v in position]
+        for index, suffix in enumerate(("", "2")):
+            source = sources[index] if index < len(sources) else None
+            local_x = 0.0
+            local_y = 0.0
+            energy = 0.0
+            if source is not None:
+                matrix = obj.matrix_world.inverted()
+                local = matrix @ source["position"]
+                local_x, local_y = float(local.x), float(local.y)
+                world_distance = (source["position"] - obj.location).length
+                attenuation = 1.0 / (1.0 + (world_distance / 120.0) ** 2)
+                energy = source["energy"] * strength * attenuation
+                if energy > strongest:
+                    strongest = energy
+                    strongest_position = source["position"]
+            node = nodes.get("ALD | Flash X" + suffix)
+            if node is not None:
+                node.outputs[0].default_value = local_x
+            node = nodes.get("ALD | Flash Y" + suffix)
+            if node is not None:
+                node.outputs[0].default_value = local_y
+            node = nodes.get("ALD | Flash Energy" + suffix)
+            if node is not None:
+                node.outputs[0].default_value = energy
+    flash = [round(strongest, 4), 0.0, 0.0, 0.0]
+    if strongest_position is not None:
+        flash[1:] = [round(v, 2) for v in strongest_position]
     scene["ald_clouds_flash"] = flash
     return True
 

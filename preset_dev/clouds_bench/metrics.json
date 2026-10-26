@@ -4,102 +4,287 @@
     720
   ],
   "engine": "EEVEE",
+  "blender": "5.1.2",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "AMD64 Family 25 Model 33 Stepping 0, AuthenticAMD",
+  "repeats": 3,
   "renders": [
     {
       "coverage": 0.16,
       "layers": 1,
       "polygons": 1840,
-      "creation_s": 0.1011,
-      "refresh_s": 0.1028,
-      "render_s": 4.215
+      "creation_s": 0.1075,
+      "refresh_s": 0.0017,
+      "render_s": 3.199,
+      "creation_runs": [
+        0.11,
+        0.1036,
+        0.1075
+      ],
+      "refresh_runs": [
+        0.0017,
+        0.0017,
+        0.0017
+      ],
+      "render_runs": [
+        4.336,
+        3.155,
+        3.199
+      ]
     },
     {
       "coverage": 0.5,
       "layers": 1,
-      "polygons": 14086,
-      "creation_s": 0.1435,
-      "refresh_s": 0.1582,
-      "render_s": 2.961
+      "polygons": 13208,
+      "creation_s": 0.1475,
+      "refresh_s": 0.0019,
+      "render_s": 3.023,
+      "creation_runs": [
+        0.1475,
+        0.1556,
+        0.1456
+      ],
+      "refresh_runs": [
+        0.0019,
+        0.002,
+        0.0019
+      ],
+      "render_runs": [
+        3.028,
+        3.023,
+        2.99
+      ]
     },
     {
       "coverage": 0.9,
       "layers": 1,
-      "polygons": 41110,
-      "creation_s": 0.2433,
-      "refresh_s": 0.2383,
-      "render_s": 2.576
+      "polygons": 38562,
+      "creation_s": 0.2406,
+      "refresh_s": 0.002,
+      "render_s": 2.789,
+      "creation_runs": [
+        0.2406,
+        0.2368,
+        0.2626
+      ],
+      "refresh_runs": [
+        0.002,
+        0.002,
+        0.0024
+      ],
+      "render_runs": [
+        2.77,
+        2.789,
+        2.818
+      ]
     },
     {
       "coverage": 1.0,
       "layers": 1,
-      "polygons": 46784,
-      "creation_s": 0.2601,
-      "refresh_s": 0.263,
-      "render_s": 2.519
+      "polygons": 43710,
+      "creation_s": 0.2563,
+      "refresh_s": 0.0018,
+      "render_s": 2.769,
+      "creation_runs": [
+        0.2563,
+        0.2558,
+        0.2593
+      ],
+      "refresh_runs": [
+        0.0018,
+        0.0019,
+        0.0017
+      ],
+      "render_runs": [
+        2.754,
+        2.769,
+        2.778
+      ]
     },
     {
       "coverage": 0.16,
       "layers": 3,
-      "polygons": 15276,
-      "creation_s": 0.3476,
-      "refresh_s": 0.3487,
-      "render_s": 3.167
+      "polygons": 14620,
+      "creation_s": 0.3559,
+      "refresh_s": 0.0041,
+      "render_s": 3.03,
+      "creation_runs": [
+        0.3543,
+        0.3621,
+        0.3559
+      ],
+      "refresh_runs": [
+        0.0044,
+        0.0041,
+        0.004
+      ],
+      "render_runs": [
+        3.199,
+        3.03,
+        3.009
+      ]
     },
     {
       "coverage": 0.5,
       "layers": 3,
-      "polygons": 60786,
-      "creation_s": 0.5152,
-      "refresh_s": 0.5118,
-      "render_s": 2.614
+      "polygons": 57968,
+      "creation_s": 0.5179,
+      "refresh_s": 0.0043,
+      "render_s": 2.723,
+      "creation_runs": [
+        0.5136,
+        0.5179,
+        0.5269
+      ],
+      "refresh_runs": [
+        0.0043,
+        0.004,
+        0.0051
+      ],
+      "render_runs": [
+        2.637,
+        2.732,
+        2.723
+      ]
     },
     {
       "coverage": 0.9,
       "layers": 3,
-      "polygons": 136066,
-      "creation_s": 0.7869,
-      "refresh_s": 0.7964,
-      "render_s": 2.191
+      "polygons": 129300,
+      "creation_s": 0.7956,
+      "refresh_s": 0.0041,
+      "render_s": 2.323,
+      "creation_runs": [
+        0.7887,
+        0.7958,
+        0.7956
+      ],
+      "refresh_runs": [
+        0.0047,
+        0.0041,
+        0.004
+      ],
+      "render_runs": [
+        2.458,
+        2.323,
+        2.318
+      ]
     },
     {
       "coverage": 1.0,
       "layers": 3,
-      "polygons": 149408,
-      "creation_s": 0.8419,
-      "refresh_s": 0.8684,
-      "render_s": 2.142
+      "polygons": 142990,
+      "creation_s": 0.8412,
+      "refresh_s": 0.004,
+      "render_s": 2.328,
+      "creation_runs": [
+        0.8412,
+        0.8327,
+        0.9034
+      ],
+      "refresh_runs": [
+        0.004,
+        0.0044,
+        0.004
+      ],
+      "render_runs": [
+        2.409,
+        2.266,
+        2.328
+      ]
     },
     {
       "coverage": 0.16,
       "layers": 5,
-      "polygons": 29830,
-      "creation_s": 0.619,
-      "refresh_s": 0.6281,
-      "render_s": 2.939
+      "polygons": 28578,
+      "creation_s": 0.6225,
+      "refresh_s": 0.0065,
+      "render_s": 2.918,
+      "creation_runs": [
+        0.6225,
+        0.6161,
+        0.6266
+      ],
+      "refresh_runs": [
+        0.0065,
+        0.0067,
+        0.0062
+      ],
+      "render_runs": [
+        3.0,
+        2.918,
+        2.909
+      ]
     },
     {
       "coverage": 0.5,
       "layers": 5,
-      "polygons": 119576,
-      "creation_s": 0.9465,
-      "refresh_s": 0.9292,
-      "render_s": 2.363
+      "polygons": 114628,
+      "creation_s": 0.9453,
+      "refresh_s": 0.0063,
+      "render_s": 2.325,
+      "creation_runs": [
+        0.9453,
+        0.9431,
+        0.9685
+      ],
+      "refresh_runs": [
+        0.0061,
+        0.0063,
+        0.0063
+      ],
+      "render_runs": [
+        2.497,
+        2.325,
+        2.31
+      ]
     },
     {
       "coverage": 0.9,
       "layers": 5,
-      "polygons": 240672,
-      "creation_s": 1.3947,
-      "refresh_s": 1.378,
-      "render_s": 2.0
+      "polygons": 229804,
+      "creation_s": 1.4181,
+      "refresh_s": 0.0062,
+      "render_s": 2.248,
+      "creation_runs": [
+        1.4253,
+        1.4181,
+        1.3881
+      ],
+      "refresh_runs": [
+        0.0062,
+        0.0062,
+        0.0064
+      ],
+      "render_runs": [
+        2.254,
+        2.224,
+        2.248
+      ]
     },
     {
       "coverage": 1.0,
       "layers": 5,
-      "polygons": 258876,
-      "creation_s": 1.4621,
-      "refresh_s": 1.4385,
-      "render_s": 2.019
+      "polygons": 248076,
+      "creation_s": 1.4556,
+      "refresh_s": 0.0066,
+      "render_s": 2.153,
+      "creation_runs": [
+        1.4556,
+        1.4622,
+        1.447
+      ],
+      "refresh_runs": [
+        0.007,
+        0.0062,
+        0.0066
+      ],
+      "render_runs": [
+        2.196,
+        2.049,
+        2.153
+      ]
     }
-  ]
+  ],
+  "gpu": "unavailable in background"
 }

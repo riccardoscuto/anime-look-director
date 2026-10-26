@@ -45,13 +45,11 @@ def build(palette, count, name):
     bpy.ops.ald.apply_palette()
     bpy.ops.ald.build()
     camera.data.lens = 45.0
+    # The hero sits on the camera forward: the show is created with the final
+    # camera, no aim step invalidates the auto-fit.
     fx.create_fireworks(scene, count, seed=17, distance=95.0, time=0.0)
     bpy.ops.ald.build()
     system = scene.ald.fx_systems[0]
-    hero = system.events[0]
-    camera.rotation_euler = (Vector(hero.target) - camera.location).to_track_quat(
-        "-Z", "Y").to_euler()
-    bpy.context.view_layer.update()
     fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
     scene.frame_set(int(system.origin_frame + AGE * fps))
     bpy.context.view_layer.update()
@@ -76,6 +74,7 @@ def build(palette, count, name):
     baseline_fx.render(scene, os.path.join(OUT, name))
     fx.clear(scene)
     return {"palette": palette, "count": count, "age": AGE,
+            "intentional_crop": bool(scene.ald.fx_fit_override),
             "events": events}
 
 
