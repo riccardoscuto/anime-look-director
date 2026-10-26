@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.38.0**).
+  (currently **2.39.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -608,7 +608,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the cloud band is 0.30x the distance tall and sits at 0.30 + 0.18*height of
     the distance: a taller band reads as a wall, not as a depth layer;
   - `preset_dev/clouds/` must be regenerated whenever the band geometry or the
-    palette mixing changes.
+    palette mixing changes;
+  - the showcase foreground is scene content: a near-black material (0.004)
+    and no emission, so the world ambient cannot turn it into a lit building.
 - 2.25 rules:
   - `fx._scene_id` writes `settings.fx_uid` inside a `try/except`: the identity
     lives in `scene[ald_fx_id]` and the settings cache is best-effort only.

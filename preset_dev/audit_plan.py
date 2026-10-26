@@ -274,6 +274,9 @@ CHECKS = [
     ("VI-ALL", "The cloud band is a depth layer, not a wall",
      lambda: has("clouds.py", "card_height = depth * 0.30",
                  "0.30 + height * 0.18")),
+    ("VI-ALL", "Showcase foreground is scene content, not an add-on feature",
+     lambda: has("preset_dev/showcase.py", "def add_foreground",
+                 "(0.004, 0.004, 0.008")),
 ]
 
 

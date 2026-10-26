@@ -1,6 +1,17 @@
 # Changelog
 
-## 2.38.0 - 2026-10-26
+## 2.39.0 - 2026-10-26
+Showcase foreground.
+
+### Added
+- `preset_dev/showcase.py` builds a dark skyline (four blocks and a short
+  antenna) at the bottom edge of the 1080p shot. It is scene content for the
+  evidence, not an add-on feature: it gives scale to the sky and exercises the
+  ink lines and the environment occlusion.
+- The silhouette material is near-black (0.004) so the world ambient cannot
+  lift it into a lit building.
+
+## 2.38.0 - 2026-10-26## 2.38.0 - 2026-10-26
 Integration showcase and cloud tuning.
 
 ### Changed

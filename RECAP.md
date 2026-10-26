@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.38.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.39.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,14 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.39.0 — primo piano nello showcase
+
+- **Skyline scura** (quattro blocchi + antenna) al bordo inferiore dello shot
+  1080p: è contenuto di scena per l'evidenza, non una feature dell'add-on —
+  dà scala al cielo e mette alla prova ink ed occlusione.
+- Materiale quasi nero (0.004) perché l'ambiente non la trasformi in un
+  edificio illuminato.
 
 ## Novità 2.38.0 — showcase d'integrazione
 
