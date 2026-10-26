@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.29.0 - 2026-10-26
+P1 and P2 of the operational plan: one persistent model, one geometric
+reference and clock, backend parity, visual profiles and calibration.
+
+### Fixed
+- **P1-A** — the runtime is rebuilt from the event UID and the explicit object
+  role, never from names; `random_key` is stored per event and derived from
+  `(seed, creation slot)` so enabling/disabling events never changes the others;
+  `FX_SCHEMA` 2 migrates old files; `undo_post`/`redo_post` rebuild the registry.
+- **P1-B** — gravity follows the ALD Sky/FX Anchor axis and units; the launcher
+  uses the anchor axis and ground; Physical mode bursts at `p_shell(T)`; the
+  clock refreshes on origin/timing changes without rebuilding; a creation
+  starts at the current frame.
+- **P1-C** — a failed Geometry Nodes event falls back to the Python writer for
+  that event only; mixed systems evaluate both backends (`gn` = all, per-event
+  skips); trail energy/colour travel via the Geometry domain attributes.
+- **P2-A** — the material contract is real: `event_color`, `stable_noise`,
+  `age_norm` and `trail_u` drive colour and energy. The FX glow threshold
+  default is 0.35 so the small particles actually bloom.
+- **P2-B** — `preset_dev/calibrate_fx.py` renders the comparison matrix (night
+  and sunset × no/narrow/wide halo, AgX, fixed camera/seed/exposure, plus a
+  Standard control) and writes `preset_dev/calibration/metrics.json`.
+
+### Gate
+- New checks: persistent model (rename/disabling/migration), anchor gravity,
+  `p_shell(T)`, clock refresh without rebuild, GN→Python fallback. `ALD GATE:
+  PASS`.
+
 ## 2.28.0 - 2026-10-26
 P0 of the operational plan: data safety and a correct FX compositing contract.
 

@@ -1,0 +1,125 @@
+{
+  "engine": "BLENDER_EEVEE",
+  "exposure": 0.0,
+  "renders": [
+    {
+      "clipped_fraction": 0.0,
+      "file": "night_none.png",
+      "glow": "none",
+      "glow_size": 0.0,
+      "glow_strength": 0.0,
+      "max_luminance": 0.80637,
+      "mean_luminance": 0.42049,
+      "mean_saturation": 0.30499,
+      "palette": "night",
+      "palette_key": "TWILIGHT_DUSK",
+      "size": [
+        384,
+        216
+      ]
+    },
+    {
+      "clipped_fraction": 0.0,
+      "file": "night_narrow.png",
+      "glow": "narrow",
+      "glow_size": 0.22,
+      "glow_strength": 0.45,
+      "max_luminance": 0.80637,
+      "mean_luminance": 0.42054,
+      "mean_saturation": 0.30502,
+      "palette": "night",
+      "palette_key": "TWILIGHT_DUSK",
+      "size": [
+        384,
+        216
+      ]
+    },
+    {
+      "clipped_fraction": 0.0,
+      "file": "night_wide.png",
+      "glow": "wide",
+      "glow_size": 0.72,
+      "glow_strength": 1.0,
+      "max_luminance": 0.80637,
+      "mean_luminance": 0.42061,
+      "mean_saturation": 0.30505,
+      "palette": "night",
+      "palette_key": "TWILIGHT_DUSK",
+      "size": [
+        384,
+        216
+      ]
+    },
+    {
+      "clipped_fraction": 0.0,
+      "file": "sunset_none.png",
+      "glow": "none",
+      "glow_size": 0.0,
+      "glow_strength": 0.0,
+      "max_luminance": 0.77816,
+      "mean_luminance": 0.5013,
+      "mean_saturation": 0.27561,
+      "palette": "sunset",
+      "palette_key": "GOLDEN_HOUR",
+      "size": [
+        384,
+        216
+      ]
+    },
+    {
+      "clipped_fraction": 0.0,
+      "file": "sunset_narrow.png",
+      "glow": "narrow",
+      "glow_size": 0.22,
+      "glow_strength": 0.45,
+      "max_luminance": 0.77928,
+      "mean_luminance": 0.50139,
+      "mean_saturation": 0.27569,
+      "palette": "sunset",
+      "palette_key": "GOLDEN_HOUR",
+      "size": [
+        384,
+        216
+      ]
+    },
+    {
+      "clipped_fraction": 0.0,
+      "file": "sunset_wide.png",
+      "glow": "wide",
+      "glow_size": 0.72,
+      "glow_strength": 1.0,
+      "max_luminance": 0.77928,
+      "mean_luminance": 0.50153,
+      "mean_saturation": 0.27579,
+      "palette": "sunset",
+      "palette_key": "GOLDEN_HOUR",
+      "size": [
+        384,
+        216
+      ]
+    },
+    {
+      "clipped_fraction": 0.0,
+      "file": "sunset_narrow_standard.png",
+      "glow": "narrow",
+      "glow_size": 0.22,
+      "glow_strength": 0.45,
+      "max_luminance": 0.90106,
+      "mean_luminance": 0.50684,
+      "mean_saturation": 0.36275,
+      "note": "diagnostic control, not an AgX certificate",
+      "palette": "sunset",
+      "palette_key": "GOLDEN_HOUR",
+      "size": [
+        384,
+        216
+      ]
+    }
+  ],
+  "resolution": [
+    384,
+    216
+  ],
+  "seed": 13,
+  "view_transform": "AgX"
+}

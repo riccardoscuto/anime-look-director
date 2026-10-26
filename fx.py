@@ -227,24 +227,107 @@ def _material(name, color, strength, instancer=False):
     return mat
 
 
-def _bind_energy(mat, bsdf, strength, instancer=False):
-    """Drive the emission strength with the per particle energy attribute.
+def _attribute_node(node_tree, name, location):
+    node = node_tree.nodes.new("ShaderNodeAttribute")
+    node.attribute_name = name
+    if hasattr(node, "attribute_type"):
+        node.attribute_type = "GEOMETRY"
+    node.location = location
+    return node
 
-    The geometry scale and the emissive energy are two different curves: the
-    particle shrinks and fades on its own law.
+
+def _mix_color(node_tree, blend, location):
+    mix = node_tree.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    mix.blend_type = blend
+    mix.location = location
+    a = next(socket for socket in mix.inputs
+             if socket.name == "A" and socket.type == "RGBA")
+    b = next(socket for socket in mix.inputs
+             if socket.name == "B" and socket.type == "RGBA")
+    out = next(socket for socket in mix.outputs
+               if socket.name == "Result" and socket.type == "RGBA")
+    return mix, a, b, out
+
+
+def _map_range(node_tree, location, to_min, to_max):
+    node = node_tree.nodes.new("ShaderNodeMapRange")
+    node.location = location
+    node.inputs["From Min"].default_value = 0.0
+    node.inputs["From Max"].default_value = 1.0
+    node.inputs["To Min"].default_value = to_min
+    node.inputs["To Max"].default_value = to_max
+    return node
+
+
+def _multiply(node_tree, location, first, second):
+    node = node_tree.nodes.new("ShaderNodeMath")
+    node.operation = "MULTIPLY"
+    node.location = location
+    if isinstance(first, float):
+        node.inputs[0].default_value = first
+    else:
+        node_tree.links.new(first, node.inputs[0])
+    if isinstance(second, float):
+        node.inputs[1].default_value = second
+    else:
+        node_tree.links.new(second, node.inputs[1])
+    return node
+
+
+def _bind_energy(mat, bsdf, strength, instancer=False):
+    """Drive the material with the per-particle contract.
+
+    The static colour is only the base: ``event_color`` tints it, ``age_norm``
+    warms the ember, while ``stable_noise``, ``age_norm`` and ``trail_u``
+    modulate the energy together with the ``energy`` attribute. Missing
+    attributes (older files) keep the neutral values, so the look never goes
+    black.
     """
     node_tree = mat.node_tree
-    attribute = node_tree.nodes.new("ShaderNodeAttribute")
-    attribute.attribute_name = "energy"
-    if hasattr(attribute, "attribute_type"):
-        attribute.attribute_type = "GEOMETRY"
-    attribute.location = (-520, -160)
-    multiply = node_tree.nodes.new("ShaderNodeMath")
-    multiply.operation = "MULTIPLY"
-    multiply.location = (-300, -160)
-    multiply.inputs[1].default_value = float(strength)
-    node_tree.links.new(attribute.outputs["Fac"], multiply.inputs[0])
-    node_tree.links.new(multiply.outputs[0], bsdf.inputs["Emission Strength"])
+    base = tuple(bsdf.inputs["Base Color"].default_value)
+
+    energy = _attribute_node(node_tree, "energy", (-980, -160))
+    stable = _attribute_node(node_tree, "stable_noise", (-980, -400))
+    age = _attribute_node(node_tree, "age_norm", (-980, -600))
+    trail = _attribute_node(node_tree, "trail_u", (-980, -800))
+    event_color = _attribute_node(node_tree, "event_color", (-980, 220))
+
+    # Energy: energy * (0.85 + 0.30 stable) * (1 - 0.20 age) *
+    # (1 - 0.10 trail) * strength.
+    stable_gain = _map_range(node_tree, (-760, -400), 0.85, 1.15)
+    node_tree.links.new(stable.outputs["Fac"], stable_gain.inputs["Value"])
+    age_gain = _map_range(node_tree, (-760, -600), 1.0, 0.8)
+    node_tree.links.new(age.outputs["Fac"], age_gain.inputs["Value"])
+    trail_gain = _map_range(node_tree, (-760, -800), 1.0, 0.9)
+    node_tree.links.new(trail.outputs["Fac"], trail_gain.inputs["Value"])
+
+    first = _multiply(node_tree, (-560, -260), energy.outputs["Fac"],
+                      stable_gain.outputs["Result"])
+    second = _multiply(node_tree, (-380, -260), first.outputs[0],
+                       age_gain.outputs["Result"])
+    third = _multiply(node_tree, (-200, -260), second.outputs[0],
+                      trail_gain.outputs["Result"])
+    scaled = _multiply(node_tree, (-20, -260), third.outputs[0],
+                       float(strength))
+    node_tree.links.new(scaled.outputs[0], bsdf.inputs["Emission Strength"])
+
+    # Colour: base + 0.15 * event_color, then a warm ember with the age.
+    tint, tint_a, tint_b, tint_out = _mix_color(node_tree, "ADD", (-560, 220))
+    tint.inputs["Factor"].default_value = 0.15
+    tint_a.default_value = base
+    node_tree.links.new(event_color.outputs["Color"], tint_b)
+
+    ember, ember_a, ember_b, ember_out = _mix_color(node_tree, "MIX",
+                                                    (-340, 220))
+    ember_b.default_value = (1.0, 0.4, 0.15, 1.0)
+    node_tree.links.new(tint_out, ember_a)
+    ember_factor = _multiply(node_tree, (-560, 440), age.outputs["Fac"], 0.2)
+    node_tree.links.new(ember_factor.outputs[0], ember.inputs["Factor"])
+
+    node_tree.links.new(ember_out, bsdf.inputs["Base Color"])
+    if "Emission Color" in bsdf.inputs:
+        node_tree.links.new(ember_out, bsdf.inputs["Emission Color"])
 
 
 # ---------------------------------------------------------------------------

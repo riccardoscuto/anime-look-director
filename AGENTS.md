@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.28.0**).
+  (currently **2.29.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -291,6 +291,22 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the gate verifies the acceptance condition: a scene with an HDRI world, a
     custom sun, an emissive material and a pre-existing compositor returns to
     the registered state.
+- P2 rules (visual profiles, material and calibration):
+  - the material reads the per-particle contract: `event_color` tints the
+    base (ADD 0.15), `stable_noise` scales the energy 0.85..1.15, `age_norm`
+    warms the colour toward the ember and scales the energy 1.0..0.8, and
+    `trail_u` scales it 1.0..0.9. Missing attributes keep neutral values, so
+    older files never go black;
+  - the FX glow threshold defaults to 0.35: the particles are small and their
+    linear values rarely exceed 1.0, so a 1.0 threshold produced no halo;
+  - `preset_dev/calibrate_fx.py` renders the P2-B matrix at a fixed camera,
+    384x216, seed 13, exposure 0 and AgX: night and sunset, each with no glow,
+    a narrow halo (0.45 / 0.22) and a wide halo (1.0 / 0.72), plus a Standard
+    diagnostic control. Glare size is relative to the image. The PNGs and
+    `metrics.json` live in `preset_dev/calibration/`;
+  - the Bolide preset changes the render parameters (size, speed, life, train,
+    fragments), not only the name; the role energies (`ROLE_ENERGY`) give the
+    sub-roles their own brightness.
 - P1-C rules (backend parity):
   - a Geometry Nodes failure falls back to the Python writer **for that
     event only**: the partial GN objects are removed, the Python materials
