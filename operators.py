@@ -424,6 +424,10 @@ class ALD_OT_fx_duplicate_system(bpy.types.Operator):
             new_event.duration = event.duration
             new_event.glow = event.glow
         settings.fx_selected_system = len(settings.fx_systems) - 1
+        # The record and the geometry are created together: a duplicated
+        # system that only existed in the panel would be invisible and would
+        # desynchronise the registry.
+        fx.compile_system(context.scene, copy)
         self.report({"INFO"}, "Anime Look Director: the system was duplicated")
         return {"FINISHED"}
 
@@ -439,8 +443,11 @@ class ALD_OT_fx_remove_system(bpy.types.Operator):
         index = int(settings.fx_selected_system)
         if index < 0 or index >= len(settings.fx_systems):
             return {"CANCELLED"}
-        settings.fx_systems.remove(index)
-        settings.fx_selected_system = max(0, index - 1)
+        system = settings.fx_systems[index]
+        removed = fx.remove_system(context.scene, system)
+        settings.fx_selected_system = max(0, min(index, len(settings.fx_systems) - 1))
+        self.report({"INFO"},
+                    "Anime Look Director: system removed (%d objects)" % removed)
         return {"FINISHED"}
 
 
@@ -558,18 +565,34 @@ class ALD_OT_fx_diagnose(bpy.types.Operator):
 class ALD_OT_fx_update(bpy.types.Operator):
     bl_idname = "ald.fx_update"
     bl_label = "Update FX"
-    bl_description = ("Rebuild the FX systems: a moved launcher or a new "
-                     "setting is applied to the shot")
+    bl_description = ("Rebuild the FX systems from their persistent records: a "
+                     "moved launcher or a new setting is applied to the shot")
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
         scene = context.scene
+        settings = scene.ald
+        systems = settings.fx_systems
+        index = int(settings.fx_selected_system)
+        if 0 <= index < len(systems):
+            system = systems[index]
+            fx.update_system(scene, system)
+            self.report({"INFO"},
+                        "Anime Look Director: FX system updated")
+            return {"FINISHED"}
+        count = fx.update_all(scene)
+        if count:
+            self.report({"INFO"},
+                        "Anime Look Director: %d FX systems updated" % count)
+            return {"FINISHED"}
+        # Migration of files created before the persistent schema: the legacy
+        # config is converted once into a stored system.
         config = scene.get("ald_fx_config")
         if not config:
             self.report({"WARNING"}, "Anime Look Director: no FX system")
             return {"CANCELLED"}
         fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
-        age = float(getattr(scene.ald, "fx_age", config.get("age", 0.8)))
+        age = float(getattr(settings, "fx_age", config.get("age", 0.8)))
         time = (scene.frame_current + scene.frame_subframe) / max(fps, 1e-6)
         time += age
         if config.get("kind") == "meteors":
@@ -582,6 +605,9 @@ class ALD_OT_fx_update(bpy.types.Operator):
                                 config.get("seed", 7),
                                 config.get("distance", 110.0), time,
                                 family=config.get("family", "CHRYSANTHEMUM"))
+        scene["ald_fx_config"] = None
+        self.report({"INFO"},
+                    "Anime Look Director: FX system migrated and updated")
         return {"FINISHED"}
 
 

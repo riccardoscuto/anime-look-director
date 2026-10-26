@@ -2795,6 +2795,58 @@ def check_fx_failed_build(scene):
     fx_module.clear(scene, kind="fireworks")
 
 
+def check_fx_system_operators(scene):
+    """P0-B: Update FX, Duplicate System and Remove System stay in sync.
+
+    A record without geometry (or geometry without a record) is a broken
+    invariant: the panel lists what the scene does not render, and Clear
+    cannot remove what the panel does not list.
+    """
+    from anime_look_director import fx as fx_module
+
+    def objects_of(uid):
+        return [obj for obj in bpy.data.objects
+                if obj.get("ald_fx") and obj.get("ald_fx_system") == uid]
+
+    fx_module.clear(scene)
+    bpy.ops.ald.fx_fireworks(count=1, seed=13, distance=30.0)
+    check(len(scene.ald.fx_systems) == 1, "the system was not stored")
+    system = scene.ald.fx_systems[0]
+    uid = system.uid
+    check(objects_of(uid), "the created system has no geometry")
+
+    # Update FX while the system is selected: same record, same identity,
+    # geometry rebuilt, no second system (the legacy path created a new one).
+    scene.ald.fx_selected_system = 0
+    result = bpy.ops.ald.fx_update()
+    check(result == {"FINISHED"}, "Update FX did not finish")
+    check(len(scene.ald.fx_systems) == 1,
+          "Update FX duplicated the system: %d" % len(scene.ald.fx_systems))
+    check(scene.ald.fx_systems[0].uid == uid,
+          "Update FX changed the identity of the system")
+    check(objects_of(uid), "Update FX removed the geometry")
+
+    # Duplicate: a new record AND new geometry with a new identity.
+    result = bpy.ops.ald.fx_duplicate_system()
+    check(result == {"FINISHED"}, "Duplicate System did not finish")
+    check(len(scene.ald.fx_systems) == 2,
+          "Duplicate System did not add a record")
+    copy = scene.ald.fx_systems[1]
+    check(copy.uid != uid, "the duplicate reuses the system identity")
+    check(len(copy.events) == len(system.events),
+          "the duplicate lost the events")
+    check(objects_of(copy.uid), "the duplicate has no geometry")
+
+    # Remove the duplicate: record and geometry disappear together.
+    scene.ald.fx_selected_system = 1
+    result = bpy.ops.ald.fx_remove_system()
+    check(result == {"FINISHED"}, "Remove System did not finish")
+    check(len(scene.ald.fx_systems) == 1, "Remove System kept the record")
+    check(not objects_of(copy.uid), "Remove System left the geometry behind")
+    check(objects_of(uid), "Remove System removed another system")
+    fx_module.clear(scene)
+
+
 def check_fx_visual_profiles(scene):
     """T24: Sunset/night, three FX profiles.
 
@@ -3224,6 +3276,7 @@ def main():
         check_fx_meteor_travel(scene)
         check_fx_solver_stability(scene)
         check_fx_camera_evaluated(scene)
+        check_fx_system_operators(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)
 
