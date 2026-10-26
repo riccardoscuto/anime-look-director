@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "anime_look_director"
-version = "2.46.6"
+version = "2.46.7"
 name = "Anime Look Director"
 tagline = "Atmospheric palettes + non-destructive anime compositor stack"
 maintainer = "Riccardo"
@@ -12,3 +12,20 @@ license = ["SPDX:GPL-3.0-or-later"]
 
 [permissions]
 network = "none"
+
+[build]
+paths_exclude_pattern = [
+  "preset_dev/",
+  "graphify-out/",
+  "dist/",
+  ".opencode/",
+  "__pycache__/",
+  ".git/",
+  "AGENTS.md",
+  "TECH_NOTES.md",
+  "forcopingallthecodes.md",
+  "opencode.json",
+  ".gitignore",
+  "*.blend",
+  "*.zip",
+]

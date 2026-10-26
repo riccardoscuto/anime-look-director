@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.46.6**).
+  (currently **2.46.7**).
 
 ## Verify (run after every change)
 ```powershell
@@ -20,6 +20,13 @@ Full chain (gate + duplicate fixture + audit, one fresh Blender per step):
 & $blender -b --factory-startup --python preset_dev\verify_all.py
 ```
 Expected output: `ALD ALL: PASS`.
+
+Release zip (the manifest excludes `preset_dev/`, `graphify-out/`, `dist/` and
+the internal docs; the LICENSE and the user docs stay):
+```powershell
+& $blender -b --factory-startup --python preset_dev\build_release.py
+```
+Expected output: `ALD BUILD: PASS ...dist`.
 
 For live work: Blender Lab MCP bridge on `localhost:9876` (keep calls short).
 If window screenshots are black, the Blender window may be off-screen (see
@@ -846,6 +853,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the auto sun carries `ald_sun_owner` (the scene identity). A copy with a
     different identity skips the retint instead of changing the shared light; an
     older single-user auto sun is tagged on the next apply;
+  - a user sun (not tagged `ald_auto_sun`) is user data: a scene copy shares it
+    and the add-on keeps tinting it; make the light single-user if the copy must
+    not change the original;
   - the duplicate fixture also removes ALD from a copy and checks the original's
     clouds, FX, materials, material nodes and world;
 - PA2 volume spike 2.45 rules:

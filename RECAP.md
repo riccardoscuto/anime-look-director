@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.46.6** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.46.7** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,16 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.46.7 — pacchetto installabile
+
+- **LICENSE** GPL-3.0 completo e lista `[build]` nel manifest: il pacchetto
+  contiene add-on, manifest, licenza e documenti utente, non le evidenze di
+  ricerca.
+- **`preset_dev/build_release.py`** costruisce
+  `dist/anime_look_director-<versione>.zip` (~240 KB, contro 71 MB includendo
+  `preset_dev/` e `graphify-out/`).
+- **`dist/`** è ignorato da git.
 
 ## Novità 2.46.6 — world e sole di proprietà della scena
 

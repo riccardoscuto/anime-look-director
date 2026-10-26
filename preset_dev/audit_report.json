@@ -506,6 +506,12 @@
     },
     {
       "evidence": "",
+      "label": "The release package excludes the research evidence",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The copy owns its world",
       "phase": "VI-SC",
       "state": "OK"
@@ -626,7 +632,7 @@
     }
   ],
   "partial": 0,
-  "passed": 104,
+  "passed": 105,
   "plan": "v2.27.0 P0-P3",
-  "total": 104
+  "total": 105
 }

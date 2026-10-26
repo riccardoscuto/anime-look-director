@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.46.6)
+## What it does (v2.46.7)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -96,6 +96,15 @@ prints luminance, contrast and saturation per palette. It never saves a `.blend`
   --python preset_dev\verify_all.py
 ```
 Expected output: `ALD GATE: PASS` and `ALD ALL: PASS`.
+
+## Release
+```powershell
+& "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup `
+  --python preset_dev\build_release.py
+```
+Writes `dist/anime_look_director-<version>.zip` with the add-on, the manifest,
+the GPL license and the user docs. The research evidence is excluded by the
+manifest `[build]` list.
 
 ## Roadmap
 - v0.1 — stack + palettes
@@ -271,7 +280,9 @@ Expected output: `ALD GATE: PASS` and `ALD ALL: PASS`.
   and suns are never restored
 - v2.46.4 - per-frame pass signature for animated cameras
 - v2.46.5 - per-scene default pass path (two scenes no longer share EXRs)
-- v2.46.6 - the copy owns its world; the auto sun is scene-owned (current)
+- v2.46.6 - the copy owns its world; the auto sun is scene-owned
+- v2.46.7 - installable extension zip (LICENSE + `[build]` exclusions, build
+  script) (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

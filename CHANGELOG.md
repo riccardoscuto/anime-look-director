@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.46.7 - 2026-10-26
+Installable extension package.
+
+### Added
+- `LICENSE` with the full GPL-3.0 text, and a `[build]` exclusion list in the
+  manifest: the package contains the add-on, the manifest, the license and the
+  user docs, never the research evidence.
+- `preset_dev/build_release.py` builds `dist/anime_look_director-<version>.zip`
+  through `blender --command extension build` (about 240 KB against 71 MB with
+  `preset_dev/` and `graphify-out/` included).
+
+### Fixed
+- `dist/` is ignored by git.
+
+### Evidence
+- The built zip installs and enables in an isolated user config
+  (`BLENDER_USER_CONFIG` / `BLENDER_USER_EXTENSIONS`): version 2.46.7 and the
+  new operators (`ald.repair_ownership`, `ald.fx_render_pass_animation`) are
+  present. The package contains no `preset_dev/` or `graphify-out/`.
+
 ## 2.46.6 - 2026-10-26
 World and sun ownership on duplicated scenes.
 

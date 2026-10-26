@@ -313,6 +313,10 @@ CHECKS = [
      and has("panels.py", "fx_pass_state")[0]),
     ("VI-SC", "Build repairs a duplicated scene before modifying it",
      lambda: has("operators.py", "ownership.repair", "ald.build")),
+    ("VI-SC", "The release package excludes the research evidence",
+     lambda: exists("LICENSE")[0]
+     and has("blender_manifest.toml", "paths_exclude_pattern", "preset_dev/")
+     and has("preset_dev/build_release.py", "extension", "build")[0]),
     ("VI-SC", "The copy owns its world", 
      lambda: has("ownership.py", "world.copy()", "scene.world")),
     ("VI-SC", "The auto sun is owned by its scene",
