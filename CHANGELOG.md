@@ -1,6 +1,27 @@
 # Changelog
 
-## 2.36.0 - 2026-10-26
+## 2.37.0 - 2026-10-26
+Verification pass: the UI probe found a broken panel.
+
+### Fixed
+- The 2.5D Clouds box used the icon `CLOUD`, which does not exist in Blender
+  5.1: `UILayout.label` raised and the whole World & Shadows panel failed to
+  draw. The icon is now `WORLD`.
+- `check_panel_icons` and `check_ui_parity` were defined in the gate but never
+  called, which is why the broken icon passed. Both run now.
+- `preset_dev/ui_probe.py` resolved a relative `--out` against Blender's
+  working directory, so the screenshots landed outside the repository and the
+  probe reported them missing. The path is resolved against the add-on.
+
+### Added
+- `preset_dev/temporal_strip.py`: six ages (0.10..2.20 s) for the
+  Chrysanthemum and the Willow, a 6x2 sheet and the coverage curve. The
+  Chrysanthemum peaks at 1.1 s (26 %) and is gone by 2.2 s (1.4 %); the Willow
+  peaks at 1.6 s (27 %) and keeps 23 % at 2.2 s.
+- UI screenshots in `preset_dev/ui/`: the 2.5D Clouds box draws in the Scene
+  properties and in the sidebar.
+
+## 2.36.0 - 2026-10-26## 2.36.0 - 2026-10-26
 P6 of the visual integration milestone: the validation matrix.
 
 ### Added

@@ -252,6 +252,19 @@ CHECKS = [
               "preset_dev/validation/metrics.json")),
     ("VI-P6", "Apparent-size floor for heads and beads too",
      lambda: has("fx.py", "0.6 * 1.2 * world_per_px", '"pistil_grains"')),
+    # ---- Verification pass (v2.37) ---------------------------------------
+    ("VI-UI", "The gate calls the icon and parity checks",
+     lambda: has("preset_dev/verify.py", "check_ui_parity(scene)",
+                 "check_panel_icons()")),
+    ("VI-UI", "The cloud panel icon exists in Blender 5.1",
+     lambda: has("panels.py", '"2.5D Clouds", icon="WORLD"')),
+    ("VI-UI", "UI probe resolves relative output against the add-on",
+     lambda: has("preset_dev/ui_probe.py", "os.path.isabs(out)",
+                 "os.path.join(ADDON_PATH, out)")),
+    ("VI-UI", "Temporal strip: six ages and evidence",
+     lambda: (exists("preset_dev/temporal_strip.py")[0]
+              and exists("preset_dev/temporal/sheet.png")[0],
+              "preset_dev/temporal/temporal.json")),
 ]
 
 

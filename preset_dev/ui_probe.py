@@ -28,10 +28,15 @@ STATE = {"step": 0}
 def parse_args():
     argv = sys.argv
     argv = argv[argv.index("--") + 1:] if "--" in argv else []
-    out = os.path.join(tempfile.gettempdir(), "ald_ui")
+    out = os.path.join(ADDON_PATH, "preset_dev", "ui")
     wait = 10.0
     if "--out" in argv:
         out = argv[argv.index("--out") + 1]
+        if not os.path.isabs(out):
+            # Blender's working directory is not the add-on directory: a
+            # relative --out wrote the screenshots outside the repository and
+            # the probe reported them missing.
+            out = os.path.join(ADDON_PATH, out)
     if "--wait" in argv:
         wait = float(argv[argv.index("--wait") + 1])
     return out, wait

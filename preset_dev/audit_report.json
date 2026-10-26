@@ -371,10 +371,34 @@
       "label": "Apparent-size floor for heads and beads too",
       "phase": "VI-P6",
       "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The gate calls the icon and parity checks",
+      "phase": "VI-UI",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The cloud panel icon exists in Blender 5.1",
+      "phase": "VI-UI",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "UI probe resolves relative output against the add-on",
+      "phase": "VI-UI",
+      "state": "OK"
+    },
+    {
+      "evidence": "preset_dev/temporal/temporal.json",
+      "label": "Temporal strip: six ages and evidence",
+      "phase": "VI-UI",
+      "state": "OK"
     }
   ],
   "partial": 0,
-  "passed": 62,
+  "passed": 66,
   "plan": "v2.27.0 P0-P3",
-  "total": 62
+  "total": 66
 }

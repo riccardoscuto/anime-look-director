@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 36, 0)
+EXPECTED_VERSION = (2, 37, 0)
 TOLERANCE = 1e-4
 
 
@@ -4100,6 +4100,10 @@ def main():
         check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)
+        # The UI checks were defined but never wired: an unknown icon broke the
+        # whole World panel without failing the gate (P5 cloud box).
+        check_ui_parity(scene)
+        check_panel_icons()
 
         ng = scene.compositing_node_group
         check(ng is not None and ng.name == "ALD | Compositor Stack",

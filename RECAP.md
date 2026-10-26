@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.36.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.37.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,21 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.37.0 — verifica UI e striscia temporale
+
+- **Pannello World rotto corretto**: il box 2.5D Clouds usava l'icona `CLOUD`,
+  inesistente in Blender 5.1: `UILayout.label` andava in eccezione e l'intero
+  pannello World & Shadows non veniva disegnato. Ora usa `WORLD`.
+- **Check UI finalmente collegati**: `check_panel_icons` e `check_ui_parity`
+  erano definiti ma mai chiamati dal gate; ora girano (ecco perché l'icona
+  rotta era passata).
+- **ui_probe** risolveva `--out` relativo alla CWD di Blender: ora è assoluto
+  rispetto all'add-on; screenshot in `preset_dev/ui/`.
+- **Striscia temporale** (`preset_dev/temporal_strip.py`): 6 età per
+  Crisantemo e Willow con curva di copertura. Il Crisantemo picca a 1.1 s
+  (26%) e sparisce a 2.2 s (1.4%); il Willow picca a 1.6 s (27%) e tiene il
+  23% a 2.2 s.
 
 ## Novità 2.36.0 — P6 matrice di validazione
 

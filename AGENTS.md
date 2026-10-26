@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.36.0**).
+  (currently **2.37.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -591,6 +591,16 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     55 m and the burst loses its sparkle;
   - `preset_dev/validation/` holds the 36 PNGs, `metrics.json` and the 6x6
     `sheet.png`; the background files are deleted after the metrics.
+- Verification rules (v2.37):
+  - the gate **must call** every check it defines: `check_panel_icons` and
+    `check_ui_parity` were dormant and an invalid icon broke the World panel;
+  - panel icons must come from the real enum (1017 items in 5.1); `CLOUD`
+    does not exist, `WORLD` does;
+  - `preset_dev/ui_probe.py` resolves `--out` against the add-on directory:
+    Blender's CWD is not the repository;
+  - the temporal strip (`preset_dev/temporal_strip.py`) covers 0.10..2.20 s
+    for the Chrysanthemum and the Willow and is the frame-by-frame evidence
+    the matrix cannot give.
 - 2.25 rules:
   - `fx._scene_id` writes `settings.fx_uid` inside a `try/except`: the identity
     lives in `scene[ald_fx_id]` and the settings cache is best-effort only.
