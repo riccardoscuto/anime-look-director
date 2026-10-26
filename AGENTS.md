@@ -291,6 +291,19 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the gate verifies the acceptance condition: a scene with an HDRI world, a
     custom sun, an emissive material and a pre-existing compositor returns to
     the registered state.
+- P1-C rules (backend parity):
+  - a Geometry Nodes failure falls back to the Python writer **for that
+    event only**: the partial GN objects are removed, the Python materials
+    (`... Py`, `instancer=False`, Geometry domain) are created and the event
+    keeps a visible mesh. The other events of the system are untouched;
+  - `runtime["gn"]` is `all(events)`, never "any": a mixed system is evaluated
+    by the Python path, `_update_fireworks` skips the GN bursts individually
+    and `_update_meteors` skips the GN entries individually;
+  - the trail energy and colour travel through the `energy`/`event_color`
+    attributes on the Geometry domain (the shader reads Geometry, not
+    Instancer);
+  - the gate forces a GN failure after two objects and checks that the event
+    still has a non-empty Python head mesh.
 - P1-B rules (one geometric reference and one clock):
   - `_anchor(scene)` returns the vertical axis, the ground elevation and the
     units scale of `ALD Sky/FX Anchor`. `_gravity` follows the axis (the

@@ -3003,6 +3003,48 @@ def check_fx_anchor_clock(scene):
         fx_module.clear(scene)
 
 
+def check_fx_gn_fallback(scene):
+    """P1-C: a failed GN event falls back to the Python writer."""
+    from anime_look_director import fx as fx_module
+
+    original = fx_module._gn_points_object
+    calls = {"count": 0}
+
+    def flaky(*args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] > 2:
+            raise RuntimeError("forced GN failure")
+        return original(*args, **kwargs)
+
+    fx_module._gn_points_object = flaky
+    try:
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=13, distance=30.0)
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        roles = [obj.get("ald_fx_role") for obj in bpy.data.objects
+                 if obj.get("ald_fx")
+                 and obj.get("ald_fx_event") == event.uid]
+        check("trail" in roles or "heads" in roles,
+              "the failed GN event has no Python fallback")
+        runtime = (fx_module.SYSTEMS.get(fx_module._scene_id(scene))
+                   or {}).get(system.uid)
+        check(runtime is not None and runtime.get("bursts"),
+              "the fallback system has no burst")
+        if runtime is not None and runtime.get("bursts"):
+            burst = runtime["bursts"][0]
+            check(burst.get("gn_heads") is None,
+                  "the failed burst still reports a GN head")
+            check(burst.get("heads") is not None,
+                  "the fallback burst has no Python head mesh")
+            if burst.get("heads") is not None:
+                check(len(burst["heads"].data.vertices) > 0,
+                      "the fallback head mesh is empty")
+    finally:
+        fx_module._gn_points_object = original
+        fx_module.clear(scene)
+
+
 def check_fx_diagnostics(scene):
     """P0-E: the read-only diagnostic never claims an unproven OK."""
     from anime_look_director import diagnostics
@@ -3585,6 +3627,7 @@ def main():
         check_fx_system_operators(scene)
         check_fx_persistent_model(scene)
         check_fx_anchor_clock(scene)
+        check_fx_gn_fallback(scene)
         check_fx_diagnostics(scene)
         check_fx_occlusion(scene)
         check_fx_identity(scene)

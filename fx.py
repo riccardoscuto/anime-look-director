@@ -1378,6 +1378,35 @@ def _build_fireworks(scene, system):
                 gn_sparks = None
                 gn_flash = None
                 gn_trails = []
+                # P1-C: the failed event falls back to the Python writer for
+                # this event only. The other events of the system keep their
+                # backend: a GN failure must never leave an invisible event.
+                fallback_materials = [
+                    _material("ALD FX %s %d A Py" % (family_key, index),
+                              family_colors[0], 6.0, instancer=False),
+                    _material("ALD FX %s %d B Py" % (family_key, index),
+                              family_colors[1], 6.0, instancer=False),
+                    _material("ALD FX %s %d C Py" % (family_key, index),
+                              family_colors[2], 6.0, instancer=False),
+                ]
+                python_objects = _build_python_objects(
+                    scene, kind="fireworks", family_key=family_key, index=index,
+                    population=population, config=config, center=center,
+                    spoke_count=spoke_count, pistil_count=pistil_count,
+                    materials=fallback_materials, size_scale=size_scale,
+                    system_uid=system.uid, event_uid=event.uid)
+                trail_obj = python_objects["trail"]
+                head_obj = python_objects["heads"]
+                head_ranges = python_objects["head_ranges"]
+                bead_objects = python_objects["beads"]
+                pistil_obj = python_objects["pistil_obj"]
+                pistil_ranges = python_objects["pistil_ranges"]
+                pistil_bead_obj = python_objects["pistil_bead_obj"]
+                pistil_bead_ranges = python_objects["pistil_bead_ranges"]
+                spark_obj = python_objects["sparks"]
+                spark_ranges = python_objects["spark_ranges"]
+                core_obj = python_objects["core"]
+                core_ranges = python_objects["core_ranges"]
         bursts.append({
             "index": key, "family": family_key, "config": config,
             "center": center, "birth": birth, "seed": int(event.seed),
