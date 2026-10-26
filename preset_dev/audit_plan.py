@@ -313,6 +313,9 @@ CHECKS = [
      and has("panels.py", "fx_pass_state")[0]),
     ("VI-SC", "Build repairs a duplicated scene before modifying it",
      lambda: has("operators.py", "ownership.repair", "ald.build")),
+    ("VI-SC", "The sequence signature is per frame",
+     lambda: has("compositor.py", "signatures[frame]", "json.dumps")
+     and has("compositor.py", "json.loads")[0]),
     ("VI-SC", "Remove ALD on a duplicated scene is safe",
      lambda: has("operators.py", "ald.remove_from_scene", "ownership.repair")
      and has("snapshot.py", "world_is_shared")[0]),

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.46.4 - 2026-10-26
+Per-frame pass signature for animated cameras.
+
+### Fixed
+- `render_fx_pass_animation` stores the signature of every frame in the
+  sequence; `fx_pass_state` compares the current frame's entry. A static camera
+  is valid at both ends and a moved camera invalidates only the frames it
+  changed, instead of reporting the whole sequence as outdated.
+- The gate checks the per-frame signature: the pass is ready at the start and
+  the end, stale after a camera move, ready again after restoring it.
+
 ## 2.46.3 - 2026-10-26
 Safe removal on duplicated scenes.
 
@@ -42,6 +53,7 @@ Content-aware pass state and a single verification command.
 - With an animated camera the sequence signature uses the pose of the restored
   frame: the panel may report "outdated" on other frames even when the sequence
   is valid. It never reports "ready" for a pass that is not.
+  (Fixed in 2.46.4: the signature is stored per frame.)
 
 ## 2.46.0 - 2026-10-26
 Animated FX pass, scene-owned pass images and a real pass state.

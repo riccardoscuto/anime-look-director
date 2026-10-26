@@ -1,5 +1,6 @@
 """Non-destructive anime compositor stack (Blender 5.1 node-group compositor)."""
 
+import json
 import os
 import re
 
@@ -780,8 +781,13 @@ def fx_pass_state(scene):
         return "stale", "FX pass stale: rendered at frame %d" % start
     else:
         text = "FX pass: frame %d" % start
-    if settings.fx_pass_signature \
-            and settings.fx_pass_signature != pass_signature(scene):
+    stored = settings.fx_pass_signature
+    if end > start and stored.startswith("{"):
+        try:
+            stored = json.loads(stored).get(str(scene.frame_current), "")
+        except (TypeError, ValueError):
+            stored = ""
+    if stored and stored != pass_signature(scene):
         return "stale", "FX pass outdated: the FX, camera or palette changed"
     return "ready", text
 
@@ -852,16 +858,20 @@ def render_fx_pass_animation(scene, path=None):
     base = path or getattr(settings, "fx_pass_path", "") or os.path.join(
         tempfile.gettempdir(), "ald_fx_pass.exr")
     first = _frame_path(base, start)
+    if end == start:
+        return render_fx_pass(scene, first)
     current = scene.frame_current
+    signatures = {}
     try:
         for frame in range(start, end + 1):
             scene.frame_set(frame)
             _render_pass_still(scene, _frame_path(first, frame))
+            signatures[frame] = pass_signature(scene)
     finally:
         scene.frame_set(current)
     settings.fx_pass_path = first
     settings.fx_pass_frames = (start, end)
-    settings.fx_pass_signature = pass_signature(scene)
+    settings.fx_pass_signature = json.dumps(signatures, sort_keys=True)
     _refresh_pass_image(scene)
     return first
 

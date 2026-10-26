@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.46.3**).
+  (currently **2.46.4**).
 
 ## Verify (run after every change)
 ```powershell
@@ -861,12 +861,12 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     ready / stale / range / missing, with a real file check. A path that exists
     is not proof that it covers the current frame;
   - `fx.pass_signature(scene)` hashes the systems/events, palette, backend,
-    style, age, camera pose, lens and resolution. The signature is stored on
-    render; a change marks the pass "outdated". The current frame is excluded
-    and checked by the range/state logic instead;
-  - with an animated camera the signature stores the pose of the restored frame:
-    the panel may report "outdated" on other frames. It never reports "ready"
-    for a stale pass;
+    style, age, camera pose, lens and resolution. A still stores one hash; a
+    sequence stores a `{frame: hash}` JSON map so an animated camera is judged
+    frame by frame. The current frame is excluded from the still hash and
+    handled by the range/state logic;
+  - the sequence map is the source of truth for a rendered range: never compare
+    the whole map with one signature;
   - both pass operators rebuild the stack after rendering: the still path used
     to leave the pass node unlinked until a manual Build;
   - the gate renders a four-frame sequence and checks the node fields, the

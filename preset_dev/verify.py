@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 46, 3)
+EXPECTED_VERSION = (2, 46, 4)
 TOLERANCE = 1e-4
 
 
@@ -3840,6 +3840,26 @@ def check_fx_pass_sequence(scene):
         check(state == "stale",
               "an FX change does not invalidate the pass (%s)" % state)
         scene.ald.fx_age = previous_age
+
+        # The signature is per frame: a static camera is valid at both ends,
+        # a moved camera invalidates the frame it was moved on.
+        camera = scene.camera
+        location = camera.location.copy()
+        camera.location = location + Vector((0.5, 0.0, 0.0))
+        bpy.context.view_layer.update()
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state == "stale",
+              "moving the camera does not invalidate the pass (%s)" % state)
+        camera.location = location
+        bpy.context.view_layer.update()
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state == "ready",
+              "restoring the camera does not restore the pass (%s)" % state)
+        scene.frame_set(end)
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state == "ready",
+              "the per-frame signature is not valid at the end frame (%s)"
+              % state)
     finally:
         if first is not None:
             for frame in range(previous_range[0], previous_range[1] + 1):

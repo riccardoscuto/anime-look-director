@@ -506,6 +506,12 @@
     },
     {
       "evidence": "",
+      "label": "The sequence signature is per frame",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "Remove ALD on a duplicated scene is safe",
       "phase": "VI-SC",
       "state": "OK"
@@ -602,7 +608,7 @@
     }
   ],
   "partial": 0,
-  "passed": 100,
+  "passed": 101,
   "plan": "v2.27.0 P0-P3",
-  "total": 100
+  "total": 101
 }

@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.46.3** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.46.4** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -81,6 +81,14 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
 
+## Novità 2.46.4 — firma del pass per frame
+
+- **Sequenze**: `render_fx_pass_animation` salva la firma di ogni frame;
+  `fx_pass_state` confronta quella del frame corrente. Una camera animata non
+  fa più sembrare vecchia tutta la sequenza: solo i frame realmente cambiati.
+- **Gate**: verifica che il pass sia pronto a inizio e fine sequenza, stale dopo
+  uno spostamento di camera e di nuovo pronto dopo il ripristino.
+
 ## Novità 2.46.3 — rimozione sicura sulle scene duplicate
 
 - **Remove ALD from Scene / Detach** riparano la copia prima di agire: la
@@ -109,9 +117,9 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 - **Verifica unica**: `preset_dev/verify_all.py` esegue gate, fixture duplicazione
   e audit in Blender freschi; esce 1 se uno fallisce. Anche `audit_plan.py` ora
   esce 1 su un punto rosso (prima usciva sempre 0).
-- **Limite**: con camera animata la firma usa la posa del frame corrente; su
-  altri frame può dire "outdated" anche se la sequenza è valida. Non dice mai
-  "pronto" per un pass vecchio.
+- **Limite (risolto in 2.46.4)**: con una camera animata la firma usa la posa
+  del frame corrente; su altri frame può dire "outdated" anche se la sequenza
+  è valida. Non dice mai "pronto" per un pass vecchio.
 
 ## Novità 2.46.0 — pass FX per animazione
 
