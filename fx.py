@@ -1703,6 +1703,19 @@ def _registry(scene):
     return SYSTEMS.setdefault(_scene_id(scene), {})
 
 
+def _ensure_snapshot(scene):
+    """Save the user state before the first mutation of the scene.
+
+    Every entry point that creates or rebuilds geometry calls this: the FX
+    must not be the one path that changes the scene without a way back. The
+    maintenance flag suspends the snapshot while ``snapshot.restore`` runs.
+    """
+    from . import snapshot
+    if snapshot.is_maintenance(scene):
+        return
+    snapshot.ensure(scene)
+
+
 def _cleanup_orphans():
     for datablocks in (bpy.data.meshes, bpy.data.curves, bpy.data.materials):
         for block in list(datablocks):
@@ -1730,6 +1743,7 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
     The events are written in the scene and they are the source of truth:
     the geometry is compiled from them and an update never rewrites them.
     """
+    _ensure_snapshot(scene)
     if replace:
         clear(scene, kind="fireworks")
     system = _new_system(scene, "FIREWORKS", seed, time)
@@ -1778,6 +1792,7 @@ def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
                    fps=24.0, kind="METEOR", replace=True):
     """Create a meteor system: the persistent events first, then the
     geometry."""
+    _ensure_snapshot(scene)
     if replace:
         clear(scene, kind="meteors")
     system = _new_system(scene, "METEORS", seed, time)
@@ -1887,6 +1902,7 @@ def compile_system(scene, system):
     """
     if system is None:
         return None
+    _ensure_snapshot(scene)
     _remove_system_objects(scene, system.uid)
     if system.kind == "FIREWORKS":
         runtime = _build_fireworks(scene, system)
@@ -2088,6 +2104,7 @@ def apply_backend(scene):
     settings = getattr(scene, "ald", None)
     if settings is None:
         return False
+    _ensure_snapshot(scene)
     backend = settings.fx_backend
     visible = (backend == "FX3D")
     for obj in _collection(scene).objects:

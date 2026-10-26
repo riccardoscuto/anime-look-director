@@ -2623,6 +2623,18 @@ def check_fx_reversibility(scene):
         "use_compositing": True,
     }
 
+    # P0-C: creating FX alone must register the user state before mutating.
+    check(snapshot.SNAPSHOT_KEY not in scene,
+          "the snapshot leaked from a previous test")
+    bpy.ops.ald.fx_fireworks(count=1, age=0.5)
+    check(snapshot.SNAPSHOT_KEY in scene,
+          "creating FX did not register the user state")
+    saved = snapshot.snapshot(scene)
+    check(saved.get("world", {}).get("name") == state["world"],
+          "the snapshot was not taken before the FX mutation")
+    fx_module.clear(scene)
+    del scene[snapshot.SNAPSHOT_KEY]
+
     # The add-on modifies the scene.
     bpy.ops.ald.apply_palette()
     bpy.ops.ald.build()
@@ -2673,6 +2685,14 @@ def check_fx_reversibility(scene):
           "the render passes were not restored")
     check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
           "the FX objects were not removed")
+    check(scene.get(snapshot.REMOVED_KEY) is True,
+          "the scene does not report the REMOVED state")
+    # A new snapshot re-engages the add-on: the state must clear.
+    snapshot.ensure(scene)
+    check(scene.get(snapshot.REMOVED_KEY) is False,
+          "the REMOVED state survives a new snapshot")
+    del scene[snapshot.SNAPSHOT_KEY]
+    scene[snapshot.REMOVED_KEY] = True
 
     # The cleanup of the test data.
     bpy.data.objects.remove(obj, do_unlink=True)

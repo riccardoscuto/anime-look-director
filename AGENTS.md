@@ -290,6 +290,19 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the gate verifies the acceptance condition: a scene with an HDRI world, a
     custom sun, an emissive material and a pre-existing compositor returns to
     the registered state.
+- P0-C rules (lifecycle and backup):
+  - `snapshot.ensure` is not only for the palette: it runs at the start of
+    `compositor.build`, `fx.create_fireworks`, `fx.create_meteors`,
+    `fx.compile_system` (so Update FX and Duplicate System too) and
+    `fx.apply_backend`. Every mutation path has a way back, even when the user
+    never applied a palette;
+  - `_ensure_snapshot` returns immediately while `ald_maintenance` is set:
+    `snapshot.restore` must never capture the half-restored scene;
+  - `snapshot.restore` ends in the REMOVED state (`scene["ald_removed"] = True`);
+    `snapshot.ensure` clears the flag when it takes a new snapshot, so applying
+    the look again re-engages the add-on;
+  - the Scene actions panel reports the REMOVED state instead of pretending the
+    stack is still owned.
 - FX 2.16 rules (phase P1-C of the operational plan):
   - a firework is a complete event: the launcher, the rising shell (a body
     with its own birth, drag and lifetime and a short trail), the burst at the

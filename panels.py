@@ -417,6 +417,8 @@ def draw_scene_actions(layout, context):
         box.label(text="Bypassed: the scene is not touched", icon="INFO")
     if s.detached:
         box.label(text="Detached: the look is kept", icon="INFO")
+    if scene.get("ald_removed"):
+        box.label(text="Removed: the scene is no longer managed", icon="CHECKMARK")
 
 
 def draw_fx_diagnostics(layout, context):

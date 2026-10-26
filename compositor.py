@@ -702,6 +702,10 @@ def build(scene):
     if settings is None:
         raise RuntimeError("Anime Look Director settings are not registered")
 
+    from . import snapshot
+    if not snapshot.is_maintenance(scene):
+        snapshot.ensure(scene)
+
     for layer in scene.view_layers:
         layer.use_pass_z = True
         # The emission pass carries the energy of the FX and the object index

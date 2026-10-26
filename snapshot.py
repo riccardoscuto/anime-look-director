@@ -15,6 +15,7 @@ import bpy
 
 SNAPSHOT_KEY = "ald_snapshot"
 MAINTENANCE_KEY = "ald_maintenance"
+REMOVED_KEY = "ald_removed"
 
 #: The internal properties of the add-on, removed after a successful restore.
 #: The identity of the scene is not one of them: the scene keeps it.
@@ -106,6 +107,9 @@ def ensure(scene):
         "view_layer": _view_layer_state(scene),
     }
     scene[SNAPSHOT_KEY] = json.dumps(data)
+    # A new snapshot means the add-on manages the scene again: the REMOVED
+    # state of a previous removal no longer describes it.
+    scene[REMOVED_KEY] = False
     return data
 
 
@@ -325,6 +329,9 @@ def restore(scene):
                 del scene[key]
         if SNAPSHOT_KEY in scene:
             del scene[SNAPSHOT_KEY]
+        # The scene is no longer managed by the add-on: the UI must say so
+        # instead of pretending the stack is still owned.
+        scene[REMOVED_KEY] = True
         for marker in list(scene.timeline_markers):
             if marker.name.startswith("ALD"):
                 scene.timeline_markers.remove(marker)
