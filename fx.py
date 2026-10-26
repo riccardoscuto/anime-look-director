@@ -2481,6 +2481,25 @@ def apply_backend(scene):
     return True
 
 
+STYLES = {
+    "CLASSIC": {"glow_strength": 0.6, "glow_size": 0.7, "fade": 0.0},
+    "SOFT": {"glow_strength": 0.35, "glow_size": 0.85, "fade": 0.4},
+    "VIVID": {"glow_strength": 1.1, "glow_size": 0.5, "fade": 0.0},
+}
+
+
+def apply_style(scene):
+    """Apply an aesthetic variant (glow and atmospheric fade) immediately."""
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return False
+    style = STYLES.get(settings.fx_style, STYLES["CLASSIC"])
+    settings.fx_glow_strength = style["glow_strength"]
+    settings.fx_glow_size = style["glow_size"]
+    settings.fx_atmospheric_fade = style["fade"]
+    return True
+
+
 def set_age(scene, age):
     """Move the FX systems in time without rebuilding the geometry.
 

@@ -649,11 +649,71 @@ class ALD_OT_fx_clear_kind(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_show(bpy.types.Operator):
+    bl_idname = "ald.fx_show"
+    bl_label = "Directed Show"
+    bl_description = ("Create a directed firework show: three or five bursts "
+                     "composed as hero, secondary and distant events")
+    bl_options = {"REGISTER", "UNDO"}
+
+    count: bpy.props.EnumProperty(
+        name="Bursts", items=[("3", "3 Bursts", ""), ("5", "5 Bursts", "")],
+        default="3")
+    seed: bpy.props.IntProperty(name="Seed", default=17, min=0, max=99999)
+    distance: bpy.props.FloatProperty(name="Distance", default=95.0,
+                                      min=5.0, max=400.0)
+    age: bpy.props.FloatProperty(name="Age", default=0.9, min=0.0, max=8.0,
+                                 description="Seconds after the first burst")
+
+    def execute(self, context):
+        scene = context.scene
+        scene.ald.fx_age = self.age
+        time = _scene_time(scene) + self.age
+        count = fx.create_fireworks(scene, int(self.count), self.seed,
+                                    self.distance, time)
+        _show_in_viewport(context)
+        self.report({"INFO"},
+                    "Anime Look Director: directed show with %d bursts" % count)
+        return {"FINISHED"}
+
+
+class ALD_OT_smoke_create(bpy.types.Operator):
+    bl_idname = "ald.smoke_create"
+    bl_label = "Create Atmospheric Smoke"
+    bl_description = ("Create a volumetric smoke layer in its own collection: "
+                     "it is rendered by the environment, not by the FX path")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import smoke
+        scene = context.scene
+        settings = scene.ald
+        smoke.create(scene, float(settings.smoke_density),
+                     float(settings.smoke_height),
+                     tuple(settings.smoke_color))
+        self.report({"INFO"}, "Anime Look Director: atmospheric smoke created")
+        return {"FINISHED"}
+
+
+class ALD_OT_smoke_remove(bpy.types.Operator):
+    bl_idname = "ald.smoke_remove"
+    bl_label = "Remove Atmospheric Smoke"
+    bl_description = "Remove the atmospheric smoke volume"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import smoke
+        smoke.remove(context.scene)
+        self.report({"INFO"}, "Anime Look Director: atmospheric smoke removed")
+        return {"FINISHED"}
+
+
 _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_clear_shadow_tint, ALD_OT_toggle_exclude_material,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_bolide,
+            ALD_OT_fx_show, ALD_OT_smoke_create, ALD_OT_smoke_remove,
             ALD_OT_fx_anchor_create, ALD_OT_fx_ground_create,
             ALD_OT_fx_diagnose,
             ALD_OT_fx_update,

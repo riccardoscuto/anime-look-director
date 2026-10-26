@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.29.0**).
+  (currently **2.30.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -291,6 +291,23 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the gate verifies the acceptance condition: a scene with an HDRI world, a
     custom sun, an emissive material and a pre-existing compositor returns to
     the registered state.
+- P3 rules (atmospheric smoke, variants, show, benchmarks):
+  - the smoke is a real volumetric object (`ShaderNodeVolumePrincipled`) in
+    the `ALD | Smoke` collection, never a World generator. It is rendered by
+    the environment (the B layer), not by the additive FX path, so it is not
+    subject to the FX coverage. `smoke.create/sync/remove` own it and
+    `snapshot.restore` removes it with the rest of ALD;
+  - the aesthetic variants (`fx_style` = CLASSIC / SOFT / VIVID) only change
+    the render parameters (`fx_glow_strength`, `fx_glow_size`,
+    `fx_atmospheric_fade`): a variant never rebuilds the geometry;
+  - `ald.fx_show` composes a directed show of 3 or 5 bursts; the existing
+    hero/secondary/distant staggering of `create_fireworks` provides the
+    direction, so the show is deterministic from its seed;
+  - `preset_dev/bench_fx.py` measures five distinct costs (creation,
+    parameter update, clock refresh, frame evaluation on both backends,
+    render) with real counts and the Python peak, and compares them against
+    the budgets declared with the hardware and the scenario in
+    `preset_dev/benchmarks.json`.
 - P2 rules (visual profiles, material and calibration):
   - the material reads the per-particle contract: `event_color` tints the
     base (ADD 0.15), `stable_noise` scales the energy 0.85..1.15, `age_norm`

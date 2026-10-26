@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.30.0 - 2026-10-26
+P3 of the operational plan: atmospheric smoke, aesthetic variants, directed
+shows and benchmarks.
+
+### Added
+- **Atmospheric smoke** — a real volumetric object (`ShaderNodeVolumePrincipled`)
+  in the `ALD | Smoke` collection, created/synced/removed by `smoke.py` and
+  rendered by the environment, never by the additive FX path and never by a
+  new World generator. Controls in both UI surfaces; Remove ALD removes it.
+- **Aesthetic variants** — `fx_style` CLASSIC / SOFT / VIVID map to glow
+  strength, glow size and atmospheric fade without rebuilding geometry.
+- **Directed show** — `ald.fx_show` composes 3 or 5 bursts using the existing
+  hero/secondary/distant staggering; deterministic from the seed.
+- **Benchmarks** — `preset_dev/bench_fx.py` measures creation, parameter
+  update, clock refresh, frame evaluation (GN and Python), memory and render,
+  against budgets declared with the hardware and scenario in
+  `preset_dev/benchmarks.json`.
+
+### Measured on this machine (AMD64, Windows 11, Blender 5.1.2)
+- creation 5 fireworks 0.271 s; 5 meteors 0.010 s;
+- update system 0.005 s; clock refresh 0.004 s;
+- frame evaluation 24 frames: GN 0.074 s, Python 2.621 s;
+- memory: 70 objects, 17 832 vertices, 933 attributes, 14.0 MB Python peak;
+- render 128x72 1.457 s.
+
+### Gate
+- New P3 check: smoke lifecycle and volume shader, 5-burst show, style changes
+  without geometry rebuild. `ALD GATE: PASS`.
+
 ## 2.29.0 - 2026-10-26
 P1 and P2 of the operational plan: one persistent model, one geometric
 reference and clock, backend parity, visual profiles and calibration.

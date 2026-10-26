@@ -234,6 +234,28 @@ def _on_fx_age(self, context):
         pass
 
 
+def _on_smoke(self, context):
+    """Apply the smoke settings to the existing volume without recreating it."""
+    try:
+        from . import smoke
+        if _in_maintenance(context):
+            return
+        smoke.sync(context.scene)
+    except Exception:
+        pass
+
+
+def _on_fx_style(self, context):
+    """Apply an aesthetic variant to the FX look."""
+    try:
+        from . import fx
+        if _in_maintenance(context):
+            return
+        fx.apply_style(context.scene)
+    except Exception:
+        pass
+
+
 def _on_fx_backend(self, context):
     """Apply the backend semantics: the three modes are really exclusive."""
     try:
@@ -788,6 +810,30 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="FX Glow Threshold", default=0.35, min=0.0, max=10.0,
         description="Luminance threshold of the dedicated FX glow",
         update=_on_params)
+    fx_style: EnumProperty(
+        name="FX Style",
+        items=[("CLASSIC", "Classic", "Balanced halo and no fade"),
+               ("SOFT", "Soft Halo", "Wide, gentle halo and atmospheric fade"),
+               ("VIVID", "Vivid", "Tight, strong glow for a graphic look")],
+        default="CLASSIC",
+        description="Aesthetic variant of the FX rendering",
+        update=_on_fx_style)
+    smoke_density: FloatProperty(
+        name="Smoke Density", default=0.25, min=0.0, max=5.0,
+        description="Density of the atmospheric smoke volume",
+        update=_on_smoke)
+    smoke_height: FloatProperty(
+        name="Smoke Height", default=8.0, min=0.1, max=200.0,
+        description="Height of the atmospheric smoke layer",
+        update=_on_smoke)
+    smoke_color: FloatVectorProperty(
+        name="Smoke Color", size=3, subtype="COLOR",
+        default=(0.62, 0.66, 0.75), min=0.0, max=4.0,
+        description="Colour of the atmospheric smoke",
+        update=_on_smoke)
+    smoke_created: BoolProperty(
+        name="Smoke Created", default=False,
+        description="Whether the atmospheric smoke volume exists in the scene")
 
     # --- Shadow tint ----------------------------------------------------
     shadow_tint: BoolProperty(

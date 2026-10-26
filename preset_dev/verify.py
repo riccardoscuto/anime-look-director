@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 29, 0)
+EXPECTED_VERSION = (2, 30, 0)
 TOLERANCE = 1e-4
 
 
@@ -3045,6 +3045,47 @@ def check_fx_gn_fallback(scene):
         fx_module.clear(scene)
 
 
+def check_p3(scene):
+    """P3: smoke volume, aesthetic variants and the directed show."""
+    from anime_look_director import fx as fx_module
+    from anime_look_director import smoke
+
+    scene.ald.smoke_density = 0.3
+    bpy.ops.ald.smoke_create()
+    check(smoke.exists(scene), "the smoke volume was not created")
+    volume = next((obj for obj in bpy.data.objects
+                   if obj.get("ald_smoke")), None)
+    check(volume is not None and volume.type == "MESH",
+          "the smoke object is missing")
+    if volume is not None:
+        material = volume.active_material
+        check(material is not None and any(
+            node.bl_idname == "ShaderNodeVolumePrincipled"
+            for node in material.node_tree.nodes),
+            "the smoke has no volume shader")
+    scene.ald.smoke_density = 0.5
+    check(smoke.exists(scene), "the smoke vanished on a density change")
+    bpy.ops.ald.smoke_remove()
+    check(not smoke.exists(scene), "the smoke was not removed")
+
+    # Aesthetic variants change the look without rebuilding.
+    fx_module.clear(scene)
+    bpy.ops.ald.fx_show(count="5", seed=17, distance=40.0, age=0.9)
+    system = scene.ald.fx_systems[0]
+    check(len(system.events) == 5, "the directed show has no five bursts")
+    names = sorted(obj.name for obj in bpy.data.objects if obj.get("ald_fx"))
+    scene.ald.fx_style = "SOFT"
+    check(abs(scene.ald.fx_glow_size - 0.85) < 1e-3,
+          "the SOFT style did not apply")
+    scene.ald.fx_style = "VIVID"
+    check(abs(scene.ald.fx_glow_strength - 1.1) < 1e-3,
+          "the VIVID style did not apply")
+    after = sorted(obj.name for obj in bpy.data.objects if obj.get("ald_fx"))
+    check(names == after, "the style change rebuilt the geometry")
+    scene.ald.fx_style = "CLASSIC"
+    fx_module.clear(scene)
+
+
 def check_fx_diagnostics(scene):
     """P0-E: the read-only diagnostic never claims an unproven OK."""
     from anime_look_director import diagnostics
@@ -3628,6 +3669,7 @@ def main():
         check_fx_persistent_model(scene)
         check_fx_anchor_clock(scene)
         check_fx_gn_fallback(scene)
+        check_p3(scene)
         check_fx_diagnostics(scene)
         check_fx_occlusion(scene)
         check_fx_identity(scene)

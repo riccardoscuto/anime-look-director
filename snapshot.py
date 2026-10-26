@@ -307,6 +307,7 @@ def restore(scene):
     """
     from . import fx, materials
     from . import compositor as compositor_module
+    from . import smoke as smoke_module
 
     state = snapshot(scene)
     owner = fx._scene_id(scene)
@@ -314,6 +315,8 @@ def restore(scene):
     try:
         # The FX systems and the objects they own.
         fx.clear(scene)
+        # The atmospheric smoke is an ALD-managed object: it goes away too.
+        smoke_module.remove(scene)
         # The materials: the original base colour and emission come back.
         materials.clear_scene(scene)
         # The dedicated FX view layers and the transparent world.

@@ -133,6 +133,18 @@ def draw_world(layout, context):
         col.prop(s, "custom_cloud_shadow")
         col.prop(s, "custom_cloud_mid")
         col.prop(s, "custom_cloud_light")
+    # Atmospheric smoke: a real volume in the environment, not a World node.
+    smoke_box = layout.box()
+    smoke_box.label(text="Atmospheric Smoke", icon="VOLUME_DATA")
+    col = smoke_box.column(align=True)
+    col.prop(s, "smoke_density")
+    col.prop(s, "smoke_height")
+    col.prop(s, "smoke_color")
+    row = smoke_box.row(align=True)
+    row.operator("ald.smoke_create", icon="ADD")
+    row.operator("ald.smoke_remove", icon="REMOVE")
+    if s.smoke_created:
+        smoke_box.label(text="Smoke volume active", icon="CHECKMARK")
 
 
 def draw_shadows(layout, context):
@@ -480,12 +492,21 @@ def draw_fx_diagnostics(layout, context):
 
 def draw_fx_actions(layout, context):
     """The FX actions."""
+    s = context.scene.ald
     box = layout.box()
     box.label(text="Actions", icon="PLAY")
     col = box.column(align=True)
     col.operator("ald.fx_fireworks", icon="LIGHT")
     col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
     col.operator("ald.fx_bolide", icon="TRIA_RIGHT_BAR")
+    box.label(text="Directed Show", icon="SEQUENCE")
+    row = box.row(align=True)
+    three = row.operator("ald.fx_show", text="3 Bursts")
+    three.count = "3"
+    five = row.operator("ald.fx_show", text="5 Bursts")
+    five.count = "5"
+    col = box.column(align=True)
+    col.prop(s, "fx_style")
     col.operator("ald.fx_update", icon="FILE_REFRESH")
     col.operator("ald.fx_clear", icon="TRASH")
     box.label(text="The FX are 3D objects: use the rendered viewport "
