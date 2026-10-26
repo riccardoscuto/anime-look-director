@@ -26,6 +26,22 @@ The `clean` region contains FX **fringe** pixels: the binary presence threshold
 whole background emission enters F there. This is the P0 defect, now
 reproducible and quantified.
 
+## C0-bis — the real stack F, measured
+
+The earlier probe rendered a temporary compositor, where `render_pre` does not
+run: it did not measure the F the stack actually adds. `preset_dev/real_f_probe.py`
+rewires the **real** stack output to the `ALD | FX Emission` result and renders
+it with and without a foreign emitter behind the burst (640x360, EXR linear,
+Standard).
+
+Result: **delta mean 3.987258, max 119.937431, 9 792 lit pixels**. The foreign
+emitter (40/20/4 x 3) enters F directly. The same measurement with the FX-only
+emission layer (recreated at `render_pre`) is **identical**: the Render Layers
+node does not pick up the recreated layer (removing a view layer invalidates
+the node's layer reference; assigning the same name does not re-resolve it).
+This is the most direct evidence of the P0 and the reason the fallback is not
+shipped.
+
 ## C1 — the AOV spike failed
 
 The API exists: `ViewLayer.aovs` accepts a COLOR AOV, `ShaderNodeOutputAOV`
