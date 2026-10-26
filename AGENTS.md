@@ -291,6 +291,23 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the gate verifies the acceptance condition: a scene with an HDRI world, a
     custom sun, an emissive material and a pre-existing compositor returns to
     the registered state.
+- P1-B rules (one geometric reference and one clock):
+  - `_anchor(scene)` returns the vertical axis, the ground elevation and the
+    units scale of `ALD Sky/FX Anchor`. `_gravity` follows the axis (the
+    default `(0,0,-9.81)` becomes `-axis * 9.81 * units`), so the shell, the
+    stars, the children, the curves and the node group share one gravity; a
+    custom gravity vector is respected and scaled;
+  - `_launch_point` places the launcher along the anchor axis and respects the
+    ground elevation; the creation distances are scaled by the units;
+  - Physical mode bursts at `p_shell(T)` = `_rise_position(launch, v0, drag,
+    gravity, rise_time)`, not at the authored target;
+  - `refresh_clock(scene)` (`fx.set_age` machinery) pushes an origin/timing/FPS
+    change into the modifiers and the Python evaluation without rebuilding the
+    geometry; `_on_fx_clock` is the update callback of `timing_mode`,
+    `origin_frame` and `origin_time`;
+  - `_new_system` sets `origin_frame = scene.frame_current`: a creation starts
+    at the current frame with a visible initial window instead of being
+    already in the past.
 - P1-A rules (one persistent model):
   - the runtime reconstruction uses `(event UID, role)` only: `_find_objects`
     returns a dict keyed by the pair and `_one_object` reads it. The name of

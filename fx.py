@@ -651,20 +651,53 @@ def _gn_flash_particles(birth, core, center, size_scale):
     }]
 
 
+AXIS_VECTORS = {"Z": (0.0, 0.0, 1.0), "Y": (0.0, 1.0, 0.0),
+                "X": (1.0, 0.0, 0.0), "-Z": (0.0, 0.0, -1.0),
+                "-Y": (0.0, -1.0, 0.0), "-X": (-1.0, 0.0, 0.0)}
+
+
+def _anchor(scene):
+    """The vertical axis, the ground elevation and the units of the scene."""
+    settings = getattr(scene, "ald", None)
+    key = getattr(settings, "fx_anchor_axis", "Z") if settings else "Z"
+    axis = Vector(AXIS_VECTORS.get(key, AXIS_VECTORS["Z"])).normalized()
+    elevation = float(getattr(settings, "fx_anchor_ground_elevation", 0.0)) \
+        if settings else 0.0
+    scale = float(getattr(settings, "fx_anchor_units_scale", 1.0)) \
+        if settings else 1.0
+    return axis, elevation, max(scale, 1e-4)
+
+
 def _gravity(scene):
-    """The world gravity used by the FX."""
+    """The world gravity used by the FX.
+
+    The default follows the vertical axis of the ALD Sky/FX Anchor and the
+    units scale, so every solver (shell, stars, children, curves and the node
+    group) shares the same vector. A custom vector is respected and scaled.
+    """
     settings = getattr(scene, "ald", None)
     if settings is None:
         return GRAVITY
-    return Vector(settings.fx_gravity)
+    axis, _elevation, scale = _anchor(scene)
+    value = Vector(settings.fx_gravity)
+    default = Vector((0.0, 0.0, -9.81))
+    if (value - default).length < 1e-6:
+        return -axis * 9.81 * scale
+    return value * scale
 
 
-def _launch_point(origin, forward, up, right, target):
-    """The default launcher: below the burst point, in the world space.
+def _launch_point(origin, forward, up, right, target, axis=None,
+                  scale=1.0, elevation=None):
+    """The default launcher: below the burst point along the anchor axis.
 
-    The shell rises vertically, so the shot shows a real ascent.
+    The shell rises along the vertical of the scene, so the shot shows a real
+    ascent also when the anchor is Y-up or Z-down.
     """
-    return Vector(target) - Vector((0.0, 0.0, 26.0))
+    axis = Vector(AXIS_VECTORS["Z"]) if axis is None else Vector(axis)
+    point = Vector(target) - axis * 26.0 * scale
+    if elevation is not None and point.dot(axis) < elevation + scale:
+        point = point + axis * (elevation + scale - point.dot(axis))
+    return point
 
 
 def _launcher_empty(scene, index, position, system=None, event=None):
@@ -1140,6 +1173,11 @@ def _build_fireworks(scene, system):
         v0 = _rise_velocity(launch, target, rise_time, drag, gravity,
                             mode=launch_mode, speed=speed,
                             direction=direction)
+        if launch_mode == "PHYSICAL":
+            # The burst happens where the shell really is at T, not at the
+            # authored target: p_shell(T) is the burst point.
+            target = _rise_position(launch, v0, drag, gravity, rise_time)
+            center = target
         burst_birth = birth + rise_time
         residual = _rise_velocity_at(v0, drag, gravity, rise_time)
         shell = shell_population(launch, v0, drag, birth, rise_time, size_scale)
@@ -1831,6 +1869,8 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
         clear(scene, kind="fireworks")
     system = _new_system(scene, "FIREWORKS", seed, time)
     origin, forward, up, right = _camera_basis(scene)
+    axis, elevation, units = _anchor(scene)
+    distance = float(distance) * units
     settings = getattr(scene, "ald", None)
     spread = float(getattr(settings, "fx_burst_spread", 1.0)) if settings else 1.0
     offset = Vector(getattr(settings, "fx_composition_offset", (0.0, 0.0, 0.0))) \
@@ -1861,7 +1901,9 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
                                                    _hash_unit(seed, index, 0, 1)),
                                 spread) + offset
         event.target = tuple(center)
-        event.launcher = tuple(_launch_point(origin, forward, up, right, center))
+        event.launcher = tuple(_launch_point(origin, forward, up, right,
+                                             center, axis=axis, scale=units,
+                                             elevation=elevation))
         event.launch_mode = "DIRECTOR"
         event.rise_time = 1.2
         event.drag = config["drag"]
@@ -1881,6 +1923,8 @@ def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
         clear(scene, kind="meteors")
     system = _new_system(scene, "METEORS", seed, time)
     origin, forward, up, right = _camera_basis(scene)
+    _axis, _elevation, units = _anchor(scene)
+    distance = float(distance) * units
     preset = METEOR_PRESETS.get(kind, METEOR_PRESETS["METEOR"])
     # The shower direction is a world direction, almost lateral: the meteors
     # cross the sky instead of moving along the line of sight. The radiant
@@ -1942,7 +1986,9 @@ def _new_system(scene, kind, seed, time):
     system.enabled = True
     system.seed = int(seed)
     system.timing_mode = "TIMELINE"
-    system.origin_frame = 1
+    # A creation at the current frame must start now, not in the past: the
+    # origin is the frame of the creation and the first birth is close to it.
+    system.origin_frame = int(scene.frame_current)
     system.origin_time = float(time)
     system.isolation_mode = "EMISSION"
     system.fx_schema = FX_SCHEMA
@@ -2365,6 +2411,15 @@ def set_age(scene, age):
             except Exception:
                 pass
     return updated
+
+
+def refresh_clock(scene):
+    """Push a clock change (origin, FPS, preview) without rebuilding.
+
+    The geometry and the deterministic data are untouched: only the clock of
+    the node group modifiers and the Python evaluation are refreshed.
+    """
+    return set_age(scene, _age_offset(scene))
 
 
 def update(scene, time=None):

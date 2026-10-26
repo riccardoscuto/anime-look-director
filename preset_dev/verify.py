@@ -1464,7 +1464,11 @@ def check_fx_occlusion(scene):
         scene.ald.fx_backend = "FX3D"
         fx_module.clear(scene)
         fx_module.create_fireworks(scene, 1, seed=5, distance=30.0, time=0.6)
-        scene.frame_set(12)
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        scene.frame_set(int(system.origin_frame
+                            + (event.birth + event.rise_time + 0.3) * fps))
         scene.render.engine = "BLENDER_EEVEE"
         scene.render.resolution_x = 64
         scene.render.resolution_y = 64
@@ -1482,7 +1486,11 @@ def check_fx_occlusion(scene):
         # Without the wall the same burst must change the image.
         occluder.hide_render = True
         fx_module.create_fireworks(scene, 1, seed=5, distance=30.0, time=0.6)
-        scene.frame_set(12)
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        scene.frame_set(int(system.origin_frame
+                            + (event.birth + event.rise_time + 0.3) * fps))
         free_with = render("ald_gate_occ_free_with.png")
         fx_module.clear(scene)
         free_without = render("ald_gate_occ_free_without.png")
@@ -2917,6 +2925,84 @@ def check_fx_failed_build(scene):
     fx_module.clear(scene, kind="fireworks")
 
 
+def check_fx_anchor_clock(scene):
+    """P1-B: anchor gravity, p_shell(T) and a clock refresh without rebuild."""
+    from mathutils import Vector
+    from anime_look_director import fx as fx_module
+
+    previous_axis = scene.ald.fx_anchor_axis
+    previous_gravity = tuple(scene.ald.fx_gravity)
+    previous_scale = float(scene.ald.fx_anchor_units_scale)
+    fx_module.clear(scene)
+    try:
+        # Gravity follows the anchor axis and the units scale.
+        scene.ald.fx_anchor_axis = "Y"
+        scene.ald.fx_anchor_units_scale = 2.0
+        gravity = fx_module._gravity(scene)
+        check(abs(gravity.x) < 1e-6 and abs(gravity.z) < 1e-6,
+              "gravity does not follow the Y-up anchor: %s" % (gravity,))
+        check(abs(gravity.y + 19.62) < 1e-3,
+              "gravity does not scale with the units: %s" % (gravity,))
+        scene.ald.fx_anchor_axis = "Z"
+        scene.ald.fx_anchor_units_scale = 1.0
+        check(fx_module._gravity(scene).z < -9.0,
+              "gravity is not along -Z with the default anchor")
+
+        # A creation at the current frame starts now, not in the past.
+        scene.frame_set(120)
+        bpy.ops.ald.fx_fireworks(count=1, seed=13, distance=30.0, age=0.0)
+        system = scene.ald.fx_systems[0]
+        check(system.origin_frame == 120,
+              "the creation did not start at the current frame: %d"
+              % system.origin_frame)
+        now = fx_module.system_time(scene, system)
+        first = system.events[0]
+        check(now < first.birth + first.life,
+              "the creation at the current frame is already over")
+        check(now >= first.birth - 0.05,
+              "the creation starts too far in the future")
+
+        # A clock change does not rebuild the geometry.
+        objects_before = sorted(obj.name for obj in bpy.data.objects
+                                if obj.get("ald_fx"))
+        system.origin_frame = 110
+        fx_module.refresh_clock(scene)
+        objects_after = sorted(obj.name for obj in bpy.data.objects
+                               if obj.get("ald_fx"))
+        check(objects_before == objects_after,
+              "the clock refresh rebuilt the geometry")
+
+        # Physical mode bursts at p_shell(T), not at the authored target.
+        bpy.ops.ald.fx_fireworks(count=1, seed=5, distance=30.0, age=0.0)
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        event.launch_mode = "PHYSICAL"
+        event.speed = 12.0
+        event.direction = (0.0, 0.0, 1.0)
+        event.launcher = (0.0, 0.0, 0.0)
+        event.target = (0.0, 0.0, 100.0)
+        fx_module.update_system(scene, system)
+        runtime = (fx_module.SYSTEMS.get(fx_module._scene_id(scene))
+                   or {}).get(system.uid)
+        check(runtime is not None and runtime.get("bursts"),
+              "the physical system has no burst")
+        if runtime is not None and runtime.get("bursts"):
+            burst = runtime["bursts"][0]
+            gravity = fx_module._gravity(scene)
+            expected = fx_module._rise_position(
+                Vector(event.launcher), burst["shell_velocity"],
+                float(event.drag), gravity, float(event.rise_time))
+            check((burst["center"] - expected).length < 0.01,
+                  "the physical burst is not at p_shell(T)")
+            check((burst["center"] - Vector(event.target)).length > 1.0,
+                  "the physical burst ignored the physics and used the target")
+    finally:
+        scene.ald.fx_anchor_axis = previous_axis
+        scene.ald.fx_anchor_units_scale = previous_scale
+        scene.ald.fx_gravity = previous_gravity
+        fx_module.clear(scene)
+
+
 def check_fx_diagnostics(scene):
     """P0-E: the read-only diagnostic never claims an unproven OK."""
     from anime_look_director import diagnostics
@@ -3138,9 +3224,11 @@ def check_fx_visual_profiles(scene):
             event = system.events[0]
             fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
             if name == "Firework":
-                scene.frame_set(30)
+                scene.frame_set(int(system.origin_frame
+                                    + (event.rise_time + 0.4) * fps))
             else:
-                scene.frame_set(max(1, int(round(event.birth * fps)) + 3))
+                scene.frame_set(int(system.origin_frame
+                                    + event.birth * fps) + 3)
             # Frame the event: the start points are spread across the sky and
             # a fixed camera would miss the lateral ones.
             target = Vector(event.target)
@@ -3496,6 +3584,7 @@ def main():
         check_fx_camera_evaluated(scene)
         check_fx_system_operators(scene)
         check_fx_persistent_model(scene)
+        check_fx_anchor_clock(scene)
         check_fx_diagnostics(scene)
         check_fx_occlusion(scene)
         check_fx_identity(scene)

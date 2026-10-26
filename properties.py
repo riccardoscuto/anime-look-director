@@ -202,6 +202,21 @@ def _on_params(self, context):
         pass
 
 
+def _on_fx_clock(self, context):
+    """Refresh the clock of the systems after an origin/timing change.
+
+    The geometry is not rebuilt: only the node group modifiers and the Python
+    evaluation receive the new clock.
+    """
+    try:
+        from . import fx
+        if _in_maintenance(context):
+            return
+        fx.refresh_clock(context.scene)
+    except Exception:
+        pass
+
+
 def _on_fx_age(self, context):
     """Move the FX systems in time without rebuilding the geometry."""
     try:
@@ -377,12 +392,15 @@ class ALD_FX_System(bpy.types.PropertyGroup):
                ("PREVIEW", "Preview",
                 "The event time is set by hand, independently of the timeline")],
         default="TIMELINE",
+        update=_on_fx_clock,
         description="How the time of the system is read")
     origin_frame: IntProperty(
         name="Origin Frame", default=1, min=-100000, max=100000,
+        update=_on_fx_clock,
         description="Frame the system starts from")
     origin_time: FloatProperty(
         name="Origin Time", default=0.0, min=-100.0, max=100.0,
+        update=_on_fx_clock,
         description="Seconds the system starts from in preview mode")
     fx_schema: IntProperty(
         name="FX Schema", default=0, min=0,
