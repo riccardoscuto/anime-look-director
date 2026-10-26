@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import tempfile
 
 import bpy
 from bpy.app.handlers import persistent
@@ -742,6 +743,12 @@ def _pass_image_name(scene):
     return "ALD | FX Pass | " + scene.name
 
 
+def _default_pass_path(scene):
+    """The default EXR path is per scene: two scenes never share the files."""
+    name = re.sub(r"[^A-Za-z0-9_.-]+", "_", scene.name) or "scene"
+    return os.path.join(tempfile.gettempdir(), "ald_fx_pass_%s.exr" % name)
+
+
 def _refresh_pass_image(scene):
     """Point the scene's pass image at the still or the sequence."""
     settings = getattr(scene, "ald", None)
@@ -827,13 +834,12 @@ def _render_pass_still(scene, path):
 
 def render_fx_pass(scene, path=None):
     """Render the FX emission of the current frame to an EXR."""
-    import tempfile
     settings = getattr(scene, "ald", None)
     if settings is None:
         return None
     if path is None:
-        path = getattr(settings, "fx_pass_path", "") or os.path.join(
-            tempfile.gettempdir(), "ald_fx_pass.exr")
+        path = getattr(settings, "fx_pass_path", "") \
+            or _default_pass_path(scene)
         start, end = _pass_frames(settings)
         if end > start:
             path = _frame_path(path, scene.frame_current)
@@ -847,7 +853,6 @@ def render_fx_pass(scene, path=None):
 
 def render_fx_pass_animation(scene, path=None):
     """Render the FX emission of every scene frame to a numbered sequence."""
-    import tempfile
     settings = getattr(scene, "ald", None)
     if settings is None:
         return None
@@ -855,8 +860,8 @@ def render_fx_pass_animation(scene, path=None):
     end = int(scene.frame_end)
     if end < start:
         return None
-    base = path or getattr(settings, "fx_pass_path", "") or os.path.join(
-        tempfile.gettempdir(), "ald_fx_pass.exr")
+    base = path or getattr(settings, "fx_pass_path", "") \
+        or _default_pass_path(scene)
     first = _frame_path(base, start)
     if end == start:
         return render_fx_pass(scene, first)

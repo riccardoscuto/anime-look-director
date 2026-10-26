@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.46.5 - 2026-10-26
+Per-scene default path for the FX pass.
+
+### Fixed
+- `_default_pass_path` includes the scene name: two scenes without an explicit
+  path no longer write and overwrite the same EXR files. A custom path stays the
+  user's choice; a copied scene inherits it until it is changed.
+
 ## 2.46.4 - 2026-10-26
 Per-frame pass signature for animated cameras.
 

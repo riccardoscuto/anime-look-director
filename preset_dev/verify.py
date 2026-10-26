@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 46, 4)
+EXPECTED_VERSION = (2, 46, 5)
 TOLERANCE = 1e-4
 
 
@@ -3794,6 +3794,10 @@ def check_fx_pass_sequence(scene):
         scene.frame_end = end
         bpy.context.view_layer.update()
 
+        default_path = compositor_module._default_pass_path(scene)
+        check(os.path.basename(default_path)
+              == "ald_fx_pass_%s.exr" % scene.name,
+              "the default FX pass path is not per scene")
         first = compositor_module.render_fx_pass_animation(scene, base)
         check(first is not None, "the animation pass did not render")
         check(tuple(scene.ald.fx_pass_frames) == (start, end),

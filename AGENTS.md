@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.46.4**).
+  (currently **2.46.5**).
 
 ## Verify (run after every change)
 ```powershell
@@ -857,6 +857,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     0001). `fx_pass_frames` stores the range, `(n, n)` means a still;
   - the pass image is per scene (`ALD | FX Pass | <scene>`): never use a
     file-wide image name again, two scenes would overwrite each other;
+  - `_default_pass_path(scene)` embeds the sanitized scene name; a custom path
+    is the user's responsibility. A scene copy inherits the path until changed;
   - `compositor.fx_pass_state(scene)` is the only source of the panel label:
     ready / stale / range / missing, with a real file check. A path that exists
     is not proof that it covers the current frame;

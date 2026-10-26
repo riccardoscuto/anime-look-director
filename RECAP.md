@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.46.4** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.46.5** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,13 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.46.5 — path del pass per scena
+
+- **Default per scena**: `_default_pass_path` include il nome della scena
+  (sanificato), quindi due scene senza path esplicito non scrivono più lo
+  stesso EXR. Un path personalizzato resta una scelta dell'utente; una copia
+  di scena lo eredita finché non viene cambiato.
 
 ## Novità 2.46.4 — firma del pass per frame
 

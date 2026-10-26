@@ -313,6 +313,9 @@ CHECKS = [
      and has("panels.py", "fx_pass_state")[0]),
     ("VI-SC", "Build repairs a duplicated scene before modifying it",
      lambda: has("operators.py", "ownership.repair", "ald.build")),
+    ("VI-SC", "The default FX pass path is per scene",
+     lambda: has("compositor.py", "def _default_pass_path",
+                 "ald_fx_pass_%s")),
     ("VI-SC", "The sequence signature is per frame",
      lambda: has("compositor.py", "signatures[frame]", "json.dumps")
      and has("compositor.py", "json.loads")[0]),
