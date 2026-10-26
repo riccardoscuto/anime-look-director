@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 30, 1)
+EXPECTED_VERSION = (2, 31, 0)
 TOLERANCE = 1e-4
 
 
@@ -760,7 +760,7 @@ def check_light_wrap(scene, settings):
           "light wrap blur nodes missing")
     check(types.count("CompositorNodeSetAlpha") == 1,
           "light wrap alpha nodes missing")
-    check(types.count("CompositorNodeSeparateColor") == 4,
+    check(types.count("CompositorNodeSeparateColor") == 3,
           "light wrap mask extraction missing")
     operations = [n.operation for n in ng.nodes if n.bl_idname == "ShaderNodeMath"]
     check("LESS_THAN" in operations,
@@ -1661,23 +1661,26 @@ def check_fx(scene):
     check(_fx_signature(scene)[0] > 0, "compositor rebuild removed the FX")
     ng = scene.compositing_node_group
     if ng is not None:
-        mask = ng.nodes.get("ALD | FX Mask")
+        matte = ng.nodes.get("ALD | FX Matte")
+        emission_node = ng.nodes.get("ALD | FX Emission")
         restore = ng.nodes.get("ALD | FX Restore")
-        contribution = ng.nodes.get("ALD | FX Contribution")
         punch = ng.nodes.get("ALD | FX Punch Out")
-        check(mask is not None, "FX mask node missing")
+        check(matte is not None, "FX matte node missing")
+        check(emission_node is not None, "FX emission node missing")
         check(restore is not None, "FX restore node missing")
-        check(contribution is not None, "FX contribution node missing")
         check(punch is not None, "FX punch out node missing")
-        if mask is not None and contribution is not None:
-            check(any(link.from_node == contribution
-                      for socket in mask.inputs
-                      for link in socket.links),
-                  "the FX mask is not driven by the contribution")
-        # The recomposition is semantic, not wiring theatre:
-        # C = Painted_B*(1-A) + F + Glare(F). The restore must ADD the
-        # premultiplied F unscaled, and the punch-out must be driven by the
-        # visible coverage (max RGB minus the occluded part).
+        if matte is not None:
+            check(matte.bl_idname == "CompositorNodeCryptomatte",
+                  "the FX matte is not Cryptomatte")
+            check(bool(matte.matte_id), "the FX matte has no material ids")
+        if punch is not None and matte is not None:
+            factor = punch.inputs.get("Factor")
+            check(factor is not None and factor.is_linked
+                  and factor.links[0].from_node == matte,
+                  "the FX punch out is not driven by the matte")
+        # The recomposition is semantic: C = P(B)*(1-A) + F + Glare(F).
+        # F is the Emission pass masked by Cryptomatte and is premultiplied,
+        # so the restore adds it unscaled.
         if restore is not None:
             check(restore.blend_type == "ADD",
                   "the FX restore is not additive")
@@ -1685,27 +1688,11 @@ def check_fx(scene):
             check(factor is not None and not factor.is_linked
                   and abs(factor.default_value - 1.0) < 1e-4,
                   "the FX restore scales the premultiplied FX")
-        if punch is not None:
-            factor = punch.inputs.get("Factor")
-            driven = bool(factor is not None and factor.is_linked
-                          and factor.links[0].from_node.name
-                          == "ALD | FX Visible Coverage")
-            check(driven, "the FX punch out is not driven by the coverage")
-        check(ng.nodes.get("ALD | FX Occlusion") is not None,
-              "the FX occlusion node is missing")
-        check(ng.nodes.get("ALD | FX Visible Coverage") is not None,
-              "the FX visible coverage node is missing")
-        # The contribution is the mix of the two view layers: the other
-        # emissive surfaces never enter the mask.
-        if contribution is not None:
-            layers = [link.from_node
-                      for socket in contribution.inputs
-                      for link in socket.links
-                      if link.from_node.bl_idname == "CompositorNodeRLayers"]
-            check(len(layers) == 2,
-                  "the FX contribution does not use two view layers")
+        check(scene.view_layers.get("ALD FX Base") is not None,
+              "the FX base layer is missing")
+        check(scene.view_layers.get("ALD FX Only") is None,
+              "the legacy FX Only layer still exists")
 
-    fx_module.clear(scene)
     bpy.data.scenes.remove(other)
 
     # The Geometry Nodes prototype must exist and be attached to a real burst.
@@ -3114,6 +3101,135 @@ def check_fx_diagnostics(scene):
     fx_module.clear(scene)
 
 
+def check_fx_p1_visibility(scene):
+    """P1: wall behind, partial occluder and a single glow."""
+    from anime_look_director import fx as fx_module
+
+    previous_engine = scene.render.engine
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_frame = scene.frame_current
+    origin, forward, _up, right = fx_module._camera_basis(scene)
+    hidden = []
+    for obj in scene.objects:
+        if obj.get("ald_fx") or obj.type in ("CAMERA", "LIGHT"):
+            continue
+        hidden.append((obj, obj.hide_render))
+        obj.hide_render = True
+
+    def render():
+        path = os.path.join(tempfile.gettempdir(), "ald_gate_p1.png")
+        scene.render.filepath = path
+        bpy.ops.render.render(write_still=True)
+        image = bpy.data.images.load(path)
+        pixels = list(image.pixels)
+        width, height = image.size
+        bpy.data.images.remove(image)
+        return pixels, width, height
+
+    def mean_diff(first, second, width, height, x0, x1):
+        total = 0.0
+        count = 0
+        for y in range(height):
+            for x in range(max(0, int(width * x0)), min(width, int(width * x1))):
+                index = (y * width + x) * 4
+                a = (0.2126 * first[index] + 0.7152 * first[index + 1]
+                     + 0.0722 * first[index + 2])
+                b = (0.2126 * second[index] + 0.7152 * second[index + 1]
+                     + 0.0722 * second[index + 2])
+                total += abs(a - b)
+                count += 1
+        return total / max(count, 1)
+
+    def wall(distance, lateral=0.0, size=400.0):
+        bpy.ops.mesh.primitive_plane_add(
+            size=size,
+            location=tuple(origin + forward * distance + right * lateral))
+        obj = bpy.context.object
+        obj.rotation_euler = (-forward).to_track_quat("Z", "Y").to_euler()
+        material = bpy.data.materials.new("ALD Gate P1 Wall")
+        material.use_nodes = True
+        bsdf = material.node_tree.nodes.get("Principled BSDF")
+        if bsdf is not None:
+            bsdf.inputs["Base Color"].default_value = (0.05, 0.05, 0.06, 1.0)
+        obj.data.materials.append(material)
+        return obj
+
+    def create_burst():
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=5, distance=30.0, time=0.6)
+        bpy.ops.ald.build()
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        scene.frame_set(int(system.origin_frame
+                            + (event.birth + event.rise_time + 0.3) * fps))
+
+    try:
+        scene.render.engine = "BLENDER_EEVEE"
+        scene.render.resolution_x = 64
+        scene.render.resolution_y = 64
+        scene.render.resolution_percentage = 100
+        try:
+            scene.render.use_motion_blur = False
+        except Exception:
+            pass
+
+        # A wall behind the burst must not hide it.
+        behind = wall(65.0)
+        create_burst()
+        with_fx, width, height = render()
+        fx_module.clear(scene)
+        without_fx, _w, _h = render()
+        behind_diff = mean_diff(with_fx, without_fx, width, height, 0.0, 1.0)
+        check(behind_diff > 1e-4,
+              "the wall behind the burst hides it (%.6f)" % behind_diff)
+        bpy.data.objects.remove(behind, do_unlink=True)
+
+        # A wall covering the right half: the left half keeps the FX.
+        half = wall(12.0, lateral=10.0, size=20.0)
+        create_burst()
+        with_half, width, height = render()
+        fx_module.clear(scene)
+        without_half, _w, _h = render()
+        left_diff = mean_diff(with_half, without_half, width, height,
+                              0.0, 0.5)
+        right_diff = mean_diff(with_half, without_half, width, height,
+                               0.5, 1.0)
+        check(left_diff > 1e-4,
+              "the unoccluded half lost the FX (%.6f)" % left_diff)
+        check(right_diff < left_diff * 0.25,
+              "the occluded half still shows the FX (%.6f vs %.6f)"
+              % (right_diff, left_diff))
+        bpy.data.objects.remove(half, do_unlink=True)
+
+        # Single glow: F is the Emission * matte, added once, glowed once.
+        create_burst()
+        ng = scene.compositing_node_group
+        glows = [node for node in ng.nodes
+                 if node.name == "ALD | FX Glow"]
+        check(len(glows) == 1, "the FX glow is not unique")
+        emission_node = ng.nodes.get("ALD | FX Emission")
+        restore = ng.nodes.get("ALD | FX Restore")
+        if glows and emission_node is not None:
+            check(any(link.from_node == emission_node
+                      for socket in glows[0].inputs
+                      for link in socket.links),
+                  "the FX glow is not fed by the masked emission")
+        if restore is not None and emission_node is not None:
+            check(any(link.from_node == emission_node
+                      for socket in restore.inputs
+                      for link in socket.links),
+                  "the FX restore does not add the masked emission")
+        fx_module.clear(scene)
+    finally:
+        for obj, state in hidden:
+            obj.hide_render = state
+        fx_module.clear(scene)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        scene.render.engine = previous_engine
+        scene.frame_set(previous_frame)
+
+
 def check_fx_identity(scene):
     """P0-D: with zero FX the recomposition is the identity."""
     from anime_look_director import fx as fx_module
@@ -3672,6 +3788,7 @@ def main():
         check_p3(scene)
         check_fx_diagnostics(scene)
         check_fx_occlusion(scene)
+        check_fx_p1_visibility(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)

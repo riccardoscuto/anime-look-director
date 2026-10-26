@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.30.1**).
+  (currently **2.31.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -59,23 +59,22 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - `CompositorNodeBlur` `Size` is a 2-float vector; `Type` = `Flat`, `Tent`,
   `Quadratic`, `Cubic`, `Gaussian`, `Fast Gaussian`, `Catrom`, `Mitch`.
 - `CompositorNodeSetAlpha` `Type` = `Apply Mask` / `Replace Alpha`.
-- Render Layers **Alpha is 1 everywhere when the world is opaque**: never use it as
-  a silhouette mask. EEVEE writes world depth = `camera.clip_end + 0.55`; Cycles
-  writes ~1e10. Threshold the Depth pass with the clip end read at build time.
-- `CompositorNodeRLayers` outputs are `Image` and `Alpha`; `CompositorNodeSeparateColor`
-  in `RGB` mode outputs `Red`, `Green`, `Blue`, `Alpha` (there is no socket named `A`
-  in Blender 5.1 — address them by name or by index, 0..3).
-- `ViewLayer.world_override` exists in 5.1: the FX-only layer overrides the World with
-  `ALD | Transparent World` (Background alpha 0, strength 0). The camera may live in an
-  excluded root collection: Blender still renders with `scene.camera`.
-- **EEVEE writes Alpha = 1 across the frame even with a transparent world override**, so
-  the FX-only Alpha output is not coverage. Render the FX against the black override and
-  use `max(R, G, B)` clamped to 0..1 as the coverage `A`. This is the contract of the
-  FX recomposition `C = (1-A) * Painted_B + F + Glare(F)`.
-- Only **one** node may be named `ALD | FX Contribution`. Blender renames a second one to
-  `.001`; `ng.nodes.get("ALD | FX Contribution")` returns the first, so a duplicate breaks
-  the gate wiring checks and `cameras._transform_state`. The duplicate punch-out node is
-  named `ALD | FX Painted Punch`.
+- Render Layers **Alpha is 1 everywhere when `film_transparent=False`**, even with a
+  transparent world override. With `film_transparent=True` EEVEE writes a real alpha
+  (0 in empty space). The add-on does not use the alpha for the FX: coverage comes from
+  Cryptomatte (below).
+- `CompositorNodeRLayers` outputs `Image` and `Alpha`; with the passes enabled it also
+  exposes `Depth`, `Emission`, `CryptoObject00..02` and `CryptoMaterial00..02`.
+  `CompositorNodeSeparateColor` in `RGB` mode outputs `Red`, `Green`, `Blue`, `Alpha`
+  (there is no socket named `A` in Blender 5.1 — address them by name or index 0..3).
+- `CompositorNodeCryptomatte` works in EEVEE 5.1: wire `CryptoMaterial00..02` from the
+  Render Layers node and set `matte_id` to the comma-separated material names. The matte
+  is computed from the visible render, so an opaque occluder in front of the FX already
+  zeroes it. `CompositorNodeCombineColor` exists with `Red/Green/Blue/Alpha` inputs.
+- The FX nodes are `ALD | FX Matte` (Cryptomatte), `ALD | FX Coverage` (CombineColor),
+  `ALD | FX Emission` (Emission × coverage), `ALD | FX Painted Punch`,
+  `ALD | FX Restore`, `ALD | FX Glow`. There is no `ALD | FX Contribution`, `FX Mask`,
+  `FX Occlusion` or `FX Visible Coverage` node any more.
 - `cameras._transform_state` must never assume a camera exists: guard `scene.camera` and
   `camera.data` and keep the evaluated-matrix read inside `try/except` (headless renders
   and factory scenes may have no camera).
@@ -175,9 +174,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   the burst phase used by the handler and by the Update FX operator.
 - FX 2.5 rules: every burst also grows a smaller, slower inner pistil
   population with its own colour. The FX panel lists the systems of the scene
-  and clears them per kind. FX occlusion compares the environment depth (base
-  layer) with the FX depth: an occluder in front of a particle zeroes its
-  coverage (`ALD | FX Occlusion` → `ALD | FX Visible Coverage`).
+  and clears them per kind. FX occlusion is the Cryptomatte matte of the FX
+  materials computed on the visible render: an opaque occluder in front of a
+  particle zeroes both the emission and the glow.
 - FX 2.6 rules: trails use 16 samples per star with per-grain jitter and
   brightness variation. Meteors emit burning fragments and keep a persistent
   train after the head dies. `fx_burst_spread` and `fx_composition_offset`
@@ -416,10 +415,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - `fx.ROLE_ENERGY` holds the visual profile of every role: the head is the
     brightest, the filament is less energetic than the sparks, the embers
     fade slowly, the flash is a very short impulse;
-  - the FX mask is never the emission pass alone: it contains the other
-    emissive surfaces of the scene. The dedicated view layer "ALD FX"
-    excludes the collection of the add-on, and the difference between the two
-    emission passes is exactly the contribution of the FX;
+  - the FX isolation is the P1 Cryptomatte matte (see the P1 rules): the old
+    `ALD FX`-only view layer and the emission-pass difference are retired;
   - the painterly filters receive a base without the FX (the punch out) and
     the particles are recomposed with their exact coverage; the dedicated
     glow is added once, on the FX only;
@@ -489,17 +486,18 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     can be stale and it ignores the constraints;
   - `preset_dev/audit_plan.py` audits the operational plan requirement by
     requirement: 69/70, the only open item is the optional atmospheric smoke.
-- 2.24 rules:
-  - the compositor FX isolation uses **two** view layers (`ALD FX Base` and
-    `ALD FX Only`), not one. `ALD FX Base` excludes the FX collection (B:
-    clean environment), `ALD FX Only` includes only it (F: visible FX
-    colour). A is `max(R, G, B)` of F clamped to 0..1, minus the occluded
-    part (environment depth closer than the FX depth);
-  - `ALD | FX Contribution` is a MIX between B and F driven by A, with two
-    `CompositorNodeRLayers` inputs (it drives the mask);
-  - `ALD | FX Restore` is an ADD of the premultiplied F on the punched-out
-    Painted_B with **Factor 1**: it never scales F by an image. `ALD | FX
-    Glow` blooms F only;
+- P1 rules (compositor FX, v2.31):
+  - the main view layer carries the true `Emission` pass and the
+    `Cryptomatte Material` pass of the FX; `ALD FX Base` remains the clean
+    environment (B). There is no `ALD FX Only` layer and no transparent
+    world override any more;
+  - A = `ALD | FX Matte` (Cryptomatte of the FX materials). It is computed
+    from the visible render, so opaque occluders already zero it;
+  - F = `Emission` x A (`ALD | FX Coverage` CombineColor + `ALD | FX
+    Emission` MULTIPLY). F is premultiplied and already occluded;
+  - `ALD | FX Painted Punch` is P(B)*(1-A); `ALD | FX Restore` is an ADD of
+    F with **Factor 1**; `ALD | FX Glow` blooms F only. C = P(B)*(1-A) + F +
+    Glare(F). Never derive coverage from luminance;
   - trails write the `energy` attribute via Geometry domain (the
     ShaderNodeAttribute reads Geometry, not Instancer);
   - the gravity of the scene reaches every solver: position, velocity, shell
@@ -544,20 +542,20 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   sky, cloud horizon and star zenith masks; mid-sky peak is fixed at 0.22.
 - Kuwahara is geometry-masked: `ALD | Kuwahara Geometry` multiplies its depth
   factor so the sky/stars are never smeared by the painterly filter.
-- FX compositing: **C = (1-A)*Painted_B + F + Glare(F)**. B is rendered from
-  `ALD FX Base` (FX collection excluded), F from `ALD FX Only` (only the FX
-  collection visible), A is the FX coverage measured as `max(R, G, B)` of F
-  against the black world override, clamped to 0..1 and multiplied by the
-  visible part (`ALD | FX Occlusion` / `ALD | FX Visible Coverage`). The
-  painterly filters run on B so FX cores are never smeared. `ALD | FX Restore`
-  is an ADD with Factor 1 (F is premultiplied: never scale it by an image);
-  `ALD | FX Glow` blooms F only. Never tint FX with the sun halation colour.
-- The FX layer uses two view layers: `ALD FX Base` and `ALD FX Only`. The main
-  view layer keeps all passes for painterly/light wrap/ink/haze.
-- `ALD | FX Contribution` uses two `CompositorNodeRLayers` inputs (B and F).
-- `ALD | FX Mask` is `RGBToBW` of `ALD | FX Contribution`.
-- `ALD | FX Painted Punch` is the `Painted_B * (1-A)` MIX: its Factor is the
-  visible coverage. `ALD | FX Restore` adds F on top of it.
+- FX compositing: **C = P(B)*(1-A) + F + Glare(F)**. B is `ALD FX Base` (FX
+  collection excluded). A is the Cryptomatte material matte of the FX
+  (`ALD | FX Matte`), computed from the visible main render; F is the
+  `Emission` pass multiplied by A (`ALD | FX Coverage` + `ALD | FX
+  Emission`), so it is premultiplied and already occluded. The painterly
+  filters run on B so FX cores are never smeared. `ALD | FX Restore` is an ADD
+  with Factor 1 (never scale premultiplied F by an image); `ALD | FX Glow`
+  blooms F only. Never tint FX with the sun halation colour.
+- The FX stack uses one dedicated layer (`ALD FX Base`) plus the main layer
+  for the Emission/Cryptomatte passes. It no longer uses an `ALD FX Only`
+  layer, a transparent world override, `max(R,G,B)` coverage or a depth
+  comparison for opaque occluders.
+- `ALD | FX Painted Punch` is the `P(B)*(1-A)` MIX driven by `ALD | FX Matte`;
+  `ALD | FX Restore` adds F on top of it.
 - `_sample_cloud_density()` returns `(rho, envelope, warped_pos)`. Rho is
   Perlin-Worley: macro `Detail 5.5/Roughness 0.56` weighted 0.62, plus
   `(0.22 billow + 0.16 Voronoi puff)` gated by a macro envelope

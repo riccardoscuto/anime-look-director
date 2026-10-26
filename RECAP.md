@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.30.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.31.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,21 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.31.0 — P1 compositing FX
+
+- **Copertura reale**: il layer principale espone il pass **Emission** e il
+  **Cryptomatte Material** dei materiali FX. `A = ALD | FX Matte` è la
+  copertura geometrica, non la luminanza.
+- **Occlusione corretta**: `F = Emission × A` è premoltiplicato e già occluso
+  dal render visibile; un muro davanti azzera sia le particelle sia il glow.
+- **Formula**: `C = P(B)×(1-A) + F + Glare(F)`, con `ALD | FX Restore` in ADD
+  a Factor 1 e un solo `ALD | FX Glow`.
+- **Rimosso** il layer `ALD FX Only`, il world override trasparente, la
+  copertura `max(R,G,B)` e il confronto di profondità per gli occlusori opachi.
+- Baseline e spike in `preset_dev/baseline_fx/`, `preset_dev/P1_SPIKE.md`,
+  `preset_dev/P1_REPORT.md`; gate con muro davanti/dietro, occlusore parziale,
+  identità a zero FX e glow singolo.
 
 ## Novità 2.30.0 — Piano operativo P0–P3
 

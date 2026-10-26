@@ -41,7 +41,7 @@ def parse_args():
     out = os.path.join(ADDON_PATH, "preset_dev", "baseline_fx")
     if "--out" in argv:
         out = argv[argv.index("--out") + 1]
-    return out
+    return os.path.abspath(out)
 
 
 def enable_addon():

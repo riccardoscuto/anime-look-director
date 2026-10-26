@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.31.0 - 2026-10-26
+P1 of the visual integration milestone (3D fireworks and anime sky).
+
+### Changed
+- The FX coverage is the **Cryptomatte Material matte** of the FX materials
+  (`ALD | FX Matte`) on the main view layer, not `max(R,G,B)`. A very bright
+  pixel no longer claims full geometric coverage.
+- `F = Emission x A` (`ALD | FX Coverage` + `ALD | FX Emission`), premultiplied
+  and already occluded by the visible render; `C = P(B)*(1-A) + F + Glare(F)`.
+- Removed the `ALD FX Only` view layer, the transparent world override, the
+  `max(R,G,B)` coverage and the depth-comparison visibility for opaque
+  occluders. `ALD FX Base` remains the clean environment.
+- The FX branch is always built: with no FX objects the matte is 0 and the
+  recomposition is the identity, so the parameter updates and the gate see a
+  stable stack.
+
+### Tests
+- Gate: wall in front hides head/trail/glow; wall behind does not; a partial
+  occluder splits correctly; zero FX identity; a foreign emissive surface does
+  not enter the matte; a single glow fed by the masked emission; no halos from
+  invisible particles (behind diff 0.000000).
+- P0-P3 audit 40/40.
+
 ## 2.30.1 - 2026-10-26
 Verification pass after P3.
 

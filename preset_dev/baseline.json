@@ -4,7 +4,7 @@
     "create": {
       "objects": 14,
       "records": 1,
-      "uid": "49e042bef7d747e0800c9cc4f684239e"
+      "uid": "0f319245148a4b228a509c7bbf6276fc"
     },
     "duplicate": {
       "objects": 14,
@@ -23,9 +23,9 @@
     }
   },
   "hashes": {
-    "__init__.py": "e396d9a045d5a0cd30794c4052899d7f7915f38e3b21e7fb285a37b7e088a9d3",
+    "__init__.py": "a5226fc42d3690f91687cc4ce09ec358320a13e98180e22f5f1a44563be76372",
     "cameras.py": "aae11e5edd9964d5c14d17f58fbc0160d518089b6b3646111fdf133ae466e689",
-    "compositor.py": "5441da7b8b5fca1fccbe5d00e3c4fbbf54ea907418899d3728eca5d2474788d1",
+    "compositor.py": "15630c775ffc961df3a3848b37884cccd2c215c23fc31a400ae7e2ca48dbe3ad",
     "diagnostics.py": "ff7ada620f72602f56447713d4f1045f99ed03f1a6b0a018f606a67892de90b9",
     "fx.py": "372dc2362921a3fbdf685b98b87d79a8982df8938f13cf91685332bb985e06ea",
     "fx_nodes.py": "0cd61bd2c85203a46ac46419b25e155f482e97e83c8a8f8679615f91a1e1c850",
@@ -56,8 +56,8 @@
   },
   "version": [
     2,
-    30,
-    1
+    31,
+    0
   ],
-  "version_text": "2.30.1"
+  "version_text": "2.31.0"
 }

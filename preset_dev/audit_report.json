@@ -62,19 +62,25 @@
     },
     {
       "evidence": "",
-      "label": "Two real view layers B/F with a transparent world override",
+      "label": "FX coverage is the Cryptomatte matte, not luminance",
       "phase": "P0-D",
       "state": "OK"
     },
     {
       "evidence": "",
-      "label": "Coverage from max(R,G,B), clamped, with depth occlusion",
+      "label": "F = Emission * coverage; main layer has the crypto pass",
       "phase": "P0-D",
       "state": "OK"
     },
     {
       "evidence": "",
-      "label": "C = (1-A)*Painted_B + F + Glare(F), F added unscaled",
+      "label": "No legacy ALD FX Only build path",
+      "phase": "P0-D",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "C = P(B)*(1-A) + F + Glare(F), F added unscaled",
       "phase": "P0-D",
       "state": "OK"
     },
@@ -86,7 +92,7 @@
     },
     {
       "evidence": "",
-      "label": "Gate: real occlusion and zero-FX identity",
+      "label": "Gate: real occlusion, zero-FX identity, P1 visibility",
       "phase": "P0-D",
       "state": "OK"
     },
@@ -236,7 +242,7 @@
     }
   ],
   "partial": 0,
-  "passed": 39,
+  "passed": 40,
   "plan": "v2.27.0 P0-P3",
-  "total": 39
+  "total": 40
 }

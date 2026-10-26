@@ -1,0 +1,95 @@
+{
+  "plan": "P0 baseline FX",
+  "commit": "309419792259b37b92aed19c299d403915515072",
+  "addon_version": [
+    2,
+    30,
+    1
+  ],
+  "blender": "5.1.2",
+  "engine": "BLENDER_EEVEE",
+  "fps": 24.0,
+  "seed": 13,
+  "family": "CHRYSANTHEMUM",
+  "distance": 55.0,
+  "frame": 39,
+  "system_time": 1.58333,
+  "age_after_burst": 0.4,
+  "exposure": 0.0,
+  "view_transform": "AgX",
+  "camera": {
+    "location": [
+      0.0,
+      -12.0,
+      3.0
+    ],
+    "rotation_euler": [
+      1.97,
+      -0.0,
+      0.0
+    ],
+    "lens": 32.0,
+    "clip_start": 0.10000000149011612,
+    "clip_end": 1000.0
+  },
+  "timings": {
+    "creation_s": 0.14455,
+    "evaluation_s": 0.00735
+  },
+  "renders": [
+    {
+      "pass": "emission",
+      "file": "emission_800x450.png",
+      "resolution": [
+        800,
+        450
+      ],
+      "render_s": 1.80894
+    },
+    {
+      "pass": "emission",
+      "file": "emission_1920x1080.png",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "render_s": 0.86991
+    },
+    {
+      "pass": "glow",
+      "file": "glow_800x450.png",
+      "resolution": [
+        800,
+        450
+      ],
+      "render_s": 0.37982
+    },
+    {
+      "pass": "glow",
+      "file": "glow_1920x1080.png",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "render_s": 0.8825
+    },
+    {
+      "pass": "full",
+      "file": "full_800x450.png",
+      "resolution": [
+        800,
+        450
+      ],
+      "render_s": 1.70014
+    },
+    {
+      "pass": "full",
+      "file": "full_1920x1080.png",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "render_s": 7.99601
+    }
+  ]
+}
