@@ -1,6 +1,28 @@
 # Changelog
 
-## 2.42.0 - 2026-10-26
+## 2.43.0 - 2026-10-26
+Framing envelope: the whole burst is checked, not only its centre.
+
+### Added
+- `fx.event_radius`, `fx.event_envelope`, `fx.event_frame_fraction`: a
+  conservative projected bounds of a burst from the family speed and life.
+- The composition gate requires each burst envelope to be at least 15 % in
+  frame (a gross cut fails) and prints the fractions; the composition report
+  records `frame_fraction` and `in_frame` is the envelope at 95 %, no longer
+  the centre.
+- A multi-burst show fits its distance to the vertical FOV and caps the
+  lateral spread so the edge bursts are not cut by the lens. The fit uses the
+  lens, sensor fit and resolution at creation.
+
+### Evidence
+- `preset_dev/composition/` regenerated: the 3-burst dusk hero is 94.9 % in
+  frame (reported as not in frame), the others 98–100 %; the 5-burst night
+  Willow/Kamuro at the edges are cut and reported (52.5 % / 45 %), not hidden.
+
+### Open
+- Duplicate-scene test, cloud benchmark, PA2 volume research.
+
+## 2.42.0 - 2026-10-26## 2.42.0 - 2026-10-26
 P0 closed: the FX contribution is isolated by an external FX pass.
 
 ### Added

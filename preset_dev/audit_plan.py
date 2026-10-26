@@ -286,6 +286,14 @@ CHECKS = [
     ("VI-SC", "The FX pass is exposed in the UI",
      lambda: has("operators.py", "ald.fx_render_pass")
      and has("panels.py", "ald.fx_render_pass")[0]),
+    ("VI-SC", "Framing checks the whole burst envelope",
+     lambda: has("fx.py", "def event_envelope", "def event_frame_fraction")
+     and has("preset_dev/verify.py", "event_frame_fraction")[0]),
+    ("VI-SC", "A show fits its distance and lateral spread to the lens",
+     lambda: has("fx.py", "def _fit_distance", "_tan_half", "limit =")),
+    ("VI-SC", "The composition report uses the envelope",
+     lambda: has("preset_dev/composition.py", "frame_fraction",
+                 "event_frame_fraction")),
     ("VI-SC", "The slab/control defect is reproduced in the baseline",
      lambda: (exists("preset_dev/clouds_baseline/metrics.json")[0]
               and exists("preset_dev/clouds_baseline/h0.35_a0.00_oblique.png")[0],

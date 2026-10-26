@@ -2133,6 +2133,52 @@ def _scene_fx_materials(scene):
     return names
 
 
+def event_radius(event):
+    """Conservative world radius of the burst at its maximum extent."""
+    config = FAMILY_CONFIG.get(event.family,
+                               FAMILY_CONFIG["CHRYSANTHEMUM"])
+    speed = float(event.speed) or config["speed"]
+    life = float(event.life) or config["life"]
+    size = max(0.1, min(4.0, float(event.size)))
+    return abs(speed) * abs(life) * 0.55 * size
+
+
+def event_envelope(scene, event):
+    """Projected bounds of the whole burst, not only its centre.
+
+    Returns (min_x, min_y, max_x, max_y) in camera screen space. The radius is
+    a conservative estimate from the family speed and life; it is deliberately
+    generous so a centre cannot hide a cut silhouette.
+    """
+    from bpy_extras.object_utils import world_to_camera_view
+
+    camera = scene.camera
+    if camera is None:
+        return (0.5, 0.5, 0.5, 0.5)
+    center = Vector(event.target)
+    radius = event_radius(event)
+    _origin, _forward, up, right = _camera_basis(scene)
+    xs = []
+    ys = []
+    for dx in (-radius, radius):
+        for dy in (-radius, radius):
+            projected = world_to_camera_view(scene, camera,
+                                             center + right * dx + up * dy)
+            xs.append(projected.x)
+            ys.append(projected.y)
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def event_frame_fraction(scene, event):
+    """Fraction of the projected envelope inside the [0, 1] frame."""
+    min_x, min_y, max_x, max_y = event_envelope(scene, event)
+    width = max(max_x - min_x, 1e-6)
+    height = max(max_y - min_y, 1e-6)
+    inside_x = max(0.0, min(max_x, 1.0) - max(min_x, 0.0))
+    inside_y = max(0.0, min(max_y, 1.0) - max(min_y, 0.0))
+    return (inside_x * inside_y) / (width * height)
+
+
 def refresh_widths(scene):
     """Re-evaluate the apparent filament width after a camera change."""
     settings = getattr(scene, "ald", None)
@@ -2195,6 +2241,49 @@ def sync_palette(scene):
     return changed
 
 
+def _tan_half(scene, horizontal):
+    camera = scene.camera
+    if camera is None or camera.data is None:
+        return 0.3
+    data = camera.data
+    res_x = max(int(scene.render.resolution_x), 1)
+    res_y = max(int(scene.render.resolution_y), 1)
+    sensor = float(data.sensor_width)
+    if data.sensor_fit == "VERTICAL":
+        sensor_v = float(getattr(data, "sensor_height", sensor))
+        sensor_h = sensor_v * res_x / float(res_y)
+    else:
+        sensor_h = sensor
+        sensor_v = sensor * res_y / float(res_x)
+    sensor_used = sensor_h if horizontal else sensor_v
+    pixels = res_x if horizontal else res_y
+    _ = pixels
+    return max(sensor_used * 0.5 / max(float(data.lens), 1e-3), 1e-4)
+
+
+def _fit_distance(scene, families):
+    """Distance that fits the largest burst of the show in the vertical FOV."""
+    camera = scene.camera
+    if camera is None or camera.data is None:
+        return 0.0
+    data = camera.data
+    res_x = max(int(scene.render.resolution_x), 1)
+    res_y = max(int(scene.render.resolution_y), 1)
+    if data.type == "ORTHO":
+        return float(data.ortho_scale) * 0.75
+    sensor = float(data.sensor_width)
+    if data.sensor_fit == "VERTICAL":
+        sensor_v = float(getattr(data, "sensor_height", sensor))
+    else:
+        sensor_v = sensor * res_y / float(res_x)
+    tan_v = max(sensor_v * 0.5 / max(float(data.lens), 1e-3), 1e-4)
+    radius = 0.0
+    for family in families:
+        config = FAMILY_CONFIG.get(family, FAMILY_CONFIG["CHRYSANTHEMUM"])
+        radius = max(radius, config["speed"] * config["life"] * 0.55)
+    return radius / (0.9 * tan_v)
+
+
 def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
                      fps=24.0, family="CHRYSANTHEMUM", replace=True):
     """Create a firework system: the persistent events first, then the
@@ -2217,10 +2306,23 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
     total = max(1, int(count))
     if total > 1:
         # A show needs room: the bursts are tens of metres wide, so the
-        # distance and the lateral spread grow with the count. A single burst
-        # keeps the requested framing.
+        # distance and the lateral spread grow with the count. The distance
+        # also fits the largest burst in the vertical FOV, otherwise a centre
+        # in frame would hide a cut silhouette. A single burst keeps the
+        # requested framing.
         distance *= 1.4
         spread *= 1.3
+        families = [family] + [FAMILIES[(index - 1) % len(FAMILIES)]
+                               for index in range(1, total)]
+        distance = max(distance, _fit_distance(scene, families))
+        # The lateral spread must leave the edge bursts in frame too.
+        radius = 0.0
+        for item in families:
+            config = FAMILY_CONFIG.get(item, FAMILY_CONFIG["CHRYSANTHEMUM"])
+            radius = max(radius, config["speed"] * config["life"] * 0.55)
+        tan_h = _tan_half(scene, horizontal=True)
+        limit = (0.9 * tan_h * distance - radius) / (0.18 * distance)
+        spread = max(0.2, min(spread, limit))
     for index in range(total):
         event = system.events.add()
         event.uid = uuid.uuid4().hex

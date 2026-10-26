@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.42.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.43.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,18 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.43.0 — envelope di framing
+
+- **Envelope proiettato**: `event_radius`/`event_envelope`/`event_frame_fraction`
+  misurano l'ingombro dell'intera esplosione, non solo il centro.
+- Il gate richiede almeno il 15% dell'envelope in frame e stampa le frazioni;
+  il report di composizione registra `frame_fraction` e `in_frame` è vero solo
+  al 95%, non più sul centro.
+- **Fit alla focale**: uno show multi-burst adatta distanza alla FOV verticale e
+  limita lo spread laterale, così le focali strette non tagliano i bordi.
+- Evidenza: l'hero dusk è al 94.9% (dichiarato non in frame), gli altri 98–100%;
+  nel night 5 burst i due laterali sono tagliati e **dichiarati** (52.5%/45%).
 
 ## Novità 2.42.0 — P0 chiuso: pass FX esterno
 

@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 42, 0)
+EXPECTED_VERSION = (2, 43, 0)
 TOLERANCE = 1e-4
 
 
@@ -3438,14 +3438,22 @@ def check_fx_composition(scene):
         check(events[0].size >= events[1].size >= events[2].size,
               "the burst sizes do not follow the depth hierarchy")
         screens = []
+        fractions = []
         for event in events:
             projected = world_to_camera_view(scene, camera,
                                              Vector(event.target))
             check(0.0 <= projected.x <= 1.0 and 0.0 <= projected.y <= 1.0,
-                  "a burst is outside the camera frame")
+                  "a burst centre is outside the camera frame")
             screens.append((round(projected.x, 3), round(projected.y, 3)))
+            # The whole burst must be in frame, not only its centre.
+            fraction = fx_module.event_frame_fraction(scene, event)
+            fractions.append(round(fraction, 3))
+            check(fraction > 0.15,
+                  "a burst is almost entirely cut (envelope fraction %.3f)"
+                  % fraction)
         check(len(set(screens)) == len(screens),
               "the bursts overlap on screen")
+        print("ALD GATE framing envelope", fractions)
     finally:
         fx_module.clear(scene)
         scene.render.resolution_x, scene.render.resolution_y = previous_size

@@ -451,6 +451,24 @@
       "state": "OK"
     },
     {
+      "evidence": "",
+      "label": "Framing checks the whole burst envelope",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "A show fits its distance and lateral spread to the lens",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The composition report uses the envelope",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
       "evidence": "preset_dev/clouds_baseline/metrics.json",
       "label": "The slab/control defect is reproduced in the baseline",
       "phase": "VI-SC",
@@ -518,7 +536,7 @@
     }
   ],
   "partial": 0,
-  "passed": 86,
+  "passed": 89,
   "plan": "v2.27.0 P0-P3",
-  "total": 86
+  "total": 89
 }

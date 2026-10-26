@@ -44,13 +44,13 @@ def build(palette, count, name):
     settings.ink_lines = True
     bpy.ops.ald.apply_palette()
     bpy.ops.ald.build()
+    camera.data.lens = 45.0
     fx.create_fireworks(scene, count, seed=17, distance=95.0, time=0.0)
     bpy.ops.ald.build()
     system = scene.ald.fx_systems[0]
     hero = system.events[0]
     camera.rotation_euler = (Vector(hero.target) - camera.location).to_track_quat(
         "-Z", "Y").to_euler()
-    camera.data.lens = 45.0
     bpy.context.view_layer.update()
     fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
     scene.frame_set(int(system.origin_frame + AGE * fps))
@@ -60,6 +60,7 @@ def build(palette, count, name):
     for index, event in enumerate(system.events):
         target = Vector(event.target)
         projected = world_to_camera_view(scene, camera, target)
+        fraction = fx.event_frame_fraction(scene, event)
         events.append({
             "index": index,
             "family": event.family,
@@ -67,9 +68,8 @@ def build(palette, count, name):
             "size": round(float(event.size), 3),
             "distance": round((target - camera.location).length, 2),
             "screen": [round(projected.x, 3), round(projected.y, 3)],
-            "in_frame": bool(0.0 <= projected.x <= 1.0
-                             and 0.0 <= projected.y <= 1.0
-                             and projected.z > 0.0),
+            "in_frame": bool(fraction >= 0.95 and projected.z > 0.0),
+            "frame_fraction": round(fraction, 3),
         })
     scene.render.resolution_x = 1280
     scene.render.resolution_y = 720
