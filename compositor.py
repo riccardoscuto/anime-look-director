@@ -387,12 +387,12 @@ def update_params(scene):
     node = nodes.get(NODE_FX_GLOW)
     if node is not None:
         node.inputs["Strength"].default_value = getattr(
-            settings, "fx_glow_strength", 0.6)
+            settings, "fx_glow_strength", 1.0)
         node.inputs["Threshold"].default_value = getattr(
-            settings, "fx_glow_threshold", 1.0)
+            settings, "fx_glow_threshold", 0.0)
         if "Size" in node.inputs:
             node.inputs["Size"].default_value = getattr(
-                settings, "fx_glow_size", 0.7)
+                settings, "fx_glow_size", 0.35)
         update_god_rays(scene)
 
     from . import palette as palette_module
@@ -788,15 +788,26 @@ def build(scene):
         fx_matte = matte.outputs["Matte"]
 
         # Coverage as a grayscale colour: (A, A, A, 1).
+        # The Emission pass is already weighted by the geometric coverage: a
+        # 1.5 px filament carries A of its radiance. Multiplying by the
+        # fractional matte again squares the coverage and lets the punch-out
+        # win, so the trails read as dark lines. F uses a binary presence mask
+        # (the pass keeps its own anti-aliasing); the punch keeps the
+        # fractional matte for smooth edges (P3).
+        presence = nodes.new("ShaderNodeMath")
+        presence.location = (-1180, -980)
+        presence.operation = "GREATER_THAN"
+        links.new(fx_matte, presence.inputs[0])
+        presence.inputs[1].default_value = 0.001
         coverage_color = nodes.new("CompositorNodeCombineColor")
         coverage_color.location = (-1100, -900)
         coverage_color.name = NODE_FX_COVERAGE
-        links.new(fx_matte, coverage_color.inputs["Red"])
-        links.new(fx_matte, coverage_color.inputs["Green"])
-        links.new(fx_matte, coverage_color.inputs["Blue"])
+        links.new(presence.outputs[0], coverage_color.inputs["Red"])
+        links.new(presence.outputs[0], coverage_color.inputs["Green"])
+        links.new(presence.outputs[0], coverage_color.inputs["Blue"])
         coverage_color.inputs["Alpha"].default_value = 1.0
 
-        # F = Emission * coverage (premultiplied FX colour only).
+        # F = Emission * presence (the pass is already premultiplied).
         multiply = nodes.new("ShaderNodeMix")
         multiply.location = (-940, -900)
         multiply.name = NODE_FX_EMISSION
@@ -934,7 +945,9 @@ def build(scene):
         a_sock, b_sock, result_sock = _mix_sockets(punch)
         links.new(current, a_sock)
         links.new(fx_matte, punch.inputs["Factor"])
-        punch.inputs["Factor"].default_value = 1.0
+        # B must be black: an unlinked B defaults to 0.5 grey and lerps a grey
+        # veil over every FX pixel (P3). The punch is P(B) * (1 - A).
+        b_sock.default_value = (0.0, 0.0, 0.0, 1.0)
         current = result_sock
 
         restore = nodes.new("ShaderNodeMix")
@@ -953,12 +966,12 @@ def build(scene):
         fx_glare.name = NODE_FX_GLOW
         fx_glare.inputs["Type"].default_value = "Bloom"
         fx_glare.inputs["Threshold"].default_value = getattr(
-            settings, "fx_glow_threshold", 1.0)
+            settings, "fx_glow_threshold", 0.0)
         fx_glare.inputs["Strength"].default_value = getattr(
-            settings, "fx_glow_strength", 0.6)
+            settings, "fx_glow_strength", 1.0)
         if "Size" in fx_glare.inputs:
             fx_glare.inputs["Size"].default_value = getattr(
-                settings, "fx_glow_size", 0.7)
+                settings, "fx_glow_size", 0.35)
         links.new(fx_color, fx_glare.inputs["Image"])
         glare_out = fx_glare.outputs.get("Glare")
         if glare_out is None:

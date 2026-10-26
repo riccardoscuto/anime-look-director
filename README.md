@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.32.0)
+## What it does (v2.33.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -229,7 +229,10 @@ Expected output: `ALD GATE: PASS`.
   the max(R,G,B) coverage and the depth comparison for opaque occluders
 - v2.32.0 - P2: the filament tube was empty (`Points to Curves` needs a point
   cloud: added `Mesh to Points`), apparent width in pixels, round tube chosen
-  over ribbon by measurement, secondary stars and per-star trail caps (current)
+  over ribbon by measurement, secondary stars and per-star trail caps
+- v2.33.0 - P3: fixed the grey punch veil, the double coverage and the black
+  instanced particles; tail falloff, sky-tinted FX palette, calibrated glow
+  (1.0 / 0.0 / 0.35) (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

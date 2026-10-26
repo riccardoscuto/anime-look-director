@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.32.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.33.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,24 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.33.0 — P3 shading, palette e glow
+
+- **Velo grigio rimosso**: il nodo `ALD | FX Painted Punch` aveva il socket B
+  non collegato (default grigio 0.5) e stendeva un velo su ogni particella.
+- **Doppia copertura corretta**: la pass `Emission` è già pesata dalla
+  copertura geometrica; moltiplicarla di nuovo per la matte frazionaria la
+  elevava al quadrato e le scie sottili scurivano il cielo. `F` usa una
+  presenza binaria, il punch tiene la matte frazionaria.
+- **Istanze nere risolte**: teste, bead e scintille sono geometrie istanziate e
+  non ereditano gli attributi; ora hanno materiali `INSTANCER`, i tubi
+  `GEOMETRY`.
+- **Glow calibrato**: soglia 0, forza 1.0, size 0.35 (misurati sul composito);
+  prima era di fatto inerte.
+- **Coda con profondità**: `tail_u` porta l'energia a 0.35 verso la punta;
+  **palette FX** tirata al 30% verso il colore del sole del cielo.
+- Evidenza in `preset_dev/baseline_fx_p3/` e `preset_dev/calibration_p3/`;
+  gate 50/50.
 
 ## Novità 2.32.0 — P2 geometria delle scie
 

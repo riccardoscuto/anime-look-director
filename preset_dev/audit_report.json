@@ -170,7 +170,7 @@
     },
     {
       "evidence": "",
-      "label": "Material reads event_color/stable_noise/age_norm/trail_u",
+      "label": "Material reads event_color/stable_noise/age_norm/tail_u",
       "phase": "P2-A",
       "state": "OK"
     },
@@ -269,10 +269,40 @@
       "label": "Secondary stars and a per-star trail cap",
       "phase": "VI-P2",
       "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Instanced particles read the INSTANCER domain",
+      "phase": "VI-P3",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "F uses a binary presence, not the fractional matte",
+      "phase": "VI-P3",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The punch-out writes black, not the 0.5 grey default",
+      "phase": "VI-P3",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Glow calibrated on the composite and tested",
+      "phase": "VI-P3",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Tail falloff and sky-tinted FX palette",
+      "phase": "VI-P3",
+      "state": "OK"
     }
   ],
   "partial": 0,
-  "passed": 45,
+  "passed": 50,
   "plan": "v2.27.0 P0-P3",
-  "total": 45
+  "total": 50
 }

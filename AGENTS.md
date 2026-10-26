@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.32.0**).
+  (currently **2.33.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -533,6 +533,29 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     `burst_population`), so the burst is not a regular dandelion;
   - `preset_dev/p2_age_strip.py` renders the emission at 0.12/0.30/0.60/1.10 s:
     continuity must be judged without Bloom.
+- P3 rules (shading, palette and glow, v2.33):
+  - instanced geometry does **not** inherit the attributes of the instancer
+    points: heads, beads and sparks read `attribute_type = "INSTANCER"`, the
+    trail tubes read `"GEOMETRY"`. The two sets are separate materials (the
+    material key carries `|I`) and both are tagged `ald_fx_material`;
+  - the `Emission` pass is already weighted by the geometric coverage: a 1.5 px
+    filament carries `A` of its radiance. `F` multiplies it by a **binary
+    presence** (`matte > 0.001`); multiplying by the fractional matte squares
+    the coverage and turns the trails into dark lines against the sky;
+  - the `ALD | FX Punch Out` mix must write **black** in its unlinked B socket:
+    the default is 0.5 grey and lerps a grey veil over every FX pixel;
+  - the FX glow threshold works on the FX emission (max ~0.7 linear here): the
+    defaults are threshold 0.0, strength 1.0, size 0.35. Numbers and the three
+    comparison renders live in `preset_dev/glow_variants.py` and
+    `preset_dev/calibration_p3/`;
+  - the tail fades `tail_u` 1.0 → 0.35 in the shader; a missing attribute is 0
+    and keeps full energy, so the Python fallback never goes dark;
+  - the FX palette is pulled 30 % toward the sky sun colour
+    (`_sky_tinted_colors`): the fireworks belong to the sky they are drawn in;
+  - FX materials carry `ald_fx_shader`; a material built by an older version is
+    rebuilt in place on the next creation;
+  - T24 renders at 256x256: at 64x64 a meteor head at 15 m is sub-pixel and the
+    old test was measuring the grey veil, not the meteor.
 - 2.25 rules:
   - `fx._scene_id` writes `settings.fx_uid` inside a `try/except`: the identity
     lives in `scene[ald_fx_id]` and the settings cache is best-effort only.

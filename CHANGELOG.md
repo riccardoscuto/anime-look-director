@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.33.0 - 2026-10-26
+P3 of the visual integration milestone: shading, palette and glow.
+
+### Fixed
+- The FX punch-out mixed toward the default grey of an unlinked B socket
+  (0.5): every particle carried a grey veil, which washed out the colours and
+  hid the missing sparkle.
+- The Emission pass is already coverage-weighted, so multiplying it by the
+  fractional Cryptomatte matte squared the coverage: thin filaments lost more
+  background than they added and read as dark lines. F now uses a binary
+  presence mask; the punch keeps the fractional matte.
+- Instanced heads, beads and sparks were black: instanced geometry does not
+  inherit the instancer's attributes. They now have their own materials with
+  `INSTANCER` attribute lookups; the trail tubes keep `GEOMETRY`.
+- The FX glow was effectively inert (defaults 0.6 strength / 0.35 threshold on
+  an emission that peaks at ~0.7): new defaults 1.0 strength, threshold 0.0,
+  size 0.35, measured on the composite.
+
+### Changed
+- The tail fades to 0.35 of the head energy (`tail_u`), so the burst has depth
+  without punching dark lines into the twilight sky.
+- The FX palette is pulled 30 % toward the sun colour of the sky palette.
+- FX materials carry a shader version and are rebuilt in place when it changes.
+- T24 renders at 256x256: the 64x64 frame made the meteor head sub-pixel.
+
+### Tests
+- Gate: the punch-out is black; both attribute domains exist; the glow changes
+  the composite; the composite adds light instead of darkening it.
+- Audit 50/50.
+
 ## 2.32.0 - 2026-10-26
 P2 of the visual integration milestone: filament geometry.
 

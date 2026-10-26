@@ -38,7 +38,7 @@ TRAIL_GROUP_NAME = "ALD | FX Trail GN"
 #: Build marker of the node groups: a group saved with an older marker is
 #: rebuilt and the modifiers are remapped on the new structure.
 #: 3: the clock accepts a time override (the preview mode of a system).
-SCHEMA = 4
+SCHEMA = 5
 
 
 def _math(nodes, links, operation, x, y, location):
@@ -459,12 +459,23 @@ def _create_burst_group():
     links.new(age_store.outputs["Geometry"], trail_store.inputs["Geometry"])
     links.new(trail_clamped.outputs[0], trail_store.inputs["Value"])
 
+    # tail_u is 0 at the head and 1 at the end of the tail: the material reads
+    # it to fade the tail. A missing attribute keeps the neutral 0 (full
+    # energy), so the Python fallback never goes dark (P3).
+    tail_store = nodes.new("GeometryNodeStoreNamedAttribute")
+    tail_store.location = (620, -480)
+    tail_store.data_type = "FLOAT"
+    tail_store.domain = "POINT"
+    tail_store.inputs["Name"].default_value = "tail_u"
+    links.new(trail_store.outputs["Geometry"], tail_store.inputs["Geometry"])
+    links.new(trail_clamped.outputs[0], tail_store.inputs["Value"])
+
     scale_alive = _vector(nodes, links, "SCALE", scale_vec.outputs["Vector"],
                           None, (560, -800), scale=alive_decay.outputs[0])
 
     instance = nodes.new("GeometryNodeInstanceOnPoints")
     instance.location = (740, -200)
-    links.new(trail_store.outputs["Geometry"], instance.inputs["Points"])
+    links.new(tail_store.outputs["Geometry"], instance.inputs["Points"])
     links.new(ico.outputs["Mesh"], instance.inputs["Instance"])
     links.new(scale_alive.outputs["Vector"], instance.inputs["Scale"])
 
@@ -628,6 +639,16 @@ def _create_trail_group():
     links.new(age_store.outputs["Geometry"], trail_store.inputs["Geometry"])
     links.new(trail_clamped.outputs[0], trail_store.inputs["Value"])
 
+    # tail_u is 0 at the head and 1 at the end of the tail (see the burst
+    # group): the material fades the tail without dimming the heads.
+    tail_store = nodes.new("GeometryNodeStoreNamedAttribute")
+    tail_store.location = (1560, -340)
+    tail_store.data_type = "FLOAT"
+    tail_store.domain = "POINT"
+    tail_store.inputs["Name"].default_value = "tail_u"
+    links.new(trail_store.outputs["Geometry"], tail_store.inputs["Geometry"])
+    links.new(trail_clamped.outputs[0], tail_store.inputs["Value"])
+
     circle = nodes.new("GeometryNodeCurvePrimitiveCircle")
     circle.location = (1420, -520)
     if "Resolution" in circle.inputs:
@@ -636,7 +657,7 @@ def _create_trail_group():
 
     curve_to_mesh = nodes.new("GeometryNodeCurveToMesh")
     curve_to_mesh.location = (1720, -200)
-    links.new(trail_store.outputs["Geometry"], curve_to_mesh.inputs["Curve"])
+    links.new(tail_store.outputs["Geometry"], curve_to_mesh.inputs["Curve"])
     links.new(circle.outputs["Curve"], curve_to_mesh.inputs["Profile Curve"])
     if "Fill Caps" in curve_to_mesh.inputs:
         curve_to_mesh.inputs["Fill Caps"].default_value = True

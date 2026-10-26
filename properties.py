@@ -799,15 +799,15 @@ class ALD_Settings(bpy.types.PropertyGroup):
     )
 
     fx_glow_strength: FloatProperty(
-        name="FX Glow", default=0.6, min=0.0, max=3.0,
+        name="FX Glow", default=1.0, min=0.0, max=3.0,
         description="Dedicated glow for the 3D FX layer",
         update=_on_params)
     fx_glow_size: FloatProperty(
-        name="FX Glow Size", default=0.7, min=0.0, max=1.0,
+        name="FX Glow Size", default=0.35, min=0.0, max=1.0,
         description="Size of the dedicated FX glow",
         update=_on_params)
     fx_glow_threshold: FloatProperty(
-        name="FX Glow Threshold", default=0.35, min=0.0, max=10.0,
+        name="FX Glow Threshold", default=0.0, min=0.0, max=10.0,
         description="Luminance threshold of the dedicated FX glow",
         update=_on_params)
     fx_trail_min_px: FloatProperty(

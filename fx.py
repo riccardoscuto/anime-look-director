@@ -193,6 +193,12 @@ def _collection(scene):
     return coll
 
 
+#: Version of the generated FX shader. A material built by an older version is
+#: rebuilt in place, so a .blend saved before the change is repaired on the
+#: next build instead of keeping a stale node tree.
+FX_SHADER = 2
+
+
 def _material(name, color, strength, instancer=False):
     """The material of the particles.
 
@@ -202,36 +208,66 @@ def _material(name, color, strength, instancer=False):
     that returns the value in both backends (the instancer lookup returns a
     constant). The flag is kept for the experiments.
     """
-    suffix = ""
+    suffix = "|I" if instancer else ""
     key = "%s%s|%.3f|%.3f|%.3f|%.2f" % (name, suffix, color[0], color[1],
                                          color[2], strength)
     mat = bpy.data.materials.get(key)
-    if mat is not None:
+    if mat is not None and int(mat.get("ald_fx_shader", 0)) == FX_SHADER:
         return mat
-    mat = bpy.data.materials.new(key)
+    if mat is None:
+        mat = bpy.data.materials.new(key)
     mat["ald_fx_material"] = True
+    mat["ald_fx_shader"] = FX_SHADER
     mat.use_nodes = True
-    bsdf = mat.node_tree.nodes.get("Principled BSDF")
-    if bsdf is not None:
-        rgba = (*color, 1.0)
-        bsdf.inputs["Base Color"].default_value = rgba
-        if "Emission Color" in bsdf.inputs:
-            bsdf.inputs["Emission Color"].default_value = rgba
-            bsdf.inputs["Emission Strength"].default_value = strength
-            _bind_energy(mat, bsdf, strength, instancer)
-        elif "Emission" in bsdf.inputs:
-            bsdf.inputs["Emission"].default_value = rgba
-            bsdf.inputs["Emission Strength"].default_value = strength
-            _bind_energy(mat, bsdf, strength, instancer)
-        bsdf.inputs["Roughness"].default_value = 0.4
+    tree = mat.node_tree
+    tree.nodes.clear()
+    output = tree.nodes.new("ShaderNodeOutputMaterial")
+    output.location = (300, 0)
+    bsdf = tree.nodes.new("ShaderNodeBsdfPrincipled")
+    bsdf.location = (0, 0)
+    tree.links.new(bsdf.outputs["BSDF"], output.inputs["Surface"])
+    rgba = (*color, 1.0)
+    bsdf.inputs["Base Color"].default_value = rgba
+    if "Emission Color" in bsdf.inputs:
+        bsdf.inputs["Emission Color"].default_value = rgba
+        bsdf.inputs["Emission Strength"].default_value = strength
+        _bind_energy(mat, bsdf, strength, instancer)
+    elif "Emission" in bsdf.inputs:
+        bsdf.inputs["Emission"].default_value = rgba
+        bsdf.inputs["Emission Strength"].default_value = strength
+        _bind_energy(mat, bsdf, strength, instancer)
+    bsdf.inputs["Roughness"].default_value = 0.4
     return mat
 
 
-def _attribute_node(node_tree, name, location):
+def _sky_tinted_colors(scene, colors):
+    """Pull the FX palette toward the sun colour of the sky (P3).
+
+    The fireworks belong to the sky they are drawn in: a fixed rainbow reads
+    as a foreign element. The tint is deliberately small, so a family keeps
+    its identity and the sky only sets the temperature.
+    """
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return colors
+    try:
+        from . import palette
+        key = scene.get("ald_effective_palette", settings.palette)
+        sun = palette.effective(scene, key)["sun_color"]
+    except Exception:
+        return colors
+    return [tuple(c * 0.7 + s * 0.3 for c, s in zip(color, sun))
+            for color in colors]
+
+
+def _attribute_node(node_tree, name, location, instancer=False):
     node = node_tree.nodes.new("ShaderNodeAttribute")
     node.attribute_name = name
     if hasattr(node, "attribute_type"):
-        node.attribute_type = "GEOMETRY"
+        # Instanced geometry does not inherit the attributes of the instancer
+        # points: heads, beads and sparks must read the INSTANCER domain, the
+        # trail tubes (real geometry) the GEOMETRY domain (P3).
+        node.attribute_type = "INSTANCER" if instancer else "GEOMETRY"
     node.location = location
     return node
 
@@ -287,27 +323,32 @@ def _bind_energy(mat, bsdf, strength, instancer=False):
     node_tree = mat.node_tree
     base = tuple(bsdf.inputs["Base Color"].default_value)
 
-    energy = _attribute_node(node_tree, "energy", (-980, -160))
-    stable = _attribute_node(node_tree, "stable_noise", (-980, -400))
-    age = _attribute_node(node_tree, "age_norm", (-980, -600))
-    trail = _attribute_node(node_tree, "trail_u", (-980, -800))
-    event_color = _attribute_node(node_tree, "event_color", (-980, 220))
+    energy = _attribute_node(node_tree, "energy", (-980, -160), instancer)
+    stable = _attribute_node(node_tree, "stable_noise", (-980, -400), instancer)
+    age = _attribute_node(node_tree, "age_norm", (-980, -600), instancer)
+    tail = _attribute_node(node_tree, "tail_u", (-980, -800), instancer)
+    event_color = _attribute_node(node_tree, "event_color", (-980, 220),
+                                  instancer)
 
     # Energy: energy * (0.85 + 0.30 stable) * (1 - 0.20 age) *
-    # (1 - 0.10 trail) * strength.
+    # (0.35 + 0.65 * (1 - tail)) * strength. tail_u is 0 at the head and 1 at
+    # the end of the tail; a missing attribute is 0, so the heads and the
+    # Python fallback keep full energy. The floor stays above the twilight sky:
+    # a dimmer tail would punch a dark line into the sky (P3).
     stable_gain = _map_range(node_tree, (-760, -400), 0.85, 1.15)
     node_tree.links.new(stable.outputs["Fac"], stable_gain.inputs["Value"])
     age_gain = _map_range(node_tree, (-760, -600), 1.0, 0.8)
     node_tree.links.new(age.outputs["Fac"], age_gain.inputs["Value"])
-    trail_gain = _map_range(node_tree, (-760, -800), 1.0, 0.9)
-    node_tree.links.new(trail.outputs["Fac"], trail_gain.inputs["Value"])
+    tail_gain = _map_range(node_tree, (-760, -800), 1.0, 0.35)
+    tail_gain.name = "ALD FX Tail Falloff"
+    node_tree.links.new(tail.outputs["Fac"], tail_gain.inputs["Value"])
 
     first = _multiply(node_tree, (-560, -260), energy.outputs["Fac"],
                       stable_gain.outputs["Result"])
     second = _multiply(node_tree, (-380, -260), first.outputs[0],
                        age_gain.outputs["Result"])
     third = _multiply(node_tree, (-200, -260), second.outputs[0],
-                      trail_gain.outputs["Result"])
+                      tail_gain.outputs["Result"])
     scaled = _multiply(node_tree, (-20, -260), third.outputs[0],
                        float(strength))
     node_tree.links.new(scaled.outputs[0], bsdf.inputs["Emission Strength"])
@@ -1304,7 +1345,8 @@ def _build_fireworks(scene, system):
                                       spoke_count=spoke_count,
                                       shell_velocity=residual,
                                       gravity=gravity)
-        family_colors = PALETTES[key % len(PALETTES)]
+        family_colors = _sky_tinted_colors(scene,
+                                           PALETTES[key % len(PALETTES)])
         # The trail keeps a minimum apparent width: the physical radius is
         # scaled by the camera projection, so a filament is continuous at any
         # distance and resolution. The burst center is the reference depth.
@@ -1323,12 +1365,24 @@ def _build_fireworks(scene, system):
             else False
         materials = [
             _material("ALD FX %s %d A" % (family_key, index), family_colors[0],
-                      6.0, instancer=use_gn),
+                      6.0, instancer=False),
             _material("ALD FX %s %d B" % (family_key, index), family_colors[1],
-                      6.0, instancer=use_gn),
+                      6.0, instancer=False),
             _material("ALD FX %s %d C" % (family_key, index), family_colors[2],
-                      6.0, instancer=use_gn),
+                      6.0, instancer=False),
         ]
+        # The instanced geometry (heads, beads, pistil, sparks) reads the
+        # attributes from the instancer: it needs its own material set.
+        instancer_materials = materials
+        if use_gn:
+            instancer_materials = [
+                _material("ALD FX %s %d A" % (family_key, index),
+                          family_colors[0], 6.0, instancer=True),
+                _material("ALD FX %s %d B" % (family_key, index),
+                          family_colors[1], 6.0, instancer=True),
+                _material("ALD FX %s %d C" % (family_key, index),
+                          family_colors[2], 6.0, instancer=True),
+            ]
         trail_obj = None
         head_obj = None
         head_ranges = []
@@ -1375,7 +1429,7 @@ def _build_fireworks(scene, system):
                 fade = _atmospheric_fade(scene)
                 camera_position = tuple(_camera_basis(scene)[0])
                 gn_heads = _gn_points_object(
-                    scene, "ALD FX GN Heads %d" % index, materials[0],
+                    scene, "ALD FX GN Heads %d" % index, instancer_materials[0],
                     population["heads"], trail=0.0, age_offset=age_offset,
                     energy_power=powers.get("head", 1.0),
                     camera_position=camera_position,
@@ -1389,7 +1443,7 @@ def _build_fireworks(scene, system):
                               if p["spoke"] % 3 == slot]
                     bead_gn = _gn_points_object(
                         scene, "ALD FX GN Beads %d %d" % (index, slot),
-                        materials[slot], grains, trail=config["trail"],
+                        instancer_materials[slot], grains, trail=config["trail"],
                         age_offset=age_offset,
                         energy_power=powers.get("grain", 1.0),
                         camera_position=camera_position,
@@ -1400,7 +1454,7 @@ def _build_fireworks(scene, system):
                     created.append(bead_gn)
                     gn_beads.append(bead_gn)
                 gn_pistil = _gn_points_object(
-                    scene, "ALD FX GN Pistil %d" % index, materials[1],
+                    scene, "ALD FX GN Pistil %d" % index, instancer_materials[1],
                     population["pistil"], trail=0.0, age_offset=age_offset,
                     energy_power=powers.get("pistil", 1.0),
                     camera_position=camera_position,
@@ -1410,7 +1464,7 @@ def _build_fireworks(scene, system):
                     use_time_override=clock["use_override"])
                 created.append(gn_pistil)
                 gn_pistil_grains = _gn_points_object(
-                    scene, "ALD FX GN Pistil Grains %d" % index, materials[1],
+                    scene, "ALD FX GN Pistil Grains %d" % index, instancer_materials[1],
                     population["pistil_grains"],
                     trail=config["trail"] * 0.6, age_offset=age_offset,
                     energy_power=powers.get("pistil_grain", 1.0),
@@ -1422,7 +1476,7 @@ def _build_fireworks(scene, system):
                 created.append(gn_pistil_grains)
                 gn_beads.append(gn_pistil_grains)
                 gn_sparks = _gn_points_object(
-                    scene, "ALD FX GN Sparks %d" % index, materials[2],
+                    scene, "ALD FX GN Sparks %d" % index, instancer_materials[2],
                     population["sparks"], trail=0.0, age_offset=age_offset,
                     min_scale=0.0,
                     energy_power=powers.get("spark", 1.0),
@@ -1446,7 +1500,7 @@ def _build_fireworks(scene, system):
                     created.append(trail_gn)
                     gn_trails.append(trail_gn)
                 gn_flash = _gn_points_object(
-                    scene, "ALD FX GN Flash %d" % index, materials[1],
+                    scene, "ALD FX GN Flash %d" % index, instancer_materials[1],
                     population["flash"], trail=0.0, age_offset=age_offset,
                     min_scale=0.0, decay_power=0.5,
                     energy_power=powers.get("flash", 1.0),
@@ -1458,7 +1512,7 @@ def _build_fireworks(scene, system):
                 created.append(gn_flash)
                 # The rising shell and its short trail.
                 gn_shell = _gn_points_object(
-                    scene, "ALD FX GN Shell %d" % index, materials[0],
+                    scene, "ALD FX GN Shell %d" % index, instancer_materials[0],
                     [shell["head"]], trail=0.0, age_offset=age_offset,
                     energy_power=powers.get("shell", 1.0),
                     camera_position=camera_position,
@@ -1741,7 +1795,9 @@ def _build_meteors(scene, system):
     events = [event for event in system.events if event.enabled]
     total = max(1, len(events))
     material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0,
-                         instancer=use_gn)
+                         instancer=False)
+    instancer_material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0,
+                                   instancer=True) if use_gn else material
     runtime = {"kind": "meteors", "count": total, "seed": int(system.seed),
                "distance": 0.0, "shower": Vector((1.0, 0.0, 0.0)),
                "origin": origin, "material": material, "gn": False,
@@ -1786,7 +1842,7 @@ def _build_meteors(scene, system):
                 fade = _atmospheric_fade(scene)
                 camera_position = tuple(origin)
                 gn_heads = _gn_points_object(
-                    scene, "ALD FX GN Meteor Heads %d" % index, material,
+                    scene, "ALD FX GN Meteor Heads %d" % index, instancer_material,
                     [population["head"]], trail=0.0, age_offset=age_offset,
                     energy_power=powers.get("meteor_head", 1.0),
                     camera_position=camera_position, atmospheric_fade=fade,
@@ -1806,7 +1862,7 @@ def _build_meteors(scene, system):
                     role_energy=ROLE_ENERGY["meteor_train"])
                 created.append(gn_train)
                 gn_fragments = _gn_points_object(
-                    scene, "ALD FX GN Meteor Fragments %d" % index, material,
+                    scene, "ALD FX GN Meteor Fragments %d" % index, instancer_material,
                     population["fragments"], trail=0.0, age_offset=age_offset,
                     min_scale=0.0,
                     energy_power=powers.get("meteor_fragment", 1.0),

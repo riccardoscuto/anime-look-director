@@ -136,11 +136,11 @@ CHECKS = [
      lambda: has("fx.py", "event_color", "stable_noise")
      and has("fx_nodes.py", "energy_store", '"age_norm"', '"trail_u"')[0]),
     # ---- P2-A -----------------------------------------------------------
-    ("P2-A", "Material reads event_color/stable_noise/age_norm/trail_u",
+    ("P2-A", "Material reads event_color/stable_noise/age_norm/tail_u",
      lambda: has("fx.py", '_attribute_node(node_tree, "event_color"',
                  '_attribute_node(node_tree, "stable_noise"',
                  '_attribute_node(node_tree, "age_norm"',
-                 '_attribute_node(node_tree, "trail_u"')),
+                 '_attribute_node(node_tree, "tail_u"')),
     ("P2-A", "Role energies and Bolide render preset",
      lambda: has("fx.py", "ROLE_ENERGY", "meteor_head", "meteor_train")
      and has("fx.py", '"BOLIDE"', "METEOR_PRESETS")[0]),
@@ -194,6 +194,23 @@ CHECKS = [
               "preset_dev/trail_shape_spike.py: tube 1.00, ribbon 0.00 edge-on")),
     ("VI-P2", "Secondary stars and a per-star trail cap",
      lambda: has("fx.py", "spoke, 25) < 0.35", "config[\"trail\"] * cap")),
+    # ---- Visual integration P3 (shading, palette, glow) ------------------
+    ("VI-P3", "Instanced particles read the INSTANCER domain",
+     lambda: has("fx.py", 'attribute_type = "INSTANCER" if instancer',
+                 "instancer_materials")),
+    ("VI-P3", "F uses a binary presence, not the fractional matte",
+     lambda: has("compositor.py", "presence", "GREATER_THAN",
+                 "presence.outputs[0]")),
+    ("VI-P3", "The punch-out writes black, not the 0.5 grey default",
+     lambda: has("compositor.py",
+                 "b_sock.default_value = (0.0, 0.0, 0.0, 1.0)")),
+    ("VI-P3", "Glow calibrated on the composite and tested",
+     lambda: has("properties.py", 'name="FX Glow", default=1.0',
+                 'name="FX Glow Threshold", default=0.0',
+                 'name="FX Glow Size", default=0.35')
+     and has("preset_dev/verify.py", "check_fx_p3_shading")[0]),
+    ("VI-P3", "Tail falloff and sky-tinted FX palette",
+     lambda: has("fx.py", "tail_u", "1.0, 0.35", "_sky_tinted_colors")),
 ]
 
 

@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 32, 0)
+EXPECTED_VERSION = (2, 33, 0)
 TOLERANCE = 1e-4
 
 
@@ -1678,6 +1678,13 @@ def check_fx(scene):
             check(factor is not None and factor.is_linked
                   and factor.links[0].from_node == matte,
                   "the FX punch out is not driven by the matte")
+            # An unlinked B socket defaults to 0.5 grey: the punch would lerp a
+            # grey veil over every FX pixel instead of removing the background.
+            black = [socket for socket in punch.inputs
+                     if socket.name == "B" and socket.type == "RGBA"]
+            check(bool(black) and not black[0].is_linked
+                  and max(black[0].default_value[:3]) < 1e-4,
+                  "the FX punch out does not punch to black")
         # The recomposition is semantic: C = P(B)*(1-A) + F + Glare(F).
         # F is the Emission pass masked by Cryptomatte and is premultiplied,
         # so the restore adds it unscaled.
@@ -3305,6 +3312,80 @@ def check_fx_trail_width(scene):
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
+def check_fx_p3_shading(scene):
+    """P3: instanced attributes, neutral punch and a live FX glow."""
+    from mathutils import Vector
+    from anime_look_director import fx as fx_module
+
+    # Instanced geometry reads the INSTANCER domain, the trail the GEOMETRY
+    # domain. One material per domain: a shared material would leave the heads
+    # black or the tubes dim.
+    previous = (scene.ald.fx_glow_strength, scene.ald.fx_glow_threshold,
+                scene.ald.fx_glow_size)
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_gn = bool(scene.ald.fx_gn_prototype)
+    try:
+        scene.ald.fx_gn_prototype = True
+        scene.render.resolution_x = 320
+        scene.render.resolution_y = 180
+        fx_module.clear(scene)
+        bpy.ops.ald.fx_fireworks(count=1, seed=13, distance=55.0, age=0.0)
+        bpy.ops.ald.build()
+        domains = set()
+        for material in bpy.data.materials:
+            if not material.get("ald_fx_material") or not material.node_tree:
+                continue
+            for node in material.node_tree.nodes:
+                if node.bl_idname == "ShaderNodeAttribute":
+                    domains.add(node.attribute_type)
+        check("INSTANCER" in domains,
+              "no FX material reads the instancer attributes")
+        check("GEOMETRY" in domains,
+              "no FX material reads the geometry attributes")
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        scene.frame_set(int(system.origin_frame
+                            + (event.birth + event.rise_time + 0.4) * fps))
+        bpy.context.view_layer.update()
+
+        def render(name):
+            path = os.path.join(tempfile.gettempdir(), name)
+            scene.render.filepath = path
+            bpy.ops.render.render(write_still=True)
+            image = bpy.data.images.load(path)
+            pixels = list(image.pixels)
+            bpy.data.images.remove(image)
+            return pixels
+
+        scene.ald.fx_glow_threshold = 0.0
+        scene.ald.fx_glow_size = 0.35
+        scene.ald.fx_glow_strength = 0.0
+        dark = render("ald_gate_p3_dark.png")
+        scene.ald.fx_glow_strength = 1.0
+        lit = render("ald_gate_p3_lit.png")
+        delta = [abs(a - b) for a, b in zip(lit[0::4], dark[0::4])]
+        check(max(delta) > 0.02,
+              "the FX glow has no effect (peak %.4f)" % max(delta))
+        check(sum(1 for value in delta if value > 0.02) > 50,
+              "the FX glow covers too few pixels")
+        # The composite must add light: a punched background with a dimmer FX
+        # turns the trails into dark lines (the P3 regression).
+        fx_module.clear(scene)
+        bpy.ops.ald.build()
+        empty = render("ald_gate_p3_empty.png")
+        added = [a - b for a, b in zip(lit[0::4], empty[0::4])]
+        bright = [value for value in added if abs(value) > 0.01]
+        check(bool(bright) and sum(bright) / len(bright) > 0.0,
+              "the FX darken the composite instead of adding light")
+    finally:
+        scene.ald.fx_gn_prototype = previous_gn
+        (scene.ald.fx_glow_strength, scene.ald.fx_glow_threshold,
+         scene.ald.fx_glow_size) = previous
+        fx_module.clear(scene)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+
+
 def check_fx_identity(scene):
     """P0-D: with zero FX the recomposition is the identity."""
     from anime_look_director import fx as fx_module
@@ -3416,8 +3497,8 @@ def check_fx_visual_profiles(scene):
 
     try:
         scene.render.engine = "BLENDER_EEVEE"
-        scene.render.resolution_x = 64
-        scene.render.resolution_y = 64
+        scene.render.resolution_x = 256
+        scene.render.resolution_y = 256
         scene.render.resolution_percentage = 100
         scene.view_settings.view_transform = "Standard"
         scene.view_settings.exposure = 0.0
@@ -3868,6 +3949,7 @@ def main():
         check_fx_occlusion(scene)
         check_fx_p1_visibility(scene)
         check_fx_trail_width(scene)
+        check_fx_p3_shading(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)
