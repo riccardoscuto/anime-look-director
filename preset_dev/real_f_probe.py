@@ -75,6 +75,9 @@ def main():
     fx_node = ng.nodes.get("ALD | FX Emission")
     result = next(socket for socket in fx_node.outputs
                   if socket.name == "Result" and socket.type == "RGBA")
+    # A second link would leave the original output in place: remove it first.
+    for link in list(output.inputs[0].links):
+        ng.links.remove(link)
     ng.links.new(result, output.inputs[0])
 
     # Foreign emitter behind the burst, in a child collection.
