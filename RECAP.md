@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.45.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.46.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,23 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.46.0 — pass FX per animazione
+
+- **Sequenza per frame** (`compositor.render_fx_pass_animation`,
+  `ald.fx_render_pass_animation`): un EXR numerato per ogni frame dell'intervallo
+  della scena. Il nodo `ALD | FX Pass` legge la sequenza (`frame_duration`,
+  `frame_start`) e il compositor segue l'animazione. Costo: un pass in più per
+  frame.
+- **Immagine per scena**: il pass si chiama `ALD | FX Pass | <scena>`; due scene
+  non si sovrascrivono più il pass a vicenda.
+- **Stato reale**: `compositor.fx_pass_state` distingue pronto / stale (altro
+  frame) / fuori intervallo / mancante, verificando l'esistenza del file. Il
+  pannello mostra l'intervallo o il frame, non un generico "ready".
+- **Pulsante still**: dopo il render ricostruisce lo stack, così il nodo del pass
+  è collegato subito senza un Build manuale.
+- **Limite dichiarato**: modificare gli FX non invalida il pass; il pannello
+  conosce frame e file, non un hash del contenuto. Va rigenerato dopo una modifica.
 
 ## Novità 2.45.0 — scene duplicate e ricerca volume
 

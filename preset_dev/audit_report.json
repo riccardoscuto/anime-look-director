@@ -482,6 +482,24 @@
     },
     {
       "evidence": "",
+      "label": "The FX pass follows the animation",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The FX pass image belongs to one scene",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The FX pass state is real, not a path check",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "Duplicated scene repair makes the copy independent",
       "phase": "VI-SC",
       "state": "OK"
@@ -566,7 +584,7 @@
     }
   ],
   "partial": 0,
-  "passed": 94,
+  "passed": 97,
   "plan": "v2.27.0 P0-P3",
-  "total": 94
+  "total": 97
 }

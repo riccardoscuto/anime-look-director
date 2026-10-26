@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
                        FloatProperty, FloatVectorProperty, IntProperty,
-                       PointerProperty, StringProperty)
+                       IntVectorProperty, PointerProperty, StringProperty)
 
 #: Version of the persistent FX layout: a scene saved with an older schema is
 #: migrated when the add-on is enabled.
@@ -922,6 +922,10 @@ class ALD_Settings(bpy.types.PropertyGroup):
     fx_pass_path: StringProperty(
         name="FX Pass", default="", subtype="FILE_PATH",
         description="EXR of the FX-only emission used by the compositor")
+    fx_pass_frames: IntVectorProperty(
+        name="FX Pass Frames", size=2, default=(0, 0),
+        description="Frame range of the rendered FX pass "
+                    "(end above start means a sequence)")
 
     # --- Shadow tint ----------------------------------------------------
     shadow_tint: BoolProperty(

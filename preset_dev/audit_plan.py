@@ -301,6 +301,16 @@ CHECKS = [
     ("VI-SC", "Scene copy: removal unlinks shared objects",
      lambda: has("clouds.py", "obj.users_collection",
                  "collection.objects.unlink(obj)")),
+    ("VI-SC", "The FX pass follows the animation", 
+     lambda: has("compositor.py", "def render_fx_pass_animation",
+                 "frame_duration", "def _frame_path")
+     and has("operators.py", "ald.fx_render_pass_animation")[0]),
+    ("VI-SC", "The FX pass image belongs to one scene",
+     lambda: has("compositor.py", "def _pass_image_name",
+                 "ALD | FX Pass | ")),
+    ("VI-SC", "The FX pass state is real, not a path check",
+     lambda: has("compositor.py", "def fx_pass_state", "rendered at frame")
+     and has("panels.py", "fx_pass_state")[0]),
     ("VI-SC", "Duplicated scene repair makes the copy independent",
      lambda: has("ownership.py", "def repair", "def _duplicate_objects",
                  "same_identity")

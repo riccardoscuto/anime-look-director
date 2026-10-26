@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.46.0 - 2026-10-26
+Animated FX pass, scene-owned pass images and a real pass state.
+
+### Added
+- `compositor.render_fx_pass_animation` and `ald.fx_render_pass_animation`:
+  one numbered EXR per frame of the scene range, and the `ALD | FX Pass` image
+  node reads the files as a `SEQUENCE` (`frame_duration`, `frame_start`), so
+  the compositor follows the animation. Cost: one extra render pass per frame.
+- `fx_pass_frames` on the scene: the frame range of the rendered pass.
+- `compositor.fx_pass_state` and the panel label: ready, stale (another frame),
+  out of range or missing, with a real file check instead of a non-empty path.
+- The pass controls have their own FX Pass box in the FX section.
+
+### Fixed
+- The pass image is per scene (`ALD | FX Pass | <scene>`): two scenes no longer
+  overwrite each other's pass.
+- The still operator rebuilds the stack after the render, so the pass node is
+  wired at once instead of waiting for a manual Build.
+- The gate now renders a four-frame pass sequence and checks the node fields,
+  the per-scene image and that the EXR frames differ.
+
+### Open
+- The pass is not invalidated when the FX parameters change: the panel reports
+  the frame and the file, not a content hash. Re-render after an edit.
+
 ## 2.45.0 - 2026-10-26
 Scene-copy ownership repair and the PA2 volume spike.
 

@@ -1,6 +1,7 @@
 """Non-destructive anime compositor stack (Blender 5.1 node-group compositor)."""
 
 import os
+import re
 
 import bpy
 from bpy.app.handlers import persistent
@@ -711,15 +712,77 @@ def _pass_layer(scene):
     return layer
 
 
-def render_fx_pass(scene, path=None):
-    """Render the FX emission only to an EXR and store its path."""
-    import tempfile
+def _pass_stem(path):
+    """The path without its frame number, plus the digit width."""
+    folder, name = os.path.split(path)
+    stem, extension = os.path.splitext(name)
+    match = re.search(r"(\d+)$", stem)
+    if match:
+        return (os.path.join(folder, stem[:match.start()]),
+                extension, len(match.group(1)))
+    return os.path.join(folder, stem) + "_", extension, 4
+
+
+def _frame_path(path, frame):
+    """The numbered sibling of a pass path, keeping the digit width."""
+    base, extension, width = _pass_stem(path)
+    return "%s%0*d%s" % (base, width, frame, extension)
+
+
+def _pass_frames(settings):
+    frames = getattr(settings, "fx_pass_frames", None)
+    if frames is None or len(frames) != 2:
+        return (0, 0)
+    return (int(frames[0]), int(frames[1]))
+
+
+def _pass_image_name(scene):
+    """The pass image belongs to one scene: never a file-wide datablock."""
+    return "ALD | FX Pass | " + scene.name
+
+
+def _refresh_pass_image(scene):
+    """Point the scene's pass image at the still or the sequence."""
     settings = getattr(scene, "ald", None)
-    if settings is None:
+    if settings is None or not settings.fx_pass_path:
         return None
-    if path is None:
-        path = getattr(settings, "fx_pass_path", "") or os.path.join(
-            tempfile.gettempdir(), "ald_fx_pass.exr")
+    start, end = _pass_frames(settings)
+    image = bpy.data.images.get(_pass_image_name(scene))
+    if image is None:
+        image = bpy.data.images.load(settings.fx_pass_path,
+                                     check_existing=False)
+        image.name = _pass_image_name(scene)
+    image.filepath = settings.fx_pass_path
+    image.source = "SEQUENCE" if end > start else "FILE"
+    image.reload()
+    image.colorspace_settings.name = "Linear Rec.709"
+    return image
+
+
+def fx_pass_state(scene):
+    """What the panel reports: file, frame and coverage, never a path only."""
+    settings = getattr(scene, "ald", None)
+    if settings is None or not settings.fx_pass_path:
+        return "missing", "No FX pass: the main Emission is used (edge leak)"
+    path = bpy.path.abspath(settings.fx_pass_path)
+    if not os.path.exists(path):
+        return "missing", "FX pass file missing"
+    start, end = _pass_frames(settings)
+    if end > start:
+        if not os.path.exists(bpy.path.abspath(_frame_path(path, end))):
+            return "missing", "FX pass sequence incomplete"
+        if start <= scene.frame_current <= end:
+            return "ready", "FX pass: frames %d-%d" % (start, end)
+        return "range", "FX pass covers frames %d-%d" % (start, end)
+    if start == 0:
+        return "ready", "FX pass (frame not recorded)"
+    if start == scene.frame_current:
+        return "ready", "FX pass: frame %d" % start
+    return "stale", "FX pass stale: rendered at frame %d" % start
+
+
+def _render_pass_still(scene, path):
+    """Render the FX emission of the current frame to ``path``."""
     layer = _pass_layer(scene)
     group = bpy.data.node_groups.new(NODE_FX_PASS, "CompositorNodeTree")
     group.interface.new_socket(name="Image", in_out="OUTPUT",
@@ -748,13 +811,52 @@ def render_fx_pass(scene, path=None):
         bpy.data.node_groups.remove(group)
         if layer.name in scene.view_layers:
             scene.view_layers.remove(layer)
-    settings.fx_pass_path = path
-    # Reload the image so the next build reads the new file.
-    image = bpy.data.images.get("ALD | FX Pass Image")
-    if image is not None:
-        image.filepath = path
-        image.reload()
     return path
+
+
+def render_fx_pass(scene, path=None):
+    """Render the FX emission of the current frame to an EXR."""
+    import tempfile
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return None
+    if path is None:
+        path = getattr(settings, "fx_pass_path", "") or os.path.join(
+            tempfile.gettempdir(), "ald_fx_pass.exr")
+        start, end = _pass_frames(settings)
+        if end > start:
+            path = _frame_path(path, scene.frame_current)
+    _render_pass_still(scene, path)
+    settings.fx_pass_path = path
+    settings.fx_pass_frames = (scene.frame_current, scene.frame_current)
+    _refresh_pass_image(scene)
+    return path
+
+
+def render_fx_pass_animation(scene, path=None):
+    """Render the FX emission of every scene frame to a numbered sequence."""
+    import tempfile
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return None
+    start = int(scene.frame_start)
+    end = int(scene.frame_end)
+    if end < start:
+        return None
+    base = path or getattr(settings, "fx_pass_path", "") or os.path.join(
+        tempfile.gettempdir(), "ald_fx_pass.exr")
+    first = _frame_path(base, start)
+    current = scene.frame_current
+    try:
+        for frame in range(start, end + 1):
+            scene.frame_set(frame)
+            _render_pass_still(scene, _frame_path(first, frame))
+    finally:
+        scene.frame_set(current)
+    settings.fx_pass_path = first
+    settings.fx_pass_frames = (start, end)
+    _refresh_pass_image(scene)
+    return first
 
 
 def remove_fx_layers(scene):
@@ -890,18 +992,18 @@ def build(scene):
         emission_source = emission
         pass_path = getattr(settings, "fx_pass_path", "")
         if pass_path and os.path.exists(bpy.path.abspath(pass_path)):
-            image = bpy.data.images.get("ALD | FX Pass Image")
-            if image is None:
-                image = bpy.data.images.load(pass_path, check_existing=False)
-                image.name = "ALD | FX Pass Image"
-            image.filepath = pass_path
-            image.reload()
-            image.colorspace_settings.name = "Linear Rec.709"
-            pass_node = nodes.new("CompositorNodeImage")
-            pass_node.name = NODE_FX_PASS
-            pass_node.image = image
-            pass_node.location = (-1280, -1150)
-            emission_source = pass_node.outputs["Image"]
+            image = _refresh_pass_image(scene)
+            if image is not None:
+                pass_node = nodes.new("CompositorNodeImage")
+                pass_node.name = NODE_FX_PASS
+                pass_node.image = image
+                pass_node.location = (-1280, -1150)
+                start, end = _pass_frames(settings)
+                pass_node.frame_duration = max(1, end - start + 1)
+                pass_node.frame_start = start if end > start else 1
+                pass_node.frame_offset = 0
+                pass_node.use_auto_refresh = True
+                emission_source = pass_node.outputs["Image"]
 
 
 

@@ -729,7 +729,30 @@ class ALD_OT_fx_render_pass(bpy.types.Operator):
         if not path:
             self.report({"WARNING"}, "Anime Look Director: no FX to render")
             return {"CANCELLED"}
+        compositor.build(context.scene)
         self.report({"INFO"}, "Anime Look Director: FX pass %s" % path)
+        return {"FINISHED"}
+
+
+class ALD_OT_fx_render_pass_animation(bpy.types.Operator):
+    bl_idname = "ald.fx_render_pass_animation"
+    bl_label = "Render FX Pass (Animation)"
+    bl_description = ("Render the FX emission of every frame to a numbered EXR "
+                      "sequence: the compositor follows the animation")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import compositor
+        scene = context.scene
+        path = compositor.render_fx_pass_animation(scene)
+        if not path:
+            self.report({"WARNING"},
+                        "Anime Look Director: the frame range is empty")
+            return {"CANCELLED"}
+        compositor.build(scene)
+        self.report({"INFO"},
+                    "Anime Look Director: FX pass frames %d-%d"
+                    % (scene.frame_start, scene.frame_end))
         return {"FINISHED"}
 
 
@@ -785,7 +808,8 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_bolide,
             ALD_OT_fx_show, ALD_OT_smoke_create, ALD_OT_smoke_remove,
             ALD_OT_clouds_create, ALD_OT_clouds_remove,
-            ALD_OT_fx_render_pass, ALD_OT_repair_ownership,
+            ALD_OT_fx_render_pass, ALD_OT_fx_render_pass_animation,
+            ALD_OT_repair_ownership,
             ALD_OT_fx_anchor_create, ALD_OT_fx_ground_create,
             ALD_OT_fx_diagnose,
             ALD_OT_fx_update,

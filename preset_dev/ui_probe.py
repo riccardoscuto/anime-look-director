@@ -122,16 +122,23 @@ def step():
             shot(out_dir, "ui_properties_lower.png")
             window, area = find_area("PROPERTIES")
             if area is not None:
-                scroll(area, -18)
+                scroll(area, 120)
+            print("ALD UI STEP 3: the properties were scrolled to the FX")
+            return 1.0
+        if index == 4:
+            shot(out_dir, "ui_fx_pass.png")
+            window, area = find_area("PROPERTIES")
+            if area is not None:
+                scroll(area, -120)
                 # Toggle the full-area view off: the 3D view must exist again.
                 maximize(area)
             window, area = find_area("VIEW_3D")
             if area is not None:
                 area.spaces.active.show_region_ui = True
                 area.tag_redraw()
-            print("ALD UI STEP 3: the sidebar was opened")
+            print("ALD UI STEP 4: the sidebar was opened")
             return 1.5
-        if index == 4:
+        if index == 5:
             window, area = find_area("VIEW_3D")
             if area is not None:
                 try:
@@ -142,9 +149,9 @@ def step():
                     print("ALD UI SIDEBAR CATEGORY FAILED", exc)
                 area.tag_redraw()
             shot(out_dir, "ui_sidebar.png")
-            print("ALD UI STEP 4: done")
+            print("ALD UI STEP 5: done")
             return 1.0
-        if index == 5:
+        if index == 6:
             print("ALD UI QUIT")
             bpy.ops.wm.quit_blender()
             return None

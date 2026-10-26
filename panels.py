@@ -162,10 +162,6 @@ def draw_world(layout, context):
         col = cloud_box.column(align=True)
         col.prop(s, "clouds_flash_strength")
     row = cloud_box.row(align=True)
-    row = cloud_box.row(align=True)
-    row.operator("ald.fx_render_pass", icon="RENDER_STILL")
-    if s.fx_pass_path:
-        cloud_box.label(text="FX pass ready", icon="CHECKMARK")
     row.operator("ald.clouds_create", icon="ADD")
     row.operator("ald.clouds_remove", icon="REMOVE")
     if s.clouds_created:
@@ -576,6 +572,26 @@ def draw_fx_actions(layout, context):
                     "(Z > Rendered) or render the frame", icon="INFO")
 
 
+def draw_fx_pass(layout, context):
+    """The external pass: still, animation and the real state of the read."""
+    from . import compositor
+    box = layout.box()
+    box.label(text="FX Pass (isolated emission)", icon="RENDER_STILL")
+    row = box.row(align=True)
+    row.operator("ald.fx_render_pass", icon="RENDER_STILL")
+    row.operator("ald.fx_render_pass_animation", text="Animation",
+                 icon="RENDER_ANIMATION")
+    state, text = compositor.fx_pass_state(context.scene)
+    icon = {"ready": "CHECKMARK", "missing": "INFO",
+            "stale": "ERROR", "range": "ERROR"}.get(state, "INFO")
+    box.label(text=text, icon=icon)
+    if state == "missing":
+        box.label(text="The main Emission is used: foreign emitters can leak",
+                  icon="INFO")
+    elif state != "ready":
+        box.label(text="Re-render the pass for the current frame", icon="INFO")
+
+
 def draw_fx(layout, context):
     """The whole FX section: the same in the two surfaces."""
     draw_fx_systems(layout, context)
@@ -587,6 +603,7 @@ def draw_fx(layout, context):
     draw_fx_diagnostics(layout, context)
     draw_fx_advanced(layout, context)
     draw_fx_actions(layout, context)
+    draw_fx_pass(layout, context)
     draw_scene_actions(layout, context)
 
 

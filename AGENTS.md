@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.45.0**).
+  (currently **2.46.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -836,6 +836,23 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     model and its own environment-compositing path before it is comparable;
   - `preset_dev/pa2_volume_spike.py` regenerates the evidence; no PA2 asset or
     shader is copied.
+- FX pass 2.46 rules:
+  - `render_fx_pass_animation` writes one numbered EXR per scene frame; the
+    stack loads it as `SEQUENCE` with `frame_duration = end - start + 1` and
+    `frame_start = start` (verified: a sequence maps scene frame 101 to file
+    0001). `fx_pass_frames` stores the range, `(n, n)` means a still;
+  - the pass image is per scene (`ALD | FX Pass | <scene>`): never use a
+    file-wide image name again, two scenes would overwrite each other;
+  - `compositor.fx_pass_state(scene)` is the only source of the panel label:
+    ready / stale / range / missing, with a real file check. A path that exists
+    is not proof that it covers the current frame;
+  - both pass operators rebuild the stack after rendering: the still path used
+    to leave the pass node unlinked until a manual Build;
+  - the gate renders a four-frame sequence and checks the node fields, the
+    per-scene image and that the EXR frames differ. The cost is one extra pass
+    per frame;
+  - a pass is not invalidated by FX edits: the state knows the frame and the
+    file, not the content. Document it, never claim "ready" as "up to date".
 
 ## Rules
 - Never save the user's `.blend` unless asked.

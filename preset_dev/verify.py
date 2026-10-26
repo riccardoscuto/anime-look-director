@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 45, 0)
+EXPECTED_VERSION = (2, 46, 0)
 TOLERANCE = 1e-4
 
 
@@ -3669,6 +3669,7 @@ def check_fx_pass_isolation(scene):
     previous_format = scene.render.image_settings.file_format
     previous_mode = scene.render.image_settings.color_mode
     previous_pass = scene.ald.fx_pass_path
+    previous_frames = tuple(scene.ald.fx_pass_frames)
     collection = None
     plane = None
     try:
@@ -3751,8 +3752,90 @@ def check_fx_pass_isolation(scene):
             bpy.data.collections.remove(collection)
         fx_module.clear(scene)
         scene.ald.fx_pass_path = previous_pass
+        scene.ald.fx_pass_frames = previous_frames
         scene.render.image_settings.file_format = previous_format
         scene.render.image_settings.color_mode = previous_mode
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+
+
+def check_fx_pass_sequence(scene):
+    """The pass follows the animation and belongs to this scene."""
+    from mathutils import Vector
+    from anime_look_director import compositor as compositor_module
+    from anime_look_director import fx as fx_module
+
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_range = (scene.frame_start, scene.frame_end)
+    previous_frame = scene.frame_current
+    previous_pass = scene.ald.fx_pass_path
+    previous_frames = tuple(scene.ald.fx_pass_frames)
+    base = os.path.join(tempfile.gettempdir(), "ald_gate_pass_seq.exr")
+    first = None
+    try:
+        scene.render.resolution_x = 160
+        scene.render.resolution_y = 90
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
+        bpy.ops.ald.build()
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        scene.camera.rotation_euler = (Vector(event.target)
+                                       - scene.camera.location).to_track_quat(
+                                           "-Z", "Y").to_euler()
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        start = int(system.origin_frame
+                    + (event.birth + event.rise_time + 0.4) * fps)
+        end = start + 3
+        scene.frame_start = start
+        scene.frame_end = end
+        bpy.context.view_layer.update()
+
+        first = compositor_module.render_fx_pass_animation(scene, base)
+        check(first is not None, "the animation pass did not render")
+        check(tuple(scene.ald.fx_pass_frames) == (start, end),
+              "the pass did not record its frame range")
+        start_path = compositor_module._frame_path(first, start)
+        end_path = compositor_module._frame_path(first, end)
+        check(os.path.exists(start_path) and os.path.exists(end_path),
+              "the pass sequence files are missing")
+
+        bpy.ops.ald.build()
+        ng = scene.compositing_node_group
+        node = ng.nodes.get("ALD | FX Pass") if ng is not None else None
+        check(node is not None, "the stack does not use the pass sequence")
+        check(node is not None and node.frame_duration == end - start + 1,
+              "the pass node does not cover the sequence")
+        check(node is not None and node.frame_start == start,
+              "the pass node does not start at the first frame")
+        check(node is not None and node.image is not None
+              and node.image.source == "SEQUENCE",
+              "the pass image is not read as a sequence")
+        check(node is not None and node.image is not None
+              and node.image.name == "ALD | FX Pass | " + scene.name,
+              "the pass image is not owned by the scene")
+
+        def load(path):
+            image = bpy.data.images.load(path)
+            width, height = image.size
+            pixels = np.array(image.pixels[:], dtype=np.float32).reshape(
+                height, width, 4)[:, :, :3]
+            bpy.data.images.remove(image)
+            return pixels
+
+        delta = np.abs(load(start_path) - load(end_path))
+        check(float(delta.max()) > 0.01,
+              "the pass sequence does not change between frames")
+    finally:
+        if first is not None:
+            for frame in range(previous_range[0], previous_range[1] + 1):
+                path = compositor_module._frame_path(first, frame)
+                if os.path.exists(path):
+                    os.remove(path)
+        fx_module.clear(scene)
+        scene.ald.fx_pass_path = previous_pass
+        scene.ald.fx_pass_frames = previous_frames
+        scene.frame_start, scene.frame_end = previous_range
+        scene.frame_set(previous_frame)
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
@@ -4323,6 +4406,7 @@ def main():
         check_fx_composition(scene)
         check_clouds(scene)
         check_fx_pass_isolation(scene)
+        check_fx_pass_sequence(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)
