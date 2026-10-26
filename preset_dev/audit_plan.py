@@ -265,6 +265,15 @@ CHECKS = [
      lambda: (exists("preset_dev/temporal_strip.py")[0]
               and exists("preset_dev/temporal/sheet.png")[0],
               "preset_dev/temporal/temporal.json")),
+    # ---- Showcase (v2.38) ------------------------------------------------
+    ("VI-ALL", "A 1080p showcase with the whole stack",
+     lambda: (exists("preset_dev/showcase.py")[0]
+              and exists("preset_dev/showcase/night_5_bursts.png")[0]
+              and exists("preset_dev/showcase/dusk_3_bursts.png")[0],
+              "preset_dev/showcase/showcase.json")),
+    ("VI-ALL", "The cloud band is a depth layer, not a wall",
+     lambda: has("clouds.py", "card_height = depth * 0.30",
+                 "0.30 + height * 0.18")),
 ]
 
 

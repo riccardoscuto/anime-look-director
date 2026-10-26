@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.37.0**).
+  (currently **2.38.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -601,6 +601,14 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the temporal strip (`preset_dev/temporal_strip.py`) covers 0.10..2.20 s
     for the Chrysanthemum and the Willow and is the frame-by-frame evidence
     the matrix cannot give.
+- Showcase rules (v2.38):
+  - `preset_dev/showcase.py` renders the whole stack at 1920x1080: a five-burst
+    night show and a three-burst dusk show, with the cloud layer created after
+    the final camera basis;
+  - the cloud band is 0.30x the distance tall and sits at 0.30 + 0.18*height of
+    the distance: a taller band reads as a wall, not as a depth layer;
+  - `preset_dev/clouds/` must be regenerated whenever the band geometry or the
+    palette mixing changes.
 - 2.25 rules:
   - `fx._scene_id` writes `settings.fx_uid` inside a `try/except`: the identity
     lives in `scene[ald_fx_id]` and the settings cache is best-effort only.

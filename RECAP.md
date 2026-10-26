@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.37.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.38.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,16 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.38.0 — showcase d'integrazione
+
+- **Fasce 2.5D assottigliate** (0.30× la distanza, prima 0.55×), alzate e con
+  più contrasto: leggono come strato di profondità, non come parete al centro
+  del cielo; la luce di palette parte al 38% dell'altezza.
+- **Showcase 1920×1080** in `preset_dev/showcase/`: cinque burst notturni e tre
+  al tramonto con nuvole e compositing completo — l'evidenza che P1, P3, P4 e
+  P5 convivono nello stesso frame.
+- Evidenza nuvole rigenerata in `preset_dev/clouds/`.
 
 ## Novità 2.37.0 — verifica UI e striscia temporale
 

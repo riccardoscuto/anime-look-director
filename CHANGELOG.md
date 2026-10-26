@@ -1,6 +1,22 @@
 # Changelog
 
-## 2.37.0 - 2026-10-26
+## 2.38.0 - 2026-10-26
+Integration showcase and cloud tuning.
+
+### Changed
+- The 2.5D cloud bands are thinner (0.30x the distance, was 0.55x), higher and
+  with more noise contrast: they read as a depth layer instead of a wall in the
+  middle of the sky. The palette light starts at 38 % of the band height.
+
+### Added
+- `preset_dev/showcase.py`: the whole stack in one frame at 1920x1080, a
+  five-burst night show and a three-burst dusk show, both with the cloud layer
+  and the full compositor. Evidence in `preset_dev/showcase/`.
+
+### Evidence
+- `preset_dev/clouds/` regenerated with the tuned bands (dusk off/on, night).
+
+## 2.37.0 - 2026-10-26## 2.37.0 - 2026-10-26
 Verification pass: the UI probe found a broken panel.
 
 ### Fixed

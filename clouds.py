@@ -114,7 +114,7 @@ def _material(name, colors):
     links.new(coords.outputs["Generated"], separate.inputs["Vector"])
     noise = nodes.new("ShaderNodeTexNoise")
     noise.location = (-700, 0)
-    noise.inputs["Scale"].default_value = 6.0
+    noise.inputs["Scale"].default_value = 9.0
     noise.inputs["Detail"].default_value = 4.0
     noise.inputs["Roughness"].default_value = 0.55
     links.new(coords.outputs["Generated"], noise.inputs["Vector"])
@@ -158,7 +158,7 @@ def _material(name, colors):
     links.new(light.outputs[0], second_b)
     vertical = nodes.new("ShaderNodeMapRange")
     vertical.location = (-460, 620)
-    vertical.inputs["From Min"].default_value = 0.58
+    vertical.inputs["From Min"].default_value = 0.38
     vertical.inputs["From Max"].default_value = 1.0
     links.new(separate.outputs["Y"], vertical.inputs["Value"])
     links.new(vertical.outputs["Result"], second.inputs["Factor"])
@@ -184,7 +184,7 @@ def create(scene, amount=0.6, height=0.35):
     for index, distance in enumerate(DISTANCES):
         depth = distance * units
         width = depth * 1.7
-        card_height = depth * 0.55
+        card_height = depth * 0.30
         mesh = _cloud_mesh("ALD | Cloud %d" % index, index * 3.7 + 1.0, amount)
         obj = bpy.data.objects.new("ALD | Cloud %d" % index, mesh)
         obj[TAG] = True
@@ -192,7 +192,7 @@ def create(scene, amount=0.6, height=0.35):
         lateral = depth * (-0.22 + 0.22 * index)
         obj.location = (origin + forward * depth
                         + right * lateral
-                        + up * (depth * (0.26 + height * 0.20 + 0.05 * index)))
+                        + up * (depth * (0.30 + height * 0.18 + 0.05 * index)))
         obj.rotation_euler = (origin - obj.location).to_track_quat(
             "Z", "Y").to_euler()
         obj.scale = (width, card_height, 1.0)

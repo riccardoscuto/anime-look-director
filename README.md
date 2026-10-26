@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.37.0)
+## What it does (v2.38.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -240,7 +240,9 @@ Expected output: `ALD GATE: PASS`.
 - v2.36.0 - P6: validation matrix 3 palettes x 4 families x 3 ages, per-cell
   metrics and contact sheet, 36/36 PASS; apparent-size floor for the beads
 - v2.37.0 - verification: fixed the broken World panel (invalid CLOUD icon),
-  wired the UI icon/parity checks, absolute UI probe paths, temporal strip (current)
+  wired the UI icon/parity checks, absolute UI probe paths, temporal strip
+- v2.38.0 - cloud bands tuned as a depth layer; 1920x1080 integration showcase
+  (night 5 bursts, dusk 3 bursts) with the whole stack (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

@@ -395,10 +395,22 @@
       "label": "Temporal strip: six ages and evidence",
       "phase": "VI-UI",
       "state": "OK"
+    },
+    {
+      "evidence": "preset_dev/showcase/showcase.json",
+      "label": "A 1080p showcase with the whole stack",
+      "phase": "VI-ALL",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The cloud band is a depth layer, not a wall",
+      "phase": "VI-ALL",
+      "state": "OK"
     }
   ],
   "partial": 0,
-  "passed": 66,
+  "passed": 68,
   "plan": "v2.27.0 P0-P3",
-  "total": 66
+  "total": 68
 }
