@@ -617,8 +617,14 @@ def _fx_collection(scene):
 
     owner = fx_module._scene_id(scene)
     for coll in bpy.data.collections:
-        if coll.get(fx_module.OWNER_KEY) == owner:
-            return coll
+        if coll.get(fx_module.OWNER_KEY) != owner:
+            continue
+        # The owner key is shared with the spatial clouds: only the FX
+        # collection may be used as the FX layer source.
+        if coll.get("ald_fx_collection") is not True \
+                and coll.name != fx_module.FX_COLLECTION:
+            continue
+        return coll
     return None
 
 
@@ -673,6 +679,8 @@ def ensure_fx_base_layer(scene):
         layer = scene.view_layers.new(FX_BASE_LAYER_NAME)
     layer.use_pass_emit = True
     layer.use_pass_z = True
+    layer.use_pass_normal = True
+    layer.use_pass_mist = True
     coll = _fx_collection(scene)
     if coll is not None:
         _set_child_exclude(layer, coll, True)
@@ -764,6 +772,10 @@ def build(scene):
     # identity, so the parameters and the gate see a stable stack.
     fx_matte = None
     fx_color = None
+    # The environment filters (painterly, light wrap, ink, haze) must read the
+    # geometry of B, not of the main layer: the FX must not create edges in the
+    # environment they are later added to.
+    environment_layers = rl
     if emission is not None:
         fx_base_layer = ensure_fx_base_layer(scene)
         fx_materials = [material.name for material in bpy.data.materials
@@ -775,6 +787,8 @@ def build(scene):
         rl_base.layer = fx_base_layer.name
         rl_base.location = (-1500, -640)
         B_image = rl_base.outputs["Image"]
+        environment_layers = rl_base
+
 
         matte = nodes.new("CompositorNodeCryptomatte")
         matte.location = (-1280, -900)
@@ -865,7 +879,8 @@ def build(scene):
 
     if (settings.painterly or settings.light_wrap or settings.ink_lines
             or settings.aerial_haze):
-        geometry = _silhouette_mask(nodes, links, rl, clip_end)
+        geometry = _silhouette_mask(nodes, links, environment_layers,
+                                    clip_end)
     else:
         geometry = None
 
@@ -916,7 +931,8 @@ def build(scene):
         current = result_sock
 
     if settings.light_wrap:
-        current = _light_wrap(nodes, links, current, rl, settings, clip_end,
+        current = _light_wrap(nodes, links, current, environment_layers,
+                              settings, clip_end,
                               geometry)
 
     if settings.aerial_haze:
@@ -924,13 +940,15 @@ def build(scene):
         p = palette_module.effective(scene, key)
         haze = tuple(0.65 * h + 0.35 * s for h, s in
                      zip(p["horizon_color"], p["shadow_tint"]))
-        current = _aerial_haze(nodes, links, current, rl, settings,
+        current = _aerial_haze(nodes, links, current, environment_layers,
+                               settings,
                                geometry, haze)
 
     if settings.ink_lines:
         ink_color = tuple(component * 0.25 for component in
                           palette_module.shadow_tint_for(scene))
-        current = _ink_lines(nodes, links, current, rl, settings, clip_end,
+        current = _ink_lines(nodes, links, current, environment_layers,
+                             settings, clip_end,
                              geometry, ink_color)
 
     # FX recomposition: C = P(B)*(1-A) + F + Glare(F). F is premultiplied by

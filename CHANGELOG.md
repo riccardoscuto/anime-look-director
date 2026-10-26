@@ -1,6 +1,44 @@
 # Changelog
 
-## 2.39.0 - 2026-10-26
+## 2.40.0 - 2026-10-26
+Spatial Clouds 2.0: real masses, working controls, persistent layers.
+
+### Fixed
+- **Coverage is the geometry**: the density-field threshold. 0 removes every
+  face, 0.5 builds an intermediate mass, 1 the densest. Before, Cloud Amount
+  did not enter the mesh at all (1536 polygons for every value).
+- The slab is gone: the cards are islands with sky openings, cut by a
+  deterministic field with a border envelope (no rectangle).
+- Altitude is world units along the Sky/FX Anchor; depth is the distance from
+  the creation camera. The old Height was a fraction of the depth and pushed
+  the layers out of frame.
+- In-place updates: a colour change never rebuilds, a depth/altitude change
+  only moves, a coverage change rebuilds the mesh of the same object.
+- The FX and the clouds no longer share an owner-only collection lookup: the
+  FX objects landed in the cloud collection.
+- The environment filters (Kuwahara mask, light wrap, ink, haze) read the base
+  layer, so the particles cannot create edges in the environment.
+- `event_color` receives the sky-tinted palette (it was white); `event.size`
+  scales the star velocity and the 0.6-2.0 clamp is gone; the apparent trail
+  width follows camera, focal and resolution; `event.glow` drives the cloud
+  flash.
+- Palette changes update the FX material tint in place.
+
+### Added
+- `ALD_CloudLayer` persistent data, `SHOT_LOCKED` / `CAMERA_FACING`, a local
+  flash response, diagnostics, and a new Spatial Clouds panel.
+- `preset_dev/clouds_baseline/` (the 2.39 defect), `preset_dev/clouds/`
+  (after), `preset_dev/emission_isolation/` (the measured non-FX emission
+  limit), `preset_dev/SPATIAL_CLOUDS_2.md`.
+
+### Open (honest)
+- Non-FX emission at partially covered FX pixels: measured up to 0.93 with an
+  extreme foreign emitter; the dedicated FX-only layer attempt was reverted.
+- The framing gate still checks the burst centres, not an envelope.
+- A duplicated scene with clouds is not tested; the World duplication is not
+  reduced.
+
+## 2.39.0 - 2026-10-26## 2.39.0 - 2026-10-26
 Showcase foreground.
 
 ### Added

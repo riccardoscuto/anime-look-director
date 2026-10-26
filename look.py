@@ -26,8 +26,9 @@ def apply_world(scene):
     key, source = effective_palette(scene)
     from . import palette
     palette.apply_palette(scene, key)
-    from . import clouds
+    from . import clouds, fx
     clouds.sync(scene)
+    fx.sync_palette(scene)
     scene["ald_effective_palette"] = key
     scene["ald_effective_source"] = source
     return key
@@ -46,6 +47,9 @@ def apply(scene, force=False):
     from . import palette, materials, compositor
 
     palette.apply_palette(scene, key)
+    from . import clouds, fx
+    clouds.sync(scene)
+    fx.sync_palette(scene)
     if settings.shadow_tint or settings.toon_shading or settings.rim_light:
         strength = (settings.shadow_tint_strength
                     if settings.shadow_tint else 0.0)

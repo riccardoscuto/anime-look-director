@@ -97,6 +97,12 @@ def update_transforms(scene, force=False):
     materials.update_sun(scene)
     compositor.update_god_rays(scene)
     palette.sync_sun_angles(scene)
+    try:
+        from . import clouds, fx
+        clouds.update_orientation(scene)
+        fx.refresh_widths(scene)
+    except Exception:
+        pass
     return True
 
 

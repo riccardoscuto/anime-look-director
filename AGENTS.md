@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.39.0**).
+  (currently **2.40.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -567,18 +567,40 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     the screen position and the frame membership in `composition.json`;
   - the gate refuses a show whose depths, births or sizes are not ordered, or
     whose bursts fall outside the frame or overlap on screen.
-- P5 rules (2.5D clouds, v2.35):
-  - the clouds are **opaque geometry**, never alpha: a dithered cutout lets
-    the Cryptomatte samples through and does not occlude the FX. The band is a
-    wavy strip with 512 columns; a 96-column grid gives 20 px steps at 160 m;
-  - three bands at 160/230/320 m, palette-synced, in `ALD | Clouds` (the B
-    layer), removed by `snapshot.restore` and by Remove ALD;
-  - the card colours come from the palette (`cloud_shadow/mid/light`), with the
-    light only in the top 42 % of the band;
-  - `Cloud Amount` changes the silhouette, so `_on_clouds` rebuilds the layer;
-    the height moves the bands;
-  - the gate moves one band in front of the burst and requires the FX matte to
-    drop below 75 % of the free matte; the evidence is `preset_dev/clouds/`.
+- Spatial Clouds 2.0 rules (v2.40):
+  - the cards come from a deterministic density field (`_field` + `_field_grid`
+    + `_sample`): domain warp, two fBm bands and a border envelope that makes
+    any rectangle impossible. The geometry is islands with real sky openings;
+  - `Clouds Coverage` is the threshold of that field: 0 builds no faces, 0.5 an
+    intermediate mass, 1 the densest. It is geometry, never only a colour;
+  - `Cloud Altitude` is world units along the ALD Sky/FX Anchor axis;
+    `Cloud Depth` is the distance from the creation camera; `Layer Count`
+    adds bands at 1.45x depth steps. A taller band reads as a wall: the height
+    is 0.62x the depth;
+  - the persistent data is `ALD_CloudLayer` on `Scene.ald.cloud_layers`
+    (origin/forward/right/axis, seed, rotation, object name). `refresh` keeps
+    the object and mesh identity: colour -> material only, depth/altitude ->
+    transforms only, coverage/scale/layers -> mesh rebuilt in place;
+  - `SHOT_LOCKED` keeps the creation orientation; `CAMERA_FACING` re-aims at
+    the camera position from `cameras.update_transforms`, never moving it;
+  - the flash response projects the strongest active burst into the card and
+    writes `ALD | Flash X/Y/Energy`; `event.glow` is its driver. It is a
+    stylised local response, not a global light;
+  - **the owner key is shared with the FX**: `fx._collection` and
+    `compositor._fx_collection` accept only the collection tagged
+    `ald_fx_collection` (or named `ALD | FX`). Before the guard the FX objects
+    landed in the scan cloud collection;
+  - the environment filters (Kuwahara mask, light wrap, ink, haze) read the
+    base layer (`environment_layers`), not the main layer: the particles must
+    not create edges in the environment they are added to. The base layer
+    enables the normal and mist passes;
+  - a view layer cannot exclude collections created **after** the stack: an
+    FX-only emission layer is not reliable. The current F is the main Emission
+    pass x the binary presence; a bright foreign emitter still leaks at
+    partially covered pixels (measured in `preset_dev/emission_isolation/`).
+    Do not claim this is solved without a dedicated pass;
+  - `preset_dev/clouds_baseline/` is the frozen 2.39 defect; the current
+    evidence is `preset_dev/clouds/` and `preset_dev/showcase/`.
 - P6 rules (validation matrix, v2.36):
   - the matrix is 3 palettes x 4 families x 3 ages at 800x450, seed 17, AgX,
     exposure 0, a background render per cell for the FX coverage;

@@ -182,6 +182,11 @@ def _collection(scene):
     for coll in _scene_collections(scene):
         if coll.get(OWNER_KEY) != owner:
             continue
+        # The owner key is shared by every ALD collection (the spatial clouds
+        # use it too): only the FX collection may host the systems.
+        if coll.get("ald_fx_collection") is not True \
+                and coll.name != FX_COLLECTION:
+            continue
         if _shared_with_other_scene(coll, scene):
             # A collection shared with another scene cannot own the systems:
             # the copy gets its own.
@@ -189,6 +194,7 @@ def _collection(scene):
         return coll
     coll = bpy.data.collections.new(FX_COLLECTION)
     coll[OWNER_KEY] = owner
+    coll["ald_fx_collection"] = True
     scene.collection.children.link(coll)
     return coll
 
@@ -218,6 +224,7 @@ def _material(name, color, strength, instancer=False):
         mat = bpy.data.materials.new(key)
     mat["ald_fx_material"] = True
     mat["ald_fx_shader"] = FX_SHADER
+    mat["ald_fx_base"] = list(color)
     mat.use_nodes = True
     tree = mat.node_tree
     tree.nodes.clear()
@@ -355,6 +362,7 @@ def _bind_energy(mat, bsdf, strength, instancer=False):
 
     # Colour: base + 0.15 * event_color, then a warm ember with the age.
     tint, tint_a, tint_b, tint_out = _mix_color(node_tree, "ADD", (-560, 220))
+    tint.name = "ALD | FX Tint"
     tint.inputs["Factor"].default_value = 0.15
     tint_a.default_value = base
     node_tree.links.new(event_color.outputs["Color"], tint_b)
@@ -534,7 +542,7 @@ def burst_population(seed, index, config, birth, center, size_scale,
     trail = []
     for spoke in range(spoke_count):
         life, v0 = _gn_star_data(seed, index, config, spoke, spoke_count)
-        v0 = v0 + inherit
+        v0 = (v0 + inherit) * size_scale
         slot = spoke % 3
         # Each star keeps its own fraction of the family trail: a uniform
         # trail turns the burst into a regular dandelion (P2).
@@ -578,7 +586,7 @@ def burst_population(seed, index, config, birth, center, size_scale,
         speed = _hash_range(seed, index, spoke + 500, 3,
                             config["speed"] * 0.75 * 0.68,
                             config["speed"] * 1.15 * 0.68)
-        v0 = direction * speed
+        v0 = direction * speed * size_scale
         v0 = v0 + inherit
         drag = config["drag"] * 1.2
         pistil.append(_particle(birth, life, drag, 0.10 * size_scale, v0, center,
@@ -1311,7 +1319,7 @@ def _build_fireworks(scene, system):
         config = _event_config(event)
         spoke_count = config["spokes"]
         pistil_count = config["pistil"]
-        size_scale = max(0.6, min(2.0, float(event.size)))
+        size_scale = max(0.1, min(4.0, float(event.size)))
         birth = float(event.birth)
         center = Vector(event.target)
         target = center
@@ -1339,14 +1347,15 @@ def _build_fireworks(scene, system):
         residual = _rise_velocity_at(v0, drag, gravity, rise_time)
         shell = shell_population(launch, v0, drag, birth, rise_time, size_scale)
         # The deterministic data is built once and feeds both backends.
+        family_colors = _sky_tinted_colors(scene,
+                                           PALETTES[key % len(PALETTES)])
         population = burst_population(seed=int(event.seed), index=key,
                                       config=config, birth=burst_birth,
                                       center=target, size_scale=size_scale,
                                       spoke_count=spoke_count,
                                       shell_velocity=residual,
-                                      gravity=gravity)
-        family_colors = _sky_tinted_colors(scene,
-                                           PALETTES[key % len(PALETTES)])
+                                      gravity=gravity,
+                                      colors=family_colors)
         # The beads and the heads are also sub-pixel at distance: the same
         # apparent-size floor of the trails keeps them readable (P6 matrix
         # found the Peony invisible at 1.4 s). Radii are world units.
@@ -1414,6 +1423,8 @@ def _build_fireworks(scene, system):
                 materials=materials, size_scale=size_scale,
                 trail_width=trail_width)
             trail_obj = python_objects["trail"]
+            trail_obj["ald_fx_physical"] = 0.022 * size_scale
+            trail_obj["ald_fx_target"] = tuple(target)
             head_obj = python_objects["heads"]
             head_ranges = python_objects["head_ranges"]
             bead_objects = python_objects["beads"]
@@ -1508,6 +1519,8 @@ def _build_fireworks(scene, system):
                         energy_power=powers.get("filament", 1.0),
                         role_energy=ROLE_ENERGY["filament"])
                     created.append(trail_gn)
+                    trail_gn["ald_fx_physical"] = 0.022 * size_scale
+                    trail_gn["ald_fx_target"] = tuple(target)
                     gn_trails.append(trail_gn)
                 gn_flash = _gn_points_object(
                     scene, "ALD FX GN Flash %d" % index, instancer_materials[1],
@@ -1539,6 +1552,8 @@ def _build_fireworks(scene, system):
                     use_time_override=clock["use_override"],
                     energy_power=powers.get("shell_trail", 1.0),
                     role_energy=ROLE_ENERGY["shell_trail"])
+                gn_shell_trail["ald_fx_physical"] = 0.03 * size_scale
+                gn_shell_trail["ald_fx_target"] = tuple(target)
                 created.append(gn_shell_trail)
                 roles = {id(gn_heads): "gn_heads",
                          id(gn_flash): "gn_flash",
@@ -1588,6 +1603,8 @@ def _build_fireworks(scene, system):
                     materials=fallback_materials, size_scale=size_scale,
                     system_uid=system.uid, event_uid=event.uid)
                 trail_obj = python_objects["trail"]
+                trail_obj["ald_fx_physical"] = 0.022 * size_scale
+                trail_obj["ald_fx_target"] = tuple(target)
                 head_obj = python_objects["heads"]
                 head_ranges = python_objects["head_ranges"]
                 bead_objects = python_objects["beads"]
@@ -1870,6 +1887,8 @@ def _build_meteors(scene, system):
                     use_time_override=clock["use_override"],
                     energy_power=powers.get("meteor_train", 1.0),
                     role_energy=ROLE_ENERGY["meteor_train"])
+                gn_train["ald_fx_physical"] = 0.07 * (preset["radius"] / 0.18)
+                gn_train["ald_fx_target"] = tuple(event.target)
                 created.append(gn_train)
                 gn_fragments = _gn_points_object(
                     scene, "ALD FX GN Meteor Fragments %d" % index, instancer_material,
@@ -1901,6 +1920,8 @@ def _build_meteors(scene, system):
         if not entry["gn"]:
             trail_obj = _build_curve(scene, "ALD FX Meteor Trails %d" % index,
                                      1, [material], trail_width)
+            trail_obj["ald_fx_physical"] = 0.07 * (preset["radius"] / 0.18)
+            trail_obj["ald_fx_target"] = tuple(event.target)
             _tag_fx_object(trail_obj, "meteors", system.uid, event.uid,
                            "trail")
             head_obj, head_ranges = _build_particle_mesh(
@@ -2082,6 +2103,67 @@ def _remove_kind(scene, kind):
             if obj.get("ald_fx") and obj.get("ald_fx_kind") == kind:
                 bpy.data.objects.remove(obj, do_unlink=True)
     _cleanup_orphans()
+
+
+def refresh_widths(scene):
+    """Re-evaluate the apparent filament width after a camera change."""
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return False
+    min_px = float(getattr(settings, "fx_trail_min_px", 1.5))
+    max_px = float(getattr(settings, "fx_trail_max_px", 6.0))
+    from . import fx_nodes
+    changed = False
+    for obj in bpy.data.objects:
+        if not obj.get("ald_fx"):
+            continue
+        physical = obj.get("ald_fx_physical")
+        target = obj.get("ald_fx_target")
+        if physical is None or target is None:
+            continue
+        radius = _apparent_radius(scene, Vector(target), float(physical),
+                                  min_px, max_px)
+        if obj.type == "CURVE":
+            if abs(float(obj.data.bevel_depth) - radius) > 1e-6:
+                obj.data.bevel_depth = radius
+                changed = True
+            continue
+        for modifier in obj.modifiers:
+            if modifier.type != "NODES" or modifier.node_group is None:
+                continue
+            if modifier.node_group.name != fx_nodes.TRAIL_GROUP_NAME:
+                continue
+            identifiers = fx_nodes._socket_ids(modifier.node_group,
+                                               fx_nodes.TRAIL_SOCKET_DEFAULTS)
+            key = identifiers.get("radius")
+            if key is not None and abs(float(modifier[key]) - radius) > 1e-6:
+                modifier[key] = radius
+                changed = True
+    return changed
+
+
+def sync_palette(scene):
+    """Re-tint the FX materials in place after a palette change."""
+    changed = False
+    for material in bpy.data.materials:
+        if not material.get("ald_fx_material") or not material.node_tree:
+            continue
+        base = material.get("ald_fx_base")
+        if base is None:
+            continue
+        tinted = _sky_tinted_colors(scene, [tuple(base)])[0]
+        node = material.node_tree.nodes.get("ALD | FX Tint")
+        if node is None:
+            continue
+        socket = next((item for item in node.inputs
+                       if item.name == "A" and item.type == "RGBA"), None)
+        if socket is None:
+            continue
+        current = tuple(socket.default_value)[:3]
+        if max(abs(a - b) for a, b in zip(current, tinted)) > 1e-4:
+            socket.default_value = (*tinted, 1.0)
+            changed = True
+    return changed
 
 
 def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,

@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.39.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.40.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,26 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.40.0 — Spatial Clouds 2.0
+
+- **Copertura reale**: Cloud Amount è la soglia del campo di densità. 0 non
+  costruisce facce, 0.5 masse intermedie, 1 la copertura massima. Prima era
+  ignorato (1536 poligoni per ogni valore).
+- **Isole, non lastre**: campo procedurale con warp, due bande fBm e inviluppo
+  ai bordi; aperture di cielo vere, nessun rettangolo.
+- **Quota e profondità separate**: altitudine in unità World lungo l'Anchor,
+  profondità dalla camera di creazione.
+- **Layer persistenti e aggiornamenti in-place**: il colore non ricostruisce,
+  quota/profondità spostano soltanto, la copertura rigenera la mesh dello
+  stesso oggetto.
+- **Modalità camera** Shot Locked / Camera Facing, **flash locale** guidato da
+  `event.glow`, diagnostica dei layer.
+- **Correzioni**: collisione di ownership FX/nuvole, `event_color` dalla
+  palette, `event.size` con velocità scalata, larghezza apparente che segue
+  camera/risoluzione, maschere ambiente dal layer base, palette FX in-place.
+- **Aperti**: emissione non-FX ai bordi parziali (misurata), envelope di
+  framing, scene duplicate. Dettagli in `preset_dev/SPATIAL_CLOUDS_2.md`.
 
 ## Novità 2.39.0 — primo piano nello showcase
 

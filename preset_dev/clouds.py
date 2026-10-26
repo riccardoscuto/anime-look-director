@@ -40,8 +40,10 @@ def scene_for(palette):
     settings.light_wrap_strength = 0.4
     settings.light_wrap_size = 24.0
     settings.ink_lines = True
-    settings.clouds_amount = 0.65
-    settings.clouds_height = 0.35
+    settings.clouds_coverage = 0.5
+    settings.clouds_layers = 3
+    settings.clouds_altitude = 90.0
+    settings.clouds_depth = 180.0
     bpy.ops.ald.apply_palette()
     bpy.ops.ald.build()
     fx.create_fireworks(scene, 3, seed=17, distance=95.0, time=0.0)
@@ -70,7 +72,7 @@ def main():
     baseline_fx.render(scene, os.path.join(OUT, "dusk_off.png"))
     report["renders"].append({"palette": "TWILIGHT_DUSK", "clouds": False,
                               "file": "dusk_off.png"})
-    layers = clouds.create(scene, 0.65, 0.35)
+    layers = clouds.create(scene)
     baseline_fx.render(scene, os.path.join(OUT, "dusk_on.png"))
     report["renders"].append({"palette": "TWILIGHT_DUSK", "clouds": True,
                               "layers": layers, "file": "dusk_on.png"})
@@ -88,7 +90,7 @@ def main():
                                  "-Z", "Y").to_euler()
     bpy.context.view_layer.update()
     scene.frame_set(int(system.origin_frame + 2.0 * 24))
-    clouds.create(scene, 0.65, 0.35)
+    clouds.create(scene)
     baseline_fx.render(scene, os.path.join(OUT, "night_on.png"))
     report["renders"].append({"palette": "NEON_NIGHT", "clouds": True,
                               "layers": 3, "file": "night_on.png"})

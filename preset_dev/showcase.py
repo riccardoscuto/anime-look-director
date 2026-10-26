@@ -116,8 +116,11 @@ def build(palette, count, lens, name):
     settings.fx_glow_strength = 1.0
     settings.fx_glow_threshold = 0.0
     settings.fx_glow_size = 0.35
-    settings.clouds_amount = 0.65
-    settings.clouds_height = 0.35
+    settings.clouds_coverage = 0.5
+    settings.clouds_layers = 3
+    settings.clouds_altitude = 90.0
+    settings.clouds_depth = 180.0
+    settings.clouds_flash = True
     bpy.ops.ald.apply_palette()
     bpy.ops.ald.build()
 
@@ -134,8 +137,7 @@ def build(palette, count, lens, name):
     bpy.context.view_layer.update()
 
     # The cards are placed along the final camera basis.
-    clouds.create(scene, float(settings.clouds_amount),
-                  float(settings.clouds_height))
+    clouds.create(scene)
     foreground = add_foreground(scene)
     scene.render.resolution_x = 1920
     scene.render.resolution_y = 1080
