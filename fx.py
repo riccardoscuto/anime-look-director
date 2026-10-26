@@ -1347,6 +1347,16 @@ def _build_fireworks(scene, system):
                                       gravity=gravity)
         family_colors = _sky_tinted_colors(scene,
                                            PALETTES[key % len(PALETTES)])
+        # The beads and the heads are also sub-pixel at distance: the same
+        # apparent-size floor of the trails keeps them readable (P6 matrix
+        # found the Peony invisible at 1.4 s). Radii are world units.
+        world_per_px = _world_per_pixel(scene, center)
+        if world_per_px > 1e-9:
+            floor = 0.6 * 1.2 * world_per_px
+            for role in ("heads", "grains", "pistil", "pistil_grains",
+                         "sparks"):
+                for particle in population[role]:
+                    particle["radius"] = max(particle["radius"], floor)
         # The trail keeps a minimum apparent width: the physical radius is
         # scaled by the camera projection, so a filament is continuous at any
         # distance and resolution. The burst center is the reference depth.

@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.35.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.36.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,17 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.36.0 — P6 matrice di validazione
+
+- **36 render** (3 palette × 4 famiglie × 3 età) a 800×450 con background di
+  riferimento per la copertura FX, metriche per cella e contact sheet 6×6:
+  **36/36 PASS**, tempo medio 1.51 s.
+- **Pavimento di dimensione apparente** anche per teste e grani: un bead da
+  0.05 m è 0.65 px a 55 m con un 32 mm (la Peonia perdeva scintillio).
+- **Nota onesta**: il primo giro era shiftato di `fx_age` (default 0.8 s); il
+  tool ora lo azzera. L'orologio del prodotto era corretto, il test no.
+- Report in `preset_dev/P6_REPORT.md`, dati in `preset_dev/validation/`.
 
 ## Novità 2.35.0 — P5 nuvole 2.5D
 

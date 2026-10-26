@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.35.0**).
+  (currently **2.36.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -579,6 +579,18 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     the height moves the bands;
   - the gate moves one band in front of the burst and requires the FX matte to
     drop below 75 % of the free matte; the evidence is `preset_dev/clouds/`.
+- P6 rules (validation matrix, v2.36):
+  - the matrix is 3 palettes x 4 families x 3 ages at 800x450, seed 17, AgX,
+    exposure 0, a background render per cell for the FX coverage;
+  - the criteria are coarse and declared in `validate_matrix.py` (clipped
+    <= 2 %, saturation >= 0.08, coverage >= 0.2 %, render <= 6 s);
+  - **always pin `fx_age = 0.0`** in a timing tool: the default 0.8 s shifts
+    every cell and the first matrix run reported a dead Peony for that reason;
+  - heads and beads use the same 1.2 px apparent-size floor as the trails
+    (`0.6 * 1.2 * _world_per_pixel`), otherwise 0.05 m beads are sub-pixel at
+    55 m and the burst loses its sparkle;
+  - `preset_dev/validation/` holds the 36 PNGs, `metrics.json` and the 6x6
+    `sheet.png`; the background files are deleted after the metrics.
 - 2.25 rules:
   - `fx._scene_id` writes `settings.fx_uid` inside a `try/except`: the identity
     lives in `scene[ald_fx_id]` and the settings cache is best-effort only.

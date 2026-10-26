@@ -347,10 +347,34 @@
       "label": "Gate: a cloud in front hides the FX matte",
       "phase": "VI-P5",
       "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Matrix: 3 palettes x 4 families x 3 ages with metrics",
+      "phase": "VI-P6",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Criteria declared and pinned clock",
+      "phase": "VI-P6",
+      "state": "OK"
+    },
+    {
+      "evidence": "preset_dev/validation/metrics.json",
+      "label": "36/36 pass with a contact sheet and the report",
+      "phase": "VI-P6",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Apparent-size floor for heads and beads too",
+      "phase": "VI-P6",
+      "state": "OK"
     }
   ],
   "partial": 0,
-  "passed": 58,
+  "passed": 62,
   "plan": "v2.27.0 P0-P3",
-  "total": 58
+  "total": 62
 }

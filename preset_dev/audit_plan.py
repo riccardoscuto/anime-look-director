@@ -238,6 +238,20 @@ CHECKS = [
      lambda: has("preset_dev/verify.py", "check_clouds",
                  "the cloud does not hide the FX behind it")
      and exists("preset_dev/clouds/clouds.json")[0]),
+    # ---- Visual integration P6 (validation matrix) -----------------------
+    ("VI-P6", "Matrix: 3 palettes x 4 families x 3 ages with metrics",
+     lambda: has("preset_dev/validate_matrix.py", "PALETTES =",
+                 "FAMILIES =", "AGES =", "def metrics", "contact_sheet")),
+    ("VI-P6", "Criteria declared and pinned clock",
+     lambda: has("preset_dev/validate_matrix.py", "LIMITS =",
+                 "settings.fx_age = 0.0")),
+    ("VI-P6", "36/36 pass with a contact sheet and the report",
+     lambda: (exists("preset_dev/validation/metrics.json")[0]
+              and exists("preset_dev/validation/sheet.png")[0]
+              and exists("preset_dev/P6_REPORT.md")[0],
+              "preset_dev/validation/metrics.json")),
+    ("VI-P6", "Apparent-size floor for heads and beads too",
+     lambda: has("fx.py", "0.6 * 1.2 * world_per_px", '"pistil_grains"')),
 ]
 
 

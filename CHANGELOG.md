@@ -1,6 +1,25 @@
 # Changelog
 
-## 2.35.0 - 2026-10-26
+## 2.36.0 - 2026-10-26
+P6 of the visual integration milestone: the validation matrix.
+
+### Added
+- `preset_dev/validate_matrix.py`: 36 renders (3 palettes x 4 families x 3
+  ages) at 800x450 with a background reference for the FX coverage, per-cell
+  metrics (luminance, clipping, saturation, coverage, time) and a 6x6 contact
+  sheet. 36/36 PASS, mean render 1.51 s.
+- `preset_dev/P6_REPORT.md` with the criteria, the table and the findings.
+
+### Fixed
+- Beads and heads get the same 1.2 px apparent-size floor as the trails: a
+  0.05 m bead is 0.65 px at 55 m with a 32 mm lens. The matrix found the Peony
+  losing its sparkle at distance.
+
+### Notes
+- The first matrix run was shifted by `fx_age` (default 0.8 s); the tool now
+  pins it to 0. The product clock was correct, the test was not.
+
+## 2.35.0 - 2026-10-26## 2.35.0 - 2026-10-26
 P5 of the visual integration milestone: 2.5D clouds.
 
 ### Added
