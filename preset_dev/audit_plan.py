@@ -294,6 +294,13 @@ CHECKS = [
     ("VI-SC", "The composition report uses the envelope",
      lambda: has("preset_dev/composition.py", "frame_fraction",
                  "event_frame_fraction")),
+    ("VI-SC", "The cloud benchmark measures coverage and layers",
+     lambda: has("preset_dev/bench_clouds.py", "polygons", "creation_s",
+                 "refresh_s", "render_s")
+     and exists("preset_dev/clouds_bench/metrics.json")[0]),
+    ("VI-SC", "Scene copy: removal unlinks shared objects",
+     lambda: has("clouds.py", "obj.users_collection",
+                 "collection.objects.unlink(obj)")),
     ("VI-SC", "The slab/control defect is reproduced in the baseline",
      lambda: (exists("preset_dev/clouds_baseline/metrics.json")[0]
               and exists("preset_dev/clouds_baseline/h0.35_a0.00_oblique.png")[0],

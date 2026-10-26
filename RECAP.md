@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.43.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.44.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,17 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.44.0 — benchmark nuvole e guardia scene
+
+- **Benchmark** (`preset_dev/bench_clouds.py`): coverage 0.16/0.5/0.9/1.0 ×
+  1/3/5 layer a 720p. Da 829 a 159.729 poligoni, creazione 0.06–0.12 s per
+  layer, refresh ~1 ms, render 2.6–4.3 s. Dati in `clouds_bench/metrics.json`.
+- **Guardia unlink**: rimuovendo le nuvole, un oggetto condiviso con un'altra
+  collezione viene scollegato, non cancellato.
+- **Aperto**: la collezione di una scena duplicata è ancora condivisa; il test
+  dedicato mostra che la rimozione nella copia può togliere la collezione
+  originale. Non duplicare una scena con nuvole spaziali finché non è corretto.
 
 ## Novità 2.43.0 — envelope di framing
 

@@ -1,0 +1,105 @@
+{
+  "resolution": [
+    1280,
+    720
+  ],
+  "engine": "EEVEE",
+  "renders": [
+    {
+      "coverage": 0.16,
+      "layers": 1,
+      "polygons": 829,
+      "creation_s": 0.0564,
+      "refresh_s": 0.0013,
+      "render_s": 4.266
+    },
+    {
+      "coverage": 0.5,
+      "layers": 1,
+      "polygons": 7374,
+      "creation_s": 0.0756,
+      "refresh_s": 0.0013,
+      "render_s": 2.962
+    },
+    {
+      "coverage": 0.9,
+      "layers": 1,
+      "polygons": 21311,
+      "creation_s": 0.1206,
+      "refresh_s": 0.0014,
+      "render_s": 2.586
+    },
+    {
+      "coverage": 1.0,
+      "layers": 1,
+      "polygons": 21311,
+      "creation_s": 0.1181,
+      "refresh_s": 0.0012,
+      "render_s": 2.584
+    },
+    {
+      "coverage": 0.16,
+      "layers": 3,
+      "polygons": 7175,
+      "creation_s": 0.185,
+      "refresh_s": 0.003,
+      "render_s": 2.951
+    },
+    {
+      "coverage": 0.5,
+      "layers": 3,
+      "polygons": 31558,
+      "creation_s": 0.2599,
+      "refresh_s": 0.0028,
+      "render_s": 2.333
+    },
+    {
+      "coverage": 0.9,
+      "layers": 3,
+      "polygons": 70080,
+      "creation_s": 0.3837,
+      "refresh_s": 0.0027,
+      "render_s": 1.962
+    },
+    {
+      "coverage": 1.0,
+      "layers": 3,
+      "polygons": 70080,
+      "creation_s": 0.3935,
+      "refresh_s": 0.0035,
+      "render_s": 1.96
+    },
+    {
+      "coverage": 0.16,
+      "layers": 5,
+      "polygons": 14221,
+      "creation_s": 0.3115,
+      "refresh_s": 0.0044,
+      "render_s": 2.648
+    },
+    {
+      "coverage": 0.5,
+      "layers": 5,
+      "polygons": 62148,
+      "creation_s": 0.4675,
+      "refresh_s": 0.0046,
+      "render_s": 2.011
+    },
+    {
+      "coverage": 0.9,
+      "layers": 5,
+      "polygons": 123141,
+      "creation_s": 0.6743,
+      "refresh_s": 0.0054,
+      "render_s": 1.927
+    },
+    {
+      "coverage": 1.0,
+      "layers": 5,
+      "polygons": 123141,
+      "creation_s": 0.666,
+      "refresh_s": 0.0041,
+      "render_s": 1.939
+    }
+  ]
+}

@@ -666,6 +666,11 @@ def remove(scene):
             settings.clouds_created = False
         return False
     for obj in list(collection.objects):
+        # A scene copy can share the object datablocks with the original: a
+        # removal in the copy must unlink, never delete the shared object.
+        if any(other != collection for other in obj.users_collection):
+            collection.objects.unlink(obj)
+            continue
         mesh = obj.data if obj.type == "MESH" else None
         bpy.data.objects.remove(obj, do_unlink=True)
         if mesh is not None and mesh.users == 0:

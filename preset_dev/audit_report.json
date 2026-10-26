@@ -469,6 +469,18 @@
       "state": "OK"
     },
     {
+      "evidence": "",
+      "label": "The cloud benchmark measures coverage and layers",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Scene copy: removal unlinks shared objects",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
       "evidence": "preset_dev/clouds_baseline/metrics.json",
       "label": "The slab/control defect is reproduced in the baseline",
       "phase": "VI-SC",
@@ -536,7 +548,7 @@
     }
   ],
   "partial": 0,
-  "passed": 89,
+  "passed": 91,
   "plan": "v2.27.0 P0-P3",
-  "total": 89
+  "total": 91
 }

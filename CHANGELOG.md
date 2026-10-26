@@ -1,6 +1,28 @@
 # Changelog
 
-## 2.43.0 - 2026-10-26
+## 2.44.0 - 2026-10-26
+Cloud benchmark and the scene-copy guard.
+
+### Added
+- `preset_dev/bench_clouds.py`: creation, refresh, polygons and 720p render for
+  coverage 0.16 / 0.5 / 0.9 / 1.0 with 1 / 3 / 5 layers; `metrics.json` and
+  the renders in `preset_dev/clouds_bench/`. Measured: 829 to 159 729
+  polygons (1 layer: 829 / 7 374 / 21 311), creation 0.06-0.12 s per layer,
+  refresh ~1 ms, render 2.6-4.3 s at 720p.
+
+### Fixed
+- `clouds.remove` unlinks an object that belongs to another collection instead
+  of deleting it: a scene copy that shares the object datablocks cannot lose
+  the original cards.
+
+### Open
+- The scene-copy **collection** ownership is still shared: the dedicated
+  duplicate-scene test shows that removing the copy's collection can remove the
+  original collection. It needs retagging/new UIDs before it is safe; the test
+  is not shipped green. Do not duplicate a scene with spatial clouds.
+- PA2 volume research.
+
+## 2.43.0 - 2026-10-26## 2.43.0 - 2026-10-26
 Framing envelope: the whole burst is checked, not only its centre.
 
 ### Added
