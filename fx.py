@@ -1030,11 +1030,12 @@ def _burst_center(origin, forward, up, right, index, total, distance,
 
 def _build_python_objects(scene, kind, family_key, index, population, config,
                           center, spoke_count, pistil_count, materials,
-                          size_scale):
+                          size_scale, system_uid="", event_uid=""):
     """The meshes of the Python writer: the fallback backend."""
     trail_obj = _build_curve(scene, "ALD FX %s %d Filament" % (family_key, index),
                              spoke_count, materials, 0.022 * size_scale)
     trail_obj["ald_fx_kind"] = kind
+    _tag_fx_object(trail_obj, kind, system_uid, event_uid, "trail")
     bead_objects = []
     for slot in range(3):
         grains = [p for p in population["grains"] if p["spoke"] % 3 == slot]
@@ -1043,34 +1044,41 @@ def _build_python_objects(scene, kind, family_key, index, population, config,
             [center] * len(grains), [0.001] * len(grains), materials[slot])
         _collection(scene).objects.link(bead_obj)
         bead_obj["ald_fx_kind"] = kind
+        _tag_fx_object(bead_obj, kind, system_uid, event_uid, "beads")
         bead_objects.append((bead_obj, bead_ranges, grains))
     head_obj, head_ranges = _build_particle_mesh(
         "ALD FX %s %d Heads" % (family_key, index),
         [center] * spoke_count, [0.001] * spoke_count, materials[0])
     _collection(scene).objects.link(head_obj)
     head_obj["ald_fx_kind"] = kind
+    _tag_fx_object(head_obj, kind, system_uid, event_uid, "heads")
     pistil_obj, pistil_ranges = _build_particle_mesh(
         "ALD FX %s %d Pistil Heads" % (family_key, index),
         [center] * pistil_count, [0.001] * pistil_count, materials[1])
     _collection(scene).objects.link(pistil_obj)
     pistil_obj["ald_fx_kind"] = kind
+    _tag_fx_object(pistil_obj, kind, system_uid, event_uid, "pistil")
     pistil_bead_obj, pistil_bead_ranges = _build_particle_mesh(
         "ALD FX %s %d Pistil Beads" % (family_key, index),
         [center] * (pistil_count * SAMPLES),
         [0.001] * (pistil_count * SAMPLES), materials[1])
     _collection(scene).objects.link(pistil_bead_obj)
     pistil_bead_obj["ald_fx_kind"] = kind
+    _tag_fx_object(pistil_bead_obj, kind, system_uid, event_uid,
+                   "pistil_beads")
     spark_total = spoke_count * config["sparks"]
     spark_obj, spark_ranges = _build_particle_mesh(
         "ALD FX %s %d Sparks" % (family_key, index),
         [center] * spark_total, [0.001] * spark_total, materials[2])
     _collection(scene).objects.link(spark_obj)
     spark_obj["ald_fx_kind"] = kind
+    _tag_fx_object(spark_obj, kind, system_uid, event_uid, "sparks")
     core_obj, core_ranges = _build_particle_mesh(
         "ALD FX %s %d Flash" % (family_key, index), [center], [0.001],
         materials[1])
     _collection(scene).objects.link(core_obj)
     core_obj["ald_fx_kind"] = kind
+    _tag_fx_object(core_obj, kind, system_uid, event_uid, "flash")
     return {"trail": trail_obj, "heads": head_obj, "head_ranges": head_ranges,
             "beads": bead_objects, "pistil_obj": pistil_obj,
             "pistil_ranges": pistil_ranges, "pistil_bead_obj": pistil_bead_obj,
@@ -1108,6 +1116,7 @@ def _build_fireworks(scene, system):
     events = [event for event in system.events if event.enabled]
     total = len(events)
     for index, event in enumerate(events):
+        key = _event_key(event)
         family_key = event.family
         config = _event_config(event)
         spoke_count = config["spokes"]
@@ -1125,7 +1134,7 @@ def _build_fireworks(scene, system):
         direction = Vector(event.direction)
         # The empty of the scene is the manipulator of the event: it is read
         # before anything is removed, so a moved launcher is never lost.
-        empty = _launcher_empty(scene, index, launch, system, event)
+        empty = _launcher_empty(scene, key, launch, system, event)
         if empty is not None:
             launch = _empty_position(empty)
         v0 = _rise_velocity(launch, target, rise_time, drag, gravity,
@@ -1135,13 +1144,13 @@ def _build_fireworks(scene, system):
         residual = _rise_velocity_at(v0, drag, gravity, rise_time)
         shell = shell_population(launch, v0, drag, birth, rise_time, size_scale)
         # The deterministic data is built once and feeds both backends.
-        population = burst_population(seed=int(event.seed), index=index,
+        population = burst_population(seed=int(event.seed), index=key,
                                       config=config, birth=burst_birth,
                                       center=target, size_scale=size_scale,
                                       spoke_count=spoke_count,
                                       shell_velocity=residual,
                                       gravity=gravity)
-        family_colors = PALETTES[index % len(PALETTES)]
+        family_colors = PALETTES[key % len(PALETTES)]
         # The backend is chosen before any allocation: the two paths never
         # build the same geometry twice. The material reads the energy from
         # the domain of its backend: the instances or the points.
@@ -1171,6 +1180,7 @@ def _build_fireworks(scene, system):
             python_objects = _build_python_objects(
                 scene, kind="fireworks", family_key=family_key, index=index,
                 population=population, config=config, center=center,
+                system_uid=system.uid, event_uid=event.uid,
                 spoke_count=spoke_count, pistil_count=pistil_count,
                 materials=materials, size_scale=size_scale)
             trail_obj = python_objects["trail"]
@@ -1300,10 +1310,23 @@ def _build_fireworks(scene, system):
                     energy_power=powers.get("shell_trail", 1.0),
                     role_energy=ROLE_ENERGY["shell_trail"])
                 created.append(gn_shell_trail)
+                roles = {id(gn_heads): "gn_heads",
+                         id(gn_flash): "gn_flash",
+                         id(gn_pistil): "gn_pistil",
+                         id(gn_sparks): "gn_sparks",
+                         id(gn_shell): "gn_shell",
+                         id(gn_shell_trail): "gn_shell_trail"}
                 for obj in created:
-                    obj["ald_fx_kind"] = "fireworks"
-                    obj["ald_fx_system"] = system.uid
-                    obj["ald_fx_event"] = event.uid
+                    role = roles.get(id(obj))
+                    if role is None:
+                        if any(obj is item for item in gn_beads):
+                            role = "gn_beads"
+                        elif any(obj is item for item in gn_trails):
+                            role = "gn_trail"
+                        else:
+                            role = "gn_unknown"
+                    _tag_fx_object(obj, "fireworks", system.uid, event.uid,
+                                   role)
                 # The replaced Python meshes must not survive as orphans.
                 _cleanup_orphans()
             except Exception as exc:
@@ -1318,7 +1341,7 @@ def _build_fireworks(scene, system):
                 gn_flash = None
                 gn_trails = []
         bursts.append({
-            "index": index, "family": family_key, "config": config,
+            "index": key, "family": family_key, "config": config,
             "center": center, "birth": birth, "seed": int(event.seed),
             "size_scale": size_scale, "materials": materials,
             "population": population, "shell": shell,
@@ -1534,6 +1557,7 @@ def _build_meteors(scene, system):
                "fragment_ranges": [], "populations": []}
     populations = []
     for index, event in enumerate(events):
+        key = _event_key(event)
         preset = METEOR_PRESETS.get(event.kind, METEOR_PRESETS["METEOR"])
         drag = float(event.drag) if float(event.drag) > 0.0 \
             else preset["drag"]
@@ -1545,12 +1569,12 @@ def _build_meteors(scene, system):
         direction = direction.normalized()
         v0 = direction * float(event.speed)
         population = _meteor_population(
-            int(event.seed), index, start, v0, drag, float(event.birth), life,
+            int(event.seed), key, start, v0, drag, float(event.birth), life,
             preset["train"], persistence, radius=preset["radius"],
             fragments=int(event.sparks) if int(event.sparks) > 0
             else preset["fragments"], gravity=_gravity(scene))
         populations.append(population)
-        entry = {"index": index, "event": event, "population": population,
+        entry = {"index": key, "event": event, "population": population,
                  "preset": preset, "gn": False, "trail": None, "heads": None,
                  "head_ranges": [], "fragments": None,
                  "fragment_ranges": []}
@@ -1590,15 +1614,17 @@ def _build_meteors(scene, system):
                     time_override=clock["override"],
                     use_time_override=clock["use_override"])
                 created.append(gn_fragments)
+                roles = {id(gn_heads): "gn_heads",
+                         id(gn_train): "gn_trail",
+                         id(gn_fragments): "gn_fragments"}
                 for obj in created:
-                    obj["ald_fx_kind"] = "meteors"
-                    obj["ald_fx_system"] = system.uid
-                    obj["ald_fx_event"] = event.uid
+                    role = roles.get(id(obj)) or "gn_unknown"
+                    _tag_fx_object(obj, "meteors", system.uid, event.uid,
+                                   role)
                 entry["gn"] = True
                 entry["gn_heads"] = gn_heads
                 entry["gn_train"] = gn_train
                 entry["gn_fragments"] = gn_fragments
-                runtime["gn"] = True
             except Exception as exc:
                 print("ALD FX: geometry nodes meteors failed (%s)" % exc)
                 for obj in created:
@@ -1609,23 +1635,20 @@ def _build_meteors(scene, system):
             trail_obj = _build_curve(scene, "ALD FX Meteor Trails %d" % index,
                                      1, [material],
                                      0.07 * (preset["radius"] / 0.18))
-            trail_obj["ald_fx_kind"] = "meteors"
-            trail_obj["ald_fx_system"] = system.uid
-            trail_obj["ald_fx_event"] = event.uid
+            _tag_fx_object(trail_obj, "meteors", system.uid, event.uid,
+                           "trail")
             head_obj, head_ranges = _build_particle_mesh(
                 "ALD FX Meteor Heads %d" % index, [origin], [0.001], material)
             _collection(scene).objects.link(head_obj)
-            head_obj["ald_fx_kind"] = "meteors"
-            head_obj["ald_fx_system"] = system.uid
-            head_obj["ald_fx_event"] = event.uid
+            _tag_fx_object(head_obj, "meteors", system.uid, event.uid,
+                           "heads")
             fragment_total = len(population["fragments"])
             fragment_obj, fragment_ranges = _build_particle_mesh(
                 "ALD FX Meteor Fragments %d" % index, [origin] * fragment_total,
                 [0.001] * fragment_total, material)
             _collection(scene).objects.link(fragment_obj)
-            fragment_obj["ald_fx_kind"] = "meteors"
-            fragment_obj["ald_fx_system"] = system.uid
-            fragment_obj["ald_fx_event"] = event.uid
+            _tag_fx_object(fragment_obj, "meteors", system.uid, event.uid,
+                           "fragments")
             entry["trail"] = trail_obj
             entry["heads"] = head_obj
             entry["head_ranges"] = head_ranges
@@ -1633,15 +1656,20 @@ def _build_meteors(scene, system):
             entry["fragment_ranges"] = fragment_ranges
         runtime["events"].append(entry)
     runtime["populations"] = populations
+    # Mixed systems are real: a failed GN build falls back to Python for that
+    # event only. The system is considered GN only when every event is GN.
+    runtime["gn"] = all(entry.get("gn") for entry in runtime["events"])
     return runtime
 
 
 def _update_meteors(system, time):
-    if system.get("gn"):
-        # The node group evaluates the meteors: no Python work per frame.
-        return
     origin = system["origin"]
     for entry in system["events"]:
+        if entry.get("gn"):
+            # This event is evaluated by the node group: skip only this one,
+            # never the whole system (a mixed system must keep the Python
+            # events alive).
+            continue
         population = entry["population"]
         head = population["head"]
         position, scale, energy, alive = _particle_state(head, time)
@@ -1716,6 +1744,61 @@ def _ensure_snapshot(scene):
     snapshot.ensure(scene)
 
 
+def _derive_key(seed, index):
+    """The deterministic random key of a newly created event.
+
+    It depends on the seed of the system and on the creation slot, so two
+    systems created with the same seed are identical. The value is then
+    stored in the event and never recomputed: enabling, disabling or
+    reordering events cannot change it.
+    """
+    key = (int(seed) * 2654435761 + int(index) * 40503 + 12345) % 999999999
+    return key or 1
+
+
+def _event_key(event):
+    """The stable key of an event: independent of the list position.
+
+    Old files do not have a key yet: it is derived once from the persistent
+    UID (hex) and written back, so the same event keeps the same key forever.
+    """
+    key = int(getattr(event, "random_key", 0) or 0)
+    if key:
+        return key
+    uid = str(getattr(event, "uid", "") or "")
+    try:
+        key = int(uid, 16) % 999999999
+    except (TypeError, ValueError):
+        key = abs(hash(uid)) % 999999999
+    if key == 0:
+        key = 1
+    try:
+        event.random_key = key
+    except (AttributeError, TypeError):
+        pass
+    return key
+
+
+def _ensure_event_keys(system):
+    """Assign a stable key to every event of a system (migration included)."""
+    for event in system.events:
+        _event_key(event)
+
+
+def _tag_fx_object(obj, kind, system_uid, event_uid, role):
+    """Tag an object with the identity it belongs to.
+
+    The reconstruction never uses the name: identity, event and role are
+    explicit properties, so renaming an object (or enabling another event)
+    cannot break the registry.
+    """
+    obj["ald_fx_kind"] = kind
+    obj["ald_fx_system"] = system_uid
+    obj["ald_fx_event"] = event_uid
+    obj["ald_fx_role"] = role
+    return obj
+
+
 def _cleanup_orphans():
     for datablocks in (bpy.data.meshes, bpy.data.curves, bpy.data.materials):
         for block in list(datablocks):
@@ -1756,6 +1839,7 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
     for index in range(total):
         event = system.events.add()
         event.uid = uuid.uuid4().hex
+        event.random_key = _derive_key(seed, index)
         event.kind = "FIREWORK"
         event.enabled = True
         event.seed = int(seed)
@@ -1806,6 +1890,7 @@ def create_meteors(scene, count=4, seed=21, distance=140.0, time=0.0,
     for index in range(total):
         event = system.events.add()
         event.uid = uuid.uuid4().hex
+        event.random_key = _derive_key(seed, index)
         event.kind = kind
         event.enabled = True
         event.seed = int(seed)
@@ -1860,6 +1945,7 @@ def _new_system(scene, kind, seed, time):
     system.origin_frame = 1
     system.origin_time = float(time)
     system.isolation_mode = "EMISSION"
+    system.fx_schema = FX_SCHEMA
     settings.fx_schema = FX_SCHEMA
     return system
 
@@ -2026,23 +2112,80 @@ def _remove_system_objects(scene, uid):
 
 
 def _find_objects(scene):
-    """The ALD objects of a scene, indexed by name."""
-    return {obj.name: obj for obj in _collection(scene).objects
-            if obj.get("ald_fx")}
+    """The ALD objects of a scene, indexed by (event UID, role).
+
+    The name is never part of the identity: the persistent UID of the event
+    and the explicit role are the only keys of the reconstruction.
+    """
+    found = {}
+    for obj in _collection(scene).objects:
+        if not obj.get("ald_fx"):
+            continue
+        key = (obj.get("ald_fx_event") or "",
+               obj.get("ald_fx_role") or "")
+        found.setdefault(key, []).append(obj)
+    return found
+
+
+def _one_object(objects, event_uid, role):
+    """The first object of an event with a role, or None."""
+    items = objects.get((event_uid, role))
+    return items[0] if items else None
+
+
+def migrate(scene):
+    """Upgrade the persistent FX data to the current schema.
+
+    Versioned and idempotent: events receive their stable random key and the
+    systems record the new schema. A system upgraded from an old file is
+    recompiled once so its geometry receives the role tags; from then on the
+    reconstruction never needs a name.
+    """
+    from .properties import FX_SCHEMA
+
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return 0
+    upgraded = []
+    for system in settings.fx_systems:
+        changed = False
+        for event in system.events:
+            if not int(getattr(event, "random_key", 0) or 0):
+                _event_key(event)
+                changed = True
+        try:
+            old_schema = int(system.fx_schema)
+        except (AttributeError, TypeError):
+            old_schema = 0
+        if old_schema < FX_SCHEMA:
+            changed = True
+        if changed:
+            try:
+                system.fx_schema = FX_SCHEMA
+            except (AttributeError, TypeError):
+                pass
+            upgraded.append(system)
+    settings.fx_schema = FX_SCHEMA
+    for system in upgraded:
+        if system.enabled and system.events:
+            compile_system(scene, system)
+    return len(upgraded)
 
 
 def rebuild_registry(scene):
     """Rebuild the runtime registry from the persistent configuration.
 
-    The geometry saved in the file is reused: nothing is regenerated. The
-    runtime cache is never the source of truth. The registry is keyed by the
-    identity of the system, so two systems of the same kind never collide.
+    The reconstruction uses the persistent UID of the events and the explicit
+    role of the objects, never the names. The geometry saved in the file is
+    reused: nothing is regenerated. The registry is keyed by the identity of
+    the system, so two systems of the same kind never collide.
     """
     settings = getattr(scene, "ald", None)
     registry = _registry(scene)
     registry.clear()
     if settings is None:
         return 0
+    migrate(scene)
     objects = _find_objects(scene)
     rebuilt = 0
     for system in settings.fx_systems:
@@ -2054,6 +2197,7 @@ def rebuild_registry(scene):
         if system.kind == "FIREWORKS":
             bursts = []
             for index, event in enumerate(events):
+                key = _event_key(event)
                 config = _event_config(event)
                 spoke_count = config["spokes"]
                 center = Vector(event.target)
@@ -2066,15 +2210,14 @@ def rebuild_registry(scene):
                                     speed=float(event.speed),
                                     direction=Vector(event.direction))
                 residual = _rise_velocity_at(v0, drag, gravity, rise_time)
-                population = burst_population(event.seed, index, config,
+                population = burst_population(event.seed, key, config,
                                               event.birth + rise_time,
                                               center, float(event.size),
                                               spoke_count,
                                               shell_velocity=residual)
-                family_key = event.family
-                prefix = "ALD FX %s %d " % (family_key, index)
+                uid = event.uid
                 bursts.append({
-                    "index": index, "family": family_key, "config": config,
+                    "index": key, "family": event.family, "config": config,
                     "center": center, "birth": float(event.birth),
                     "seed": event.seed, "size_scale": float(event.size),
                     "materials": [], "population": population,
@@ -2082,15 +2225,19 @@ def rebuild_registry(scene):
                     "rise_time": rise_time, "target": center,
                     "burst_birth": float(event.birth) + rise_time,
                     "residual": residual, "event": event,
-                    "trail": objects.get(prefix + "Filament"),
-                    "heads": objects.get(prefix + "Heads"),
+                    "trail": _one_object(objects, uid, "trail"),
+                    "heads": _one_object(objects, uid, "heads"),
                     "head_ranges": [],
-                    "gn_heads": objects.get("ALD FX GN Heads %d" % index),
-                    "gn_beads": [], "gn_pistil": None, "gn_sparks": None,
-                    "gn_flash": None, "gn_trails": [],
+                    "gn_heads": _one_object(objects, uid, "gn_heads"),
+                    "gn_beads": list(objects.get((uid, "gn_beads"), [])),
+                    "gn_pistil": _one_object(objects, uid, "gn_pistil"),
+                    "gn_sparks": _one_object(objects, uid, "gn_sparks"),
+                    "gn_flash": _one_object(objects, uid, "gn_flash"),
+                    "gn_trails": list(objects.get((uid, "gn_trail"), [])),
                     "beads": [], "pistil": (None, [], None, [], 0),
                     "sparks": None, "spark_ranges": [],
-                    "core": objects.get(prefix + "Flash"), "core_ranges": [],
+                    "core": _one_object(objects, uid, "flash"),
+                    "core_ranges": [],
                 })
             registry[system.uid] = {
                 "kind": "fireworks", "bursts": bursts, "time": None,
@@ -2100,8 +2247,11 @@ def rebuild_registry(scene):
             rebuilt += 1
         elif system.kind == "METEORS":
             populations = []
+            entries = []
             for index, event in enumerate(events):
-                preset = METEOR_PRESETS.get(event.kind, METEOR_PRESETS["METEOR"])
+                key = _event_key(event)
+                preset = METEOR_PRESETS.get(event.kind,
+                                            METEOR_PRESETS["METEOR"])
                 drag = float(event.drag) if float(event.drag) > 0.0 \
                     else preset["drag"]
                 life = float(event.life)
@@ -2111,18 +2261,36 @@ def rebuild_registry(scene):
                 direction = direction.normalized()
                 start = Vector(event.target)
                 v0 = direction * float(event.speed)
-                populations.append(_meteor_population(
-                    event.seed, index, start, v0, drag, float(event.birth),
+                population = _meteor_population(
+                    event.seed, key, start, v0, drag, float(event.birth),
                     life, preset["train"], 0.32,
-                    radius=preset["radius"], fragments=preset["fragments"]))
+                    radius=preset["radius"], fragments=preset["fragments"])
+                populations.append(population)
+                uid = event.uid
+                entries.append({
+                    "index": key, "event": event,
+                    "population": population, "preset": preset,
+                    "gn": _one_object(objects, uid, "gn_heads") is not None,
+                    "trail": _one_object(objects, uid, "trail"),
+                    "heads": _one_object(objects, uid, "heads"),
+                    "head_ranges": [],
+                    "fragments": _one_object(objects, uid, "fragments"),
+                    "fragment_ranges": [],
+                    "gn_heads": _one_object(objects, uid, "gn_heads"),
+                    "gn_train": _one_object(objects, uid, "gn_trail"),
+                    "gn_fragments": _one_object(objects, uid, "gn_fragments"),
+                })
             registry[system.uid] = {
                 "kind": "meteors", "count": len(populations),
                 "seed": system.seed, "distance": 0.0,
                 "shower": Vector((1.0, 0.0, 0.0)),
                 "origin": _camera_basis(scene)[0],
-                "material": None, "gn": True, "trail": None, "heads": None,
+                "material": None,
+                "gn": all(entry["gn"] for entry in entries),
+                "trail": None, "heads": None,
                 "head_ranges": [], "fragments": None, "fragment_ranges": [],
                 "uid": system.uid, "system": system,
+                "events": entries,
                 "populations": populations}
             rebuilt += 1
     return rebuilt
@@ -2329,11 +2497,34 @@ def _on_load_post(*_args):
             pass
 
 
+@persistent
+def _on_undo_redo(*_args):
+    """Undo/Redo replaces the persistent data: rebuild the runtime cache.
+
+    The reconstruction is driven by UIDs and roles, so it also survives the
+    removal or re-addition of objects that an undo performs.
+    """
+    scene = getattr(bpy.context, "scene", None)
+    if scene is None:
+        return
+    from . import snapshot
+    if snapshot.is_inactive(scene):
+        return
+    try:
+        rebuild_registry(scene)
+    except Exception:
+        pass
+
+
 def register():
     if _on_frame_change not in bpy.app.handlers.frame_change_post:
         bpy.app.handlers.frame_change_post.append(_on_frame_change)
     if _on_load_post not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(_on_load_post)
+    if _on_undo_redo not in bpy.app.handlers.undo_post:
+        bpy.app.handlers.undo_post.append(_on_undo_redo)
+    if _on_undo_redo not in bpy.app.handlers.redo_post:
+        bpy.app.handlers.redo_post.append(_on_undo_redo)
 
 
 def unregister():
@@ -2341,4 +2532,8 @@ def unregister():
         bpy.app.handlers.frame_change_post.remove(_on_frame_change)
     if _on_load_post in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(_on_load_post)
+    if _on_undo_redo in bpy.app.handlers.undo_post:
+        bpy.app.handlers.undo_post.remove(_on_undo_redo)
+    if _on_undo_redo in bpy.app.handlers.redo_post:
+        bpy.app.handlers.redo_post.remove(_on_undo_redo)
     SYSTEMS.clear()

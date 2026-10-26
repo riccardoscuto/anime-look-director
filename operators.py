@@ -403,9 +403,11 @@ class ALD_OT_fx_duplicate_system(bpy.types.Operator):
         copy.material_profile = source.material_profile
         copy.glow_profile = source.glow_profile
         copy.isolation_mode = source.isolation_mode
+        copy.fx_schema = source.fx_schema
         for event in source.events:
             new_event = copy.events.add()
             new_event.uid = uuid.uuid4().hex
+            new_event.random_key = event.random_key
             new_event.kind = event.kind
             new_event.enabled = event.enabled
             new_event.seed = event.seed
@@ -413,9 +415,13 @@ class ALD_OT_fx_duplicate_system(bpy.types.Operator):
             new_event.family = event.family
             new_event.size = event.size
             new_event.count = event.count
+            new_event.spokes = event.spokes
             new_event.pistil = event.pistil
             new_event.sparks = event.sparks
             new_event.launch_mode = event.launch_mode
+            new_event.rise_time = event.rise_time
+            new_event.drag = event.drag
+            new_event.gravity = tuple(event.gravity)
             new_event.launcher = tuple(event.launcher)
             new_event.target = tuple(event.target)
             new_event.direction = tuple(event.direction)

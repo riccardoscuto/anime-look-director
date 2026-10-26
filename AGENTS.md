@@ -291,6 +291,24 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the gate verifies the acceptance condition: a scene with an HDRI world, a
     custom sun, an emissive material and a pre-existing compositor returns to
     the registered state.
+- P1-A rules (one persistent model):
+  - the runtime reconstruction uses `(event UID, role)` only: `_find_objects`
+    returns a dict keyed by the pair and `_one_object` reads it. The name of
+    an object is cosmetic and can be renamed by the user without breaking the
+    registry;
+  - `ALD_FX_Event.random_key` is the stable random key: it is derived from
+    `(system seed, creation slot)` at creation and then stored, so toggling
+    `enabled`, reordering or adding events never changes the other events.
+    Two systems created with the same seed keep deterministic geometry;
+  - `FX_SCHEMA` is versioned: `migrate(scene)` assigns missing random keys,
+    upgrades `system.fx_schema`, and recompiles a migrated system once so its
+    geometry receives the role tags. It is idempotent;
+  - `fx.register` installs `undo_post` and `redo_post` handlers that rebuild
+    the runtime from the persistent data, so undo/redo cannot desynchronise
+    the registry;
+  - the gate renames a generated object and checks that the reconstruction
+    still finds it, disables an event and checks the keys of the others, and
+    checks the migration assigns the key and the schema.
 - P0-C rules (lifecycle and backup):
   - `snapshot.ensure` is not only for the palette: it runs at the start of
     `compositor.build`, `fx.create_fireworks`, `fx.create_meteors`,

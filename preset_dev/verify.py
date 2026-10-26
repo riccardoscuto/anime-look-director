@@ -2803,6 +2803,59 @@ def check_fx_migration(scene):
                before_uid))
         check(settings.fx_schema == FX_SCHEMA,
               "the schema was not upgraded to %d" % FX_SCHEMA)
+        check(system.fx_schema == FX_SCHEMA,
+              "the system schema was not upgraded")
+        check(event.random_key > 0,
+              "the migration did not assign the stable event key")
+
+
+def check_fx_persistent_model(scene):
+    """P1-A: identity by UID+role, stable keys, idempotent switches."""
+    from anime_look_director import fx as fx_module
+
+    fx_module.clear(scene)
+    bpy.ops.ald.fx_fireworks(count=3, seed=13, distance=30.0)
+    system = scene.ald.fx_systems[0]
+    events = list(system.events)
+    check(len(events) == 3, "the system did not store three events")
+    keys = [event.random_key for event in events]
+    check(all(key > 0 for key in keys), "the events have no stable key")
+    check(len(set(keys)) == 3, "the events share the same random key")
+
+    # Disabling one event must not change the keys of the others.
+    events[0].enabled = False
+    fx_module.rebuild_registry(scene)
+    check([event.random_key for event in events[1:]] == keys[1:],
+          "disabling an event changed the keys of the others")
+    events[0].enabled = True
+    fx_module.rebuild_registry(scene)
+
+    # The reconstruction must not depend on the object name.
+    registry = fx_module.SYSTEMS.get(fx_module._scene_id(scene)) or {}
+    runtime = registry.get(system.uid)
+    check(runtime is not None and runtime.get("bursts"),
+          "the bursts are missing from the registry")
+    if runtime is not None and runtime.get("bursts"):
+        burst = runtime["bursts"][0]
+        target = burst.get("gn_heads")
+        if target is None:
+            target = burst.get("heads")
+        check(target is not None, "the burst has no head object")
+        if target is not None:
+            target.name = "ALD FX RENAMED BY THE USER"
+            fx_module.rebuild_registry(scene)
+            registry = fx_module.SYSTEMS.get(
+                fx_module._scene_id(scene)) or {}
+            runtime = registry.get(system.uid)
+            check(runtime is not None and runtime.get("bursts"),
+                  "the burst was lost after the rename")
+            if runtime is not None and runtime.get("bursts"):
+                found = runtime["bursts"][0].get("gn_heads")
+                if found is None:
+                    found = runtime["bursts"][0].get("heads")
+                check(found is target,
+                      "the reconstruction depends on the object name")
+    fx_module.clear(scene)
 
 
 def check_fx_undo_redo(scene):
@@ -2999,6 +3052,7 @@ def check_fx_visual_profiles(scene):
     previous_vt = scene.view_settings.view_transform
     previous_exp = float(scene.view_settings.exposure)
     previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_age = float(scene.ald.fx_age)
 
     try:
         scene.render.engine = "BLENDER_EEVEE"
@@ -3007,16 +3061,22 @@ def check_fx_visual_profiles(scene):
         scene.render.resolution_percentage = 100
         scene.view_settings.view_transform = "Standard"
         scene.view_settings.exposure = 0.0
+        # A fixed age makes the profile comparable: the default Burst Age
+        # would push the meteors past the end of their train.
+        scene.ald.fx_age = 0.0
 
-        # Ensure a camera exists and is active.
+        # Ensure a camera exists and is active. The camera looks at the sky
+        # horizontally: the FX start plane is in front of it, above the ground
+        # (a camera pointing down would place the meteors under the terrain,
+        # where the depth-based occlusion correctly hides them).
         if scene.camera is None:
             cam_data = bpy.data.cameras.new("T24 Cam")
             cam = bpy.data.objects.new("T24 Cam", cam_data)
             scene.collection.objects.link(cam)
-            cam.location = (0.0, -10.0, 0.0)
-            cam.rotation_euler = (0.0, 0.0, 0.0)
+            cam.location = (0.0, -10.0, 2.0)
+            cam.rotation_euler = (1.5707963, 0.0, 0.0)
             scene.camera = cam
-        scene.camera.data.lens = 50.0
+        scene.camera.data.lens = 24.0
         scene.camera.data.clip_start = 0.1
         scene.camera.data.clip_end = 1000.0
 
@@ -3049,8 +3109,8 @@ def check_fx_visual_profiles(scene):
                 cam_data = bpy.data.cameras.new("T24 Cam")
                 cam = bpy.data.objects.new("T24 Cam", cam_data)
                 scene.collection.objects.link(cam)
-                cam.location = (0.0, -10.0, 0.0)
-                cam.rotation_euler = (0.0, 0.0, 0.0)
+                cam.location = (0.0, -10.0, 2.0)
+                cam.rotation_euler = (1.5707963, 0.0, 0.0)
                 scene.camera = cam
                 bpy.context.view_layer.camera = scene.camera
             try:
@@ -3070,6 +3130,25 @@ def check_fx_visual_profiles(scene):
                 traceback.print_exc()
                 check(False, "%s creation failed: %s" % (name, exc))
                 continue
+
+            # The frame is inside the life of the profile: the burst is at
+            # its peak for the firework, the meteor is just after its birth.
+            from mathutils import Vector
+            system = scene.ald.fx_systems[0]
+            event = system.events[0]
+            fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+            if name == "Firework":
+                scene.frame_set(30)
+            else:
+                scene.frame_set(max(1, int(round(event.birth * fps)) + 3))
+            # Frame the event: the start points are spread across the sky and
+            # a fixed camera would miss the lateral ones.
+            target = Vector(event.target)
+            direction = target - scene.camera.location
+            if direction.length > 1e-6:
+                scene.camera.rotation_euler = direction.to_track_quat(
+                    "-Z", "Y").to_euler()
+            bpy.context.view_layer.update()
 
             scene.render.filepath = path
             bpy.ops.render.render(write_still=True)
@@ -3103,6 +3182,7 @@ def check_fx_visual_profiles(scene):
         scene.view_settings.view_transform = previous_vt
         scene.view_settings.exposure = previous_exp
         scene.render.resolution_x, scene.render.resolution_y = previous_size
+        scene.ald.fx_age = previous_age
 
 
 def check_fx_ui_screenshots(scene):
@@ -3415,6 +3495,7 @@ def main():
         check_fx_solver_stability(scene)
         check_fx_camera_evaluated(scene)
         check_fx_system_operators(scene)
+        check_fx_persistent_model(scene)
         check_fx_diagnostics(scene)
         check_fx_occlusion(scene)
         check_fx_identity(scene)

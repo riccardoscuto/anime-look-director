@@ -5,7 +5,7 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
 
 #: Version of the persistent FX layout: a scene saved with an older schema is
 #: migrated when the add-on is enabled.
-FX_SCHEMA = 1
+FX_SCHEMA = 2
 
 PALETTES = [
     ("GOLDEN_HOUR", "Golden Hour", "Warm backlight, cobalt zenith and golden clouds"),
@@ -278,6 +278,11 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
     seed: IntProperty(
         name="Seed", default=0, min=0, max=99999,
         description="Deterministic seed of the event")
+    random_key: IntProperty(
+        name="Random Key", default=0, min=0, max=999999999,
+        description=("Stable random key of the event: it never follows the "
+                     "position in the list, so enabling or disabling another "
+                     "event never changes this event"))
     birth: FloatProperty(
         name="Birth", default=0.0, min=-10.0, max=600.0,
         description="Seconds after the origin of the system")
@@ -319,9 +324,6 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
     drag: FloatProperty(
         name="Drag", default=1.3, min=0.0, max=8.0,
         description="Linear drag of the rising shell")
-    speed: FloatProperty(
-        name="Speed", default=26.0, min=0.0, max=200.0,
-        description="Initial speed of the shell in physical mode")
     gravity: FloatVectorProperty(
         name="Gravity", size=3, subtype="DIRECTION",
         default=(0.0, 0.0, -9.81),
@@ -338,7 +340,7 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
         description="World direction of a meteor")
     speed: FloatProperty(
         name="Speed", default=30.0, min=0.0, max=200.0,
-        description="Speed of a meteor in world units per second")
+        description="Initial speed in world units per second")
     life: FloatProperty(
         name="Life", default=1.0, min=0.05, max=20.0,
         description="Lifetime of a meteor")
@@ -382,6 +384,9 @@ class ALD_FX_System(bpy.types.PropertyGroup):
     origin_time: FloatProperty(
         name="Origin Time", default=0.0, min=-100.0, max=100.0,
         description="Seconds the system starts from in preview mode")
+    fx_schema: IntProperty(
+        name="FX Schema", default=0, min=0,
+        description="Version of the persistent FX schema of this system")
     events: CollectionProperty(type=ALD_FX_Event)
     material_profile: StringProperty(
         name="Material Profile", default="",
