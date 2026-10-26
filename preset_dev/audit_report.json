@@ -1,0 +1,242 @@
+{
+  "checks": [
+    {
+      "evidence": "",
+      "label": "Baseline: version, hashes, schemas, public flows",
+      "phase": "P0-A",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Gate records the expected failures and their evidence",
+      "phase": "P0-A",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Update FX rebuilds the selected system by UID",
+      "phase": "P0-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Remove/duplicate coordinate record and geometry",
+      "phase": "P0-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Compilation is atomic (stash + rollback)",
+      "phase": "P0-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Neutral reset never detaches a user compositor",
+      "phase": "P0-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Snapshot before every mutation path (Build included)",
+      "phase": "P0-C",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "REMOVED state blocks automatic re-entry",
+      "phase": "P0-C",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Detach keeps the result (no material clear)",
+      "phase": "P0-C",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Shared collections are not removed",
+      "phase": "P0-C",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Two real view layers B/F with a transparent world override",
+      "phase": "P0-D",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Coverage from max(R,G,B), clamped, with depth occlusion",
+      "phase": "P0-D",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "C = (1-A)*Painted_B + F + Glare(F), F added unscaled",
+      "phase": "P0-D",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "View layers/transparent world cleaned up",
+      "phase": "P0-D",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Gate: real occlusion and zero-FX identity",
+      "phase": "P0-D",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Read-only diagnostics; UNKNOWN instead of unproven OK",
+      "phase": "P0-E",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Explicit diagnose operator evaluates and caches the report",
+      "phase": "P0-E",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Runtime rebuilt from event UID + explicit role, never names",
+      "phase": "P1-A",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Stable random_key independent from the list index",
+      "phase": "P1-A",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Versioned migration and undo/redo rebuild",
+      "phase": "P1-A",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Anchor drives axis, units and gravity",
+      "phase": "P1-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Physical mode bursts at p_shell(T)",
+      "phase": "P1-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Clock refresh without rebuilding",
+      "phase": "P1-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Creation starts at the current frame",
+      "phase": "P1-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Per-event GN failure falls back to the Python writer",
+      "phase": "P1-C",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Mixed systems: gn = all, per-event skips",
+      "phase": "P1-C",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Trail energy/colour via Geometry attributes",
+      "phase": "P1-C",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Material reads event_color/stable_noise/age_norm/trail_u",
+      "phase": "P2-A",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Role energies and Bolide render preset",
+      "phase": "P2-A",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Visual profile exposed with its sub-roles",
+      "phase": "P2-A",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Explicit per-profile UI (Firework/Meteor/Bolide sub-roles)",
+      "phase": "P2-A",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Calibration matrix: AgX, fixed camera/seed/exposure, glow",
+      "phase": "P2-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Standard is a diagnostic control, not a certificate",
+      "phase": "P2-B",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Smoke is a real volume, not a World generator",
+      "phase": "P3",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Smoke removed by Remove ALD",
+      "phase": "P3",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Aesthetic variants change the look without rebuilding",
+      "phase": "P3",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Directed 3/5 burst show",
+      "phase": "P3",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Distinct benchmarks with hardware/scenario and budgets",
+      "phase": "P3",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Smoke follows the Anchor axis (Y-up/X-up)",
+      "phase": "P3",
+      "state": "OK"
+    }
+  ],
+  "partial": 0,
+  "passed": 39,
+  "plan": "v2.27.0 P0-P3",
+  "total": 39
+}

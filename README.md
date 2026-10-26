@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.30.0)
+## What it does (v2.30.1)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -213,7 +213,16 @@ Expected output: `ALD GATE: PASS`.
   atomic compile, record/geometry coordinated), snapshot on every mutation
   path with the REMOVED lifecycle state, real B/F/A FX isolation with
   depth-based occlusion and zero-FX identity, read-only diagnostics with
-  explicit `UNKNOWN` (current)
+  explicit `UNKNOWN`
+- v2.29.0 - P1-P2: persistent model (UID + roles, stable random keys,
+  migration, undo/redo), anchor gravity and `p_shell(T)`, GN→Python per-event
+  fallback, material contract (`event_color`, `stable_noise`, `age_norm`,
+  `trail_u`) and AgX calibration matrix
+- v2.30.0 - P3: volumetric atmospheric smoke, FX Style variants, directed 3/5
+  burst show, benchmarks with declared budgets and hardware
+- v2.30.1 - verification pass: UI probe fixed for Blender 5.1 (screenshots in
+  `preset_dev/ui/`), milestone 13/13, smoke aligned to the Anchor, Visual
+  Profile panel, P0-P3 audit 39/39 (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

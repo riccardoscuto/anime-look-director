@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.27.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.30.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -65,6 +65,42 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 20. **Stack per scena** — ogni scena ha il proprio gruppo compositor.
 21. **Pannello Sidebar N** — `View3D > Anime Look` per palette, mondo, ombre e
     compositor senza staccare gli occhi dalla camera.
+22. **FX 3D** — fuochi d'artificio, meteore e bolide come oggetti reali nella
+    collezione `ALD | FX`, con sistemi persistenti per UID e ruoli, seeds
+    stabili, launcher visibili e clock proprio (Timeline / Preview / Burst Age).
+23. **Compositing FX corretto** — layer dedicati `ALD FX Base` (ambiente) e
+    `ALD FX Only` (solo FX), copertura da `max(R,G,B)` clampata, occlusione per
+    profondità e formula `C = (1-A)*Painted_B + F + Glare(F)`; con zero FX
+    l'immagine è identica.
+24. **Fumo atmosferico** — volume reale (`Principled Volume`) nella collezione
+    `ALD | Smoke`, orientato all'Anchor, renderizzato dall'ambiente e rimosso
+    con `Remove ALD from Scene`.
+25. **Varianti e regia** — `FX Style` Classic / Soft Halo / Vivid e spettacoli
+    diretti da 3 o 5 burst con ruoli hero/secondary/distant.
+26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
+    pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
+    per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.30.0 — Piano operativo P0–P3
+
+- **P0 — dati e compositing**: baseline versionata (`preset_dev/baseline.json`),
+  operatori FX sicuri (Update per UID, Remove/Duplicate coordinati, compilazione
+  atomica), snapshot su ogni primo ingresso mutante con stato `REMOVED`,
+  vero isolamento B/F/A con occlusione depth-based, diagnostica read-only.
+- **P1 — modello persistente e parità**: ricostruzione del runtime da UID+ruolo
+  (mai nomi), `random_key` stabile, migrazione `FX_SCHEMA = 2`, rebuild dopo
+  undo/redo; gravità/unità/launcher dall'Anchor, Physical a `p_shell(T)`, clock
+  senza rebuild, creazione al frame corrente; fallback GN→Python per singolo
+  evento e sistemi misti.
+- **P2 — profili e calibrazione**: il materiale legge `event_color`,
+  `stable_noise`, `age_norm` e `trail_u`; profilo visivo con sotto-ruoli nel
+  pannello; matrice di calibrazione AgX (notte/tramonto × nessun alone/stretto/
+  ampio) in `preset_dev/calibration/`.
+- **P3 — fumo, varianti, regia, benchmark**: fumo volumetrico, `FX Style`,
+  spettacolo diretto 3/5 burst, benchmark con budget e hardware dichiarati in
+  `preset_dev/benchmarks.json`.
+- **Verifica**: gate `ALD GATE: PASS`, milestone 13/13, audit del piano 39/39,
+  sheet look-dev rigenerate.
 
 ## Novità 0.9.0
 

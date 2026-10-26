@@ -490,6 +490,32 @@ def draw_fx_diagnostics(layout, context):
                      text="Run FX Diagnosis")
 
 
+def draw_fx_profile(layout, context):
+    """The visual profile of the selected system, with its sub-roles."""
+    from . import fx
+
+    system, event = _selected_system(context)
+    box = layout.box()
+    box.label(text="Visual Profile", icon="COLOR")
+    if system is None:
+        box.label(text="No system selected", icon="INFO")
+        return
+    kind = "Fireworks" if system.kind == "FIREWORKS" else "Meteors"
+    box.label(text="System: %s" % kind)
+    if event is not None:
+        box.label(text="Event: %s" % event.kind.title())
+    grid = box.grid_flow(columns=2, align=True)
+    for key, label in (("head", "Head"), ("grain", "Grains"),
+                       ("pistil", "Pistil"), ("spark", "Sparks"),
+                       ("flash", "Flash"), ("shell", "Shell"),
+                       ("meteor_head", "Meteor Head"),
+                       ("meteor_train", "Train"),
+                       ("meteor_fragment", "Fragments")):
+        if key in fx.ROLE_ENERGY:
+            grid.label(text=label)
+            grid.label(text="%.2f" % fx.ROLE_ENERGY[key])
+
+
 def draw_fx_actions(layout, context):
     """The FX actions."""
     s = context.scene.ald
@@ -520,6 +546,7 @@ def draw_fx(layout, context):
     draw_fx_launch(layout, context)
     draw_fx_explosion(layout, context)
     draw_fx_look(layout, context)
+    draw_fx_profile(layout, context)
     draw_fx_diagnostics(layout, context)
     draw_fx_advanced(layout, context)
     draw_fx_actions(layout, context)

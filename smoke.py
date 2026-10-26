@@ -9,11 +9,22 @@ Scene restores the scene without it.
 
 import bmesh
 import bpy
+from mathutils import Vector
 
 COLLECTION_NAME = "ALD | Smoke"
 OBJECT_NAME = "ALD | Smoke Volume"
 MATERIAL_NAME = "ALD | Smoke Volume"
 TAG = "ald_smoke"
+
+
+def _place(obj, scene, height):
+    """Align the volume with the ALD Sky/FX Anchor vertical axis."""
+    from . import fx
+    axis, elevation, _units = fx._anchor(scene)
+    obj.rotation_euler = Vector((0.0, 0.0, 1.0)).rotation_difference(
+        axis).to_euler()
+    obj.location = axis * (elevation + height)
+    obj.scale = (300.0, 300.0, height * 2.0)
 
 
 def _collection(scene):
@@ -67,8 +78,7 @@ def create(scene, density=0.25, height=8.0, color=(0.62, 0.66, 0.75)):
     mesh[TAG] = True
     obj = bpy.data.objects.new(OBJECT_NAME, mesh)
     obj[TAG] = True
-    obj.location = (0.0, 0.0, height)
-    obj.scale = (300.0, 300.0, height * 2.0)
+    _place(obj, scene, height)
     collection.objects.link(obj)
 
     material = _volume_material()
@@ -97,8 +107,7 @@ def sync(scene):
     obj = next((item for item in collection.objects if item.get(TAG)), None)
     if obj is None:
         return False
-    obj.location = (obj.location.x, obj.location.y, height)
-    obj.scale = (300.0, 300.0, height * 2.0)
+    _place(obj, scene, height)
     material = obj.active_material
     if material is not None:
         volume = next((node for node in material.node_tree.nodes

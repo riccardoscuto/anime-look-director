@@ -65,46 +65,88 @@ def maximize(area):
     return False
 
 
+def scroll(area, steps):
+    """Scroll a Properties-style editor with the view2d operator."""
+    window = bpy.context.window_manager.windows[0]
+    for region in area.regions:
+        if region.type != "WINDOW":
+            continue
+        try:
+            with bpy.context.temp_override(window=window, area=area,
+                                           region=region):
+                for _ in range(abs(int(steps))):
+                    if steps > 0:
+                        bpy.ops.view2d.scroll_down()
+                    else:
+                        bpy.ops.view2d.scroll_up()
+            return True
+        except Exception as exc:
+            print("ALD UI SCROLL FAILED", exc)
+    return False
+
+
 def step():
     STATE["step"] += 1
     index = STATE["step"]
     out_dir = STATE["out"]
-    if index == 1:
-        try:
-            bpy.ops.preferences.addon_enable(module=MODULE)
-        except Exception as exc:
-            print("ALD UI ENABLE FAILED", exc)
-        try:
-            bpy.ops.ald.fx_fireworks(count=3, age=0.8)
-            bpy.ops.ald.fx_meteors(count=4, age=0.6)
-        except Exception as exc:
-            print("ALD UI FX FAILED", exc)
-        window, area = find_area("PROPERTIES")
-        if area is not None:
-            area.spaces.active.context = "SCENE"
-            maximize(area)
-        print("ALD UI STEP 1: the Scene properties are maximised")
-        return STATE["wait"]
-    if index == 2:
-        shot(out_dir, "ui_properties.png")
-        window, area = find_area("PROPERTIES")
-        if area is not None:
-            maximize(area)
-        window, area = find_area("VIEW_3D")
-        if area is not None:
-            for region in area.regions:
-                if region.type == "UI":
-                    region.active_panel_category = "Anime Look"
-            area.tag_redraw()
-        print("ALD UI STEP 2: the sidebar panel is on the Anime Look category")
-        return 1.5
-    if index == 3:
-        shot(out_dir, "ui_sidebar.png")
-        print("ALD UI STEP 3: done")
-        return 1.0
-    if index == 4:
-        print("ALD UI QUIT")
-        bpy.ops.wm.quit_blender()
+    try:
+        if index == 1:
+            try:
+                bpy.ops.preferences.addon_enable(module=MODULE)
+            except Exception as exc:
+                print("ALD UI ENABLE FAILED", exc)
+            try:
+                bpy.ops.ald.fx_fireworks(count=3, age=0.8)
+                bpy.ops.ald.fx_meteors(count=4, age=0.6)
+            except Exception as exc:
+                print("ALD UI FX FAILED", exc)
+            window, area = find_area("PROPERTIES")
+            if area is not None:
+                area.spaces.active.context = "SCENE"
+                maximize(area)
+            print("ALD UI STEP 1: the Scene properties are maximised")
+            return STATE["wait"]
+        if index == 2:
+            shot(out_dir, "ui_properties.png")
+            window, area = find_area("PROPERTIES")
+            if area is not None:
+                scroll(area, 18)
+            print("ALD UI STEP 2: the properties were scrolled down")
+            return 1.0
+        if index == 3:
+            shot(out_dir, "ui_properties_lower.png")
+            window, area = find_area("PROPERTIES")
+            if area is not None:
+                scroll(area, -18)
+                # Toggle the full-area view off: the 3D view must exist again.
+                maximize(area)
+            window, area = find_area("VIEW_3D")
+            if area is not None:
+                area.spaces.active.show_region_ui = True
+                area.tag_redraw()
+            print("ALD UI STEP 3: the sidebar was opened")
+            return 1.5
+        if index == 4:
+            window, area = find_area("VIEW_3D")
+            if area is not None:
+                try:
+                    for region in area.regions:
+                        if region.type == "UI":
+                            region.active_panel_category = "Anime Look"
+                except Exception as exc:
+                    print("ALD UI SIDEBAR CATEGORY FAILED", exc)
+                area.tag_redraw()
+            shot(out_dir, "ui_sidebar.png")
+            print("ALD UI STEP 4: done")
+            return 1.0
+        if index == 5:
+            print("ALD UI QUIT")
+            bpy.ops.wm.quit_blender()
+            return None
+    except Exception as exc:
+        print("ALD UI STEP FAILED", index, exc)
+        bpy.app.timers.register(
+            lambda: bpy.ops.wm.quit_blender(), first_interval=1.0)
         return None
     return None
 

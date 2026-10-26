@@ -166,7 +166,17 @@ def main():
                               if radius > 1e-4])
     check("the components are alive at the burst",
           all(decays.values()) if decays else False, str(decays))
-    scene.frame_set(int(rise * 24) + int(2.8 * 24))
+    # The late frame comes from the real lifetime of the sparks, not from a
+    # fixed constant: the deterministic key changed the random spark lives.
+    sparks = burst["population"].get("sparks", [])
+    if sparks:
+        late_time = max(particle["birth"] + 0.5 * particle["life"]
+                        for particle in sparks)
+    else:
+        late_time = rise + 2.0
+    system = runtime.get("system") or scene.ald.fx_systems[0]
+    fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+    scene.frame_set(int(float(system.origin_frame) + late_time * fps))
     depsgraph = bpy.context.evaluated_depsgraph_get()
     late = {}
     for name, role in (("ALD FX GN Heads 0", "head"),

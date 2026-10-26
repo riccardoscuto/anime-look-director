@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.30.1 - 2026-10-26
+Verification pass after P3.
+
+### Fixed
+- **UI probe** — `region.active_panel_category` is read-only in Blender 5.1:
+  the probe now opens the sidebar first, sets the category when supported,
+  scrolls the Scene properties with `view2d.scroll_down`, restores the 3D view
+  before the sidebar shot and always quits. Screenshots in `preset_dev/ui/`.
+- **Milestone** — the "flash off / embers survive" check derives the late
+  frame from the real spark lifetimes instead of a fixed frame; 13/13 again.
+- **Smoke** — the volume is aligned with the ALD Sky/FX Anchor axis (Y-up and
+  X-up included), not only Z-up.
+- **FX panel** — a Visual Profile box exposes the system/event kind and the
+  sub-role energies (`ROLE_ENERGY`).
+
+### Added
+- **P0-P3 audit** — `preset_dev/audit_plan.py` checks the new plan against the
+  source and writes `preset_dev/audit_report.json`: 39/39 OK.
+- Look-dev sheets regenerated (palettes, FX sequence, families, milestone).
+
 ## 2.30.0 - 2026-10-26
 P3 of the operational plan: atmospheric smoke, aesthetic variants, directed
 shows and benchmarks.
