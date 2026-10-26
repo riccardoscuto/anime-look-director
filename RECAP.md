@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.30.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.30.1** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 

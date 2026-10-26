@@ -18,11 +18,12 @@ import tempfile
 
 import bpy
 import numpy as np
+from mathutils import Vector
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SEED = 11
-DISTANCE = 70.0
+DISTANCE = 35.0
 #: The burst happens at the end of the rise: the frame shows the expansion.
 FRAME = 44
 
@@ -119,10 +120,24 @@ def main():
     bpy.ops.ald.build()
 
     paths = []
+    rendered_frame = FRAME
     for family in fx_module.FAMILIES:
         fx_module.create_fireworks(scene, 1, seed=SEED, distance=DISTANCE,
                                    time=0.0, family=family)
-        scene.frame_set(FRAME)
+        # The stack must see the FX collection: build it after the creation,
+        # otherwise the FX-only layer excludes the new collection.
+        bpy.ops.ald.build()
+        # The frame comes from the event: the burst is 1.2 s old, when the
+        # shape of the family (expansion, droop, train) is readable.
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        rendered_frame = int(system.origin_frame
+                             + (event.birth + event.rise_time + 1.2) * fps)
+        scene.frame_set(rendered_frame)
+        scene.camera.rotation_euler = (Vector(event.target)
+                                       - scene.camera.location).to_track_quat(
+                                           "-Z", "Y").to_euler()
         bpy.context.view_layer.update()
         path = os.path.join(out_dir, "%s.png" % family.lower())
         scene.render.filepath = path
@@ -140,7 +155,7 @@ def main():
         "renderer": scene.render.engine,
         "resolution": [scene.render.resolution_x, scene.render.resolution_y],
         "fps": scene.render.fps,
-        "frame": FRAME,
+        "frame": rendered_frame,
         "view_transform": scene.view_settings.view_transform,
         "palette": scene.ald.palette,
         "seed": SEED,
