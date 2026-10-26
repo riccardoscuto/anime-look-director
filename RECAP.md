@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.33.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.34.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,15 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.34.0 — P4 composizione e spazialità
+
+- **Gerarchia di profondità corretta**: hero 1.0×, secondary 1.18×, distant
+  1.42× (prima 0.78× e 0.58×, cioè più vicini e più grandi).
+- **Show con spazio**: con più burst distanza ×1.4 e spread laterale ×1.3.
+- **Tempi**: il distant nasce a 0.55 s, quindi ha già esploso.
+- Evidenza in `preset_dev/composition/` (dusk 3, night 5, golden 3) con
+  `composition.json`; gate su profondità, tempi, dimensioni e posizioni.
 
 ## Novità 2.33.0 — P3 shading, palette e glow
 

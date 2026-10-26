@@ -1,6 +1,27 @@
 # Changelog
 
-## 2.33.0 - 2026-10-26
+## 2.34.0 - 2026-10-26
+P4 of the visual integration milestone: composition and spatiality.
+
+### Fixed
+- The depth hierarchy was inverted: the secondary and distant bursts sat at
+  0.78x and 0.58x the distance, so they were closer and appeared larger. They
+  now sit at 1.18x and 1.42x and read smaller.
+- The distant burst was born at 0.85 s and had not burst at the show age; the
+  stagger is 0.25 / 0.55 s.
+
+### Changed
+- A multi-burst show gets room: distance x1.4 and lateral spread x1.3, so the
+  tens-of-metres bursts do not overlap. A single burst keeps its framing.
+- Event sizes follow the depth hierarchy (1.0 / 0.9 / 0.8).
+
+### Evidence
+- `preset_dev/composition/`: three 1280x720 shows (dusk 3, night 5, golden 3)
+  with `composition.json` (birth, distance, apparent size, screen position).
+- Gate: depths strictly increasing, births staggered, sizes ordered, every
+  burst inside the frame, distinct screen positions.
+
+## 2.33.0 - 2026-10-26## 2.33.0 - 2026-10-26
 P3 of the visual integration milestone: shading, palette and glow.
 
 ### Fixed

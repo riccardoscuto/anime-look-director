@@ -2094,6 +2094,12 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
     offset = Vector(getattr(settings, "fx_composition_offset", (0.0, 0.0, 0.0))) \
         if settings else Vector((0.0, 0.0, 0.0))
     total = max(1, int(count))
+    if total > 1:
+        # A show needs room: the bursts are tens of metres wide, so the
+        # distance and the lateral spread grow with the count. A single burst
+        # keeps the requested framing.
+        distance *= 1.4
+        spread *= 1.3
     for index in range(total):
         event = system.events.add()
         event.uid = uuid.uuid4().hex
@@ -2106,14 +2112,17 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
         role = index % 3
         event.family = family if index == 0 else FAMILIES[(index - 1) %
                                                          len(FAMILIES)]
-        event.birth = 0.0 if index == 0 else (0.25 if role == 1 else 0.85)
+        event.birth = 0.0 if index == 0 else (0.25 if role == 1 else 0.55)
         config = FAMILY_CONFIG[event.family]
-        event.size = 1.0
+        event.size = (1.0, 0.9, 0.8)[role]
         event.spokes = config["spokes"]
         event.pistil = config["pistil"]
         event.sparks = config["sparks"]
-        family_distance = distance * (1.0 if index == 0 else
-                                      (0.78 if role == 1 else 0.58))
+        # Depth hierarchy: the secondary and distant bursts sit farther away,
+        # so they read smaller and the atmospheric fade dims them. The old
+        # factors (0.78, 0.58) brought them closer and made them larger.
+        depth = (1.0, 1.18, 1.42)[role]
+        family_distance = distance * depth
         center = _burst_center(origin, forward, up, right, index, total,
                                 family_distance * (0.85 + 0.25 *
                                                    _hash_unit(seed, index, 0, 1)),

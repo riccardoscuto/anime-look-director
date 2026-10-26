@@ -211,6 +211,18 @@ CHECKS = [
      and has("preset_dev/verify.py", "check_fx_p3_shading")[0]),
     ("VI-P3", "Tail falloff and sky-tinted FX palette",
      lambda: has("fx.py", "tail_u", "1.0, 0.35", "_sky_tinted_colors")),
+    # ---- Visual integration P4 (composition) -----------------------------
+    ("VI-P4", "Depth hierarchy: farther means smaller",
+     lambda: has("fx.py", "depth = (1.0, 1.18, 1.42)[role]",
+                 "event.size = (1.0, 0.9, 0.8)[role]")),
+    ("VI-P4", "A show grows its distance and lateral spread",
+     lambda: has("fx.py", "distance *= 1.4", "spread *= 1.3")),
+    ("VI-P4", "Every burst has exploded at the show age",
+     lambda: has("fx.py", "(0.25 if role == 1 else 0.55)")),
+    ("VI-P4", "Composition evidence and gate",
+     lambda: (exists("preset_dev/composition.py")[0]
+              and has("preset_dev/verify.py", "check_fx_composition")[0],
+              "preset_dev/composition/composition.json")),
 ]
 
 

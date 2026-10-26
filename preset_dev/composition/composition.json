@@ -1,0 +1,155 @@
+[
+  {
+    "palette": "TWILIGHT_DUSK",
+    "count": 3,
+    "age": 2.0,
+    "events": [
+      {
+        "index": 0,
+        "family": "CHRYSANTHEMUM",
+        "birth": 0.0,
+        "size": 1.0,
+        "distance": 132.03,
+        "screen": [
+          0.5,
+          0.5
+        ],
+        "in_frame": true
+      },
+      {
+        "index": 1,
+        "family": "CHRYSANTHEMUM",
+        "birth": 0.25,
+        "size": 0.9,
+        "distance": 154.42,
+        "screen": [
+          0.689,
+          0.667
+        ],
+        "in_frame": true
+      },
+      {
+        "index": 2,
+        "family": "PEONY",
+        "birth": 0.55,
+        "size": 0.8,
+        "distance": 190.15,
+        "screen": [
+          0.9,
+          0.51
+        ],
+        "in_frame": true
+      }
+    ]
+  },
+  {
+    "palette": "NEON_NIGHT",
+    "count": 5,
+    "age": 2.0,
+    "events": [
+      {
+        "index": 0,
+        "family": "CHRYSANTHEMUM",
+        "birth": 0.0,
+        "size": 1.0,
+        "distance": 132.72,
+        "screen": [
+          0.5,
+          0.5
+        ],
+        "in_frame": true
+      },
+      {
+        "index": 1,
+        "family": "CHRYSANTHEMUM",
+        "birth": 0.25,
+        "size": 0.9,
+        "distance": 155.08,
+        "screen": [
+          0.608,
+          0.658
+        ],
+        "in_frame": true
+      },
+      {
+        "index": 2,
+        "family": "PEONY",
+        "birth": 0.55,
+        "size": 0.8,
+        "distance": 187.89,
+        "screen": [
+          0.734,
+          0.496
+        ],
+        "in_frame": true
+      },
+      {
+        "index": 3,
+        "family": "WILLOW",
+        "birth": 0.55,
+        "size": 1.0,
+        "distance": 133.27,
+        "screen": [
+          0.862,
+          0.413
+        ],
+        "in_frame": true
+      },
+      {
+        "index": 4,
+        "family": "KAMURO",
+        "birth": 0.25,
+        "size": 0.9,
+        "distance": 152.1,
+        "screen": [
+          0.978,
+          0.644
+        ],
+        "in_frame": true
+      }
+    ]
+  },
+  {
+    "palette": "GOLDEN_HOUR",
+    "count": 3,
+    "age": 2.0,
+    "events": [
+      {
+        "index": 0,
+        "family": "CHRYSANTHEMUM",
+        "birth": 0.0,
+        "size": 1.0,
+        "distance": 132.03,
+        "screen": [
+          0.5,
+          0.5
+        ],
+        "in_frame": true
+      },
+      {
+        "index": 1,
+        "family": "CHRYSANTHEMUM",
+        "birth": 0.25,
+        "size": 0.9,
+        "distance": 154.42,
+        "screen": [
+          0.689,
+          0.667
+        ],
+        "in_frame": true
+      },
+      {
+        "index": 2,
+        "family": "PEONY",
+        "birth": 0.55,
+        "size": 0.8,
+        "distance": 190.15,
+        "screen": [
+          0.9,
+          0.51
+        ],
+        "in_frame": true
+      }
+    ]
+  }
+]

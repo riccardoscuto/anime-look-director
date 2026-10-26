@@ -299,10 +299,34 @@
       "label": "Tail falloff and sky-tinted FX palette",
       "phase": "VI-P3",
       "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Depth hierarchy: farther means smaller",
+      "phase": "VI-P4",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "A show grows its distance and lateral spread",
+      "phase": "VI-P4",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Every burst has exploded at the show age",
+      "phase": "VI-P4",
+      "state": "OK"
+    },
+    {
+      "evidence": "preset_dev/composition/composition.json",
+      "label": "Composition evidence and gate",
+      "phase": "VI-P4",
+      "state": "OK"
     }
   ],
   "partial": 0,
-  "passed": 50,
+  "passed": 54,
   "plan": "v2.27.0 P0-P3",
-  "total": 50
+  "total": 54
 }

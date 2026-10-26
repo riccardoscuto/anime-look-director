@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 33, 0)
+EXPECTED_VERSION = (2, 34, 0)
 TOLERANCE = 1e-4
 
 
@@ -3386,6 +3386,47 @@ def check_fx_p3_shading(scene):
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
+def check_fx_composition(scene):
+    """P4: the show has a real depth hierarchy and distinct screen positions."""
+    from anime_look_director import fx as fx_module
+    from bpy_extras.object_utils import world_to_camera_view
+    from mathutils import Vector
+
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    try:
+        scene.render.resolution_x = 800
+        scene.render.resolution_y = 450
+        fx_module.clear(scene)
+        count = fx_module.create_fireworks(scene, 3, seed=17, distance=95.0,
+                                           time=0.0)
+        check(count == 3, "the show did not create three bursts")
+        system = scene.ald.fx_systems[0]
+        events = [event for event in system.events if event.enabled]
+        check(len(events) == 3, "the show has the wrong number of events")
+        camera = scene.camera
+        distances = [(Vector(event.target) - camera.location).length
+                     for event in events]
+        check(distances[0] < distances[1] < distances[2],
+              "the burst depths are not hero < secondary < distant (%s)"
+              % [round(value, 1) for value in distances])
+        check(events[0].birth < events[1].birth < events[2].birth,
+              "the bursts are not staggered in time")
+        check(events[0].size >= events[1].size >= events[2].size,
+              "the burst sizes do not follow the depth hierarchy")
+        screens = []
+        for event in events:
+            projected = world_to_camera_view(scene, camera,
+                                             Vector(event.target))
+            check(0.0 <= projected.x <= 1.0 and 0.0 <= projected.y <= 1.0,
+                  "a burst is outside the camera frame")
+            screens.append((round(projected.x, 3), round(projected.y, 3)))
+        check(len(set(screens)) == len(screens),
+              "the bursts overlap on screen")
+    finally:
+        fx_module.clear(scene)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+
+
 def check_fx_identity(scene):
     """P0-D: with zero FX the recomposition is the identity."""
     from anime_look_director import fx as fx_module
@@ -3950,6 +3991,7 @@ def main():
         check_fx_p1_visibility(scene)
         check_fx_trail_width(scene)
         check_fx_p3_shading(scene)
+        check_fx_composition(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)

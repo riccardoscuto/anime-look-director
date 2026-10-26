@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.33.0**).
+  (currently **2.34.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -556,6 +556,17 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     rebuilt in place on the next creation;
   - T24 renders at 256x256: at 64x64 a meteor head at 15 m is sub-pixel and the
     old test was measuring the grey veil, not the meteor.
+- P4 rules (composition and spatiality, v2.34):
+  - the depth hierarchy is hero 1.0x, secondary 1.18x, distant 1.42x, with
+    sizes 1.0 / 0.9 / 0.8: farther means smaller, never closer and larger;
+  - a multi-burst show grows its room: `distance *= 1.4`, `spread *= 1.3` when
+    `count > 1`; a single burst keeps the requested framing;
+  - births are 0.0 / 0.25 / 0.55 s so every burst of the show has already
+    exploded at the show age;
+  - `preset_dev/composition.py` renders the three shows and records the depth,
+    the screen position and the frame membership in `composition.json`;
+  - the gate refuses a show whose depths, births or sizes are not ordered, or
+    whose bursts fall outside the frame or overlap on screen.
 - 2.25 rules:
   - `fx._scene_id` writes `settings.fx_uid` inside a `try/except`: the identity
     lives in `scene[ald_fx_id]` and the settings cache is best-effort only.
