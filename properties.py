@@ -241,11 +241,10 @@ def _on_clouds(self, context):
         if _in_maintenance(context):
             return
         scene = context.scene
-        # The amount is the silhouette threshold: it changes the geometry, so
-        # the layer is rebuilt. The colours are a cheap in-place update.
+        # refresh keeps the objects and the materials: only the geometry that
+        # changed is rebuilt, a colour change is in place.
         if clouds.exists(scene):
-            clouds.create(scene, float(scene.ald.clouds_amount),
-                          float(scene.ald.clouds_height))
+            clouds.refresh(scene)
         else:
             clouds.sync(scene)
     except Exception:
@@ -405,6 +404,22 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
     glow: FloatProperty(
         name="Glow", default=0.6, min=0.0, max=3.0,
         description="Glow profile of the event")
+
+
+class ALD_CloudLayer(bpy.types.PropertyGroup):
+    """One persistent spatial cloud card: identity and creation basis."""
+
+    uid: StringProperty(name="UID", default="")
+    index: IntProperty(name="Index", default=0, min=0, max=8)
+    seed: FloatProperty(name="Seed", default=1.0)
+    object_name: StringProperty(name="Object", default="")
+    origin: FloatVectorProperty(name="Origin", size=3, default=(0.0, 0.0, 0.0))
+    forward: FloatVectorProperty(name="Forward", size=3,
+                                 default=(0.0, 1.0, 0.0))
+    right: FloatVectorProperty(name="Right", size=3, default=(1.0, 0.0, 0.0))
+    axis: FloatVectorProperty(name="Axis", size=3, default=(0.0, 0.0, 1.0))
+    rotation: FloatVectorProperty(name="Rotation", size=3,
+                                  default=(0.0, 0.0, 0.0))
 
 
 class ALD_FX_System(bpy.types.PropertyGroup):
@@ -750,6 +765,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="Scene UID", default="",
         description="Stable identity of the scene for the FX ownership")
     fx_systems: CollectionProperty(type=ALD_FX_System)
+    cloud_layers: CollectionProperty(type=ALD_CloudLayer)
     fx_selected_system: IntProperty(
         name="Selected System", default=0, min=0, max=64,
         description="Index of the system edited in the panel")
@@ -860,17 +876,46 @@ class ALD_Settings(bpy.types.PropertyGroup):
     smoke_created: BoolProperty(
         name="Smoke Created", default=False,
         description="Whether the atmospheric smoke volume exists in the scene")
-    clouds_amount: FloatProperty(
-        name="Cloud Amount", default=0.6, min=0.0, max=1.0,
-        description="Coverage of the 2.5D cloud layer",
+    clouds_coverage: FloatProperty(
+        name="Spatial Coverage", default=0.5, min=0.0, max=1.0,
+        description="Coverage of the spatial cloud field (0 = no masses)",
         update=_on_clouds)
-    clouds_height: FloatProperty(
-        name="Cloud Height", default=0.35, min=0.0, max=1.5,
-        description="Altitude of the 2.5D cloud layer, relative to the distance",
+    clouds_altitude: FloatProperty(
+        name="Cloud Altitude", default=90.0, min=0.0, max=600.0,
+        description="Altitude of the first layer, in world units along the Anchor",
+        update=_on_clouds)
+    clouds_depth: FloatProperty(
+        name="Cloud Depth", default=180.0, min=20.0, max=900.0,
+        description="Distance of the first layer from the creation camera",
+        update=_on_clouds)
+    clouds_scale: FloatProperty(
+        name="Cloud Scale", default=1.0, min=0.2, max=4.0,
+        description="Width and height multiplier of the cloud cards",
+        update=_on_clouds)
+    clouds_layers: IntProperty(
+        name="Layer Count", default=3, min=1, max=5,
+        description="Number of spatial cloud layers at increasing depth",
+        update=_on_clouds)
+    clouds_mode: EnumProperty(
+        name="Camera Mode",
+        items=[("SHOT_LOCKED", "Shot Locked",
+                "The layer keeps the creation orientation"),
+               ("CAMERA_FACING", "Camera Facing",
+                "The layer follows the active camera orientation")],
+        default="SHOT_LOCKED",
+        description="How the layer reacts to camera moves",
+        update=_on_clouds)
+    clouds_flash: BoolProperty(
+        name="Flash Response", default=True,
+        description="Let nearby bursts light the cloud cards locally",
+        update=_on_clouds)
+    clouds_flash_strength: FloatProperty(
+        name="Flash Strength", default=1.0, min=0.0, max=5.0,
+        description="Strength of the local flash response",
         update=_on_clouds)
     clouds_created: BoolProperty(
         name="Clouds Created", default=False,
-        description="Whether the 2.5D cloud layer exists in the scene")
+        description="Whether the spatial cloud layer exists in the scene")
 
     # --- Shadow tint ----------------------------------------------------
     shadow_tint: BoolProperty(
@@ -999,7 +1044,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
                              update=_on_params)
 
 
-_classes = (ALD_FX_Event, ALD_FX_System, ALD_Settings)
+_classes = (ALD_CloudLayer, ALD_FX_Event, ALD_FX_System, ALD_Settings)
 
 
 def register():

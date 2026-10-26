@@ -697,7 +697,7 @@ class ALD_OT_smoke_create(bpy.types.Operator):
 
 class ALD_OT_clouds_create(bpy.types.Operator):
     bl_idname = "ald.clouds_create"
-    bl_label = "Create 2.5D Clouds"
+    bl_label = "Create Spatial Clouds"
     bl_description = ("Create layered cloud cards at several distances: real "
                       "geometry that occludes the FX behind it")
     bl_options = {"REGISTER", "UNDO"}
@@ -706,8 +706,7 @@ class ALD_OT_clouds_create(bpy.types.Operator):
         from . import clouds
         scene = context.scene
         settings = scene.ald
-        layers = clouds.create(scene, float(settings.clouds_amount),
-                               float(settings.clouds_height))
+        layers = clouds.create(scene)
         settings.clouds_created = True
         self.report({"INFO"},
                     "Anime Look Director: %d cloud layers created" % layers)
@@ -716,7 +715,7 @@ class ALD_OT_clouds_create(bpy.types.Operator):
 
 class ALD_OT_clouds_remove(bpy.types.Operator):
     bl_idname = "ald.clouds_remove"
-    bl_label = "Remove 2.5D Clouds"
+    bl_label = "Remove Spatial Clouds"
     bl_description = "Remove the 2.5D cloud layer"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -724,7 +723,7 @@ class ALD_OT_clouds_remove(bpy.types.Operator):
         from . import clouds
         clouds.remove(context.scene)
         context.scene.ald.clouds_created = False
-        self.report({"INFO"}, "Anime Look Director: 2.5D clouds removed")
+        self.report({"INFO"}, "Anime Look Director: spatial clouds removed")
         return {"FINISHED"}
 
 

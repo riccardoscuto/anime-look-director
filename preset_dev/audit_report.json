@@ -326,26 +326,68 @@
     },
     {
       "evidence": "",
-      "label": "Clouds are opaque geometry bands, not alpha",
-      "phase": "VI-P5",
+      "label": "Coverage is the density threshold and is monotonic",
+      "phase": "VI-SC",
       "state": "OK"
     },
     {
       "evidence": "",
-      "label": "Three depths, palette-synced, removed with the scene",
-      "phase": "VI-P5",
+      "label": "Altitude and depth are world units on the Anchor axis",
+      "phase": "VI-SC",
       "state": "OK"
     },
     {
       "evidence": "",
-      "label": "Cloud UI and operators in both surfaces",
-      "phase": "VI-P5",
+      "label": "Persistent layers and in-place updates",
+      "phase": "VI-SC",
       "state": "OK"
     },
     {
       "evidence": "",
-      "label": "Gate: a cloud in front hides the FX matte",
-      "phase": "VI-P5",
+      "label": "Islands with real sky openings, not a slab",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Shot Locked and Camera Facing",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Local flash response driven by event.glow",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Distinct UI and diagnostics",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Environment filters read the base layer",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Apparent widths follow camera and resolution",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Event colour receives the sky-tinted palette",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "preset_dev/clouds_baseline/metrics.json",
+      "label": "The slab/control defect is reproduced in the baseline",
+      "phase": "VI-SC",
       "state": "OK"
     },
     {
@@ -404,19 +446,13 @@
     },
     {
       "evidence": "",
-      "label": "The cloud band is a depth layer, not a wall",
-      "phase": "VI-ALL",
-      "state": "OK"
-    },
-    {
-      "evidence": "",
       "label": "Showcase foreground is scene content, not an add-on feature",
       "phase": "VI-ALL",
       "state": "OK"
     }
   ],
   "partial": 0,
-  "passed": 69,
+  "passed": 75,
   "plan": "v2.27.0 P0-P3",
-  "total": 69
+  "total": 75
 }

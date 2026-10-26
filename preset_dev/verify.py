@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 39, 0)
+EXPECTED_VERSION = (2, 40, 0)
 TOLERANCE = 1e-4
 
 
@@ -3306,6 +3306,30 @@ def check_fx_trail_width(scene):
                   and 2.0 * width / world_per_px
                   >= scene.ald.fx_trail_min_px * 0.99,
                   "the trail is below the minimum pixel width")
+            # The apparent width follows the resolution without a rebuild.
+            scene.render.resolution_x = 400
+            scene.render.resolution_y = 225
+            fx_module.refresh_widths(scene)
+            expected_low = fx_module._apparent_radius(
+                scene, center, 0.022, scene.ald.fx_trail_min_px,
+                scene.ald.fx_trail_max_px)
+            current = None
+            if trail.type == "CURVE":
+                current = float(trail.data.bevel_depth)
+            else:
+                from anime_look_director import fx_nodes
+                modifier = next((item for item in trail.modifiers
+                                 if item.type == "NODES" and item.node_group
+                                 and item.node_group.name
+                                 == fx_nodes.TRAIL_GROUP_NAME), None)
+                if modifier is not None:
+                    identifiers = fx_nodes._socket_ids(
+                        modifier.node_group, fx_nodes.TRAIL_SOCKET_DEFAULTS)
+                    current = float(modifier[identifiers["radius"]])
+            check(current is not None
+                  and abs(current - expected_low) <= 1e-4,
+                  "the apparent width does not follow the resolution "
+                  "(%s vs %s)" % (current, expected_low))
     finally:
         scene.ald.fx_gn_prototype = previous_gn
         fx_module.clear(scene)
@@ -3428,64 +3452,154 @@ def check_fx_composition(scene):
 
 
 def check_clouds(scene):
-    """P5: the cloud cards are opaque and hide the FX behind them."""
+    """Spatial Clouds 2.0: coverage, identity, anchor, camera, flash, occlusion."""
     from mathutils import Vector
     from anime_look_director import clouds as clouds_module
     from anime_look_director import fx as fx_module
 
     previous_size = (scene.render.resolution_x, scene.render.resolution_y)
     previous_gn = bool(scene.ald.fx_gn_prototype)
+    previous_axis = scene.ald.fx_anchor_axis
+    previous_clouds = (scene.ald.clouds_coverage, scene.ald.clouds_layers,
+                       scene.ald.clouds_altitude, scene.ald.clouds_depth,
+                       scene.ald.clouds_scale, scene.ald.clouds_mode,
+                       scene.ald.clouds_flash,
+                       scene.ald.clouds_flash_strength)
+
+    def polygons():
+        collection = clouds_module._collection(scene)
+        if collection is None:
+            return 0
+        return sum(len(obj.data.polygons) for obj in collection.objects
+                   if obj.type == "MESH")
+
     try:
-        scene.render.resolution_x = 256
-        scene.render.resolution_y = 256
+        scene.render.resolution_x = 320
+        scene.render.resolution_y = 180
         scene.ald.fx_gn_prototype = True
+        clouds_module.remove(scene)
+
+        # Coverage is the geometry, and it is monotonic.
+        scene.ald.clouds_coverage = 0.0
+        clouds_module.create(scene)
+        check(clouds_module.exists(scene), "the cloud layer was not created")
+        check(polygons() == 0, "Coverage 0 still builds cloud faces")
+        scene.ald.clouds_coverage = 0.5
+        clouds_module.refresh(scene)
+        low = polygons()
+        check(low > 0, "Coverage 0.5 builds no cloud")
+        scene.ald.clouds_coverage = 0.9
+        clouds_module.refresh(scene)
+        high = polygons()
+        check(high > low,
+              "Coverage is not monotonic (%d then %d)" % (low, high))
+
+        # A transform update keeps the objects and the mesh identity.
+        collection = clouds_module._collection(scene)
+        obj = next(item for item in collection.objects if item.type == "MESH")
+        pointer = obj.as_pointer()
+        mesh_pointer = obj.data.as_pointer()
+        faces = len(obj.data.polygons)
+        before = obj.location.z
+        scene.ald.clouds_depth = 240.0
+        clouds_module.refresh(scene)
+        check(obj.as_pointer() == pointer,
+              "a depth update replaced the cloud object")
+        check(obj.data.as_pointer() == mesh_pointer,
+              "a depth update rebuilt the cloud mesh")
+        check(len(obj.data.polygons) == faces,
+              "a depth update changed the silhouette")
+        scene.ald.clouds_altitude = 180.0
+        clouds_module.refresh(scene)
+        check(obj.location.z > before,
+              "the altitude does not move the layer up")
+
+        # The Anchor vertical drives the placement, not the camera up.
+        scene.ald.fx_anchor_axis = "Y"
+        clouds_module.create(scene)
+        first = clouds_module._layers(scene)[0]
+        placed = bpy.data.objects.get(first.object_name)
+        check(placed is not None and placed.location.y > 100.0,
+              "the Y-up Anchor does not drive the cloud altitude")
+        scene.ald.fx_anchor_axis = "Z"
+        clouds_module.create(scene)
+
+        # Camera Facing re-orients without moving the layer.
+        scene.ald.clouds_mode = "CAMERA_FACING"
+        clouds_module.refresh(scene)
+        placed = bpy.data.objects.get(
+            clouds_module._layers(scene)[0].object_name)
+        location = placed.location.copy()
+        rotation = tuple(placed.rotation_euler)
+        # A billboard faces the camera position: moving the camera changes the
+        # direction, rotating it in place does not.
+        scene.camera.location.x += 20.0
+        bpy.context.view_layer.update()
+        clouds_module.update_orientation(scene)
+        check(tuple(placed.rotation_euler) != rotation,
+              "Camera Facing does not follow the camera")
+        check((placed.location - location).length < 1e-4,
+              "Camera Facing moved the layer")
+
+        # Flash response: a burst inside the card lights it; disabling it
+        # clears the energy. event.glow is the driver.
         fx_module.clear(scene)
         clouds_module.remove(scene)
-        layers = clouds_module.create(scene, 0.7, 0.35)
-        check(layers == 3, "the cloud layer did not create three cards")
-        check(clouds_module.exists(scene), "the cloud collection is missing")
-        collection = clouds_module._collection(scene)
-        check(collection is not None
-              and len([obj for obj in collection.objects if obj.type == "MESH"])
-              == 3, "the cloud cards are missing")
-        for obj in collection.objects:
-            material = obj.active_material
-            check(material is not None, "a cloud card has no material")
-            if material is None:
-                continue
-            # The card is opaque: an Emission shader paints the sky gradient
-            # and the cloud. There is no alpha hole to see the FX through.
-            emission = next((node for node in material.node_tree.nodes
-                             if node.bl_idname == "ShaderNodeEmission"), None)
-            check(emission is not None,
-                  "a cloud card is not an opaque painted card")
-            check(material.node_tree.nodes.get("ALD | Cloud Light") is not None
-                  and material.node_tree.nodes.get("ALD | Cloud Shadow")
-                  is not None,
-                  "a cloud card does not paint the cloud colours")
-
-        # A card in front of the burst must zero the FX matte on the visible
-        # render: that is how the P1 path occludes the particles.
-        bpy.ops.ald.fx_fireworks(count=1, seed=5, distance=55.0, age=0.0)
+        scene.ald.clouds_coverage = 0.5
+        scene.ald.clouds_layers = 1
+        scene.ald.clouds_flash = True
+        fx_module.create_fireworks(scene, 1, seed=5, distance=55.0, time=0.0)
         bpy.ops.ald.build()
         system = scene.ald.fx_systems[0]
         event = system.events[0]
+        target = Vector(event.target)
+        origin = fx_module._camera_basis(scene)[0]
+        scene.ald.clouds_depth = max(20.0, (target - origin).length)
+        scene.ald.clouds_altitude = max(0.0, target.z)
+        clouds_module.create(scene)
         fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
         scene.frame_set(int(system.origin_frame
-                            + (event.birth + event.rise_time + 0.3) * fps))
+                            + (event.birth + event.rise_time + 0.2) * fps))
         bpy.context.view_layer.update()
-        camera = scene.camera
+        clouds_module.update_flash(scene)
+        energies = []
+        locals_ok = False
+        for item in clouds_module._collection(scene).objects:
+            material = item.active_material
+            if material is None:
+                continue
+            nodes = material.node_tree.nodes
+            energy = nodes["ALD | Flash Energy"].outputs[0].default_value
+            energies.append(energy)
+            if (abs(nodes["ALD | Flash X"].outputs[0].default_value) <= 0.6
+                    and abs(nodes["ALD | Flash Y"].outputs[0].default_value)
+                    <= 0.6):
+                locals_ok = True
+        check(energies and max(energies) > 0.05,
+              "the burst does not light the cloud (%s)" % energies)
+        check(locals_ok, "the flash is not projected inside the card")
+        scene.ald.clouds_flash = False
+        clouds_module.update_flash(scene)
+        cleared = [material.node_tree.nodes["ALD | Flash Energy"].outputs[
+            0].default_value
+            for material in (item.active_material
+                             for item in clouds_module._collection(scene).objects)
+            if material is not None]
+        check(max(cleared) < 1e-6, "disabling the flash leaves energy behind")
+
+        # Occlusion: a card in front of the burst zeroes the FX matte there.
+        scene.ald.clouds_flash = True
+        card = clouds_module._collection(scene).objects[0]
         origin, forward, _up, _right = fx_module._camera_basis(scene)
-        card = collection.objects[0]
         card.location = origin + forward * 20.0
         card.rotation_euler = (origin - card.location).to_track_quat(
             "Z", "Y").to_euler()
-        card.scale = (60.0, 60.0, 1.0)
+        card.scale = (80.0, 80.0, 1.0)
         bpy.context.view_layer.update()
-
         materials = [material.name for material in bpy.data.materials
                      if material.get("ald_fx_material") and material.users > 0]
-        group = bpy.data.node_groups.new("ALD Gate Clouds", "CompositorNodeTree")
+        group = bpy.data.node_groups.new("ALD Gate Clouds",
+                                         "CompositorNodeTree")
         group.interface.new_socket(name="Image", in_out="OUTPUT",
                                    socket_type="NodeSocketColor")
         rl = group.nodes.new("CompositorNodeRLayers")
@@ -3528,6 +3642,11 @@ def check_clouds(scene):
         clouds_module.remove(scene)
         fx_module.clear(scene)
         scene.ald.fx_gn_prototype = previous_gn
+        scene.ald.fx_anchor_axis = previous_axis
+        (scene.ald.clouds_coverage, scene.ald.clouds_layers,
+         scene.ald.clouds_altitude, scene.ald.clouds_depth,
+         scene.ald.clouds_scale, scene.ald.clouds_mode,
+         scene.ald.clouds_flash, scene.ald.clouds_flash_strength) = previous_clouds
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 

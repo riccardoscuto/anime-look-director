@@ -223,21 +223,42 @@ CHECKS = [
      lambda: (exists("preset_dev/composition.py")[0]
               and has("preset_dev/verify.py", "check_fx_composition")[0],
               "preset_dev/composition/composition.json")),
-    # ---- Visual integration P5 (2.5D clouds) -----------------------------
-    ("VI-P5", "Clouds are opaque geometry bands, not alpha",
-     lambda: has("clouds.py", "def _cloud_mesh", "top = 0.62", "wave",
-                 "ShaderNodeEmission")),
-    ("VI-P5", "Three depths, palette-synced, removed with the scene",
-     lambda: has("clouds.py", "DISTANCES = (160.0, 230.0, 320.0)",
-                 "def sync", "cloud_light")
-     and has("snapshot.py", "clouds_module.remove(scene)")[0]),
-    ("VI-P5", "Cloud UI and operators in both surfaces",
-     lambda: has("operators.py", "ald.clouds_create", "ald.clouds_remove")
-     and has("panels.py", '"2.5D Clouds"', "clouds_amount")[0]),
-    ("VI-P5", "Gate: a cloud in front hides the FX matte",
-     lambda: has("preset_dev/verify.py", "check_clouds",
-                 "the cloud does not hide the FX behind it")
-     and exists("preset_dev/clouds/clouds.json")[0]),
+    # ---- Spatial Clouds 2.0 (v2.40) --------------------------------------
+    ("VI-SC", "Coverage is the density threshold and is monotonic",
+     lambda: has("clouds.py", "def _cloud_mesh", "threshold = 1.0 - 1.1",
+                 "if coverage <= 0.001")
+     and has("preset_dev/verify.py", "Coverage 0 still builds")[0]),
+    ("VI-SC", "Altitude and depth are world units on the Anchor axis",
+     lambda: has("clouds.py", "clouds_altitude", "Vector(layer.axis)",
+                 "fx._anchor")),
+    ("VI-SC", "Persistent layers and in-place updates",
+     lambda: has("clouds.py", "def refresh", "ald_clouds_signature",
+                 "bpy.data.objects.get(layer.object_name)")
+     and has("properties.py", "cloud_layers: CollectionProperty")[0]),
+    ("VI-SC", "Islands with real sky openings, not a slab",
+     lambda: has("clouds.py", "def _field", "_field_grid", "_sample",
+                 "def _cloud_mesh")),
+    ("VI-SC", "Shot Locked and Camera Facing",
+     lambda: has("clouds.py", "SHOT_LOCKED", "CAMERA_FACING",
+                 "def update_orientation")),
+    ("VI-SC", "Local flash response driven by event.glow",
+     lambda: has("clouds.py", "def update_flash", "ALD | Flash Energy")
+     and has("fx.py", "event.glow")[0]),
+    ("VI-SC", "Distinct UI and diagnostics",
+     lambda: has("panels.py", '"Spatial Clouds"', "clouds_coverage",
+                 "diagnostics")),
+    ("VI-SC", "Environment filters read the base layer",
+     lambda: has("compositor.py", "environment_layers", "use_pass_normal",
+                 "_silhouette_mask(nodes, links, environment_layers")),
+    ("VI-SC", "Apparent widths follow camera and resolution",
+     lambda: has("fx.py", "def refresh_widths", "ald_fx_physical")
+     and has("cameras.py", "fx.refresh_widths(scene)")[0]),
+    ("VI-SC", "Event colour receives the sky-tinted palette",
+     lambda: has("fx.py", "colors=family_colors")),
+    ("VI-SC", "The slab/control defect is reproduced in the baseline",
+     lambda: (exists("preset_dev/clouds_baseline/metrics.json")[0]
+              and exists("preset_dev/clouds_baseline/h0.35_a0.00_oblique.png")[0],
+              "preset_dev/clouds_baseline/metrics.json")),
     # ---- Visual integration P6 (validation matrix) -----------------------
     ("VI-P6", "Matrix: 3 palettes x 4 families x 3 ages with metrics",
      lambda: has("preset_dev/validate_matrix.py", "PALETTES =",
@@ -257,7 +278,7 @@ CHECKS = [
      lambda: has("preset_dev/verify.py", "check_ui_parity(scene)",
                  "check_panel_icons()")),
     ("VI-UI", "The cloud panel icon exists in Blender 5.1",
-     lambda: has("panels.py", '"2.5D Clouds", icon="WORLD"')),
+     lambda: has("panels.py", '"Spatial Clouds", icon="WORLD"')),
     ("VI-UI", "UI probe resolves relative output against the add-on",
      lambda: has("preset_dev/ui_probe.py", "os.path.isabs(out)",
                  "os.path.join(ADDON_PATH, out)")),
@@ -271,9 +292,7 @@ CHECKS = [
               and exists("preset_dev/showcase/night_5_bursts.png")[0]
               and exists("preset_dev/showcase/dusk_3_bursts.png")[0],
               "preset_dev/showcase/showcase.json")),
-    ("VI-ALL", "The cloud band is a depth layer, not a wall",
-     lambda: has("clouds.py", "card_height = depth * 0.30",
-                 "0.30 + height * 0.18")),
+
     ("VI-ALL", "Showcase foreground is scene content, not an add-on feature",
      lambda: has("preset_dev/showcase.py", "def add_foreground",
                  "(0.004, 0.004, 0.008")),
