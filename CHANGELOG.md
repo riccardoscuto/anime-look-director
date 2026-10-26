@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.46.3 - 2026-10-26
+Safe removal on duplicated scenes.
+
+### Fixed
+- `ald.remove_from_scene` and `ald.detach` repair a duplicated scene before
+  acting: removing ALD through a copy no longer restores the shared materials.
+- `snapshot.restore` never rewrites a world shared with another scene, and
+  never modifies or removes a sun linked into another scene: the operator
+  reports that the shared world was left unchanged instead of silently
+  changing the original.
+- The duplicate fixture removes ALD from a copy and checks that the original's
+  clouds, FX, materials, material nodes and world are untouched.
+
 ## 2.46.2 - 2026-10-26
 Automatic ownership repair on Build and Apply Palette.
 

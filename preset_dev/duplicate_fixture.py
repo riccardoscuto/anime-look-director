@@ -104,6 +104,52 @@ def main():
             fx.clear(automatic)
             bpy.data.scenes.remove(automatic)
 
+    # Removing ALD from a copy must not touch the original's data or world.
+    removal = scene.copy()
+    world = scene.world
+    world_nodes = len(world.node_tree.nodes) if world and world.use_nodes else 0
+    original_materials = {}
+    for obj in scene.objects:
+        data = obj.data
+        if data is None or not hasattr(data, "materials"):
+            continue
+        for material in data.materials:
+            if material is not None:
+                original_materials[material.as_pointer()] = (
+                    len(material.node_tree.nodes)
+                    if material.use_nodes and material.node_tree else 0)
+    try:
+        with bpy.context.temp_override(scene=removal):
+            bpy.ops.ald.remove_from_scene()
+
+        def scene_materials():
+            return [material for obj in scene.objects
+                    if obj.data is not None
+                    and hasattr(obj.data, "materials")
+                    for material in obj.data.materials if material is not None]
+
+        check(clouds._collection(scene) is not None,
+              "removing ALD from the copy kept the original clouds")
+        check(len(original_fx.objects) == fx_count,
+              "removing ALD from the copy kept the original FX")
+        check(all(material.as_pointer() in original_materials
+                  for material in scene_materials()),
+              "removing ALD from the copy kept the original materials")
+        check(all((len(material.node_tree.nodes)
+                   if material.use_nodes and material.node_tree else 0)
+                  == original_materials[material.as_pointer()]
+                  for material in scene_materials()),
+              "removing ALD from the copy kept the original material nodes")
+        check(all(name in bpy.data.objects for name in cloud_names),
+              "removing ALD from the copy kept the original objects")
+        check(scene.world is world
+              and (not world.use_nodes
+                   or len(world.node_tree.nodes) == world_nodes),
+              "removing ALD from the copy kept the original world")
+    finally:
+        if bpy.data.scenes.get(removal.name) is not None:
+            bpy.data.scenes.remove(removal)
+
     bpy.data.scenes.remove(copy)
     clouds.remove(scene)
     fx.clear(scene)

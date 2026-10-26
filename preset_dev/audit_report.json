@@ -506,6 +506,12 @@
     },
     {
       "evidence": "",
+      "label": "Remove ALD on a duplicated scene is safe",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "One command runs gate, fixture and audit",
       "phase": "VI-SC",
       "state": "OK"
@@ -596,7 +602,7 @@
     }
   ],
   "partial": 0,
-  "passed": 99,
+  "passed": 100,
   "plan": "v2.27.0 P0-P3",
-  "total": 99
+  "total": 100
 }

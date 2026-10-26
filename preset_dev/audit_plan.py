@@ -313,6 +313,9 @@ CHECKS = [
      and has("panels.py", "fx_pass_state")[0]),
     ("VI-SC", "Build repairs a duplicated scene before modifying it",
      lambda: has("operators.py", "ownership.repair", "ald.build")),
+    ("VI-SC", "Remove ALD on a duplicated scene is safe",
+     lambda: has("operators.py", "ald.remove_from_scene", "ownership.repair")
+     and has("snapshot.py", "world_is_shared")[0]),
     ("VI-SC", "One command runs gate, fixture and audit",
      lambda: has("preset_dev/verify_all.py", "ALD ALL: PASS")
      and has("preset_dev/audit_plan.py",

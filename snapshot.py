@@ -129,6 +129,24 @@ def snapshot(scene):
         return {}
 
 
+def world_is_shared(scene):
+    """A world used by another scene is never restored here."""
+    world = scene.world
+    return world is not None and any(
+        other != scene and other.world is world for other in bpy.data.scenes)
+
+
+def _sun_is_shared(scene):
+    """A sun object linked into another scene must not be modified or removed."""
+    for obj in scene.objects:
+        if obj.type != "LIGHT" or obj.data is None or obj.data.type != "SUN":
+            continue
+        if any(other != scene and other.objects.get(obj.name) is obj
+               for other in bpy.data.scenes):
+            return True
+    return False
+
+
 def _restore_world(scene, state):
     world = scene.world
     if not state.get("has_world"):
@@ -324,9 +342,12 @@ def restore(scene):
         # The dedicated FX view layers and the transparent world.
         compositor_module.remove_fx_layers(scene)
         has_valid_snapshot = bool(state) and not _snapshot_contains_ald(state)
+        shared_world = world_is_shared(scene)
         if has_valid_snapshot:
-            _restore_world(scene, state.get("world", {}))
-            _restore_sun(scene, state.get("sun", {}))
+            if not shared_world:
+                _restore_world(scene, state.get("world", {}))
+            if not _sun_is_shared(scene):
+                _restore_sun(scene, state.get("sun", {}))
             _restore_compositor(scene, state.get("compositor", {}))
             _restore_view_layer(scene, state.get("view_layer", []))
         else:
@@ -334,7 +355,8 @@ def restore(scene):
             # applied). Remove the ALD taint from world and compositor so the
             # scene comes back to a neutral state, but never detach a user
             # compositor: only an ALD-owned stack may be removed.
-            _restore_neutral_world(scene)
+            if not shared_world:
+                _restore_neutral_world(scene)
             ng = scene.compositing_node_group
             if ng is not None and ng.get("ald_scene") is not None:
                 scene.compositing_node_group = None

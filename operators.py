@@ -330,12 +330,17 @@ class ALD_OT_remove_from_scene(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        from . import snapshot
+        from . import ownership, snapshot
         scene = context.scene
+        ownership.repair(scene)
         restored = snapshot.restore(scene)
+        shared_world = snapshot.world_is_shared(scene)
         if restored:
-            self.report({"INFO"},
-                        "Anime Look Director: the scene was restored")
+            text = "Anime Look Director: the scene was restored"
+            if shared_world:
+                text += (" (the world is shared with another scene: "
+                         "left unchanged)")
+            self.report({"INFO"}, text)
         else:
             self.report({"WARNING"},
                         "Anime Look Director: no original snapshot found. "
@@ -353,7 +358,8 @@ class ALD_OT_detach(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        from . import snapshot
+        from . import ownership, snapshot
+        ownership.repair(context.scene)
         snapshot.detach(context.scene)
         self.report({"INFO"},
                     "Anime Look Director: the look was kept and detached")

@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.46.2** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.46.3** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,16 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.46.3 — rimozione sicura sulle scene duplicate
+
+- **Remove ALD from Scene / Detach** riparano la copia prima di agire: la
+  rimozione non ripristina più i materiali condivisi dell'originale.
+- **World e sole condivisi**: `snapshot.restore` non riscrive un world usato da
+  un'altra scena e non modifica/rimuove un sole linkato altrove; l'operatore
+  avvisa che il world condiviso è stato lasciato com'è.
+- **Fixture**: rimuove ALD da una copia e verifica che nuvole, FX, materiali,
+  nodi dei materiali e world dell'originale restino intatti.
 
 ## Novità 2.46.2 — repair automatico alla prima azione
 

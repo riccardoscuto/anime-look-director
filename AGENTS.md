@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.46.2**).
+  (currently **2.46.3**).
 
 ## Verify (run after every change)
 ```powershell
@@ -831,11 +831,17 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     from the persistent data. When the collections were copied but the objects
     are shared it duplicates objects/meshes/materials instead;
   - the repair is exposed as `ald.repair_ownership` and the panel warns when the
-    scene shares ALD collections. `ald.build` and `ald.apply_palette` call
-    `ownership.repair` first, so a duplicated scene becomes independent on the
-    first action; the warning covers the window before it. The fixture
+    scene shares ALD collections. `ald.build`, `ald.apply_palette`,
+    `ald.remove_from_scene` and `ald.detach` call `ownership.repair` first, so a
+    duplicated scene becomes independent on the first action; the warning
+    covers the window before it. The fixture
     `preset_dev/duplicate_fixture.py` is the proof, not the multi-scene gate:
-    never assert the copy behaviour inside the gate's shared state.
+    never assert the copy behaviour inside the gate's shared state;
+  - `snapshot.restore` skips a world shared with another scene and a sun linked
+    into another scene: restoring them would change the original. The removal
+    reports the skipped world;
+  - the duplicate fixture also removes ALD from a copy and checks the original's
+    clouds, FX, materials, material nodes and world;
 - PA2 volume spike 2.45 rules:
   - the cards stay the default: a native EEVEE volume placed in the same layer
     is cheaper (1.1 s vs 2.1 s at 640x360) but reads as a soft rectangle with
