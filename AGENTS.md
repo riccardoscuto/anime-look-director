@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.46.7**).
+  (currently **2.47.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -588,8 +588,17 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the cards come from a deterministic density field (`_field` + `_field_grid`
     + `_sample`): domain warp, two fBm bands and a border envelope that makes
     any rectangle impossible. The geometry is islands with real sky openings;
+  - v2.47: the island boundary is cut with **marching squares**
+    (`_cell_rings`): the vertices sit on the iso-line, the mesh is triangulated
+    and manifold. Never keep or drop whole cells again: that produced the
+    10-20 px staircase at 1920;
   - `Clouds Coverage` is the threshold of that field: 0 builds no faces, 0.5 an
-    intermediate mass, 1 the densest. It is geometry, never only a colour;
+    intermediate mass, 1 the densest. It is geometry, never only a colour. The
+    v2.47 mapping is `0.98 - 1.02 * coverage` (clamped at 0): 0.9 and 1.0 are
+    different meshes, the top of the slider stays sensitive;
+  - the gate `check_cloud_contour` requires interpolated boundary vertices,
+    triangles only, no non-manifold edge and 1.0 denser than 0.9. It runs on
+    `_cloud_mesh` directly, so it does not depend on the scene;
   - `Cloud Altitude` is world units along the ALD Sky/FX Anchor axis;
     `Cloud Depth` is the distance from the creation camera; `Layer Count`
     adds bands at 1.45x depth steps. A taller band reads as a wall: the height
@@ -881,11 +890,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - `compositor.fx_pass_state(scene)` is the only source of the panel label:
     ready / stale / range / missing, with a real file check. A path that exists
     is not proof that it covers the current frame;
-  - `fx.pass_signature(scene)` hashes the systems/events, palette, backend,
-    style, age, camera pose, lens and resolution. A still stores one hash; a
-    sequence stores a `{frame: hash}` JSON map so an animated camera is judged
-    frame by frame. The current frame is excluded from the still hash and
-    handled by the range/state logic;
+  - `fx.pass_signature(scene)` hashes the scene UUID, the systems/events,
+    palette, backend, style, age, camera pose, lens and resolution. A still
+    stores one hash; a sequence stores a `{frame: hash}` JSON map so an animated
+    camera is judged frame by frame. The current frame is excluded from the still
+    hash and handled by the range/state logic;
   - the sequence map is the source of truth for a rendered range: never compare
     the whole map with one signature;
   - both pass operators rebuild the stack after rendering: the still path used

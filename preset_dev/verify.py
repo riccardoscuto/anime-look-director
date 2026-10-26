@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 46, 7)
+EXPECTED_VERSION = (2, 47, 0)
 TOLERANCE = 1e-4
 
 
@@ -3459,6 +3459,53 @@ def check_fx_composition(scene):
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
+def check_cloud_contour():
+    """C4: the island boundary is interpolated, not a mosaic of cells."""
+    from anime_look_director import clouds as clouds_module
+
+    def build(coverage):
+        return clouds_module._cloud_mesh("ALD Gate Contour", 3.7, coverage,
+                                        128, 32)
+
+    def stats(mesh):
+        edges = {}
+        for poly in mesh.polygons:
+            verts = list(poly.vertices)
+            for index, a in enumerate(verts):
+                b = verts[(index + 1) % len(verts)]
+                key = tuple(sorted((a, b)))
+                edges[key] = edges.get(key, 0) + 1
+        fractional = 0
+        for vertex in mesh.vertices:
+            x = vertex.co.x * 128
+            y = vertex.co.y * 32
+            if abs(x - round(x)) > 0.01 or abs(y - round(y)) > 0.01:
+                fractional += 1
+        return edges, fractional
+
+    meshes = []
+    try:
+        low = build(0.5)
+        meshes.append(low)
+        check(len(low.polygons) > 0, "the contour has no faces")
+        check(all(len(poly.vertices) == 3 for poly in low.polygons),
+              "the contour is not triangulated")
+        edges, fractional = stats(low)
+        check(fractional > 0, "the contour has no interpolated vertices")
+        check(max(edges.values()) <= 2, "the contour has non-manifold edges")
+        mid = build(0.9)
+        meshes.append(mid)
+        high = build(1.0)
+        meshes.append(high)
+        check(len(high.polygons) > len(mid.polygons),
+              "Coverage 0.9 and 1.0 saturate (%d and %d)"
+              % (len(mid.polygons), len(high.polygons)))
+    finally:
+        for mesh in meshes:
+            if mesh.users == 0:
+                bpy.data.meshes.remove(mesh)
+
+
 def check_clouds(scene):
     """Spatial Clouds 2.0: coverage, identity, anchor, camera, flash, occlusion."""
     from mathutils import Vector
@@ -4446,6 +4493,7 @@ def main():
         check_fx_p3_shading(scene)
         check_fx_composition(scene)
         check_clouds(scene)
+        check_cloud_contour()
         check_fx_pass_isolation(scene)
         check_fx_pass_sequence(scene)
         check_fx_identity(scene)

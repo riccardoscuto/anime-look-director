@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.46.7** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.47.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,17 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.47.0 — contorni continui delle nuvole spaziali
+
+- **Marching squares**: il bordo delle isole è tagliato sulla linea di
+  isovalore, non più su celle intere. Il mesh è triangolato e manifold; la
+  scaletta da 10-20 px a 1920 è sparita.
+- **Coverage sensibile in alto**: soglia `0.98 - 1.02 * coverage` (clamp a 0);
+  0.9 e 1.0 non sono più lo stesso mesh.
+- **Gate**: `check_cloud_contour` verifica vertici interpolati, solo triangoli,
+  nessun edge non-manifold e 1.0 più denso di 0.9.
+- **Evidenze**: `preset_dev/clouds/` rigenerato.
 
 ## Novità 2.46.7 — pacchetto installabile
 

@@ -506,6 +506,18 @@
     },
     {
       "evidence": "",
+      "label": "The pass signature is scoped to the scene",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Cloud islands use an interpolated contour",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The release package excludes the research evidence",
       "phase": "VI-SC",
       "state": "OK"
@@ -632,7 +644,7 @@
     }
   ],
   "partial": 0,
-  "passed": 105,
+  "passed": 107,
   "plan": "v2.27.0 P0-P3",
-  "total": 105
+  "total": 107
 }

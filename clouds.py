@@ -104,40 +104,138 @@ def _sample(grid, u, v, columns, rows):
     return a * (1 - fy) + b * fy
 
 
+def _edge_t(a, b, threshold):
+    """The interpolation parameter of the iso-line on an edge."""
+    if abs(b - a) < 1e-12:
+        return 0.5
+    return max(0.0, min(1.0, (threshold - a) / (b - a)))
+
+
+def _cell_rings(values, center, threshold):
+    """Marching-squares rings of one cell, in local corner/edge labels.
+
+    Corners: 0=(0,0), 1=(1,0), 2=(1,1), 3=(0,1). Edges: 4=(0-1),
+    5=(1-2), 6=(2-3), 7=(3-0). The rings are counter-clockwise. A saddle with
+    the center outside the iso-line yields two separate rings.
+    """
+    inside = [value > threshold for value in values]
+    case = sum(1 << index for index, flag in enumerate(inside) if flag)
+    if case == 0:
+        return []
+    if case == 15:
+        return [[0, 1, 2, 3]]
+    if case == 1:
+        return [[0, 4, 7]]
+    if case == 2:
+        return [[1, 5, 4]]
+    if case == 3:
+        return [[0, 1, 5, 4]]
+    if case == 4:
+        return [[2, 6, 5]]
+    if case == 5:
+        if center > threshold:
+            return [[0, 4, 5, 2, 6, 7]]
+        return [[0, 4, 7], [2, 6, 5]]
+    if case == 6:
+        return [[1, 2, 6, 4]]
+    if case == 7:
+        return [[0, 1, 2, 6, 7]]
+    if case == 8:
+        return [[3, 7, 6]]
+    if case == 9:
+        return [[0, 4, 6, 3]]
+    if case == 10:
+        if center > threshold:
+            return [[1, 5, 6, 3, 7, 4]]
+        return [[1, 5, 4], [3, 7, 6]]
+    if case == 11:
+        return [[0, 1, 5, 6, 3]]
+    if case == 12:
+        return [[7, 3, 2, 5]]
+    if case == 13:
+        return [[0, 4, 5, 2, 3]]
+    return [[4, 1, 2, 3, 7]]
+
+
 def _cloud_mesh(name, seed, coverage, columns, rows):
-    """Islands of the density field above the coverage threshold."""
+    """Islands above the threshold, cut by an interpolated iso-line.
+
+    The old mesh kept or dropped whole cells, so every island had a
+    stair-stepped silhouette. Marching squares puts the boundary vertices on
+    the iso-line, sub-cell; the mesh stays flat and opaque for Cryptomatte and
+    depth.
+    """
     mesh = bpy.data.meshes.new(name)
     mesh[TAG] = True
     if coverage <= 0.001:
         return mesh
-    threshold = max(0.02, 0.98 - 1.1 * max(0.0, min(1.0, coverage)))
+    # 0.9 and 1.0 used to share the same clamp: the last slider step did
+    # nothing. The mapping keeps the top range sensitive.
+    threshold = max(0.0, 0.98 - 1.02 * max(0.0, min(1.0, coverage)))
     coarse = 96
     coarse_rows = 28
     grid = _field_grid(seed, coarse, coarse_rows)
+    values = [[_sample(grid, column / columns - 0.5, row / rows - 0.5,
+                       coarse, coarse_rows)
+               for column in range(columns + 1)]
+              for row in range(rows + 1)]
     verts = []
     index_of = {}
     faces = []
+
+    def corner(column, row):
+        key = ("c", column, row)
+        index = index_of.get(key)
+        if index is None:
+            index = len(verts)
+            index_of[key] = index
+            verts.append((column / columns - 0.5, row / rows - 0.5, 0.0))
+        return index
+
+    def edge(kind, column, row, t):
+        key = (kind, column, row)
+        index = index_of.get(key)
+        if index is None:
+            index = len(verts)
+            index_of[key] = index
+            if kind == "h":
+                verts.append(((column + t) / columns - 0.5,
+                              row / rows - 0.5, 0.0))
+            else:
+                verts.append((column / columns - 0.5,
+                              (row + t) / rows - 0.5, 0.0))
+        return index
+
     for row in range(rows):
-        v0 = row / rows - 0.5
-        v1 = (row + 1) / rows - 0.5
         for column in range(columns):
-            u0 = column / columns - 0.5
-            u1 = (column + 1) / columns - 0.5
-            density = _sample(grid, (u0 + u1) * 0.5, (v0 + v1) * 0.5,
-                              coarse, coarse_rows)
-            if density <= threshold:
+            v0 = values[row][column]
+            v1 = values[row][column + 1]
+            v2 = values[row + 1][column + 1]
+            v3 = values[row + 1][column]
+            center = _sample(grid, (column + 0.5) / columns - 0.5,
+                             (row + 0.5) / rows - 0.5, coarse, coarse_rows)
+            rings = _cell_rings((v0, v1, v2, v3), center, threshold)
+            if not rings:
                 continue
-            corners = ((u0, v0), (u1, v0), (u1, v1), (u0, v1))
-            face = []
-            for corner in corners:
-                key = (round(corner[0] * 100000), round(corner[1] * 100000))
-                index = index_of.get(key)
-                if index is None:
-                    index = len(verts)
-                    index_of[key] = index
-                    verts.append((corner[0], corner[1], 0.0))
-                face.append(index)
-            faces.append(tuple(face))
+            t0 = _edge_t(v0, v1, threshold)
+            t1 = _edge_t(v1, v2, threshold)
+            t2 = _edge_t(v2, v3, threshold)
+            t3 = _edge_t(v3, v0, threshold)
+            local = {
+                0: corner(column, row),
+                1: corner(column + 1, row),
+                2: corner(column + 1, row + 1),
+                3: corner(column, row + 1),
+                4: edge("h", column, row, t0),
+                5: edge("v", column + 1, row, t1),
+                6: edge("h", column, row + 1, 1.0 - t2),
+                7: edge("v", column, row, 1.0 - t3),
+            }
+            for ring in rings:
+                polygon = [local[label] for label in ring]
+                for index in range(1, len(polygon) - 1):
+                    faces.append((polygon[0], polygon[index],
+                                  polygon[index + 1]))
     if verts:
         mesh.from_pydata(verts, [], faces)
         mesh.update()

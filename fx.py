@@ -963,6 +963,7 @@ def pass_signature(scene):
             "ortho": round(float(camera.data.ortho_scale), 3),
         })
     data = {
+        "scene": _scene_id(scene),
         "palette": scene.get("ald_effective_palette") or settings.palette,
         "backend": settings.fx_backend,
         "style": settings.fx_style,

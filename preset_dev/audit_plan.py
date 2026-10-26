@@ -256,7 +256,7 @@ CHECKS = [
     ("VI-SC", "Event colour receives the sky-tinted palette",
      lambda: has("fx.py", "colors=family_colors")),
     ("VI-SC", "Coverage 1 keeps the border empty (strict threshold)",
-     lambda: has("clouds.py", "density <= threshold", "max(0.02")),
+     lambda: has("clouds.py", "0.98 - 1.02", "value > threshold")),
     ("VI-SC", "Shot Locked stores the creation rotation once",
      lambda: has("clouds.py", "rotation_valid", "current_rotation",
                  "layer.rotation = tuple(facing)")),
@@ -313,6 +313,11 @@ CHECKS = [
      and has("panels.py", "fx_pass_state")[0]),
     ("VI-SC", "Build repairs a duplicated scene before modifying it",
      lambda: has("operators.py", "ownership.repair", "ald.build")),
+    ("VI-SC", "The pass signature is scoped to the scene",
+     lambda: has("fx.py", "\"scene\": _scene_id(scene)")),
+    ("VI-SC", "Cloud islands use an interpolated contour",
+     lambda: has("clouds.py", "def _cell_rings", "iso-line")
+     and has("preset_dev/verify.py", "check_cloud_contour")[0]),
     ("VI-SC", "The release package excludes the research evidence",
      lambda: exists("LICENSE")[0]
      and has("blender_manifest.toml", "paths_exclude_pattern", "preset_dev/")

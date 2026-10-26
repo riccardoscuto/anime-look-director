@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.47.0 - 2026-10-26
+Continuous spatial-cloud contours.
+
+### Changed
+- `clouds._cloud_mesh` cuts the islands with **marching squares**: the boundary
+  vertices sit on the interpolated iso-line, the mesh is triangulated and
+  manifold, and the 10-20 px staircase at 1920 is gone. The field, the seed and
+  the persistent layers are unchanged.
+- The Coverage threshold is `0.98 - 1.02 * coverage` (clamped at 0): 0.9 and 1.0
+  no longer produce the same mesh, so the top of the slider stays sensitive.
+- `fx.pass_signature` includes the scene UUID: a pass copied from another scene
+  is rejected as outdated, even when the FX systems and the camera match.
+
+### Added
+- The gate `check_cloud_contour` requires interpolated boundary vertices,
+  triangles only, no non-manifold edge, and 1.0 denser than 0.9. It tests
+  `_cloud_mesh` directly, no scene needed.
+
+### Evidence
+- `preset_dev/clouds/` regenerated (dusk off/on, night on); the cloud benchmark
+  is regenerated from the same build: one layer 1,840 / 14,086 / 41,110 /
+  46,784 faces at 0.16 / 0.5 / 0.9 / 1.0, five layers up to 258,876;
+  creation 0.10-1.44 s, render 1.96-4.18 s at 720p.
+- The new counts are **triangles**; the 2.44 benchmark counted quads. Do not
+  compare the two series directly.
+
 ## 2.46.7 - 2026-10-26
 Installable extension package.
 
