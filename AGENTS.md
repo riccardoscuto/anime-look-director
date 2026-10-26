@@ -852,6 +852,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the cards stay the default: a native EEVEE volume placed in the same layer
     is cheaper (1.1 s vs 2.1 s at 640x360) but reads as a soft rectangle with
     hard edges and no anime silhouette;
+  - the shaped variants (faded border, noise threshold, emission 0.15) do not
+    change the conclusion: below the readable density the cloud disappears,
+    above it the box returns, and the emission turns it into a cream box;
   - a volume backend needs a shaped density field, a volume shading/contour
     model and its own environment-compositing path before it is comparable;
   - `preset_dev/pa2_volume_spike.py` regenerates the evidence; no PA2 asset or

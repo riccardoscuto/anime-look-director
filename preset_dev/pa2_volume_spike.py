@@ -26,6 +26,7 @@ import baseline_fx
 
 OUT = os.path.join(HERE, "pa2_volume_spike")
 DENSITIES = (0.02, 0.06, 0.15)
+SHAPED = ((0.04, 0.0), (0.08, 0.0), (0.08, 0.15))
 
 
 def main():
@@ -91,9 +92,105 @@ def main():
         shot("volume_%.2f.png" % density)
         bpy.data.objects.remove(cube, do_unlink=True)
 
+    # C. shaped volumes: faded borders, noise density and optional emission.
+    for density, emission in SHAPED:
+        bpy.ops.mesh.primitive_cube_add(size=1.0)
+        cube = bpy.context.object
+        cube.name = "PA2 Volume Shaped"
+        cube.rotation_euler = facing
+        cube.location = location
+        cube.scale = (width, height, height * 0.2)
+        cube.data.materials.append(
+            _shaped_volume_material(values, density, emission))
+        bpy.context.view_layer.update()
+        name = "volume_shaped_%03d%s.png" % (
+            int(round(density * 1000)), "_glow" if emission else "")
+        shot(name)
+        bpy.data.objects.remove(cube, do_unlink=True)
+
     with open(os.path.join(OUT, "metrics.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
     return 0
+
+
+def _shaped_volume_material(values, density, emission):
+    """A volume with a faded border and a noise-thresholded density."""
+    material = bpy.data.materials.new("PA2 Volume Shaped")
+    material.use_nodes = True
+    tree = material.node_tree
+    tree.nodes.clear()
+    nodes = tree.nodes
+    links = tree.links
+    output = nodes.new("ShaderNodeOutputMaterial")
+    output.location = (700, 0)
+    volume = nodes.new("ShaderNodeVolumePrincipled")
+    volume.location = (400, 0)
+    volume.inputs["Anisotropy"].default_value = 0.25
+    coordinates = nodes.new("ShaderNodeTexCoord")
+    coordinates.location = (-900, 0)
+    absolute = nodes.new("ShaderNodeVectorMath")
+    absolute.operation = "ABSOLUTE"
+    absolute.location = (-700, 0)
+    links.new(coordinates.outputs["Object"], absolute.inputs[0])
+    separate = nodes.new("ShaderNodeSeparateXYZ")
+    separate.location = (-520, 0)
+    links.new(absolute.outputs["Vector"], separate.inputs[0])
+    maximum = nodes.new("ShaderNodeMath")
+    maximum.operation = "MAXIMUM"
+    maximum.location = (-340, 120)
+    links.new(separate.outputs["X"], maximum.inputs[0])
+    links.new(separate.outputs["Y"], maximum.inputs[1])
+    last = nodes.new("ShaderNodeMath")
+    last.operation = "MAXIMUM"
+    last.location = (-180, 120)
+    links.new(maximum.outputs[0], last.inputs[0])
+    links.new(separate.outputs["Z"], last.inputs[1])
+    border = nodes.new("ShaderNodeMapRange")
+    border.location = (0, 120)
+    border.inputs["From Min"].default_value = 0.30
+    border.inputs["From Max"].default_value = 0.48
+    border.inputs["To Min"].default_value = 1.0
+    border.inputs["To Max"].default_value = 0.0
+    links.new(last.outputs[0], border.inputs["Value"])
+    noise = nodes.new("ShaderNodeTexNoise")
+    noise.location = (-340, -160)
+    noise.inputs["Scale"].default_value = 2.2
+    noise.inputs["Detail"].default_value = 6.0
+    noise.inputs["Roughness"].default_value = 0.62
+    links.new(coordinates.outputs["Object"], noise.inputs["Vector"])
+    macro = nodes.new("ShaderNodeMapRange")
+    macro.location = (-120, -160)
+    macro.inputs["From Min"].default_value = 0.38
+    macro.inputs["From Max"].default_value = 0.62
+    macro.inputs["To Min"].default_value = 0.0
+    macro.inputs["To Max"].default_value = 1.0
+    links.new(noise.outputs["Fac"], macro.inputs["Value"])
+    shape = nodes.new("ShaderNodeMath")
+    shape.operation = "MULTIPLY"
+    shape.location = (160, 40)
+    links.new(border.outputs["Result"], shape.inputs[0])
+    links.new(macro.outputs["Result"], shape.inputs[1])
+    density_node = nodes.new("ShaderNodeMath")
+    density_node.operation = "MULTIPLY"
+    density_node.location = (320, 40)
+    density_node.inputs[1].default_value = density
+    links.new(shape.outputs[0], density_node.inputs[0])
+    links.new(density_node.outputs[0], volume.inputs["Density"])
+
+    ramp = nodes.new("ShaderNodeValToRGB")
+    ramp.location = (0, -320)
+    ramp.color_ramp.elements[0].position = 0.25
+    ramp.color_ramp.elements[0].color = (*values["cloud_shadow"], 1.0)
+    ramp.color_ramp.elements[1].position = 0.75
+    ramp.color_ramp.elements[1].color = (*values["cloud_light"], 1.0)
+    links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
+    links.new(ramp.outputs["Color"], volume.inputs["Color"])
+    if emission:
+        volume.inputs["Emission Color"].default_value = (
+            *values["cloud_light"], 1.0)
+        volume.inputs["Emission Strength"].default_value = emission
+    links.new(volume.outputs["Volume"], output.inputs["Volume"])
+    return material
 
 
 def _volume_material(values, density):

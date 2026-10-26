@@ -171,10 +171,12 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
   La copia ha collezioni e oggetti distinti, l'originale resta intatto e
   rimuovere le nuvole della copia non tocca l'originale.
 - **Spike volume PA2** (`preset_dev/PA2_VOLUME_SPIKE.md`): stesso
-  posizionamento del primo layer di card, 640x360. Le card rendono in 2.07 s; il
-  volume nativo in 1.07–1.09 s ma appare come un rettangolo morbido con bordi
-  netti, senza sagoma anime. **Le card restano il default**, nessun backend è
-  cambiato e nessun asset PA2 è stato copiato.
+  posizionamento del primo layer di card, 640x360. Le card rendono in 2.2 s; il
+  volume nativo in 1.05–1.09 s ma appare come un rettangolo morbido con bordi
+  netti, senza sagoma anime. Le varianti con shaping (bordo sfumato, soglia
+  noise, emissione 0.15) non cambiano l'esito: sotto la densità leggibile la
+  nuvola sparisce, sopra torna il box. **Le card restano il default**, nessun
+  backend è cambiato e nessun asset PA2 è stato copiato.
 
 ## Novità 2.44.0 — benchmark nuvole e guardia scene
 
