@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.49.0**).
+  (currently **2.49.1**).
 
 ## Verify (run after every change)
 ```powershell
@@ -555,6 +555,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     points: heads, beads and sparks read `attribute_type = "INSTANCER"`, the
     trail tubes read `"GEOMETRY"`. The two sets are separate materials (the
     material key carries `|I`) and both are tagged `ald_fx_material`;
+  - v2.49.1: the material key carries the **scene UUID** and the material is
+    tagged `ald_fx_owner`; two scenes with the same palette never share a
+    mutable FX material. Old ownerless materials keep working; new creates are
+    per-scene;
   - the `Emission` pass is already weighted by the geometric coverage: a 1.5 px
     filament carries `A` of its radiance. `F` multiplies it by a **binary
     presence** (`matte > 0.001`); multiplying by the fractional matte squares

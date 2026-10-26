@@ -313,6 +313,10 @@ CHECKS = [
      and has("panels.py", "fx_pass_state")[0]),
     ("VI-SC", "Build repairs a duplicated scene before modifying it",
      lambda: has("operators.py", "ownership.repair", "ald.build")),
+    ("VI-SC", "FX materials are owned by the scene",
+     lambda: has("fx.py", "owner=owner", "ald_fx_owner")
+     and has("preset_dev/verify.py",
+             "fx materials are shared between scenes")[0]),
     ("VI-SC", "The show fit uses the solver reach and the 0.95 target",
      lambda: has("fx.py", "def _family_reach", "def _fit_show",
                  "target=0.95")),

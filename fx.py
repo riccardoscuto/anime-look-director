@@ -206,7 +206,7 @@ def _collection(scene):
 FX_SHADER = 2
 
 
-def _material(name, color, strength, instancer=False):
+def _material(name, color, strength, instancer=False, owner=""):
     """The material of the particles.
 
     The energy is read from an attribute. The type of the attribute was
@@ -216,8 +216,8 @@ def _material(name, color, strength, instancer=False):
     constant). The flag is kept for the experiments.
     """
     suffix = "|I" if instancer else ""
-    key = "%s%s|%.3f|%.3f|%.3f|%.2f" % (name, suffix, color[0], color[1],
-                                         color[2], strength)
+    key = "%s%s|%.3f|%.3f|%.3f|%.2f|%s" % (
+        name, suffix, color[0], color[1], color[2], strength, owner[:8])
     mat = bpy.data.materials.get(key)
     if mat is not None and int(mat.get("ald_fx_shader", 0)) == FX_SHADER:
         return mat
@@ -225,6 +225,8 @@ def _material(name, color, strength, instancer=False):
         mat = bpy.data.materials.new(key)
     mat["ald_fx_material"] = True
     mat["ald_fx_shader"] = FX_SHADER
+    if owner:
+        mat["ald_fx_owner"] = owner
     mat["ald_fx_base"] = list(color)
     mat.use_nodes = True
     tree = mat.node_tree
@@ -1461,13 +1463,14 @@ def _build_fireworks(scene, system):
         # the domain of its backend: the instances or the points.
         use_gn = bool(getattr(settings, "fx_gn_prototype", True)) if settings \
             else False
+        owner = _scene_id(scene)
         materials = [
             _material("ALD FX %s %d A" % (family_key, index), family_colors[0],
-                      6.0, instancer=False),
+                      6.0, instancer=False, owner=owner),
             _material("ALD FX %s %d B" % (family_key, index), family_colors[1],
-                      6.0, instancer=False),
+                      6.0, instancer=False, owner=owner),
             _material("ALD FX %s %d C" % (family_key, index), family_colors[2],
-                      6.0, instancer=False),
+                      6.0, instancer=False, owner=owner),
         ]
         # The instanced geometry (heads, beads, pistil, sparks) reads the
         # attributes from the instancer: it needs its own material set.
@@ -1475,11 +1478,11 @@ def _build_fireworks(scene, system):
         if use_gn:
             instancer_materials = [
                 _material("ALD FX %s %d A" % (family_key, index),
-                          family_colors[0], 6.0, instancer=True),
+                          family_colors[0], 6.0, instancer=True, owner=owner),
                 _material("ALD FX %s %d B" % (family_key, index),
-                          family_colors[1], 6.0, instancer=True),
+                          family_colors[1], 6.0, instancer=True, owner=owner),
                 _material("ALD FX %s %d C" % (family_key, index),
-                          family_colors[2], 6.0, instancer=True),
+                          family_colors[2], 6.0, instancer=True, owner=owner),
             ]
         trail_obj = None
         head_obj = None
@@ -1669,11 +1672,11 @@ def _build_fireworks(scene, system):
                 # backend: a GN failure must never leave an invisible event.
                 fallback_materials = [
                     _material("ALD FX %s %d A Py" % (family_key, index),
-                              family_colors[0], 6.0, instancer=False),
+                              family_colors[0], 6.0, instancer=False, owner=owner),
                     _material("ALD FX %s %d B Py" % (family_key, index),
-                              family_colors[1], 6.0, instancer=False),
+                              family_colors[1], 6.0, instancer=False, owner=owner),
                     _material("ALD FX %s %d C Py" % (family_key, index),
-                              family_colors[2], 6.0, instancer=False),
+                              family_colors[2], 6.0, instancer=False, owner=owner),
                 ]
                 python_objects = _build_python_objects(
                     scene, kind="fireworks", family_key=family_key, index=index,
@@ -1900,10 +1903,12 @@ def _build_meteors(scene, system):
         if settings else 0.32
     events = [event for event in system.events if event.enabled]
     total = max(1, len(events))
+    owner = _scene_id(scene)
     material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0,
-                         instancer=False)
-    instancer_material = _material("ALD FX Meteor", (0.85, 0.94, 1.0), 9.0,
-                                   instancer=True) if use_gn else material
+                         instancer=False, owner=owner)
+    instancer_material = _material(
+        "ALD FX Meteor", (0.85, 0.94, 1.0), 9.0,
+        instancer=True, owner=owner) if use_gn else material
     runtime = {"kind": "meteors", "count": total, "seed": int(system.seed),
                "distance": 0.0, "shower": Vector((1.0, 0.0, 0.0)),
                "origin": origin, "material": material, "gn": False,

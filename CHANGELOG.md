@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.49.1 - 2026-10-26
+Per-scene FX materials.
+
+### Fixed
+- `fx._material` includes the scene UUID in the material key and tags
+  `ald_fx_owner`: two scenes with the same palette no longer share a mutable
+  material, so retinting one cannot change the other. The gate creates two
+  owners and requires distinct materials.
+- Existing files with old, ownerless materials keep working; the next create
+  uses the per-owner material.
+
 ## 2.49.0 - 2026-10-26
 Solver-driven show framing and physical cloud light events.
 

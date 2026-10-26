@@ -506,6 +506,12 @@
     },
     {
       "evidence": "",
+      "label": "FX materials are owned by the scene",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The show fit uses the solver reach and the 0.95 target",
       "phase": "VI-SC",
       "state": "OK"
@@ -698,7 +704,7 @@
     }
   ],
   "partial": 0,
-  "passed": 116,
+  "passed": 117,
   "plan": "v2.27.0 P0-P3",
-  "total": 116
+  "total": 117
 }

@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 49, 0)
+EXPECTED_VERSION = (2, 49, 1)
 TOLERANCE = 1e-4
 
 
@@ -1637,6 +1637,15 @@ def check_fx(scene):
     other = bpy.data.scenes.new("ALD FX Gate B")
     fx_module.create_fireworks(scene, 2, seed=5, distance=30.0, time=0.6)
     fx_module.create_fireworks(other, 2, seed=5, distance=30.0, time=0.6)
+    owner_a = fx_module._material("ALD Gate Owner", (1.0, 0.0, 0.0), 1.0,
+                                  owner="a")
+    owner_b = fx_module._material("ALD Gate Owner", (1.0, 0.0, 0.0), 1.0,
+                                  owner="b")
+    check(owner_a is not owner_b,
+          "fx materials are shared between scenes")
+    for material in (owner_a, owner_b):
+        if material.users == 0:
+            bpy.data.materials.remove(material)
 
     signature = _fx_signature(scene)
     check(signature[0] > 0, "fx geometry not created")

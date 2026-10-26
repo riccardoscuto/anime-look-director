@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.49.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.49.1** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,14 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.49.1 — materiali FX per scena
+
+- **Chiave per owner**: `fx._material` include l'UUID della scena e tagga
+  `ald_fx_owner`; due scene con la stessa palette non condividono più un
+  materiale mutabile. Il gate crea due owner e richiede materiali distinti.
+- I file vecchi con materiali senza owner continuano a funzionare; la prima
+  creazione successiva usa il materiale per scena.
 
 ## Novità 2.49.0 — framing dal solver e luci fisiche
 
