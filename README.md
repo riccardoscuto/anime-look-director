@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.27.0)
+## What it does (v2.28.0)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -208,7 +208,12 @@ Expected output: `ALD GATE: PASS`.
   crashed with `'NoneType' object has no attribute 'data'` because the
   non-GN path stores trail/head/fragment objects per-event but the updater
   read them from the wrong place. Gate test T24 (three FX profiles at fixed
-  exposure) added (current)
+  exposure) added
+- v2.28.0 - P0 of the operational plan: safe FX operators (update by UID,
+  atomic compile, record/geometry coordinated), snapshot on every mutation
+  path with the REMOVED lifecycle state, real B/F/A FX isolation with
+  depth-based occlusion and zero-FX identity, read-only diagnostics with
+  explicit `UNKNOWN` (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

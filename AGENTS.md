@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.27.0**).
+  (currently **2.28.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -175,8 +175,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   the burst phase used by the handler and by the Update FX operator.
 - FX 2.5 rules: every burst also grows a smaller, slower inner pistil
   population with its own colour. The FX panel lists the systems of the scene
-  and clears them per kind. FX occlusion relies on the depth tested emission
-  pass: `ALD | FX Restore` must stay driven by `ALD | FX Mask`.
+  and clears them per kind. FX occlusion compares the environment depth (base
+  layer) with the FX depth: an occluder in front of a particle zeroes its
+  coverage (`ALD | FX Occlusion` → `ALD | FX Visible Coverage`).
 - FX 2.6 rules: trails use 16 samples per star with per-grain jitter and
   brightness variation. Meteors emit burning fragments and keep a persistent
   train after the head dies. `fx_burst_spread` and `fx_composition_offset`
@@ -411,11 +412,13 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the compositor FX isolation uses **two** view layers (`ALD FX Base` and
     `ALD FX Only`), not one. `ALD FX Base` excludes the FX collection (B:
     clean environment), `ALD FX Only` includes only it (F: visible FX
-    colour). A is derived from F's luminance via `RGBToBW`;
+    colour). A is `max(R, G, B)` of F clamped to 0..1, minus the occluded
+    part (environment depth closer than the FX depth);
   - `ALD | FX Contribution` is a MIX between B and F driven by A, with two
-    `CompositorNodeRLayers` inputs;
-  - `ALD | FX Restore` adds F to Painted_B (Factor driven by `ALD |
-    FX Contribution`); `ALD | FX Glow` blooms F only;
+    `CompositorNodeRLayers` inputs (it drives the mask);
+  - `ALD | FX Restore` is an ADD of the premultiplied F on the punched-out
+    Painted_B with **Factor 1**: it never scales F by an image. `ALD | FX
+    Glow` blooms F only;
   - trails write the `energy` attribute via Geometry domain (the
     ShaderNodeAttribute reads Geometry, not Instancer);
   - the gravity of the scene reaches every solver: position, velocity, shell
@@ -462,14 +465,18 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   factor so the sky/stars are never smeared by the painterly filter.
 - FX compositing: **C = (1-A)*Painted_B + F + Glare(F)**. B is rendered from
   `ALD FX Base` (FX collection excluded), F from `ALD FX Only` (only the FX
-  collection visible), A is the FX coverage derived from F's luminance. The
+  collection visible), A is the FX coverage measured as `max(R, G, B)` of F
+  against the black world override, clamped to 0..1 and multiplied by the
+  visible part (`ALD | FX Occlusion` / `ALD | FX Visible Coverage`). The
   painterly filters run on B so FX cores are never smeared. `ALD | FX Restore`
-  adds F back to Painted_B (Factor driven by `ALD | FX Contribution`); `ALD |
-  FX Glow` blooms F only. Never tint FX with the sun halation colour.
+  is an ADD with Factor 1 (F is premultiplied: never scale it by an image);
+  `ALD | FX Glow` blooms F only. Never tint FX with the sun halation colour.
 - The FX layer uses two view layers: `ALD FX Base` and `ALD FX Only`. The main
   view layer keeps all passes for painterly/light wrap/ink/haze.
 - `ALD | FX Contribution` uses two `CompositorNodeRLayers` inputs (B and F).
 - `ALD | FX Mask` is `RGBToBW` of `ALD | FX Contribution`.
+- `ALD | FX Painted Punch` is the `Painted_B * (1-A)` MIX: its Factor is the
+  visible coverage. `ALD | FX Restore` adds F on top of it.
 - `_sample_cloud_density()` returns `(rho, envelope, warped_pos)`. Rho is
   Perlin-Worley: macro `Detail 5.5/Roughness 0.56` weighted 0.62, plus
   `(0.22 billow + 0.16 Voronoi puff)` gated by a macro envelope

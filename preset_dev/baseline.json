@@ -1,0 +1,62 @@
+{
+  "blender": "5.1.2",
+  "flows": {
+    "create": {
+      "objects": 14,
+      "records": 1,
+      "uid": "556e37007c2d46eaa48ba7a1293e772d"
+    },
+    "duplicate": {
+      "objects": 14,
+      "records": 2,
+      "uid_changed": true
+    },
+    "remove": {
+      "objects_of_kept": 14,
+      "objects_of_removed": 0,
+      "records": 1
+    },
+    "update": {
+      "objects": 14,
+      "records": 1,
+      "uid_kept": true
+    }
+  },
+  "hashes": {
+    "__init__.py": "a5cfde29ed417051ae4b4bbfa9be5349b5dbfa47080ac4b6ea75a09deec8b459",
+    "cameras.py": "aae11e5edd9964d5c14d17f58fbc0160d518089b6b3646111fdf133ae466e689",
+    "compositor.py": "5441da7b8b5fca1fccbe5d00e3c4fbbf54ea907418899d3728eca5d2474788d1",
+    "diagnostics.py": "ff7ada620f72602f56447713d4f1045f99ed03f1a6b0a018f606a67892de90b9",
+    "fx.py": "25d95b62e3bcf6aa96338a11035ba3d80376fca60f4abb0c81d0dfb5e2baeef3",
+    "fx_nodes.py": "0cd61bd2c85203a46ac46419b25e155f482e97e83c8a8f8679615f91a1e1c850",
+    "look.py": "b98706828f2e2fd8d590e809b1f37eb7d66a0072f4da904a2236705cb211dbbd",
+    "materials.py": "2ce0907765a38feb088c9195209f5efba5b7c166442ee0f6777f89ad3ab251a2",
+    "operators.py": "54bc97183c48c170204ec8a626c306607564043144aa11f35d7b92667256e10d",
+    "palette.py": "c3f227847d57e28f4559ba4cc86bb6d7ea4d18e7bcff32674591a07966a60a92",
+    "panels.py": "2c6ecb8bd3937173b96427bc7848d1bfd887be2921bdc4603d115d6b3f4e76a6",
+    "properties.py": "b98920e8cb74debe109446a0a9b4d4e42b540a709ae439a8abe6f3c262d703ec",
+    "shots.py": "9c7872431a0d9a22aed64c2de4cd279d4462774c5106302500ac84878b7ad4bd",
+    "snapshot.py": "0ec75d0da1132621ab4fee9cc65a17daf6fa8e751551f1df544349ce3f497c80"
+  },
+  "schemas": {
+    "collection": null,
+    "data_schema": 1,
+    "group_schema": 3,
+    "groups": {
+      "ALD | FX Burst GN": {
+        "ald_schema": 3,
+        "exists": true
+      },
+      "ALD | FX Trail GN": {
+        "ald_schema": 3,
+        "exists": true
+      }
+    }
+  },
+  "version": [
+    2,
+    28,
+    0
+  ],
+  "version_text": "2.28.0"
+}

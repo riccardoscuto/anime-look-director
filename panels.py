@@ -458,8 +458,9 @@ def draw_fx_diagnostics(layout, context):
         # Fallback: read-only event_state (no depsgraph evaluation).
         state = diagnostics.event_state(context.scene, system, event)
     row = box.row(align=True)
-    row.label(text=state["state"], icon="CHECKMARK" if state["state"] == "OK"
-              else "ERROR")
+    icon = {"OK": "CHECKMARK", "UNKNOWN": "INFO"}.get(state["state"],
+                                                       "ERROR")
+    row.label(text=state["state"], icon=icon)
     if state["reason"]:
         box.label(text=state["reason"])
     col = box.column(align=True)

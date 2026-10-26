@@ -35,6 +35,11 @@ def is_inactive(scene):
     """True when the add-on must not touch the scene any more."""
     if is_maintenance(scene):
         return True
+    if scene.get(REMOVED_KEY):
+        # REMOVED blocks every automatic re-entry (frame handlers, camera
+        # handlers, depsgraph updates) until an explicit Apply/Build takes a
+        # new snapshot.
+        return True
     settings = getattr(scene, "ald", None)
     if settings is None:
         return False
@@ -255,11 +260,11 @@ def detach(scene):
     The world, the materials, the lights and the compositor stay as they are:
     only the live systems (the FX objects), the markers and the internal
     properties are removed, and the add-on is told to leave the scene alone.
+    The shadow tint of the materials is NOT cleared: Detach keeps the result.
     """
-    from . import fx, materials
+    from . import fx
 
     fx.clear(scene)
-    materials.clear_scene(scene)
     for marker in list(scene.timeline_markers):
         if marker.name.startswith("ALD"):
             scene.timeline_markers.remove(marker)
@@ -279,8 +284,12 @@ def _remove_orphans(scene, owner=None):
     if owner is None:
         owner = fx._scene_id(scene)
     for coll in list(bpy.data.collections):
-        if coll.get(fx.OWNER_KEY) == owner:
-            bpy.data.collections.remove(coll)
+        if coll.get(fx.OWNER_KEY) != owner:
+            continue
+        if fx._shared_with_other_scene(coll, scene):
+            # A collection linked into another scene is not ours to delete.
+            continue
+        bpy.data.collections.remove(coll)
     for mat in list(bpy.data.materials):
         if mat.get("ald_fx_material") and mat.users == 0:
             bpy.data.materials.remove(mat)
@@ -297,6 +306,7 @@ def restore(scene):
     is done and the limit is reported.
     """
     from . import fx, materials
+    from . import compositor as compositor_module
 
     state = snapshot(scene)
     owner = fx._scene_id(scene)
@@ -306,6 +316,8 @@ def restore(scene):
         fx.clear(scene)
         # The materials: the original base colour and emission come back.
         materials.clear_scene(scene)
+        # The dedicated FX view layers and the transparent world.
+        compositor_module.remove_fx_layers(scene)
         has_valid_snapshot = bool(state) and not _snapshot_contains_ald(state)
         if has_valid_snapshot:
             _restore_world(scene, state.get("world", {}))
@@ -314,11 +326,14 @@ def restore(scene):
             _restore_view_layer(scene, state.get("view_layer", []))
         else:
             # No valid snapshot (none, or one captured after ALD was already
-            # applied). Remove ALD taint from world and compositor so the
-            # scene comes back to a neutral state.
+            # applied). Remove the ALD taint from world and compositor so the
+            # scene comes back to a neutral state, but never detach a user
+            # compositor: only an ALD-owned stack may be removed.
             _restore_neutral_world(scene)
-            scene.compositing_node_group = None
-            scene.render.use_compositing = False
+            ng = scene.compositing_node_group
+            if ng is not None and ng.get("ald_scene") is not None:
+                scene.compositing_node_group = None
+                scene.render.use_compositing = False
             # Drop unused ALD node groups.
             for ng in list(bpy.data.node_groups):
                 if ng.get("ald_scene") is not None and ng.users == 0:

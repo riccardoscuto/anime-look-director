@@ -32,6 +32,7 @@ from . import fx as fx_module
 #: The states of an event, in the order of the diagnostic.
 STATES = (
     "OK",
+    "UNKNOWN",
     "NO_GEOMETRY",
     "DISABLED",
     "MISSING_ATTRIBUTE",
@@ -188,7 +189,7 @@ def event_state(scene, system, event):
     state = {
         "uid": event.uid,
         "kind": event.kind,
-        "state": "OK",
+        "state": "UNKNOWN",
         "reason": "",
         "objects": 0,
         "local_time": 0.0,
@@ -242,6 +243,12 @@ def event_state(scene, system, event):
         return state
     state["position"] = None
     state["projected"] = None
+    # The read-only pass cannot prove that the event is visible: the
+    # projection needs the depsgraph. Report UNKNOWN, never OK, until the
+    # explicit Diagnose FX operator has evaluated it.
+    state["state"] = "UNKNOWN"
+    state["reason"] = ("the timing is valid; run Diagnose FX to verify the "
+                       "projection and the occlusion")
     return state
 
 
@@ -254,7 +261,7 @@ def diagnose_event(scene, system, event):
     """
     state = event_state(scene, system, event)
     # If the event passed all read-only checks, go deeper: evaluate position.
-    if state["state"] == "OK":
+    if state["state"] == "UNKNOWN":
         objects = _objects_of_event(scene, event.uid)
         position = _head_position(scene, objects)
         if position is not None:
@@ -271,6 +278,11 @@ def diagnose_event(scene, system, event):
                           and 0.0 <= projected.y <= 1.0):
                     state["state"] = "OFF_CAMERA"
                     state["reason"] = "the event is outside the frame"
+                else:
+                    state["state"] = "OK"
+                    state["reason"] = ""
+        else:
+            state["reason"] = "no head position could be evaluated"
     return state
 
 

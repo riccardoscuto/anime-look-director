@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 27, 0)
+EXPECTED_VERSION = (2, 28, 0)
 TOLERANCE = 1e-4
 
 
@@ -1406,28 +1406,32 @@ def check_multiscene(scene):
 
 
 def check_fx_occlusion(scene):
-    """A building in front of the burst must hide the particles."""
+    """P0-D: an opaque occluder hides the FX, and the FX show without it.
+
+    Two renders per state (FX present, FX cleared). Behind the wall the
+    images must match: the particles are hidden. Without the wall they must
+    differ: the particles are there. The old check only proved that the wall
+    was red, which also passed when the FX leaked through it.
+    """
     from anime_look_director import fx as fx_module
 
     previous_frame = scene.frame_current
     previous_size = (scene.render.resolution_x, scene.render.resolution_y)
     previous_engine = scene.render.engine
-    path = os.path.join(tempfile.gettempdir(), "ald_gate_fx_occlusion.png")
+    previous_backend = scene.ald.fx_backend
+
     origin, forward, _up, _right = fx_module._camera_basis(scene)
     material = bpy.data.materials.new("ALD Gate Occluder")
     material.use_nodes = True
     bsdf = material.node_tree.nodes.get("Principled BSDF")
     if bsdf is not None:
         bsdf.inputs["Base Color"].default_value = (0.8, 0.05, 0.05, 1.0)
-        if "Emission Color" in bsdf.inputs:
-            bsdf.inputs["Emission Color"].default_value = (0.8, 0.05, 0.05, 1.0)
-            bsdf.inputs["Emission Strength"].default_value = 1.0
-    # The wall stands between the camera and the burst.
-    bpy.ops.mesh.primitive_plane_add(size=400.0,
-                                     location=tuple(origin + forward * 12.0))
+    bpy.ops.mesh.primitive_plane_add(
+        size=400.0, location=tuple(origin + forward * 12.0))
     occluder = bpy.context.object
     occluder.rotation_euler = (-forward).to_track_quat("Z", "Y").to_euler()
-    # The gate geometry must not hide the occluder.
+    occluder.data.materials.append(material)
+
     hidden = []
     for obj in scene.objects:
         if obj is occluder or obj.get("ald_fx"):
@@ -1436,8 +1440,28 @@ def check_fx_occlusion(scene):
             continue
         hidden.append((obj, obj.hide_render))
         obj.hide_render = True
-    occluder.data.materials.append(material)
+
+    def render(name):
+        path = os.path.join(tempfile.gettempdir(), name)
+        scene.render.filepath = path
+        bpy.ops.render.render(write_still=True)
+        image = bpy.data.images.load(path)
+        pixels = list(image.pixels)
+        bpy.data.images.remove(image)
+        return pixels
+
+    def mean_diff(first, second):
+        total = 0.0
+        count = 0
+        for index in range(0, min(len(first), len(second)), 4):
+            total += abs(first[index] - second[index])
+            total += abs(first[index + 1] - second[index + 1])
+            total += abs(first[index + 2] - second[index + 2])
+            count += 3
+        return total / max(count, 1)
+
     try:
+        scene.ald.fx_backend = "FX3D"
         fx_module.clear(scene)
         fx_module.create_fireworks(scene, 1, seed=5, distance=30.0, time=0.6)
         scene.frame_set(12)
@@ -1445,26 +1469,34 @@ def check_fx_occlusion(scene):
         scene.render.resolution_x = 64
         scene.render.resolution_y = 64
         scene.render.resolution_percentage = 100
-        # The motion blur must not break the occlusion.
         try:
-            scene.render.use_motion_blur = True
-            scene.render.motion_blur_shutter = 0.5
+            scene.render.use_motion_blur = False
         except Exception:
             pass
-        scene.render.filepath = path
-        bpy.ops.render.render(write_still=True)
-        if os.path.exists(path):
-            image = bpy.data.images.load(path)
-            width, height = image.size
-            pixels = list(image.pixels)
-            index = ((height // 2) * width + (width // 2)) * 4
-            red = pixels[index]
-            green = pixels[index + 1]
-            blue = pixels[index + 2]
-            check(red > 0.4 and red > green * 1.4 and red > blue * 1.4,
-                  "the occluder does not hide the burst (%.3f, %.3f, %.3f)"
-                  % (red, green, blue))
-            bpy.data.images.remove(image)
+
+        behind_with = render("ald_gate_occ_behind_with.png")
+        fx_module.clear(scene)
+        behind_without = render("ald_gate_occ_behind_without.png")
+        occluded_diff = mean_diff(behind_with, behind_without)
+
+        # Without the wall the same burst must change the image.
+        occluder.hide_render = True
+        fx_module.create_fireworks(scene, 1, seed=5, distance=30.0, time=0.6)
+        scene.frame_set(12)
+        free_with = render("ald_gate_occ_free_with.png")
+        fx_module.clear(scene)
+        free_without = render("ald_gate_occ_free_without.png")
+        visible_diff = mean_diff(free_with, free_without)
+
+        check(visible_diff > 1e-4,
+              "the burst is invisible even without the occluder (%.6f)"
+              % visible_diff)
+        check(occluded_diff < visible_diff * 0.25,
+              "the occluder does not hide the burst "
+              "(behind %.6f vs free %.6f)"
+              % (occluded_diff, visible_diff))
+        print("ALD GATE occlusion: behind=%.6f free=%.6f"
+              % (occluded_diff, visible_diff))
     finally:
         try:
             scene.render.use_motion_blur = False
@@ -1475,6 +1507,7 @@ def check_fx_occlusion(scene):
         bpy.data.objects.remove(occluder, do_unlink=True)
         bpy.data.materials.remove(material)
         fx_module.clear(scene)
+        scene.ald.fx_backend = previous_backend
         scene.render.resolution_x, scene.render.resolution_y = previous_size
         scene.render.engine = previous_engine
         scene.frame_set(previous_frame)
@@ -1633,13 +1666,29 @@ def check_fx(scene):
                       for socket in mask.inputs
                       for link in socket.links),
                   "the FX mask is not driven by the contribution")
-        if restore is not None and contribution is not None:
-            check(any(link.from_node == contribution
-                      for socket in restore.inputs
-                      for link in socket.links),
-                  "the FX restore is not driven by the contribution")
-        # The contribution is the difference between the two view layers: the
-        # other emissive surfaces never enter the mask.
+        # The recomposition is semantic, not wiring theatre:
+        # C = Painted_B*(1-A) + F + Glare(F). The restore must ADD the
+        # premultiplied F unscaled, and the punch-out must be driven by the
+        # visible coverage (max RGB minus the occluded part).
+        if restore is not None:
+            check(restore.blend_type == "ADD",
+                  "the FX restore is not additive")
+            factor = restore.inputs.get("Factor")
+            check(factor is not None and not factor.is_linked
+                  and abs(factor.default_value - 1.0) < 1e-4,
+                  "the FX restore scales the premultiplied FX")
+        if punch is not None:
+            factor = punch.inputs.get("Factor")
+            driven = bool(factor is not None and factor.is_linked
+                          and factor.links[0].from_node.name
+                          == "ALD | FX Visible Coverage")
+            check(driven, "the FX punch out is not driven by the coverage")
+        check(ng.nodes.get("ALD | FX Occlusion") is not None,
+              "the FX occlusion node is missing")
+        check(ng.nodes.get("ALD | FX Visible Coverage") is not None,
+              "the FX visible coverage node is missing")
+        # The contribution is the mix of the two view layers: the other
+        # emissive surfaces never enter the mask.
         if contribution is not None:
             layers = [link.from_node
                       for socket in contribution.inputs
@@ -2815,6 +2864,75 @@ def check_fx_failed_build(scene):
     fx_module.clear(scene, kind="fireworks")
 
 
+def check_fx_diagnostics(scene):
+    """P0-E: the read-only diagnostic never claims an unproven OK."""
+    from anime_look_director import diagnostics
+    from anime_look_director import fx as fx_module
+
+    fx_module.clear(scene)
+    bpy.ops.ald.fx_fireworks(count=1, seed=13, distance=30.0)
+    system = scene.ald.fx_systems[0]
+    event = system.events[0]
+    before = set(scene.keys())
+    state = diagnostics.event_state(scene, system, event)
+    after = set(scene.keys())
+    check(before == after, "the read-only diagnostic writes to the scene")
+    check(state["state"] != "OK",
+          "the read-only diagnostic reported an unproven OK")
+    check(state["state"] in diagnostics.STATES,
+          "unknown diagnostic state %s" % state["state"])
+    full = diagnostics.diagnose_event(scene, system, event)
+    check(full["state"] in diagnostics.STATES,
+          "diagnose_event returned an unknown state")
+    report = diagnostics.diagnose_scene(scene)
+    check(report["systems"] and report["systems"][0]["events"],
+          "the full diagnostic has no events")
+    check(report["systems"][0]["events"][0]["state"] in diagnostics.STATES,
+          "the report carries an unknown state")
+    fx_module.clear(scene)
+
+
+def check_fx_identity(scene):
+    """P0-D: with zero FX the recomposition is the identity."""
+    from anime_look_director import fx as fx_module
+
+    previous_backend = scene.ald.fx_backend
+    previous_engine = scene.render.engine
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    try:
+        fx_module.clear(scene)
+        bpy.ops.ald.build()
+        scene.render.engine = "BLENDER_EEVEE"
+        scene.render.resolution_x = 64
+        scene.render.resolution_y = 64
+        scene.render.resolution_percentage = 100
+        scene.render.filepath = os.path.join(tempfile.gettempdir(),
+                                             "ald_gate_identity_off.png")
+        scene.ald.fx_backend = "OFF"
+        bpy.ops.render.render(write_still=True)
+        scene.render.filepath = os.path.join(tempfile.gettempdir(),
+                                             "ald_gate_identity_fx3d.png")
+        scene.ald.fx_backend = "FX3D"
+        bpy.ops.render.render(write_still=True)
+
+        def load(name):
+            image = bpy.data.images.load(
+                os.path.join(tempfile.gettempdir(), name))
+            pixels = list(image.pixels)
+            bpy.data.images.remove(image)
+            return pixels
+
+        first = load("ald_gate_identity_off.png")
+        second = load("ald_gate_identity_fx3d.png")
+        diff = max(abs(a - b) for a, b in zip(first, second))
+        check(diff < 1e-4,
+              "zero FX is not the identity (max channel diff %.5f)" % diff)
+    finally:
+        scene.ald.fx_backend = previous_backend
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        scene.render.engine = previous_engine
+
+
 def check_fx_system_operators(scene):
     """P0-B: Update FX, Duplicate System and Remove System stay in sync.
 
@@ -3297,6 +3415,9 @@ def main():
         check_fx_solver_stability(scene)
         check_fx_camera_evaluated(scene)
         check_fx_system_operators(scene)
+        check_fx_diagnostics(scene)
+        check_fx_occlusion(scene)
+        check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)
 

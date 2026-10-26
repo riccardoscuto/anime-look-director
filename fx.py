@@ -1896,20 +1896,54 @@ def runtime_by_uid(scene, uid):
 def compile_system(scene, system):
     """Build the geometry of a system from its persistent events.
 
-    The objects of the previous build are removed first, but the
-    manipulators of the events (the launchers) are read before the removal
-    and they survive it.
+    The build is atomic: the previous generated objects are stashed before the
+    rebuild and only deleted when the new geometry exists. An exception
+    restores them, so a failed build never loses the system (P0-B).
+
+    The manipulators of the events (the launchers) are not stashed: they are
+    the handles of the user and the build reads them back in place.
     """
     if system is None:
         return None
     _ensure_snapshot(scene)
-    _remove_system_objects(scene, system.uid)
-    if system.kind == "FIREWORKS":
-        runtime = _build_fireworks(scene, system)
-    else:
-        runtime = _build_meteors(scene, system)
+    uid = system.uid
+    coll = _collection(scene)
+    stash = bpy.data.collections.new("ALD | FX Compile")
+    stash.hide_render = True
+    stash.hide_viewport = True
+    scene.collection.children.link(stash)
+    previous = [obj for obj in coll.objects
+                if obj.get("ald_fx")
+                and obj.get("ald_fx_system") == uid
+                and obj.get("ald_fx_role") != "launcher"]
+    try:
+        for obj in previous:
+            stash.objects.link(obj)
+            coll.objects.unlink(obj)
+        if system.kind == "FIREWORKS":
+            runtime = _build_fireworks(scene, system)
+        else:
+            runtime = _build_meteors(scene, system)
+    except Exception:
+        # Roll back: drop the partial geometry of the failed build and put
+        # the previous objects back where they were.
+        for obj in [item for item in coll.objects
+                    if item.get("ald_fx")
+                    and item.get("ald_fx_system") == uid
+                    and item.get("ald_fx_role") != "launcher"]:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        for obj in list(stash.objects):
+            coll.objects.link(obj)
+            stash.objects.unlink(obj)
+        bpy.data.collections.remove(stash)
+        _cleanup_orphans()
+        raise
+    for obj in list(stash.objects):
+        bpy.data.objects.remove(obj, do_unlink=True)
+    bpy.data.collections.remove(stash)
+    _cleanup_orphans()
     registry = _registry(scene)
-    registry[system.uid] = runtime
+    registry[uid] = runtime
     _update_system(runtime, system_time(scene, system))
     return runtime
 

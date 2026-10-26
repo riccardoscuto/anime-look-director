@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.28.0 - 2026-10-26
+P0 of the operational plan: data safety and a correct FX compositing contract.
+
+### Fixed
+- **P0-A** — `preset_dev/baseline.py` records the declared version, the hashes
+  of every Python file, the node-group schemas and the public FX flows
+  (`preset_dev/baseline.json`). `preset_dev/P0_BASELINE.md` documents the
+  expected failures and the evidence.
+- **P0-B** — `Update FX` rebuilds the selected system by UID
+  (`fx.update_system`) instead of creating a new one through the legacy
+  `ald_fx_config` path. `Remove System` and `Duplicate System` coordinate the
+  persistent record and the geometry. `fx.compile_system` is atomic: the
+  previous objects are stashed and restored if the build raises. The neutral
+  reset only detaches an ALD-owned compositor, never a user stack.
+- **P0-C** — `snapshot.ensure` runs before every first mutation, including
+  `compositor.build`, `fx.create_*`, `fx.compile_system` and `fx.apply_backend`.
+  Removal ends in the REMOVED state (`scene["ald_removed"]`), which blocks all
+  automatic re-entry until an explicit Apply/Build. `Detach` no longer clears
+  the material tint, so it really keeps the result. Shared collections are
+  never removed.
+- **P0-D** — real B/F/A FX isolation: `ALD FX Base` (environment) and
+  `ALD FX Only` (FX against a transparent/black world override). Coverage is
+  `max(R, G, B)` clamped to 0..1, zeroed where the environment depth is in
+  front of the FX (`ALD | FX Occlusion`, `ALD | FX Visible Coverage`). The
+  recomposition is `C = (1-A)*Painted_B + F + Glare(F)`: the punch-out is
+  coverage-driven and `ALD | FX Restore` adds the premultiplied F with
+  Factor 1 (no image scaling). Zero FX is now the identity; an opaque occluder
+  hides the particles. Nested FX collections are handled and the ALD view
+  layers/transparent world are cleaned up on removal.
+- **P0-E** — the read-only diagnostic never touches the depsgraph and reports
+  `UNKNOWN` instead of an unproven `OK`; only the explicit `ald.fx_diagnose`
+  operator evaluates positions and caches the report.
+
+### Gate
+- New checks: FX system operators (update/duplicate/remove), read-only
+  diagnostics, real occlusion (behind/free render difference) and the zero-FX
+  identity. `ALD GATE: PASS`.
+
 ## 2.27.1 - 2026-10-22
 Fixed "Remove ALD from Scene" doing nothing when no valid snapshot exists.
 

@@ -621,13 +621,44 @@ def _fx_collection(scene):
     return None
 
 
+def _layer_collection_path(root, collection):
+    """The chain of LayerCollections from root to the collection, or None."""
+    if root.collection is collection:
+        return [root]
+    for child in root.children:
+        path = _layer_collection_path(child, collection)
+        if path is not None:
+            return [root] + path
+    return None
+
+
 def _set_child_exclude(layer, collection, exclude):
-    """Set the exclude flag for a collection child of a view layer."""
-    for child in layer.layer_collection.children:
-        if child.collection is collection:
-            child.exclude = bool(exclude)
-            return True
-    return False
+    """Set the exclude flag of a collection at any depth of the view layer."""
+    path = _layer_collection_path(layer.layer_collection, collection)
+    if not path:
+        return False
+    path[-1].exclude = bool(exclude)
+    return True
+
+
+def _include_only(layer, collection):
+    """Exclude every collection except the given one and its ancestors.
+
+    Works at any nesting depth: the siblings of every collection along the
+    path are excluded, so the FX layer sees the FX collection and nothing
+    else even when the user nests it inside another collection.
+    """
+    root = layer.layer_collection
+    path = _layer_collection_path(root, collection)
+    if not path:
+        return False
+    for depth in range(len(path) - 1):
+        keep = path[depth + 1]
+        for child in path[depth].children:
+            child.exclude = child is not keep
+    for node in path:
+        node.exclude = False
+    return True
 
 
 def _get_transparent_world(scene):
@@ -672,10 +703,10 @@ def ensure_fx_base_layer(scene):
 def ensure_fx_only_layer(scene):
     """View layer that renders only the FX.
 
-    All collections except the ALD FX collection are excluded, so this layer
-    holds F: the visible FX colour. With a transparent world override, the
-    Alpha pass carries true coverage (0 where no FX, 1 where FX objects are),
-    independent of luminance.
+    Every collection except the ALD FX collection (and its ancestors) is
+    excluded, so this layer holds F: the visible FX colour. The World is
+    overridden with a transparent one, so the empty pixels are black and the
+    coverage can be measured from the image.
     """
     layer = scene.view_layers.get(FX_ONLY_LAYER_NAME)
     if layer is None:
@@ -683,17 +714,28 @@ def ensure_fx_only_layer(scene):
     layer.use_pass_emit = True
     layer.use_pass_z = True
     coll = _fx_collection(scene)
-    # Exclude everything, then re-include only the FX collection.
-    for child in layer.layer_collection.children:
-        child.exclude = True
     if coll is not None:
-        _set_child_exclude(layer, coll, False)
-    # Override the World with a transparent one so alpha = coverage.
+        _include_only(layer, coll)
+    else:
+        for child in layer.layer_collection.children:
+            child.exclude = True
+    # Override the World with a transparent one so the background is black.
     try:
         layer.world_override = _get_transparent_world(scene)
     except AttributeError:
         pass  # world_override not available in this Blender version
     return layer
+
+
+def remove_fx_layers(scene):
+    """Delete the ALD FX view layers and the transparent world when unused."""
+    for name in (FX_BASE_LAYER_NAME, FX_ONLY_LAYER_NAME):
+        layer = scene.view_layers.get(name)
+        if layer is not None:
+            scene.view_layers.remove(layer)
+    world = bpy.data.worlds.get("ALD | Transparent World")
+    if world is not None and world.users == 0:
+        bpy.data.worlds.remove(world)
 
 
 def build(scene):
@@ -792,6 +834,37 @@ def build(scene):
         links.new(b_sock, max_rgb.inputs[1])
 
         fx_coverage = max_rgb.outputs[0]
+
+        # Occlusion (P0-D): the FX-only layer has no environment, so the
+        # particles behind a wall would still be recomposed on top of it. The
+        # base layer holds the environment depth: where the environment is
+        # closer than the FX, the particle is hidden. The sky is farther than
+        # every particle and the coverage is already zero there.
+        base_depth = rl_base.outputs.get("Depth")
+        fx_depth = rl_fx.outputs.get("Depth")
+        if base_depth is not None and fx_depth is not None:
+            occluded = nodes.new("ShaderNodeMath")
+            occluded.location = (-1240, -1120)
+            occluded.name = "ALD | FX Occlusion"
+            occluded.operation = "LESS_THAN"
+            occluded.use_clamp = True
+            links.new(base_depth, occluded.inputs[0])
+            links.new(fx_depth, occluded.inputs[1])
+            visible = nodes.new("ShaderNodeMath")
+            visible.location = (-1120, -1120)
+            visible.operation = "SUBTRACT"
+            visible.inputs[0].default_value = 1.0
+            visible.use_clamp = True
+            links.new(occluded.outputs[0], visible.inputs[1])
+            coverage = nodes.new("ShaderNodeMath")
+            coverage.location = (-1000, -1120)
+            coverage.name = "ALD | FX Visible Coverage"
+            coverage.operation = "MULTIPLY"
+            coverage.use_clamp = True
+            links.new(max_rgb.outputs[0], coverage.inputs[0])
+            links.new(visible.outputs[0], coverage.inputs[1])
+            fx_coverage = coverage.outputs[0]
+
         fx_color = F_image
 
         # Contribution: B*(1-A) + F*A. Two RLayer inputs as required.
@@ -958,9 +1031,8 @@ def build(scene):
         links.new(fx_coverage, bg_part.inputs["Factor"])  # Factor = A
         bg_part.inputs["Factor"].default_value = 1.0
 
-        # Restore: Painted_B*(1-A) + F. The canonical ALD | FX Contribution
-        # node (the MIX fed by the two view layers) drives the Factor, which
-        # ties the restore to the same coverage used by the mask.
+        # Restore: Painted_B*(1-A) + F. F is premultiplied, so it is added
+        # unscaled (Factor = 1): the punch-out already removed the coverage.
         restore = nodes.new("ShaderNodeMix")
         restore.location = (800, 240)
         restore.name = NODE_FX_RESTORE
@@ -969,7 +1041,6 @@ def build(scene):
         a_sock, b_sock, restore_result = _mix_sockets(restore)
         links.new(bg_part.outputs["Result"], a_sock)
         links.new(fx_color, b_sock)
-        links.new(fx_contribution.outputs["Result"], restore.inputs["Factor"])
         restore.inputs["Factor"].default_value = 1.0
         current = restore_result
 
@@ -1021,14 +1092,15 @@ def build(scene):
 
 
 def remove(scene):
-    """Unassign the scene's stack and delete it if unused by other scenes."""
+    """Unassign the scene's stack, delete it if unused, drop the FX layers."""
     ng = scene.compositing_node_group
-    if ng is None:
+    if ng is not None and not _is_stack(ng):
+        # Never detach a compositing tree that does not belong to ALD.
         return
-    # Never detach a compositing tree that does not belong to ALD.
-    if not _is_stack(ng):
-        return
-    scene.compositing_node_group = None
-    if any(other.compositing_node_group == ng for other in bpy.data.scenes):
-        return
-    bpy.data.node_groups.remove(ng)
+    if ng is not None:
+        scene.compositing_node_group = None
+        if not any(other.compositing_node_group == ng
+                   for other in bpy.data.scenes):
+            bpy.data.node_groups.remove(ng)
+    # The FX view layers belong to the stack: they must not survive it.
+    remove_fx_layers(scene)
