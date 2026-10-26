@@ -2105,6 +2105,34 @@ def _remove_kind(scene, kind):
     _cleanup_orphans()
 
 
+def _scene_fx_objects(scene):
+    """The FX objects owned by this scene, never the whole blend file."""
+    collection = _collection(scene)
+    if collection is None:
+        return []
+    return [obj for obj in collection.objects if obj.get("ald_fx")]
+
+
+def _scene_fx_materials(scene):
+    names = set()
+    for obj in _scene_fx_objects(scene):
+        for slot in obj.material_slots:
+            if slot.material is not None and slot.material.get("ald_fx_material"):
+                names.add(slot.material.name)
+        for modifier in obj.modifiers:
+            if modifier.type != "NODES":
+                continue
+            for key in modifier.keys():
+                try:
+                    value = modifier[key]
+                except Exception:
+                    continue
+                if isinstance(value, bpy.types.Material) and value.get(
+                        "ald_fx_material"):
+                    names.add(value.name)
+    return names
+
+
 def refresh_widths(scene):
     """Re-evaluate the apparent filament width after a camera change."""
     settings = getattr(scene, "ald", None)
@@ -2114,9 +2142,7 @@ def refresh_widths(scene):
     max_px = float(getattr(settings, "fx_trail_max_px", 6.0))
     from . import fx_nodes
     changed = False
-    for obj in bpy.data.objects:
-        if not obj.get("ald_fx"):
-            continue
+    for obj in _scene_fx_objects(scene):
         physical = obj.get("ald_fx_physical")
         target = obj.get("ald_fx_target")
         if physical is None or target is None:
@@ -2145,8 +2171,11 @@ def refresh_widths(scene):
 def sync_palette(scene):
     """Re-tint the FX materials in place after a palette change."""
     changed = False
+    names = _scene_fx_materials(scene)
     for material in bpy.data.materials:
-        if not material.get("ald_fx_material") or not material.node_tree:
+        if material.name not in names:
+            continue
+        if not material.node_tree:
             continue
         base = material.get("ald_fx_base")
         if base is None:

@@ -385,6 +385,54 @@
       "state": "OK"
     },
     {
+      "evidence": "",
+      "label": "Coverage 1 keeps the border empty (strict threshold)",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Shot Locked stores the creation rotation once",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The mesh rebuild keeps the material",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Cloud objects are resolved by UID inside the scene",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Flash attenuates with the world distance",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Painterly depth uses the environment layer",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "FX materials are scene-owned, including modifier inputs",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The emission C0 test is runnable and fails explicitly",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
       "evidence": "preset_dev/clouds_baseline/metrics.json",
       "label": "The slab/control defect is reproduced in the baseline",
       "phase": "VI-SC",
@@ -452,7 +500,7 @@
     }
   ],
   "partial": 0,
-  "passed": 75,
+  "passed": 83,
   "plan": "v2.27.0 P0-P3",
-  "total": 75
+  "total": 83
 }

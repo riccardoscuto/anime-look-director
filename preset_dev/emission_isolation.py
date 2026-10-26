@@ -137,8 +137,8 @@ def main():
     settings.fx_gn_prototype = True
     bpy.ops.ald.apply_palette()
     bpy.ops.ald.build()
-    scene.render.resolution_x = 640
-    scene.render.resolution_y = 360
+    scene.render.resolution_x = 960
+    scene.render.resolution_y = 540
     fx.clear(scene)
     fx.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
     bpy.ops.ald.build()
@@ -173,8 +173,6 @@ def main():
     bpy.context.view_layer.update()
 
     behind = plane(scene, camera, "Foreign Behind", 70.0)
-    from anime_look_director import compositor
-    compositor.sync_fx_layers(scene)
     emission_behind = shot_emission(scene)
     with_fx_and_behind = shot("fx_and_behind.png")
     fx.clear(scene)
@@ -190,35 +188,50 @@ def main():
     scene.frame_set(int(system.origin_frame
                         + (event.birth + event.rise_time + 0.4) * 24))
     front = plane(scene, camera, "Foreign Front", 20.0)
-    compositor.sync_fx_layers(scene)
     with_fx_and_front = shot("fx_and_front.png")
     fx.clear(scene)
     bpy.ops.ald.build()
     front_only = shot("front_only.png")
     bpy.data.objects.remove(front, do_unlink=True)
 
-    mask = matte > 0.5
-    contribution_ref = with_fx - sky
-    contribution_behind = with_fx_and_behind - behind_only
-    delta = np.abs(contribution_ref - contribution_behind).max(axis=2)
-    emission_delta = np.abs(emission_ref - emission_behind).max(axis=2)
+    presence = (matte > 0.001).astype(np.float32)
+    f_ref = emission_ref * presence[:, :, None]
+    f_behind = emission_behind * presence[:, :, None]
+    delta = np.abs(f_ref - f_behind).max(axis=2)
+    # The FX pixels are the union of the two masked contributions: the mixed
+    # coverage is where the foreign emitter can leak into F.
+    fx_pixels = (f_ref.max(axis=2) > 0.01) | (f_behind.max(axis=2) > 0.01)
+    regions = {
+        "clean": fx_pixels & (matte < 0.1),
+        "mixed": fx_pixels & (matte >= 0.1) & (matte < 0.9),
+        "covered": fx_pixels & (matte >= 0.9),
+    }
     delta_front = np.abs(with_fx_and_front - front_only).max(axis=2)
     report = {
-        "matte_pixels": int(mask.sum()),
-        "behind_contrib_mean": round(float(delta[mask].mean()), 6),
-        "behind_contrib_max": round(float(delta[mask].max()), 6),
-        "emission_contamination_mean": round(float(emission_delta[mask].mean()), 6),
-        "emission_contamination_max": round(float(emission_delta[mask].max()), 6),
-        "front_fx_mean": round(float(delta_front[mask].mean()), 6),
-        "front_fx_max": round(float(delta_front[mask].max()), 6),
-        "verdict": "PASS" if float(emission_delta[mask].max()) < 0.03
-        and float(delta_front[mask].max()) < 0.03 else "FAIL",
+        "fx_pixels": int(fx_pixels.sum()),
+        "regions": {
+            name: {
+                "pixels": int(region.sum()),
+                "contamination_mean": round(float(delta[region].mean()), 6)
+                if region.any() else 0.0,
+                "contamination_max": round(float(delta[region].max()), 6)
+                if region.any() else 0.0,
+            }
+            for name, region in regions.items()
+        },
+        "front_fx_max": round(float(delta_front[fx_pixels].max()), 6)
+        if fx_pixels.any() else 0.0,
+        "verdict": "PASS"
+        if fx_pixels.any()
+        and float(delta[fx_pixels].max()) < 0.03
+        and float(delta_front[fx_pixels].max()) < 0.03
+        else "FAIL",
     }
     with open(os.path.join(OUT, "metrics.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
     print("P5B", report)
     fx.clear(scene)
-    return 0
+    return 0 if report["verdict"] == "PASS" else 1
 
 
 if __name__ == "__main__":

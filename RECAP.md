@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.40.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.41.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,24 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.41.0 — consolidamento (P0 aperto)
+
+- **Coverage 1** non ricrea la lastra: soglia positiva e confronto stretto, il
+  bordo resta vuoto.
+- **Shot Locked** conserva la rotazione di creazione; Camera Facing ha la sua,
+  e il ritorno alla modalità fissa non salta.
+- **Materiale e LOD** corretti: la mesh rigenerata mantiene il materiale e il
+  LOD usa la profondità finale.
+- **Scene safety**: oggetti risolti per UID nella collezione della scena,
+  collezioni condivise saltate, larghezze/palette/matte limitate agli FX della
+  scena (inclusi i materiali nei modifier GN).
+- **Kuwahara** e filtri ambiente dal layer base; flash con attenuazione World.
+- **Test C0** riparato ed eseguibile: esce con codice 1 sul FAIL.
+- **P0 aperto**: l'isolamento dell'emissione FX ai pixel parziali resta FAIL
+  (0.995 fringe, 0.575 mixed con un emettitore estremo). AOV vuoto in
+  EEVEE/Cycles; fallback FX-only non sincronizzato. Dettagli in
+  `preset_dev/CONSOLIDATION_2_41.md`. La release non dichiara un PASS globale.
 
 ## Novità 2.40.0 — Spatial Clouds 2.0
 

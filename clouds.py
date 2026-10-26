@@ -110,7 +110,7 @@ def _cloud_mesh(name, seed, coverage, columns, rows):
     mesh[TAG] = True
     if coverage <= 0.001:
         return mesh
-    threshold = 1.0 - 1.1 * max(0.0, min(1.0, coverage))
+    threshold = max(0.02, 0.98 - 1.1 * max(0.0, min(1.0, coverage)))
     coarse = 96
     coarse_rows = 28
     grid = _field_grid(seed, coarse, coarse_rows)
@@ -125,7 +125,7 @@ def _cloud_mesh(name, seed, coverage, columns, rows):
             u1 = (column + 1) / columns - 0.5
             density = _sample(grid, (u0 + u1) * 0.5, (v0 + v1) * 0.5,
                               coarse, coarse_rows)
-            if density < threshold:
+            if density <= threshold:
                 continue
             corners = ((u0, v0), (u1, v0), (u1, v1), (u0, v1))
             face = []
@@ -298,6 +298,8 @@ def _collection(scene):
     owner = _owner(scene)
     for collection in bpy.data.collections:
         if collection.get(TAG) and collection.get(fx.OWNER_KEY) == owner:
+            if _shared_with_other_scene(collection, scene):
+                continue
             return collection
     return None
 
@@ -314,6 +316,32 @@ def _palette_colors(scene):
     values = palette.effective(scene, key)
     return (tuple(values["cloud_shadow"]), tuple(values["cloud_mid"]),
             tuple(values["cloud_light"]))
+
+
+def _object(scene, layer):
+    """Resolve the object by UID inside the collection owned by this scene."""
+    collection = _collection(scene)
+    if collection is None:
+        return None
+    for obj in collection.objects:
+        if obj.get("ald_cloud_uid") == layer.uid:
+            return obj
+    return None
+
+
+def _shared_with_other_scene(collection, scene):
+    """A collection linked to another scene must not be modified here."""
+    def walk(coll):
+        if coll == collection:
+            return True
+        return any(walk(child) for child in coll.children)
+
+    for other in bpy.data.scenes:
+        if other == scene:
+            continue
+        if walk(other.collection):
+            return True
+    return False
 
 
 def _layers(scene):
@@ -348,24 +376,26 @@ def _layout(scene, layer, camera_facing=False):
     location = origin + forward * depth + right * lateral + axis * altitude
     width = depth * 1.4 * float(settings.clouds_scale)
     height = depth * 0.62 * float(settings.clouds_scale)
-    obj = bpy.data.objects.get(layer.object_name)
+    obj = _object(scene, layer)
     if obj is None:
         return
     obj.location = location
     obj.scale = (width, height, 1.0)
+    from . import fx
+    cam_origin = fx._camera_basis(scene)[0]
+    facing = (cam_origin - location).to_track_quat("Z", "Y").to_euler()
     if camera_facing or settings.clouds_mode == "CAMERA_FACING":
-        camera = scene.camera
-        if camera is not None:
-            from . import fx
-            cam_origin = fx._camera_basis(scene)[0]
-            obj.rotation_euler = (cam_origin - location).to_track_quat(
-                "Z", "Y").to_euler()
+        obj.rotation_euler = facing
+        layer.current_rotation = tuple(facing)
     else:
+        if not layer.rotation_valid:
+            layer.rotation = tuple(facing)
+            layer.rotation_valid = True
         obj.rotation_euler = Vector(layer.rotation)
 
 
 def _rebuild_mesh(scene, layer):
-    obj = bpy.data.objects.get(layer.object_name)
+    obj = _object(scene, layer)
     if obj is None:
         return
     settings = _settings(scene)
@@ -382,10 +412,12 @@ def _rebuild_mesh(scene, layer):
     mesh = _cloud_mesh("ALD | Cloud %d" % layer.index, layer.seed,
                        float(settings.clouds_coverage), columns, rows)
     old = obj.data
+    material = obj.active_material
+    if material is not None:
+        mesh.materials.append(material)
     obj.data = mesh
     if old is not None and old.users == 0:
         bpy.data.meshes.remove(old)
-    material = obj.active_material
     if material is None:
         material = _material("ALD | Cloud %d" % layer.index,
                              _palette_colors(scene))
@@ -441,9 +473,8 @@ def create(scene, coverage=None, altitude=None):
         obj[TAG] = True
         obj["ald_cloud_uid"] = layer.uid
         collection.objects.link(obj)
-        _rebuild_mesh(scene, layer)
         _layout(scene, layer)
-        layer.rotation = tuple(obj.rotation_euler)
+        _rebuild_mesh(scene, layer)
     settings.clouds_created = True
     scene["ald_clouds_signature"] = "%s|%s|%d|%s" % (
         settings.clouds_coverage, settings.clouds_scale, count,
@@ -463,7 +494,7 @@ def refresh(scene):
     layers = _layers(scene)
     while len(layers) > count:
         layer = layers[-1]
-        obj = bpy.data.objects.get(layer.object_name)
+        obj = _object(scene, layer)
         if obj is not None:
             bpy.data.objects.remove(obj, do_unlink=True)
         layers.remove(len(layers) - 1)
@@ -487,7 +518,7 @@ def refresh(scene):
     rebuild = scene.get("ald_clouds_signature") != signature
     for index, layer in enumerate(layers):
         layer.index = index
-        obj = bpy.data.objects.get(layer.object_name)
+        obj = _object(scene, layer)
         if obj is None:
             mesh = bpy.data.meshes.new(layer.object_name)
             mesh[TAG] = True
@@ -496,10 +527,9 @@ def refresh(scene):
             obj["ald_cloud_uid"] = layer.uid
             collection.objects.link(obj)
             rebuild = True
+        _layout(scene, layer)
         if rebuild:
             _rebuild_mesh(scene, layer)
-        _layout(scene, layer)
-        layer.rotation = tuple(obj.rotation_euler)
     scene["ald_clouds_signature"] = signature
     sync(scene)
     bpy.context.view_layer.update()
@@ -540,8 +570,12 @@ def update_orientation(scene):
     for obj in collection.objects:
         if obj.type != "MESH":
             continue
-        obj.rotation_euler = (cam_origin - obj.location).to_track_quat(
+        rotation = (cam_origin - obj.location).to_track_quat(
             "Z", "Y").to_euler()
+        obj.rotation_euler = rotation
+        for layer in _layers(scene):
+            if layer.object_name == obj.name:
+                layer.current_rotation = tuple(rotation)
     return True
 
 
@@ -589,7 +623,12 @@ def update_flash(scene):
             node.outputs[0].default_value = float(local.y)
         node = nodes.get("ALD | Flash Energy")
         if node is not None:
-            node.outputs[0].default_value = energy
+            # World distance, on top of the local XY falloff: a burst far
+            # behind or beside the card must light it less.
+            world_distance = ((position - obj.location).length
+                              if position is not None else 0.0)
+            attenuation = 1.0 / (1.0 + (world_distance / 120.0) ** 2)
+            node.outputs[0].default_value = energy * attenuation
     flash = [round(energy, 4), 0.0, 0.0, 0.0]
     if position is not None:
         flash[1:] = [round(v, 2) for v in position]
@@ -608,7 +647,7 @@ def diagnostics(scene):
     for layer in _layers(scene):
         depth = float(settings.clouds_depth) * units * (1.0 + 0.45
                                                         * layer.index)
-        obj = bpy.data.objects.get(layer.object_name)
+        obj = _object(scene, layer)
         polygons = len(obj.data.polygons) if obj is not None else 0
         lines.append("Layer %d: depth %.0f, %d polygons"
                      % (layer.index + 1, depth, polygons))
@@ -663,8 +702,8 @@ def rebuild(scene):
         obj[TAG] = True
         obj["ald_cloud_uid"] = layer.uid
         collection.objects.link(obj)
-        _rebuild_mesh(scene, layer)
         _layout(scene, layer)
+        _rebuild_mesh(scene, layer)
     scene["ald_clouds_signature"] = ""
     sync(scene)
     update_flash(scene)

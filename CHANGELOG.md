@@ -1,6 +1,34 @@
 # Changelog
 
-## 2.40.0 - 2026-10-26
+## 2.41.0 - 2026-10-26
+Consolidation patch after the 2.40 audit. NOT a milestone closure: the FX
+emission isolation is a known, reproducible P0 FAIL.
+
+### Fixed
+- Cloud Coverage 1 no longer builds a full rectangle: the threshold is clamped
+  positive and the comparison is strict, so the border stays empty.
+- Shot Locked stores the creation rotation once; Camera Facing keeps its own
+  rotation and switching back does not jump.
+- The cloud mesh rebuild keeps the material; the LOD is computed after the
+  layout at the final depth.
+- Cloud objects are resolved by UID inside the scene's collection; a
+  collection linked to another scene is skipped; width/palette updates and the
+  Cryptomatte material list are scene-owned (the modifier material inputs are
+  included, which fixes the missing instanced heads).
+- Kuwahara depth and the environment filters read the base layer; the cloud
+  flash attenuates with the world distance.
+- `preset_dev/emission_isolation.py` is runnable on the HEAD, measures the
+  `A < 0.1 / 0.1..0.9 / A >= 0.9` regions and exits 1 on FAIL.
+
+### Open (P0)
+- The FX contribution at partially covered pixels still contains the foreign
+  emission: 0.995 mean / 1.0 max in the fringe region, 0.575 / 0.996 in the
+  mixed region (extreme emitter 40/20/4 x 3). The Shader AOV is empty in
+  EEVEE and Cycles in this environment; the FX-only layer fallback did not
+  synchronise. See `preset_dev/CONSOLIDATION_2_41.md`.
+- The framing envelope is not implemented.
+
+## 2.40.0 - 2026-10-26## 2.40.0 - 2026-10-26
 Spatial Clouds 2.0: real masses, working controls, persistent layers.
 
 ### Fixed

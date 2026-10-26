@@ -420,6 +420,9 @@ class ALD_CloudLayer(bpy.types.PropertyGroup):
     axis: FloatVectorProperty(name="Axis", size=3, default=(0.0, 0.0, 1.0))
     rotation: FloatVectorProperty(name="Rotation", size=3,
                                   default=(0.0, 0.0, 0.0))
+    current_rotation: FloatVectorProperty(name="Current Rotation", size=3,
+                                          default=(0.0, 0.0, 0.0))
+    rotation_valid: BoolProperty(name="Rotation Valid", default=False)
 
 
 class ALD_FX_System(bpy.types.PropertyGroup):

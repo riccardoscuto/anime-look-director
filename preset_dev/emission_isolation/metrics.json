@@ -1,10 +1,22 @@
 {
-  "matte_pixels": 6922,
-  "behind_contrib_mean": 0.582336,
-  "behind_contrib_max": 0.843137,
-  "emission_contamination_mean": 0.444906,
-  "emission_contamination_max": 0.933333,
-  "front_fx_mean": 0.0,
+  "fx_pixels": 60345,
+  "regions": {
+    "clean": {
+      "pixels": 43823,
+      "contamination_mean": 0.995276,
+      "contamination_max": 1.0
+    },
+    "mixed": {
+      "pixels": 16522,
+      "contamination_mean": 0.574968,
+      "contamination_max": 0.996078
+    },
+    "covered": {
+      "pixels": 0,
+      "contamination_mean": 0.0,
+      "contamination_max": 0.0
+    }
+  },
   "front_fx_max": 0.0,
   "verdict": "FAIL"
 }

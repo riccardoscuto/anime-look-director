@@ -698,6 +698,35 @@ def remove_fx_layers(scene):
         bpy.data.worlds.remove(world)
 
 
+def _fx_materials(scene):
+    """The FX materials used by the scene's FX collection only.
+
+    A Geometry Nodes FX object assigns its material inside the node group, not
+    on the mesh: the modifier's material inputs are part of the scene-owned
+    set too, otherwise the instanced heads disappear from the matte.
+    """
+    names = set()
+    collection = _fx_collection(scene)
+    if collection is not None:
+        for obj in collection.objects:
+            for slot in obj.material_slots:
+                if slot.material is not None and slot.material.get(
+                        "ald_fx_material"):
+                    names.add(slot.material.name)
+            for modifier in obj.modifiers:
+                if modifier.type != "NODES":
+                    continue
+                for key in modifier.keys():
+                    try:
+                        value = modifier[key]
+                    except Exception:
+                        continue
+                    if isinstance(value, bpy.types.Material) and value.get(
+                            "ald_fx_material"):
+                        names.add(value.name)
+    return sorted(names)
+
+
 def refresh_fx_matte(scene):
     """Keep the Cryptomatte material list in sync with the live FX materials.
 
@@ -711,8 +740,7 @@ def refresh_fx_matte(scene):
     matte = ng.nodes.get(NODE_FX_MATTE)
     if matte is None:
         return False
-    materials = [material.name for material in bpy.data.materials
-                 if material.get("ald_fx_material") and material.users > 0]
+    materials = _fx_materials(scene)
     matte.matte_id = ",".join(materials) or "ALD | FX None"
     return True
 
@@ -778,9 +806,7 @@ def build(scene):
     environment_layers = rl
     if emission is not None:
         fx_base_layer = ensure_fx_base_layer(scene)
-        fx_materials = [material.name for material in bpy.data.materials
-                        if material.get("ald_fx_material")
-                        and material.users > 0]
+        fx_materials = _fx_materials(scene)
 
         rl_base = nodes.new("CompositorNodeRLayers")
         rl_base.scene = scene
@@ -788,6 +814,7 @@ def build(scene):
         rl_base.location = (-1500, -640)
         B_image = rl_base.outputs["Image"]
         environment_layers = rl_base
+
 
 
         matte = nodes.new("CompositorNodeCryptomatte")
@@ -877,6 +904,9 @@ def build(scene):
         links.new(current, beams.inputs["Image"])
         current = beams.outputs["Image"]
 
+    # The painterly depth must come from the environment, not from the main
+    # layer: the particles would otherwise shape the filter of the sky.
+    depth = environment_layers.outputs.get("Depth") or depth
     if (settings.painterly or settings.light_wrap or settings.ink_lines
             or settings.aerial_haze):
         geometry = _silhouette_mask(nodes, links, environment_layers,
