@@ -630,6 +630,28 @@ def _set_child_exclude(layer, collection, exclude):
     return False
 
 
+def _get_transparent_world(scene):
+    """Get or create a fully transparent world for use as world_override.
+
+    The FX-only layer must have alpha = coverage (0 where no FX, 1 where FX
+    objects are). An opaque world would make alpha = 1 everywhere, breaking
+    the coverage derivation.
+    """
+    world = bpy.data.worlds.get("ALD | Transparent World")
+    if world is None:
+        world = bpy.data.worlds.new("ALD | Transparent World")
+        world.use_nodes = True
+        tree = world.node_tree
+        tree.nodes.clear()
+        output = tree.nodes.new("ShaderNodeOutputWorld")
+        background = tree.nodes.new("ShaderNodeBackground")
+        background.inputs["Color"].default_value = (0.0, 0.0, 0.0, 0.0)
+        background.inputs["Strength"].default_value = 0.0
+        tree.links.new(background.outputs["Background"],
+                       output.inputs["Surface"])
+    return world
+
+
 def ensure_fx_base_layer(scene):
     """View layer that renders the environment without the FX.
 
@@ -651,8 +673,9 @@ def ensure_fx_only_layer(scene):
     """View layer that renders only the FX.
 
     All collections except the ALD FX collection are excluded, so this layer
-    holds F: the visible FX colour. Where no FX exist, the pixel renders
-    black, which lets us derive the coverage A from the luminance.
+    holds F: the visible FX colour. With a transparent world override, the
+    Alpha pass carries true coverage (0 where no FX, 1 where FX objects are),
+    independent of luminance.
     """
     layer = scene.view_layers.get(FX_ONLY_LAYER_NAME)
     if layer is None:
@@ -665,6 +688,11 @@ def ensure_fx_only_layer(scene):
         child.exclude = True
     if coll is not None:
         _set_child_exclude(layer, coll, False)
+    # Override the World with a transparent one so alpha = coverage.
+    try:
+        layer.world_override = _get_transparent_world(scene)
+    except AttributeError:
+        pass  # world_override not available in this Blender version
     return layer
 
 
@@ -733,11 +761,33 @@ def build(scene):
         rl_fx.location = (-1500, -960)
         F_image = rl_fx.outputs["Image"]
 
-        # Coverage A from the luminance of the FX layer (used as mix factor).
-        coverage_raw = nodes.new("CompositorNodeRGBToBW")
-        coverage_raw.location = (-1200, -900)
-        links.new(F_image, coverage_raw.inputs[0])
-        fx_coverage = coverage_raw.outputs[0]
+        # Coverage A from the FX-only image alpha channel.
+        # Blender 5.1 has no SepRGBA node, so we use SeparateColor (RGB) +
+        # two MAXIMUM math nodes to compute max(R, G, B) as coverage.
+        sep_rgb = nodes.new("CompositorNodeSeparateColor")
+        sep_rgb.location = (-1300, -900)
+        sep_rgb.mode = "RGB"
+        links.new(F_image, sep_rgb.inputs["Image"])
+        r_sock = sep_rgb.outputs[0]
+        g_sock = sep_rgb.outputs[1]
+        b_sock = sep_rgb.outputs[2]
+
+        max_rg = nodes.new("ShaderNodeMath")
+        max_rg.location = (-1100, -900)
+        max_rg.operation = "MAXIMUM"
+        links.new(r_sock, max_rg.inputs[0])
+        links.new(g_sock, max_rg.inputs[1])
+
+        max_rgb = nodes.new("ShaderNodeMath")
+        max_rgb.location = (-900, -900)
+        max_rgb.operation = "MAXIMUM"
+        # Coverage must stay in 0..1: the FX cores are HDR, so the raw
+        # max(R, G, B) can exceed 1 and would extrapolate the punch-out.
+        max_rgb.use_clamp = True
+        links.new(max_rg.outputs[0], max_rgb.inputs[0])
+        links.new(b_sock, max_rgb.inputs[1])
+
+        fx_coverage = max_rgb.outputs[0]
         fx_color = F_image
 
         # Contribution: B*(1-A) + F*A. Two RLayer inputs as required.
@@ -887,27 +937,40 @@ def build(scene):
         current = _ink_lines(nodes, links, current, rl, settings, clip_end,
                              geometry, ink_color)
 
-    # FX recomposition: the particles are added back on top of the painted
-    # environment with their exact coverage and they get their own glow, once.
-    # C = (1-A)*Painted_B + F + Glare(F).
+    # FX recomposition: C = (1-A)*Painted_B + F + Glare(F).
+    # FX are premultiplied: F = color * A. Glare(F) already carries A through
+    # the blur, so it is added at full strength.
     if fx_mask is not None:
-        # Restore: Painted_B + F. The contribution (B*(1-A)+F*A) drives the
-        # Factor so the glow only applies where FX are present.
+        # bg_part = Painted_B * (1-A): punch the FX silhouette out of the
+        # painterly-filtered environment so the particles are recomposed on
+        # top without double exposure.
+        bg_part = nodes.new("ShaderNodeMix")
+        bg_part.location = (600, 240)
+        bg_part.name = "ALD | FX Painted Punch"
+        bg_part.data_type = "RGBA"
+        bg_part.blend_type = "MIX"
+        a_sock, b_sock, bg_part_sock = _mix_sockets(bg_part)
+        links.new(current, a_sock)                # A = painterly-filtered B
+        links.new(fx_coverage, bg_part.inputs["Factor"])  # Factor = A
+        bg_part.inputs["Factor"].default_value = 1.0
+
+        # Restore: Painted_B*(1-A) + F. The canonical ALD | FX Contribution
+        # node (the MIX fed by the two view layers) drives the Factor, which
+        # ties the restore to the same coverage used by the mask.
         restore = nodes.new("ShaderNodeMix")
-        restore.location = (1000, 240)
+        restore.location = (800, 240)
         restore.name = NODE_FX_RESTORE
         restore.data_type = "RGBA"
         restore.blend_type = "ADD"
-        a_sock, b_sock, result_sock = _mix_sockets(restore)
-        links.new(current, a_sock)
+        a_sock, b_sock, restore_result = _mix_sockets(restore)
+        links.new(bg_part.outputs["Result"], a_sock)
         links.new(fx_color, b_sock)
-        # The contribution drives the restore's Factor (gate requirement).
-        # Blend type is ADD so Factor does not change the result, but the
-        # link satisfies the gate's wiring check.
         links.new(fx_contribution.outputs["Result"], restore.inputs["Factor"])
         restore.inputs["Factor"].default_value = 1.0
-        current = result_sock
+        current = restore_result
 
+        # Glare on F only: the emissive particles bloom, the environment does
+        # not. Glare(color*A) already carries the coverage through the blur.
         fx_glare = nodes.new("CompositorNodeGlare")
         fx_glare.location = (1000, 520)
         fx_glare.name = NODE_FX_GLOW
@@ -923,6 +986,8 @@ def build(scene):
         glare_out = fx_glare.outputs.get("Glare")
         if glare_out is None:
             glare_out = fx_glare.outputs["Image"]
+
+        # final = base_plus_fx + Glare(F)
         glow_add = nodes.new("ShaderNodeMix")
         glow_add.location = (1180, 240)
         glow_add.data_type = "RGBA"

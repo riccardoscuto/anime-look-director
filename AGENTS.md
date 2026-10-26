@@ -62,6 +62,23 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
 - Render Layers **Alpha is 1 everywhere when the world is opaque**: never use it as
   a silhouette mask. EEVEE writes world depth = `camera.clip_end + 0.55`; Cycles
   writes ~1e10. Threshold the Depth pass with the clip end read at build time.
+- `CompositorNodeRLayers` outputs are `Image` and `Alpha`; `CompositorNodeSeparateColor`
+  in `RGB` mode outputs `Red`, `Green`, `Blue`, `Alpha` (there is no socket named `A`
+  in Blender 5.1 — address them by name or by index, 0..3).
+- `ViewLayer.world_override` exists in 5.1: the FX-only layer overrides the World with
+  `ALD | Transparent World` (Background alpha 0, strength 0). The camera may live in an
+  excluded root collection: Blender still renders with `scene.camera`.
+- **EEVEE writes Alpha = 1 across the frame even with a transparent world override**, so
+  the FX-only Alpha output is not coverage. Render the FX against the black override and
+  use `max(R, G, B)` clamped to 0..1 as the coverage `A`. This is the contract of the
+  FX recomposition `C = (1-A) * Painted_B + F + Glare(F)`.
+- Only **one** node may be named `ALD | FX Contribution`. Blender renames a second one to
+  `.001`; `ng.nodes.get("ALD | FX Contribution")` returns the first, so a duplicate breaks
+  the gate wiring checks and `cameras._transform_state`. The duplicate punch-out node is
+  named `ALD | FX Painted Punch`.
+- `cameras._transform_state` must never assume a camera exists: guard `scene.camera` and
+  `camera.data` and keep the evaluated-matrix read inside `try/except` (headless renders
+  and factory scenes may have no camera).
 - `CompositorNodeAlphaOver` needs `Straight Alpha = True` when the foreground alpha
   was replaced (SetAlpha) on a premultiplied render, otherwise the full blurred RGB
   leaks across the frame.

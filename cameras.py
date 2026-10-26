@@ -60,21 +60,29 @@ def _evaluated_matrix(obj):
 
 
 def _transform_state(scene):
+    """Get sun/camera transform state for shadow/wrap computations."""
     sun = next((o for o in scene.objects
-                if o.type == "LIGHT" and o.data is not None
-                and o.data.type == "SUN"), None)
+                 if o.type == "LIGHT" and o.data is not None
+                 and o.data.type == "SUN"), None)
     camera = scene.camera
     sun_key = None
     if sun is not None and sun.data is not None:
-        matrix = _evaluated_matrix(sun)
-        sun_key = (tuple(matrix.col[2][:3]), tuple(sun.data.color))
+        try:
+            matrix = _evaluated_matrix(sun)
+            sun_key = (tuple(matrix.col[2][:3]), tuple(sun.data.color))
+        except Exception:
+            pass
     cam_key = None
-    if camera is not None and camera.data is not None:
-        matrix = _evaluated_matrix(camera)
-        data = camera.data
-        cam_key = (tuple(matrix.col[2][:3]), tuple(matrix.translation),
-                   float(data.lens), float(data.shift_x), float(data.shift_y),
-                   float(data.sensor_width))
+    if camera is not None:
+        try:
+            data = camera.data
+            if data is not None:
+                matrix = _evaluated_matrix(camera)
+                cam_key = (tuple(matrix.col[2][:3]), tuple(matrix.translation),
+                           float(data.lens), float(data.shift_x), float(data.shift_y),
+                           float(data.sensor_width))
+        except Exception:
+            pass
     return sun_key, cam_key
 
 

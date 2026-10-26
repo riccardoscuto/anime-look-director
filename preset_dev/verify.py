@@ -760,7 +760,7 @@ def check_light_wrap(scene, settings):
           "light wrap blur nodes missing")
     check(types.count("CompositorNodeSetAlpha") == 1,
           "light wrap alpha nodes missing")
-    check(types.count("CompositorNodeSeparateColor") == 3,
+    check(types.count("CompositorNodeSeparateColor") == 4,
           "light wrap mask extraction missing")
     operations = [n.operation for n in ng.nodes if n.bl_idname == "ShaderNodeMath"]
     check("LESS_THAN" in operations,
