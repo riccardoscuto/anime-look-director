@@ -32,11 +32,15 @@ class ALD_OT_build(bpy.types.Operator):
         return context.scene is not None
 
     def execute(self, context):
+        from . import ownership
         scene = context.scene
+        repaired = ownership.repair(scene)
         compositor.build(scene)
         count = _sync_shadow(scene)
-        self.report({"INFO"},
-                    "Anime Look Director: stack built, %d materials tinted" % count)
+        text = "Anime Look Director: stack built, %d materials tinted" % count
+        if repaired:
+            text += " (scene ownership repaired)"
+        self.report({"INFO"}, text)
         return {"FINISHED"}
 
 
@@ -59,14 +63,18 @@ class ALD_OT_apply_palette(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
+        from . import ownership
         scene = context.scene
+        repaired = ownership.repair(scene)
         key, _source = look.effective_palette(scene)
         if scene.ald.custom_colors:
             palette.sync_custom_colors(scene.ald, palette.preset(key))
         palette.apply_preset_style(scene, palette.effective(scene, key))
         key = look.apply(scene, force=True)
-        self.report({"INFO"},
-                    "Anime Look Director: palette applied (%s)" % key)
+        text = "Anime Look Director: palette applied (%s)" % key
+        if repaired:
+            text += " (scene ownership repaired)"
+        self.report({"INFO"}, text)
         return {"FINISHED"}
 
 

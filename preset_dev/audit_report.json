@@ -500,6 +500,12 @@
     },
     {
       "evidence": "",
+      "label": "Build repairs a duplicated scene before modifying it",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "One command runs gate, fixture and audit",
       "phase": "VI-SC",
       "state": "OK"
@@ -590,7 +596,7 @@
     }
   ],
   "partial": 0,
-  "passed": 98,
+  "passed": 99,
   "plan": "v2.27.0 P0-P3",
-  "total": 98
+  "total": 99
 }

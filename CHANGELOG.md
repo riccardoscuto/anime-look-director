@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.46.2 - 2026-10-26
+Automatic ownership repair on Build and Apply Palette.
+
+### Fixed
+- `ald.build` and `ald.apply_palette` repair a duplicated scene before touching
+  it: the copy becomes independent without the manual Repair Ownership click.
+  The panel warning still covers the window before the first action.
+- The duplicate fixture copies the scene a second time and checks that the
+  Build operator itself makes the copy independent.
+
 ## 2.46.1 - 2026-10-26
 Content-aware pass state and a single verification command.
 

@@ -311,6 +311,8 @@ CHECKS = [
     ("VI-SC", "The FX pass state is content-aware", 
      lambda: has("compositor.py", "def fx_pass_state", "pass_signature")
      and has("panels.py", "fx_pass_state")[0]),
+    ("VI-SC", "Build repairs a duplicated scene before modifying it",
+     lambda: has("operators.py", "ownership.repair", "ald.build")),
     ("VI-SC", "One command runs gate, fixture and audit",
      lambda: has("preset_dev/verify_all.py", "ALD ALL: PASS")
      and has("preset_dev/audit_plan.py",

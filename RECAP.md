@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.46.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.46.2** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,15 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.46.2 — repair automatico alla prima azione
+
+- **Build / Apply Palette** chiamano `ownership.repair` prima di modificare la
+  scena: una scena duplicata diventa indipendente senza premere il pulsante
+  manuale. L'avviso nel pannello resta per la finestra prima della prima azione.
+- **Fixture**: duplica la scena una seconda volta e verifica che sia proprio
+  l'operatore Build a renderla indipendente (collezioni e oggetti distinti,
+  originale intatto).
 
 ## Novità 2.46.1 — stato del pass consapevole del contenuto
 

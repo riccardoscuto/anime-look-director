@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.46.1)
+## What it does (v2.46.2)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -265,7 +265,9 @@ Expected output: `ALD GATE: PASS` and `ALD ALL: PASS`.
 - v2.46.0 - animated FX pass (numbered EXR sequence), per-scene pass image and
   real pass state
 - v2.46.1 - content-aware pass state (FX, palette, camera), one command for
-  gate + fixture + audit (current)
+  gate + fixture + audit
+- v2.46.2 - Build and Apply Palette repair a duplicated scene automatically
+  (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

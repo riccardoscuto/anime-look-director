@@ -84,6 +84,26 @@ def main():
     check(all(name in bpy.data.objects for name in cloud_names),
           "the original cloud objects survive the copy removal")
 
+    # Build repairs a fresh copy without the manual button.
+    automatic = scene.copy()
+    try:
+        with bpy.context.temp_override(scene=automatic):
+            bpy.ops.ald.build()
+        auto_clouds = clouds._collection(automatic)
+        check(auto_clouds is not None
+              and auto_clouds.as_pointer() != original_clouds.as_pointer(),
+              "Build repairs the duplicated scene")
+        check(all(obj.as_pointer() not in cloud_pointers
+                  for obj in auto_clouds.objects),
+              "Build makes the cloud objects independent")
+        check(all(name in bpy.data.objects for name in cloud_names),
+              "the original cloud objects survive the Build on a copy")
+    finally:
+        if bpy.data.scenes.get(automatic.name) is not None:
+            clouds.remove(automatic)
+            fx.clear(automatic)
+            bpy.data.scenes.remove(automatic)
+
     bpy.data.scenes.remove(copy)
     clouds.remove(scene)
     fx.clear(scene)

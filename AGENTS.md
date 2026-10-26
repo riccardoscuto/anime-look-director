@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.46.1**).
+  (currently **2.46.2**).
 
 ## Verify (run after every change)
 ```powershell
@@ -831,7 +831,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     from the persistent data. When the collections were copied but the objects
     are shared it duplicates objects/meshes/materials instead;
   - the repair is exposed as `ald.repair_ownership` and the panel warns when the
-    scene shares ALD collections. The fixture
+    scene shares ALD collections. `ald.build` and `ald.apply_palette` call
+    `ownership.repair` first, so a duplicated scene becomes independent on the
+    first action; the warning covers the window before it. The fixture
     `preset_dev/duplicate_fixture.py` is the proof, not the multi-scene gate:
     never assert the copy behaviour inside the gate's shared state.
 - PA2 volume spike 2.45 rules:
