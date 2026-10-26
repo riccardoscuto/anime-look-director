@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 41, 0)
+EXPECTED_VERSION = (2, 42, 0)
 TOLERANCE = 1e-4
 
 
@@ -3650,6 +3650,104 @@ def check_clouds(scene):
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
+def check_fx_pass_isolation(scene):
+    """P0: the external FX pass excludes a foreign emitter."""
+    from mathutils import Vector
+    from anime_look_director import compositor as compositor_module
+    from anime_look_director import fx as fx_module
+    import numpy as np
+
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_format = scene.render.image_settings.file_format
+    previous_mode = scene.render.image_settings.color_mode
+    previous_pass = scene.ald.fx_pass_path
+    collection = None
+    plane = None
+    try:
+        scene.render.resolution_x = 160
+        scene.render.resolution_y = 90
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
+        bpy.ops.ald.build()
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        scene.camera.rotation_euler = (Vector(event.target)
+                                       - scene.camera.location).to_track_quat(
+                                           "-Z", "Y").to_euler()
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        scene.frame_set(int(system.origin_frame
+                            + (event.birth + event.rise_time + 0.4) * fps))
+        bpy.context.view_layer.update()
+
+        # Foreign emitter in a child collection, behind the burst.
+        collection = bpy.data.collections.new("ALD Gate Foreign")
+        scene.collection.children.link(collection)
+        mesh = bpy.data.meshes.new("ALD Gate Foreign Plane")
+        mesh.from_pydata([(-60, -60, 0), (60, -60, 0), (60, 60, 0),
+                          (-60, 60, 0)], [], [(0, 1, 2, 3)])
+        mesh.update()
+        material = bpy.data.materials.new("ALD Gate Foreign Mat")
+        material.use_nodes = True
+        tree = material.node_tree
+        for node in list(tree.nodes):
+            tree.nodes.remove(node)
+        output = tree.nodes.new("ShaderNodeOutputMaterial")
+        emission = tree.nodes.new("ShaderNodeEmission")
+        emission.inputs["Color"].default_value = (40, 20, 4, 1)
+        emission.inputs["Strength"].default_value = 3.0
+        tree.links.new(emission.outputs[0], output.inputs["Surface"])
+        mesh.materials.append(material)
+        plane = bpy.data.objects.new("ALD Gate Foreign Plane", mesh)
+        collection.objects.link(plane)
+        origin, forward, _up, _right = fx_module._camera_basis(scene)
+        plane.location = origin + forward * 70.0
+        plane.rotation_euler = (origin - plane.location).to_track_quat(
+            "Z", "Y").to_euler()
+        bpy.context.view_layer.update()
+
+        with_plane = os.path.join(tempfile.gettempdir(), "ald_fx_pass_a.exr")
+        without_plane = os.path.join(tempfile.gettempdir(), "ald_fx_pass_b.exr")
+        compositor_module.render_fx_pass(scene, with_plane)
+        plane.hide_render = True
+        bpy.context.view_layer.update()
+        compositor_module.render_fx_pass(scene, without_plane)
+
+        def load(path):
+            image = bpy.data.images.load(path)
+            width, height = image.size
+            pixels = np.array(image.pixels[:], dtype=np.float32).reshape(
+                height, width, 4)
+            bpy.data.images.remove(image)
+            return pixels[:, :, :3]
+
+        delta = np.abs(load(with_plane) - load(without_plane))
+        check(float(delta.max()) < 0.01,
+              "the FX pass contains the foreign emitter (max %.4f)"
+              % float(delta.max()))
+        check(float(delta.mean()) < 0.001,
+              "the FX pass is not stable (mean %.5f)" % float(delta.mean()))
+
+        # The stack reads the pass image.
+        bpy.ops.ald.build()
+        ng = scene.compositing_node_group
+        node = ng.nodes.get("ALD | FX Pass") if ng is not None else None
+        check(node is not None, "the stack does not use the FX pass image")
+        check(node is not None and node.image is not None
+              and os.path.basename(node.image.filepath)
+              == os.path.basename(without_plane),
+              "the stack reads the wrong FX pass")
+    finally:
+        if plane is not None:
+            bpy.data.objects.remove(plane, do_unlink=True)
+        if collection is not None:
+            bpy.data.collections.remove(collection)
+        fx_module.clear(scene)
+        scene.ald.fx_pass_path = previous_pass
+        scene.render.image_settings.file_format = previous_format
+        scene.render.image_settings.color_mode = previous_mode
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+
+
 def check_fx_identity(scene):
     """P0-D: with zero FX the recomposition is the identity."""
     from anime_look_director import fx as fx_module
@@ -4216,6 +4314,7 @@ def main():
         check_fx_p3_shading(scene)
         check_fx_composition(scene)
         check_clouds(scene)
+        check_fx_pass_isolation(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)

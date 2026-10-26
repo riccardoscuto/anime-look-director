@@ -161,6 +161,10 @@ def draw_world(layout, context):
         col = cloud_box.column(align=True)
         col.prop(s, "clouds_flash_strength")
     row = cloud_box.row(align=True)
+    row = cloud_box.row(align=True)
+    row.operator("ald.fx_render_pass", icon="RENDER_STILL")
+    if s.fx_pass_path:
+        cloud_box.label(text="FX pass ready", icon="CHECKMARK")
     row.operator("ald.clouds_create", icon="ADD")
     row.operator("ald.clouds_remove", icon="REMOVE")
     if s.clouds_created:

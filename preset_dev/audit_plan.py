@@ -277,6 +277,15 @@ CHECKS = [
     ("VI-SC", "The emission C0 test is runnable and fails explicitly",
      lambda: has("preset_dev/emission_isolation.py", "regions",
                  "return 0 if report[\"verdict\"] == \"PASS\" else 1")),
+    ("VI-SC", "F is an external FX pass image, not the main emission",
+     lambda: has("compositor.py", "def render_fx_pass", "NODE_FX_PASS",
+                 "CompositorNodeImage")),
+    ("VI-SC", "The gate proves the pass excludes a foreign emitter",
+     lambda: has("preset_dev/verify.py", "check_fx_pass_isolation",
+                 "the FX pass contains the foreign emitter")),
+    ("VI-SC", "The FX pass is exposed in the UI",
+     lambda: has("operators.py", "ald.fx_render_pass")
+     and has("panels.py", "ald.fx_render_pass")[0]),
     ("VI-SC", "The slab/control defect is reproduced in the baseline",
      lambda: (exists("preset_dev/clouds_baseline/metrics.json")[0]
               and exists("preset_dev/clouds_baseline/h0.35_a0.00_oblique.png")[0],

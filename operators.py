@@ -695,6 +695,23 @@ class ALD_OT_smoke_create(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_render_pass(bpy.types.Operator):
+    bl_idname = "ald.fx_render_pass"
+    bl_label = "Render FX Pass"
+    bl_description = ("Render only the FX emission to an EXR: the compositor "
+                      "then adds an isolated F, free of foreign emitters")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import compositor
+        path = compositor.render_fx_pass(context.scene)
+        if not path:
+            self.report({"WARNING"}, "Anime Look Director: no FX to render")
+            return {"CANCELLED"}
+        self.report({"INFO"}, "Anime Look Director: FX pass %s" % path)
+        return {"FINISHED"}
+
+
 class ALD_OT_clouds_create(bpy.types.Operator):
     bl_idname = "ald.clouds_create"
     bl_label = "Create Spatial Clouds"
@@ -747,6 +764,7 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_bolide,
             ALD_OT_fx_show, ALD_OT_smoke_create, ALD_OT_smoke_remove,
             ALD_OT_clouds_create, ALD_OT_clouds_remove,
+            ALD_OT_fx_render_pass,
             ALD_OT_fx_anchor_create, ALD_OT_fx_ground_create,
             ALD_OT_fx_diagnose,
             ALD_OT_fx_update,

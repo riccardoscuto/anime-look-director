@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.41.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.42.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,19 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.42.0 — P0 chiuso: pass FX esterno
+
+- **F isolata**: il pulsante *Render FX Pass* renderizza la sola emissione FX
+  su un EXR (view layer temporanea con la sola collezione FX); lo stack la
+  legge con un nodo Image `ALD | FX Pass`. Un emettitore estraneo non può più
+  entrare in F.
+- **Gate**: burst + emettitore estraneo 40/20/4×3 dietro; il pass con e senza
+  emettitore differisce di **0.0** (tolleranza 0.01); lo stack legge il file.
+- **Workflow in due passi**: rendere il pass dopo modifiche a FX/camera/frame,
+  poi lo shot; per le animazioni un pass per frame.
+- **Fallback**: senza pass lo stack usa la Emission principale (limite noto ai
+  bordi); il pannello mostra se il pass è pronto.
 
 ## Novità 2.41.0 — consolidamento (P0 aperto)
 

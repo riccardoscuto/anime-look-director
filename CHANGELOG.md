@@ -1,6 +1,34 @@
 # Changelog
 
-## 2.41.0 - 2026-10-26
+## 2.42.0 - 2026-10-26
+P0 closed: the FX contribution is isolated by an external FX pass.
+
+### Added
+- `compositor.render_fx_pass` + `ald.fx_render_pass` + a panel button: the FX
+  emission is rendered alone to an EXR (temporary view layer with only the FX
+  collection), and the stack reads it through an `ALD | FX Pass` Image node.
+  F now contains only the FX: a foreign emitter cannot enter it.
+- `check_fx_pass_isolation` in the gate: a burst plus a very bright foreign
+  emitter (40/20/4 x 3) behind it, the pass rendered with and without the
+  emitter, the two EXRs must differ by less than 0.01 (measured 0.0), and the
+  stack must read the pass image.
+
+### Changed
+- The pass is a two-step workflow: render it after changing the FX, camera or
+  frame, then render the shot. For animations the pass is rendered per frame.
+- When the pass file is missing the stack falls back to the main Emission
+  (legacy path); the panel shows whether a pass is ready.
+- The temporary FX view layer is created after the collections exist and
+  excludes every child except the FX collection (with a `view_layer.update()`
+  before reading the tree). This is the isolation that the compositor node
+  group could not read reliably.
+
+### Open
+- The fallback (no pass) keeps the edge leak; the pass is not automatic.
+- Motion blur and animation require one pass per frame.
+- Framing envelope and duplicate-scene tests remain open.
+
+## 2.41.0 - 2026-10-26## 2.41.0 - 2026-10-26
 Consolidation patch after the 2.40 audit. NOT a milestone closure: the FX
 emission isolation is a known, reproducible P0 FAIL.
 

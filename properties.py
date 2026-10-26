@@ -919,6 +919,9 @@ class ALD_Settings(bpy.types.PropertyGroup):
     clouds_created: BoolProperty(
         name="Clouds Created", default=False,
         description="Whether the spatial cloud layer exists in the scene")
+    fx_pass_path: StringProperty(
+        name="FX Pass", default="", subtype="FILE_PATH",
+        description="EXR of the FX-only emission used by the compositor")
 
     # --- Shadow tint ----------------------------------------------------
     shadow_tint: BoolProperty(

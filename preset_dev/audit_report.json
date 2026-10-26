@@ -433,6 +433,24 @@
       "state": "OK"
     },
     {
+      "evidence": "",
+      "label": "F is an external FX pass image, not the main emission",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The gate proves the pass excludes a foreign emitter",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The FX pass is exposed in the UI",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
       "evidence": "preset_dev/clouds_baseline/metrics.json",
       "label": "The slab/control defect is reproduced in the baseline",
       "phase": "VI-SC",
@@ -500,7 +518,7 @@
     }
   ],
   "partial": 0,
-  "passed": 83,
+  "passed": 86,
   "plan": "v2.27.0 P0-P3",
-  "total": 83
+  "total": 86
 }

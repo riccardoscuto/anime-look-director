@@ -1,5 +1,7 @@
 """Non-destructive anime compositor stack (Blender 5.1 node-group compositor)."""
 
+import os
+
 import bpy
 from bpy.app.handlers import persistent
 
@@ -22,6 +24,7 @@ NODE_FX_MATTE = "ALD | FX Matte"
 NODE_FX_COVERAGE = "ALD | FX Coverage"
 NODE_FX_EMISSION = "ALD | FX Emission"
 NODE_FX_PUNCH_OUT = "ALD | FX Punch Out"
+NODE_FX_PASS = "ALD | FX Pass"
 NODE_GOD_RAYS = "ALD | God Rays"
 NODE_INK_EDGE = "ALD | Ink Edge"
 NODE_INK_FACTOR = "ALD | Ink Factor"
@@ -687,6 +690,73 @@ def ensure_fx_base_layer(scene):
     return layer
 
 
+def _pass_layer(scene):
+    """A temporary view layer that contains only the FX collection."""
+    name = "ALD FX Pass Layer"
+    layer = scene.view_layers.get(name)
+    if layer is not None:
+        scene.view_layers.remove(layer)
+    layer = scene.view_layers.new(name)
+    layer.use_pass_emit = True
+    # The layer collection tree is built lazily: without this update the new
+    # collections are not in the tree yet and the exclusion does not apply.
+    bpy.context.view_layer.update()
+    fx_collection = _fx_collection(scene)
+    if fx_collection is not None:
+        # The ALD FX collection is a direct child of the scene: exclude every
+        # other child. A path search is not needed and was failing here.
+        for child in list(layer.layer_collection.children):
+            if child.collection is not fx_collection:
+                child.exclude = True
+    return layer
+
+
+def render_fx_pass(scene, path=None):
+    """Render the FX emission only to an EXR and store its path."""
+    import tempfile
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return None
+    if path is None:
+        path = getattr(settings, "fx_pass_path", "") or os.path.join(
+            tempfile.gettempdir(), "ald_fx_pass.exr")
+    layer = _pass_layer(scene)
+    group = bpy.data.node_groups.new(NODE_FX_PASS, "CompositorNodeTree")
+    group.interface.new_socket(name="Image", in_out="OUTPUT",
+                               socket_type="NodeSocketColor")
+    rl = group.nodes.new("CompositorNodeRLayers")
+    rl.scene = scene
+    rl.layer = layer.name
+    output = group.nodes.new("NodeGroupOutput")
+    group.links.new(rl.outputs["Emission"], output.inputs[0])
+    previous = scene.compositing_node_group
+    previous_format = scene.render.image_settings.file_format
+    previous_mode = scene.render.image_settings.color_mode
+    previous_path = scene.render.filepath
+    try:
+        scene.compositing_node_group = group
+        scene.render.use_compositing = True
+        scene.render.image_settings.file_format = "OPEN_EXR"
+        scene.render.image_settings.color_mode = "RGB"
+        scene.render.filepath = path
+        bpy.ops.render.render(write_still=True)
+    finally:
+        scene.compositing_node_group = previous
+        scene.render.image_settings.file_format = previous_format
+        scene.render.image_settings.color_mode = previous_mode
+        scene.render.filepath = previous_path
+        bpy.data.node_groups.remove(group)
+        if layer.name in scene.view_layers:
+            scene.view_layers.remove(layer)
+    settings.fx_pass_path = path
+    # Reload the image so the next build reads the new file.
+    image = bpy.data.images.get("ALD | FX Pass Image")
+    if image is not None:
+        image.filepath = path
+        image.reload()
+    return path
+
+
 def remove_fx_layers(scene):
     """Delete the ALD FX view layers and the transparent world when unused."""
     for name in (FX_BASE_LAYER_NAME, FX_ONLY_LAYER_NAME):
@@ -815,6 +885,24 @@ def build(scene):
         B_image = rl_base.outputs["Image"]
         environment_layers = rl_base
 
+        # F: the external FX pass when it exists (isolated), otherwise the
+        # main Emission (legacy path, known contamination at the edges).
+        emission_source = emission
+        pass_path = getattr(settings, "fx_pass_path", "")
+        if pass_path and os.path.exists(bpy.path.abspath(pass_path)):
+            image = bpy.data.images.get("ALD | FX Pass Image")
+            if image is None:
+                image = bpy.data.images.load(pass_path, check_existing=False)
+                image.name = "ALD | FX Pass Image"
+            image.filepath = pass_path
+            image.reload()
+            image.colorspace_settings.name = "Linear Rec.709"
+            pass_node = nodes.new("CompositorNodeImage")
+            pass_node.name = NODE_FX_PASS
+            pass_node.image = image
+            pass_node.location = (-1280, -1150)
+            emission_source = pass_node.outputs["Image"]
+
 
 
         matte = nodes.new("CompositorNodeCryptomatte")
@@ -855,7 +943,7 @@ def build(scene):
         multiply.data_type = "RGBA"
         multiply.blend_type = "MULTIPLY"
         a_sock, b_sock, result_sock = _mix_sockets(multiply)
-        links.new(emission, a_sock)
+        links.new(emission_source, a_sock)
         links.new(coverage_color.outputs["Image"], b_sock)
         multiply.inputs["Factor"].default_value = 1.0
         fx_color = result_sock
