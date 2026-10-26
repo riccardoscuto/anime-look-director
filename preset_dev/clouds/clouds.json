@@ -1,0 +1,22 @@
+{
+  "age": 2.0,
+  "renders": [
+    {
+      "palette": "TWILIGHT_DUSK",
+      "clouds": false,
+      "file": "dusk_off.png"
+    },
+    {
+      "palette": "TWILIGHT_DUSK",
+      "clouds": true,
+      "layers": 3,
+      "file": "dusk_on.png"
+    },
+    {
+      "palette": "NEON_NIGHT",
+      "clouds": true,
+      "layers": 3,
+      "file": "night_on.png"
+    }
+  ]
+}

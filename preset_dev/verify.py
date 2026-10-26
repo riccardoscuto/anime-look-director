@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 34, 0)
+EXPECTED_VERSION = (2, 35, 0)
 TOLERANCE = 1e-4
 
 
@@ -3427,6 +3427,110 @@ def check_fx_composition(scene):
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
+def check_clouds(scene):
+    """P5: the cloud cards are opaque and hide the FX behind them."""
+    from mathutils import Vector
+    from anime_look_director import clouds as clouds_module
+    from anime_look_director import fx as fx_module
+
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_gn = bool(scene.ald.fx_gn_prototype)
+    try:
+        scene.render.resolution_x = 256
+        scene.render.resolution_y = 256
+        scene.ald.fx_gn_prototype = True
+        fx_module.clear(scene)
+        clouds_module.remove(scene)
+        layers = clouds_module.create(scene, 0.7, 0.35)
+        check(layers == 3, "the cloud layer did not create three cards")
+        check(clouds_module.exists(scene), "the cloud collection is missing")
+        collection = clouds_module._collection(scene)
+        check(collection is not None
+              and len([obj for obj in collection.objects if obj.type == "MESH"])
+              == 3, "the cloud cards are missing")
+        for obj in collection.objects:
+            material = obj.active_material
+            check(material is not None, "a cloud card has no material")
+            if material is None:
+                continue
+            # The card is opaque: an Emission shader paints the sky gradient
+            # and the cloud. There is no alpha hole to see the FX through.
+            emission = next((node for node in material.node_tree.nodes
+                             if node.bl_idname == "ShaderNodeEmission"), None)
+            check(emission is not None,
+                  "a cloud card is not an opaque painted card")
+            check(material.node_tree.nodes.get("ALD | Cloud Light") is not None
+                  and material.node_tree.nodes.get("ALD | Cloud Shadow")
+                  is not None,
+                  "a cloud card does not paint the cloud colours")
+
+        # A card in front of the burst must zero the FX matte on the visible
+        # render: that is how the P1 path occludes the particles.
+        bpy.ops.ald.fx_fireworks(count=1, seed=5, distance=55.0, age=0.0)
+        bpy.ops.ald.build()
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        scene.frame_set(int(system.origin_frame
+                            + (event.birth + event.rise_time + 0.3) * fps))
+        bpy.context.view_layer.update()
+        camera = scene.camera
+        origin, forward, _up, _right = fx_module._camera_basis(scene)
+        card = collection.objects[0]
+        card.location = origin + forward * 20.0
+        card.rotation_euler = (origin - card.location).to_track_quat(
+            "Z", "Y").to_euler()
+        card.scale = (60.0, 60.0, 1.0)
+        bpy.context.view_layer.update()
+
+        materials = [material.name for material in bpy.data.materials
+                     if material.get("ald_fx_material") and material.users > 0]
+        group = bpy.data.node_groups.new("ALD Gate Clouds", "CompositorNodeTree")
+        group.interface.new_socket(name="Image", in_out="OUTPUT",
+                                   socket_type="NodeSocketColor")
+        rl = group.nodes.new("CompositorNodeRLayers")
+        rl.scene = scene
+        rl.layer = scene.view_layers[0].name
+        matte = group.nodes.new("CompositorNodeCryptomatte")
+        matte.matte_id = ",".join(materials)
+        group.links.new(rl.outputs["Image"], matte.inputs["Image"])
+        for slot in range(3):
+            socket = rl.outputs.get("CryptoMaterial%02d" % slot)
+            if socket is not None:
+                group.links.new(socket, matte.inputs["Crypto %02d" % slot])
+        output = group.nodes.new("NodeGroupOutput")
+        group.links.new(matte.outputs["Matte"], output.inputs[0])
+        previous_group = scene.compositing_node_group
+        scene.compositing_node_group = group
+        scene.render.use_compositing = True
+        path = os.path.join(tempfile.gettempdir(), "ald_gate_clouds.png")
+        scene.render.filepath = path
+        bpy.ops.render.render(write_still=True)
+        image = bpy.data.images.load(path)
+        pixels = list(image.pixels)
+        bpy.data.images.remove(image)
+        occluded = sum(pixels[0::4])
+        card.hide_render = True
+        bpy.context.view_layer.update()
+        bpy.ops.render.render(write_still=True)
+        image = bpy.data.images.load(path)
+        pixels = list(image.pixels)
+        bpy.data.images.remove(image)
+        visible = sum(pixels[0::4])
+        bpy.data.node_groups.remove(group)
+        scene.compositing_node_group = previous_group
+        check(visible > 5.0,
+              "the FX matte is empty without the cloud (%.3f)" % visible)
+        check(occluded < visible * 0.75,
+              "the cloud does not hide the FX behind it (%.3f vs %.3f)"
+              % (occluded, visible))
+    finally:
+        clouds_module.remove(scene)
+        fx_module.clear(scene)
+        scene.ald.fx_gn_prototype = previous_gn
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+
+
 def check_fx_identity(scene):
     """P0-D: with zero FX the recomposition is the identity."""
     from anime_look_director import fx as fx_module
@@ -3992,6 +4096,7 @@ def main():
         check_fx_trail_width(scene)
         check_fx_p3_shading(scene)
         check_fx_composition(scene)
+        check_clouds(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)

@@ -695,6 +695,39 @@ class ALD_OT_smoke_create(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_clouds_create(bpy.types.Operator):
+    bl_idname = "ald.clouds_create"
+    bl_label = "Create 2.5D Clouds"
+    bl_description = ("Create layered cloud cards at several distances: real "
+                      "geometry that occludes the FX behind it")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import clouds
+        scene = context.scene
+        settings = scene.ald
+        layers = clouds.create(scene, float(settings.clouds_amount),
+                               float(settings.clouds_height))
+        settings.clouds_created = True
+        self.report({"INFO"},
+                    "Anime Look Director: %d cloud layers created" % layers)
+        return {"FINISHED"}
+
+
+class ALD_OT_clouds_remove(bpy.types.Operator):
+    bl_idname = "ald.clouds_remove"
+    bl_label = "Remove 2.5D Clouds"
+    bl_description = "Remove the 2.5D cloud layer"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import clouds
+        clouds.remove(context.scene)
+        context.scene.ald.clouds_created = False
+        self.report({"INFO"}, "Anime Look Director: 2.5D clouds removed")
+        return {"FINISHED"}
+
+
 class ALD_OT_smoke_remove(bpy.types.Operator):
     bl_idname = "ald.smoke_remove"
     bl_label = "Remove Atmospheric Smoke"
@@ -714,6 +747,7 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
             ALD_OT_fx_fireworks, ALD_OT_fx_meteors, ALD_OT_fx_bolide,
             ALD_OT_fx_show, ALD_OT_smoke_create, ALD_OT_smoke_remove,
+            ALD_OT_clouds_create, ALD_OT_clouds_remove,
             ALD_OT_fx_anchor_create, ALD_OT_fx_ground_create,
             ALD_OT_fx_diagnose,
             ALD_OT_fx_update,

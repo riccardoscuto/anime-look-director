@@ -234,6 +234,24 @@ def _on_fx_age(self, context):
         pass
 
 
+def _on_clouds(self, context):
+    """Apply the cloud settings to the existing cards without recreating them."""
+    try:
+        from . import clouds
+        if _in_maintenance(context):
+            return
+        scene = context.scene
+        # The amount is the silhouette threshold: it changes the geometry, so
+        # the layer is rebuilt. The colours are a cheap in-place update.
+        if clouds.exists(scene):
+            clouds.create(scene, float(scene.ald.clouds_amount),
+                          float(scene.ald.clouds_height))
+        else:
+            clouds.sync(scene)
+    except Exception:
+        pass
+
+
 def _on_smoke(self, context):
     """Apply the smoke settings to the existing volume without recreating it."""
     try:
@@ -842,6 +860,17 @@ class ALD_Settings(bpy.types.PropertyGroup):
     smoke_created: BoolProperty(
         name="Smoke Created", default=False,
         description="Whether the atmospheric smoke volume exists in the scene")
+    clouds_amount: FloatProperty(
+        name="Cloud Amount", default=0.6, min=0.0, max=1.0,
+        description="Coverage of the 2.5D cloud layer",
+        update=_on_clouds)
+    clouds_height: FloatProperty(
+        name="Cloud Height", default=0.35, min=0.0, max=1.5,
+        description="Altitude of the 2.5D cloud layer, relative to the distance",
+        update=_on_clouds)
+    clouds_created: BoolProperty(
+        name="Clouds Created", default=False,
+        description="Whether the 2.5D cloud layer exists in the scene")
 
     # --- Shadow tint ----------------------------------------------------
     shadow_tint: BoolProperty(

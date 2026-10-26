@@ -1,6 +1,24 @@
 # Changelog
 
-## 2.34.0 - 2026-10-26
+## 2.35.0 - 2026-10-26
+P5 of the visual integration milestone: 2.5D clouds.
+
+### Added
+- `clouds.py`: three opaque cloud bands at 160/230/320 m, built as wavy
+  geometry strips (512 columns). They are real environment geometry, they
+  write depth, and a firework behind a band is hidden by the visible render
+  through the P1 Cryptomatte matte.
+- Palette-synced cloud colours (`clouds.sync` on every palette apply),
+  `Cloud Amount`/`Cloud Height`, `ald.clouds_create`/`ald.clouds_remove` in
+  both UI surfaces.
+- `Remove ALD from Scene` removes the cloud layer with the rest.
+
+### Tests
+- Gate: three opaque cards, cloud colours present, and the FX matte behind a
+  card moved in front drops below 75 % of the free matte.
+- Evidence: `preset_dev/clouds/` (dusk off/on, night on) and `clouds.json`.
+
+## 2.34.0 - 2026-10-26## 2.34.0 - 2026-10-26
 P4 of the visual integration milestone: composition and spatiality.
 
 ### Fixed

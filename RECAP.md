@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.34.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.35.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,17 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.35.0 — P5 nuvole 2.5D
+
+- **Fasce di nuvole reali** a 160/230/320 m: geometria a silhouette ondulata
+  (512 colonne), **opaca**, quindi scrive profondità e nasconde davvero i
+  fuochi che le stanno dietro (via matte Cryptomatte, nessun path extra).
+- **Colori dalla palette** (`clouds.sync` a ogni apply), controlli
+  `Cloud Amount`/`Cloud Height` e operatori in entrambe le superfici.
+- **Remove ALD** rimuove anche le nuvole.
+- Evidenza in `preset_dev/clouds/` (dusk off/on, night on); gate con la matte
+  dietro una fascia portata davanti (<75% della matte libera).
 
 ## Novità 2.34.0 — P4 composizione e spazialità
 

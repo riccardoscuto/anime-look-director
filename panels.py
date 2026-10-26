@@ -145,6 +145,17 @@ def draw_world(layout, context):
     row.operator("ald.smoke_remove", icon="REMOVE")
     if s.smoke_created:
         smoke_box.label(text="Smoke volume active", icon="CHECKMARK")
+    # 2.5D clouds: real cards at several distances, not a World effect.
+    cloud_box = layout.box()
+    cloud_box.label(text="2.5D Clouds", icon="CLOUD")
+    col = cloud_box.column(align=True)
+    col.prop(s, "clouds_amount")
+    col.prop(s, "clouds_height")
+    row = cloud_box.row(align=True)
+    row.operator("ald.clouds_create", icon="ADD")
+    row.operator("ald.clouds_remove", icon="REMOVE")
+    if s.clouds_created:
+        cloud_box.label(text="Cloud layers active", icon="CHECKMARK")
 
 
 def draw_shadows(layout, context):

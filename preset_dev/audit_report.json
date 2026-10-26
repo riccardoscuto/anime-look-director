@@ -323,10 +323,34 @@
       "label": "Composition evidence and gate",
       "phase": "VI-P4",
       "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Clouds are opaque geometry bands, not alpha",
+      "phase": "VI-P5",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Three depths, palette-synced, removed with the scene",
+      "phase": "VI-P5",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Cloud UI and operators in both surfaces",
+      "phase": "VI-P5",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Gate: a cloud in front hides the FX matte",
+      "phase": "VI-P5",
+      "state": "OK"
     }
   ],
   "partial": 0,
-  "passed": 54,
+  "passed": 58,
   "plan": "v2.27.0 P0-P3",
-  "total": 54
+  "total": 58
 }

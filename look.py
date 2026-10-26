@@ -26,6 +26,8 @@ def apply_world(scene):
     key, source = effective_palette(scene)
     from . import palette
     palette.apply_palette(scene, key)
+    from . import clouds
+    clouds.sync(scene)
     scene["ald_effective_palette"] = key
     scene["ald_effective_source"] = source
     return key

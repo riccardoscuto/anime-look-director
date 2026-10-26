@@ -223,6 +223,21 @@ CHECKS = [
      lambda: (exists("preset_dev/composition.py")[0]
               and has("preset_dev/verify.py", "check_fx_composition")[0],
               "preset_dev/composition/composition.json")),
+    # ---- Visual integration P5 (2.5D clouds) -----------------------------
+    ("VI-P5", "Clouds are opaque geometry bands, not alpha",
+     lambda: has("clouds.py", "def _cloud_mesh", "top = 0.62", "wave",
+                 "ShaderNodeEmission")),
+    ("VI-P5", "Three depths, palette-synced, removed with the scene",
+     lambda: has("clouds.py", "DISTANCES = (160.0, 230.0, 320.0)",
+                 "def sync", "cloud_light")
+     and has("snapshot.py", "clouds_module.remove(scene)")[0]),
+    ("VI-P5", "Cloud UI and operators in both surfaces",
+     lambda: has("operators.py", "ald.clouds_create", "ald.clouds_remove")
+     and has("panels.py", '"2.5D Clouds"', "clouds_amount")[0]),
+    ("VI-P5", "Gate: a cloud in front hides the FX matte",
+     lambda: has("preset_dev/verify.py", "check_clouds",
+                 "the cloud does not hide the FX behind it")
+     and exists("preset_dev/clouds/clouds.json")[0]),
 ]
 
 

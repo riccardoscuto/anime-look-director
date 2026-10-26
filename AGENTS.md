@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.34.0**).
+  (currently **2.35.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -567,6 +567,18 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     the screen position and the frame membership in `composition.json`;
   - the gate refuses a show whose depths, births or sizes are not ordered, or
     whose bursts fall outside the frame or overlap on screen.
+- P5 rules (2.5D clouds, v2.35):
+  - the clouds are **opaque geometry**, never alpha: a dithered cutout lets
+    the Cryptomatte samples through and does not occlude the FX. The band is a
+    wavy strip with 512 columns; a 96-column grid gives 20 px steps at 160 m;
+  - three bands at 160/230/320 m, palette-synced, in `ALD | Clouds` (the B
+    layer), removed by `snapshot.restore` and by Remove ALD;
+  - the card colours come from the palette (`cloud_shadow/mid/light`), with the
+    light only in the top 42 % of the band;
+  - `Cloud Amount` changes the silhouette, so `_on_clouds` rebuilds the layer;
+    the height moves the bands;
+  - the gate moves one band in front of the burst and requires the FX matte to
+    drop below 75 % of the free matte; the evidence is `preset_dev/clouds/`.
 - 2.25 rules:
   - `fx._scene_id` writes `settings.fx_uid` inside a `try/except`: the identity
     lives in `scene[ald_fx_id]` and the settings cache is best-effort only.
