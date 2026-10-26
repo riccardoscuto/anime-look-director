@@ -919,6 +919,19 @@ class ALD_Settings(bpy.types.PropertyGroup):
     clouds_created: BoolProperty(
         name="Clouds Created", default=False,
         description="Whether the spatial cloud layer exists in the scene")
+    clouds_quality: EnumProperty(
+        name="Quality",
+        items=[("PREVIEW", "Preview", "Half resolution cards, fast viewport"),
+               ("FINAL", "Final", "Full resolution cards for the render")],
+        default="FINAL",
+        update=_on_clouds,
+        description="Mesh resolution of the spatial cloud cards")
+    clouds_world_blend: FloatProperty(
+        name="World Cloud Blend", default=0.5, min=0.0, max=1.0,
+        update=_on_world,
+        description=("Reduction of the World cloud amount while the spatial "
+                     "cards are active: 0 keeps both, 1 removes the World "
+                     "clouds"))
     fx_pass_path: StringProperty(
         name="FX Pass", default="", subtype="FILE_PATH",
         description="EXR of the FX-only emission used by the compositor")

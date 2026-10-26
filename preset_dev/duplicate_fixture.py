@@ -17,6 +17,7 @@ Run::
 
 import os
 import sys
+import tempfile
 
 import bpy
 
@@ -179,9 +180,39 @@ def main():
         if bpy.data.scenes.get(removal.name) is not None:
             bpy.data.scenes.remove(removal)
 
+    # The repaired identity survives a save and a reload. The first copy was
+    # emptied by the removal test, so a fresh copy carries the clouds.
     bpy.data.scenes.remove(copy)
+    reload_copy = scene.copy()
+    reload_copy.use_fake_user = True
+    ownership.repair(reload_copy)
+    fixture = os.path.join(tempfile.gettempdir(),
+                           "ald_duplicate_fixture.blend")
+    original_name = scene.name
+    copy_name = reload_copy.name
+    bpy.ops.wm.save_as_mainfile(filepath=fixture)
+    bpy.ops.wm.open_mainfile(filepath=fixture)
+    scene = bpy.data.scenes.get(original_name)
+    reload_copy = bpy.data.scenes.get(copy_name)
+    check(scene is not None and reload_copy is not None,
+          "both scenes survive the save/reload")
+    check(scene.get(fx.ID_KEY) and reload_copy.get(fx.ID_KEY)
+          and scene.get(fx.ID_KEY) != reload_copy.get(fx.ID_KEY),
+          "the identities stay distinct after the save/reload")
+    original_after = clouds._collection(scene)
+    copy_after = clouds._collection(reload_copy)
+    check(original_after is not None and copy_after is not None
+          and original_after.as_pointer() != copy_after.as_pointer(),
+          "the cloud collections stay separate after the save/reload")
+    clouds.remove(reload_copy)
+    check(clouds._collection(scene) is not None,
+          "removing the reloaded copy keeps the original clouds")
+
+    bpy.data.scenes.remove(reload_copy)
     clouds.remove(scene)
     fx.clear(scene)
+    if os.path.exists(fixture):
+        os.remove(fixture)
     print("DUP FIXTURE: PASS")
     return 0
 

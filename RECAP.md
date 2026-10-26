@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.47.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.48.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,20 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.48.0 — pass FX robusto e controlli nuvole
+
+- **Pass atomico**: `_render_pass_still` scrive su un EXR temporaneo e pubblica
+  con `os.replace`; un render fallito non tronca il pass valido. `use_compositing`
+  viene salvato e ripristinato insieme a formato e filepath.
+- **Collection annidata**: `_pass_layer` isola la collection FX a qualsiasi
+  profondità, non solo come figlia diretta.
+- **Qualità nuvole**: Preview / Final (cap 256/64 e 1024/256).
+- **World Cloud Blend**: riduce le nuvole World mentre le card sono attive;
+  Create/Remove riapplicano il World.
+- **Fixture duplicazione**: salva e ricarica un `.blend` temporaneo e verifica
+  che identità e collection restino indipendenti; rimuovere la copia ricaricata
+  non tocca l'originale.
 
 ## Novità 2.47.0 — contorni continui delle nuvole spaziali
 

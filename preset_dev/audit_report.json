@@ -506,6 +506,30 @@
     },
     {
       "evidence": "",
+      "label": "The FX pass writes atomically and restores the render state",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The FX pass isolates a nested FX collection",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Spatial quality and World blend are controls",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The duplicate fixture survives save and reload",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The pass signature is scoped to the scene",
       "phase": "VI-SC",
       "state": "OK"
@@ -644,7 +668,7 @@
     }
   ],
   "partial": 0,
-  "passed": 107,
+  "passed": 111,
   "plan": "v2.27.0 P0-P3",
-  "total": 107
+  "total": 111
 }

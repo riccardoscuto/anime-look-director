@@ -28,8 +28,10 @@ from mathutils import Vector
 COLLECTION_NAME = "ALD | Spatial Clouds"
 TAG = "ald_clouds"
 SCHEMA = 2
-MAX_COLS = 512
-MAX_ROWS = 128
+QUALITY = {
+    "PREVIEW": (0.5, 256, 64),
+    "FINAL": (1.0, 1024, 256),
+}
 NOISE_MODES = ("SHOT_LOCKED", "CAMERA_FACING")
 FLASH_RADIUS = 0.24
 FLASH_COLOR = (1.0, 0.72, 0.45)
@@ -501,12 +503,15 @@ def _rebuild_mesh(scene, layer):
     depth = float(settings.clouds_depth) * units * (1.0 + 0.45 * layer.index)
     width = depth * 1.4 * float(settings.clouds_scale)
     world_per_px = _world_per_pixel(scene, obj.location) if obj else 0.0
+    factor, max_columns, max_rows = QUALITY.get(
+        getattr(settings, "clouds_quality", "FINAL"), QUALITY["FINAL"])
     if world_per_px > 1e-9:
-        columns = int(max(64, min(MAX_COLS, width / (world_per_px * 4.0))))
-        rows = int(max(16, min(MAX_ROWS, width * 0.24
-                              / (world_per_px * 4.0))))
+        columns = int(max(64, min(max_columns,
+                                  factor * width / (world_per_px * 4.0))))
+        rows = int(max(16, min(max_rows, factor * width * 0.24
+                               / (world_per_px * 4.0))))
     else:
-        columns, rows = 256, 96
+        columns, rows = max_columns // 2, max_rows // 3
     mesh = _cloud_mesh("ALD | Cloud %d" % layer.index, layer.seed,
                        float(settings.clouds_coverage), columns, rows)
     old = obj.data
@@ -610,9 +615,10 @@ def refresh(scene):
                  Vector(first.axis))
         layer = _new_layer(scene, len(layers), basis)
 
-    signature = "%s|%s|%d|%s" % (settings.clouds_coverage,
-                                 settings.clouds_scale, count,
-                                 [round(layer.seed, 3) for layer in layers])
+    signature = "%s|%s|%d|%s|%s" % (
+        settings.clouds_coverage, settings.clouds_scale, count,
+        [round(layer.seed, 3) for layer in layers],
+        getattr(settings, "clouds_quality", "FINAL"))
     rebuild = scene.get("ald_clouds_signature") != signature
     for index, layer in enumerate(layers):
         layer.index = index

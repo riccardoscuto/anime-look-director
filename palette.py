@@ -3639,8 +3639,13 @@ def _apply_gradient(scene, settings, nt, background, p):
         getattr(settings, "sky_accent_amount", 0.0) if settings else 0.0)
 
     clouds = getattr(settings, "clouds", True) if settings else False
-    node.inputs["Cloud Amount"].default_value = (
-        getattr(settings, "cloud_amount", 0.6) if clouds else 0.0)
+    cloud_amount = getattr(settings, "cloud_amount", 0.6) if clouds else 0.0
+    if settings is not None and getattr(settings, "clouds_created", False):
+        # The spatial cards and the World clouds are two populations: the
+        # blend keeps the World from drawing the same sky twice.
+        cloud_amount *= max(0.0, 1.0 - float(
+            getattr(settings, "clouds_world_blend", 0.0)))
+    node.inputs["Cloud Amount"].default_value = cloud_amount
     node.inputs["Cloud Scale"].default_value = (
         getattr(settings, "cloud_scale", 3.0) if settings else 3.0)
     node.inputs["Cloud Flatness"].default_value = (

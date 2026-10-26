@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.48.0 - 2026-10-26
+FX pass hardening and spatial cloud controls.
+
+### Fixed
+- `_render_pass_still` renders to a temporary EXR and publishes it with
+  `os.replace`: a failed render cannot truncate the valid pass already on disk.
+  `scene.render.use_compositing` is saved and restored with the other render
+  state.
+- `_pass_layer` isolates the FX collection at any nesting depth, not only when
+  it is a direct child of the scene.
+
+### Added
+- Spatial Clouds: `clouds_quality` (Preview / Final) and `clouds_world_blend`
+  (0..1). The blend reduces the World cloud amount while the cards are active;
+  Create and Remove reapply the World.
+- The duplicate fixture saves the scene to a temporary `.blend`, reloads it and
+  checks that the identities and the cloud collections stay independent;
+  removing the reloaded copy keeps the original.
+- Gate: World blend, Preview/Final and the nested/atomic pass checks.
+
+### Evidence
+- `preset_dev/clouds/` and `preset_dev/clouds_bench/` regenerated with Final
+  quality; the benchmark counts are unchanged by the new cap.
+
 ## 2.47.0 - 2026-10-26
 Continuous spatial-cloud contours.
 

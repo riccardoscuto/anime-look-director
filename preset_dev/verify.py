@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 47, 0)
+EXPECTED_VERSION = (2, 48, 0)
 TOLERANCE = 1e-4
 
 
@@ -201,6 +201,27 @@ def check_world_gradient(scene, settings):
     check(abs(node.inputs["Cloud Amount"].default_value
               - settings.cloud_amount) <= TOLERANCE,
           "cloud amount not synced")
+
+    # The spatial cards and the World are two populations: the blend must
+    # remove the World clouds without touching the stored amount.
+    previous_created = settings.clouds_created
+    previous_blend = settings.clouds_world_blend
+    try:
+        settings.clouds_created = True
+        settings.clouds_world_blend = 1.0
+        palette_module.apply_palette(scene, settings.palette)
+        check(abs(node.inputs["Cloud Amount"].default_value) <= TOLERANCE,
+              "World Cloud Blend 1.0 did not remove the World clouds")
+        settings.clouds_world_blend = 0.0
+        palette_module.apply_palette(scene, settings.palette)
+        check(abs(node.inputs["Cloud Amount"].default_value
+                  - settings.cloud_amount) <= TOLERANCE,
+              "World Cloud Blend 0.0 changed the cloud amount")
+    finally:
+        settings.clouds_created = previous_created
+        settings.clouds_world_blend = previous_blend
+        palette_module.apply_palette(scene, settings.palette)
+
     check(abs(node.inputs["Cloud Scale"].default_value
               - settings.cloud_scale) <= TOLERANCE,
           "cloud scale not synced")
@@ -3519,7 +3540,8 @@ def check_clouds(scene):
                        scene.ald.clouds_altitude, scene.ald.clouds_depth,
                        scene.ald.clouds_scale, scene.ald.clouds_mode,
                        scene.ald.clouds_flash,
-                       scene.ald.clouds_flash_strength)
+                       scene.ald.clouds_flash_strength,
+                       scene.ald.clouds_quality)
 
     def polygons():
         collection = clouds_module._collection(scene)
@@ -3543,6 +3565,13 @@ def check_clouds(scene):
         clouds_module.refresh(scene)
         low = polygons()
         check(low > 0, "Coverage 0.5 builds no cloud")
+        scene.ald.clouds_quality = "PREVIEW"
+        clouds_module.refresh(scene)
+        preview = polygons()
+        check(preview < low, "Preview is not lighter than Final")
+        scene.ald.clouds_quality = "FINAL"
+        clouds_module.refresh(scene)
+        check(polygons() == low, "Final did not restore the cloud mesh")
         scene.ald.clouds_coverage = 0.9
         clouds_module.refresh(scene)
         high = polygons()
@@ -3701,7 +3730,8 @@ def check_clouds(scene):
         (scene.ald.clouds_coverage, scene.ald.clouds_layers,
          scene.ald.clouds_altitude, scene.ald.clouds_depth,
          scene.ald.clouds_scale, scene.ald.clouds_mode,
-         scene.ald.clouds_flash, scene.ald.clouds_flash_strength) = previous_clouds
+         scene.ald.clouds_flash, scene.ald.clouds_flash_strength,
+         scene.ald.clouds_quality) = previous_clouds
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 

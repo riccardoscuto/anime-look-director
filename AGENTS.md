@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.47.0**).
+  (currently **2.48.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -599,6 +599,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - the gate `check_cloud_contour` requires interpolated boundary vertices,
     triangles only, no non-manifold edge and 1.0 denser than 0.9. It runs on
     `_cloud_mesh` directly, so it does not depend on the scene;
+  - `clouds_quality` Preview / Final caps the mesh at 256x64 / 1024x256; the
+    quality is part of the refresh signature, so changing it rebuilds;
+  - `clouds_world_blend` reduces the World Cloud Amount while
+    `clouds_created` is true; `ald.clouds_create` and `ald.clouds_remove`
+    reapply the World. The direct `clouds.create` API does not (tests own it);
   - `Cloud Altitude` is world units along the ALD Sky/FX Anchor axis;
     `Cloud Depth` is the distance from the creation camera; `Layer Count`
     adds bands at 1.45x depth steps. A taller band reads as a wall: the height
@@ -867,6 +872,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     not change the original;
   - the duplicate fixture also removes ALD from a copy and checks the original's
     clouds, FX, materials, material nodes and world;
+  - the fixture saves the scene to a temporary `.blend` and reloads it (the
+    copy gets a fake user so it survives): the identities and the cloud
+    collections stay distinct, and removing the reloaded copy keeps the
+    original;
 - PA2 volume spike 2.45 rules:
   - the cards stay the default: a native EEVEE volume placed in the same layer
     is cheaper (1.1 s vs 2.1 s at 640x360) but reads as a soft rectangle with
@@ -899,6 +908,11 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     the whole map with one signature;
   - both pass operators rebuild the stack after rendering: the still path used
     to leave the pass node unlinked until a manual Build;
+  - `_render_pass_still` renders to `path + ".tmp.exr"` and publishes with
+    `os.replace`; a failed render removes the temp and leaves the valid pass.
+    It saves and restores `use_compositing` with the other render state;
+  - `_isolate_collection` walks the layer tree: the FX collection can be nested
+    at any depth, not only a direct child;
   - the gate renders a four-frame sequence and checks the node fields, the
     per-scene image and that the EXR frames differ. The cost is one extra pass
     per frame;

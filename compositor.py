@@ -693,6 +693,25 @@ def ensure_fx_base_layer(scene):
     return layer
 
 
+def _isolate_collection(layer_collection, target):
+    """Exclude every branch except the one that contains ``target``.
+
+    The FX collection used to be assumed a direct child of the scene; a user
+    can nest it, so the whole layer tree is walked instead.
+    """
+    found = False
+    for child in layer_collection.children:
+        if child.collection is target:
+            child.exclude = False
+            found = True
+        elif _isolate_collection(child, target):
+            child.exclude = False
+            found = True
+        else:
+            child.exclude = True
+    return found
+
+
 def _pass_layer(scene):
     """A temporary view layer that contains only the FX collection."""
     name = "ALD FX Pass Layer"
@@ -706,11 +725,13 @@ def _pass_layer(scene):
     bpy.context.view_layer.update()
     fx_collection = _fx_collection(scene)
     if fx_collection is not None:
-        # The ALD FX collection is a direct child of the scene: exclude every
-        # other child. A path search is not needed and was failing here.
-        for child in list(layer.layer_collection.children):
-            if child.collection is not fx_collection:
+        found = _isolate_collection(layer.layer_collection, fx_collection)
+        if not found:
+            for child in layer.layer_collection.children:
                 child.exclude = True
+    else:
+        for child in layer.layer_collection.children:
+            child.exclude = True
     return layer
 
 
@@ -814,21 +835,32 @@ def _render_pass_still(scene, path):
     previous_format = scene.render.image_settings.file_format
     previous_mode = scene.render.image_settings.color_mode
     previous_path = scene.render.filepath
+    previous_compositing = scene.render.use_compositing
+    temporary = path + ".tmp.exr"
+    written = False
     try:
         scene.compositing_node_group = group
         scene.render.use_compositing = True
         scene.render.image_settings.file_format = "OPEN_EXR"
         scene.render.image_settings.color_mode = "RGB"
-        scene.render.filepath = path
+        scene.render.filepath = temporary
         bpy.ops.render.render(write_still=True)
+        written = True
     finally:
         scene.compositing_node_group = previous
         scene.render.image_settings.file_format = previous_format
         scene.render.image_settings.color_mode = previous_mode
         scene.render.filepath = previous_path
+        scene.render.use_compositing = previous_compositing
         bpy.data.node_groups.remove(group)
         if layer.name in scene.view_layers:
             scene.view_layers.remove(layer)
+        if written:
+            # Publish only after a complete frame: a failed render must not
+            # truncate the valid pass already on disk.
+            os.replace(temporary, path)
+        elif os.path.exists(temporary):
+            os.remove(temporary)
     return path
 
 

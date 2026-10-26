@@ -783,6 +783,7 @@ class ALD_OT_clouds_create(bpy.types.Operator):
         settings = scene.ald
         layers = clouds.create(scene)
         settings.clouds_created = True
+        look.apply_world(scene)
         self.report({"INFO"},
                     "Anime Look Director: %d cloud layers created" % layers)
         return {"FINISHED"}
@@ -798,6 +799,7 @@ class ALD_OT_clouds_remove(bpy.types.Operator):
         from . import clouds
         clouds.remove(context.scene)
         context.scene.ald.clouds_created = False
+        look.apply_world(context.scene)
         self.report({"INFO"}, "Anime Look Director: spatial clouds removed")
         return {"FINISHED"}
 

@@ -155,6 +155,8 @@ def draw_world(layout, context):
     col.prop(s, "clouds_altitude")
     col.prop(s, "clouds_depth")
     col.prop(s, "clouds_scale")
+    col.prop(s, "clouds_quality")
+    col.prop(s, "clouds_world_blend")
     col.prop(s, "clouds_mode")
     row = cloud_box.row(align=True)
     row.prop(s, "clouds_flash", text="Flash Response")
