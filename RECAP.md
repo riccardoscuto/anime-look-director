@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.51.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.52.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,14 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.52.0 — strict pass e pixel aspect
+
+- **Require FX Pass**: senza un pass valido lo stack usa un contributo FX nero
+  (FX nascosti) invece della main Emission contaminata. Default off per
+  compatibilità; gli operatori Shot/Animation generano il pass.
+- **Pixel aspect e resolution percentage** in `_world_per_pixel`: la larghezza
+  apparente delle scie resta stabile a render 50% e con pixel non quadrati.
 
 ## Novità 2.51.0 — regia esplicita shot/animazione
 

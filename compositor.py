@@ -791,11 +791,14 @@ def _refresh_pass_image(scene):
 def fx_pass_state(scene):
     """What the panel reports: file, frame and coverage, never a path only."""
     settings = getattr(scene, "ald", None)
+    strict = bool(getattr(settings, "fx_pass_required", False))
+    missing_text = ("No FX pass: FX hidden (Require FX Pass)" if strict
+                    else "No FX pass: the main Emission is used (edge leak)")
     if settings is None or not settings.fx_pass_path:
-        return "missing", "No FX pass: the main Emission is used (edge leak)"
+        return "missing", missing_text
     path = bpy.path.abspath(settings.fx_pass_path)
     if not os.path.exists(path):
-        return "missing", "FX pass file missing"
+        return "missing", missing_text
     start, end = _pass_frames(settings)
     if end > start:
         if not os.path.exists(bpy.path.abspath(_frame_path(path, end))):
@@ -1044,6 +1047,7 @@ def build(scene):
         # F: the external FX pass when it exists (isolated), otherwise the
         # main Emission (legacy path, known contamination at the edges).
         emission_source = emission
+        pass_valid = False
         pass_path = getattr(settings, "fx_pass_path", "")
         if pass_path and os.path.exists(bpy.path.abspath(pass_path)):
             image = _refresh_pass_image(scene)
@@ -1058,6 +1062,15 @@ def build(scene):
                 pass_node.frame_offset = 0
                 pass_node.use_auto_refresh = True
                 emission_source = pass_node.outputs["Image"]
+                pass_valid = True
+        if not pass_valid and getattr(settings, "fx_pass_required", False):
+            # The strict mode hides the FX rather than reintroducing the known
+            # edge contamination of the main Emission.
+            black = nodes.new("CompositorNodeRGB")
+            black.name = "ALD | FX Strict Black"
+            black.location = (-1280, -1350)
+            black.outputs[0].default_value = (0.0, 0.0, 0.0, 1.0)
+            emission_source = black.outputs[0]
 
 
 

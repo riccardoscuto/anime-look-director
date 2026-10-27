@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.52.0 - 2026-10-27
+Strict pass mode and pixel-aspect apparent widths.
+
+### Added
+- `fx_pass_required` (Require FX Pass) in the FX Pass box: with no valid pass
+  the stack feeds a black FX contribution instead of the contaminated main
+  Emission, so the FX are hidden rather than leaking. Default off for
+  compatibility; the shot and animation operators generate the pass.
+- `_world_per_pixel` includes `resolution_percentage` and the pixel aspect:
+  the apparent trail width is stable at 50% renders and non-square pixels.
+
+### Evidence
+- The gate builds the stack with and without the strict flag and checks the
+  `ALD | FX Strict Black` node; the UI screenshot shows the new toggle.
+
 ## 2.51.0 - 2026-10-27
 Explicit shot and animation orchestration.
 

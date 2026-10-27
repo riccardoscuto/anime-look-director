@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 51, 0)
+EXPECTED_VERSION = (2, 52, 0)
 TOLERANCE = 1e-4
 
 
@@ -3977,6 +3977,32 @@ def check_fx_pass_sequence(scene):
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
+def check_fx_pass_strict(scene):
+    """A missing pass can hide the FX instead of using the contaminated fallback."""
+    previous_required = scene.ald.fx_pass_required
+    previous_path = scene.ald.fx_pass_path
+    try:
+        scene.ald.fx_pass_path = ""
+        scene.ald.fx_pass_required = True
+        bpy.ops.ald.build()
+        ng = scene.compositing_node_group
+        check(ng is not None
+              and ng.nodes.get("ALD | FX Strict Black") is not None,
+              "strict mode does not hide the FX")
+        check(ng is not None and ng.nodes.get("ALD | FX Pass") is None,
+              "strict mode still reads a pass")
+        scene.ald.fx_pass_required = False
+        bpy.ops.ald.build()
+        ng = scene.compositing_node_group
+        check(ng is not None
+              and ng.nodes.get("ALD | FX Strict Black") is None,
+              "strict mode is still active when disabled")
+    finally:
+        scene.ald.fx_pass_path = previous_path
+        scene.ald.fx_pass_required = previous_required
+        bpy.ops.ald.build()
+
+
 def check_fx_render_orchestration(scene):
     """C1: the shot and the animation render the pass and the composite."""
     from anime_look_director import fx as fx_module
@@ -4599,6 +4625,7 @@ def main():
         check_cloud_contour()
         check_fx_pass_isolation(scene)
         check_fx_pass_sequence(scene)
+        check_fx_pass_strict(scene)
         check_fx_render_orchestration(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)

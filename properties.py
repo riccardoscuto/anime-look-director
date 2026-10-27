@@ -948,6 +948,10 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="FX Pass Frames", size=2, default=(0, 0),
         description="Frame range of the rendered FX pass "
                     "(end above start means a sequence)")
+    fx_pass_required: BoolProperty(
+        name="Require FX Pass", default=False, update=_on_stack,
+        description=("Hide the FX instead of using the contaminated main "
+                     "Emission when no valid pass exists"))
     fx_pass_signature: StringProperty(
         name="FX Pass Signature", default="",
         description="Hash of the FX state the pass was rendered with")

@@ -1229,8 +1229,11 @@ def _world_per_pixel(scene, position):
                     * max(scene.render.resolution_percentage, 1) / 100.0), 1)
     res_y = max(int(scene.render.resolution_y
                     * max(scene.render.resolution_percentage, 1) / 100.0), 1)
+    aspect_x = max(float(scene.render.pixel_aspect_x), 1e-3)
+    aspect_y = max(float(scene.render.pixel_aspect_y), 1e-3)
+    stretch = max(1.0, aspect_x / aspect_y, aspect_y / aspect_x)
     if data.type == "ORTHO":
-        return float(data.ortho_scale) / max(res_x, res_y)
+        return (float(data.ortho_scale) / max(res_x, res_y)) * stretch
     sensor = float(data.sensor_width)
     fit = getattr(data, "sensor_fit", "AUTO")
     if fit == "VERTICAL":
@@ -1240,7 +1243,7 @@ def _world_per_pixel(scene, position):
         pixels = res_x
     else:
         pixels = max(res_x, res_y)
-    return depth * sensor / (max(float(data.lens), 1e-3) * pixels)
+    return depth * sensor / (max(float(data.lens), 1e-3) * pixels) * stretch
 
 
 def _apparent_radius(scene, position, physical=0.022, min_px=1.5, max_px=6.0):

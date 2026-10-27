@@ -313,6 +313,9 @@ CHECKS = [
      and has("panels.py", "fx_pass_state")[0]),
     ("VI-SC", "Build repairs a duplicated scene before modifying it",
      lambda: has("operators.py", "ownership.repair", "ald.build")),
+    ("VI-SC", "A missing pass can hide the FX (strict mode)",
+     lambda: has("properties.py", "fx_pass_required")
+     and has("compositor.py", "ALD | FX Strict Black")[0]),
     ("VI-SC", "The shot and animation render the pass and the composite",
      lambda: has("operators.py", "ald.fx_render_shot", "ald.fx_render_animation",
                  "render(animation=True)")),

@@ -506,6 +506,12 @@
     },
     {
       "evidence": "",
+      "label": "A missing pass can hide the FX (strict mode)",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The shot and animation render the pass and the composite",
       "phase": "VI-SC",
       "state": "OK"
@@ -716,7 +722,7 @@
     }
   ],
   "partial": 0,
-  "passed": 119,
+  "passed": 120,
   "plan": "v2.27.0 P0-P3",
-  "total": 119
+  "total": 120
 }

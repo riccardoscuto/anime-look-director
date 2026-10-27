@@ -593,10 +593,14 @@ def draw_fx_pass(layout, context):
     state, text = compositor.fx_pass_state(context.scene)
     icon = {"ready": "CHECKMARK", "missing": "INFO",
             "stale": "ERROR", "range": "ERROR"}.get(state, "INFO")
+    box.prop(context.scene.ald, "fx_pass_required", text="Require FX Pass")
     box.label(text=text, icon=icon)
     if state == "missing":
-        box.label(text="The main Emission is used: foreign emitters can leak",
-                  icon="INFO")
+        if context.scene.ald.fx_pass_required:
+            box.label(text="FX hidden: render the pass", icon="ERROR")
+        else:
+            box.label(text="The main Emission is used: foreign emitters can leak",
+                      icon="INFO")
     elif state != "ready":
         box.label(text="Re-render the pass for the current frame", icon="INFO")
 
