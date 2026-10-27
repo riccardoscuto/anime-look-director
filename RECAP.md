@@ -81,6 +81,16 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
 
+## Novità 2.55.3 — viste delle card
+
+- **`preset_dev/cloud_views/`**: la stessa scena, palette, coverage 0.5, 3 layer
+  e 1280x720 visti dalla camera dello shot, da una camera laterale con
+  `Shot Locked` e dalla stessa laterale con `Camera Facing`.
+- **README**: le card sono billboard verticali; dallo shot sono la fascia di
+  cielo, da una vista libera sono piani. Se la camera si muove, usare
+  `Camera Facing` o ricreare il layer.
+- Nessuna modifica al prodotto.
+
 ## Novità 2.55.2 — baseline 2.39 misurata
 
 - Il tag `v2.39.0` è eseguito in un worktree temporaneo con

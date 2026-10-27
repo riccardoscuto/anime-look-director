@@ -512,6 +512,12 @@
     },
     {
       "evidence": "",
+      "label": "The cloud side views and Camera Facing are recorded",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The 2.39 cloud baseline is measured on the same camera",
       "phase": "VI-SC",
       "state": "OK"
@@ -758,7 +764,7 @@
     }
   ],
   "partial": 0,
-  "passed": 126,
+  "passed": 127,
   "plan": "v2.27.0 P0-P3",
-  "total": 126
+  "total": 127
 }

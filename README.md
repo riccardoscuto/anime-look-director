@@ -301,7 +301,8 @@ manifest `[build]` list.
 - v2.55.0 - FX created from the UI require the pass (strict by default for new
   effects)
 - v2.55.1 - validation report and explicit legacy-failure label
-- v2.55.2 - 2.39 cloud baseline measured on the same camera (current)
+- v2.55.2 - 2.39 cloud baseline measured on the same camera
+- v2.55.3 - cloud billboard views (shot / side locked / side facing) (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

@@ -1,6 +1,6 @@
 # Anime Look Director — validation report
 
-Current release: **2.55.2** (Blender 5.1.2, Windows 11). This report maps the
+Current release: **2.55.3** (Blender 5.1.2, Windows 11). This report maps the
 checks to the categories the operational plan requires: structural, Blender
 runtime, FX isolation, scene/lifecycle, visual and performance.
 
@@ -23,14 +23,15 @@ factory-startup processes and exits 1 on any failure.
 | Structural / runtime / visual | `verify.py` | **ALD GATE: PASS** |
 | FX isolation | `check_fx_pass_isolation`, `check_fx_pass_atomic`, `check_fx_pass_strict`, `check_fx_render_orchestration` | PASS |
 | Scene / lifecycle | `duplicate_fixture.py` (shared start, repair, remove, save/reload) | **DUP FIXTURE: PASS** |
-| Plan / coverage | `audit_plan.py` | **126/126** |
+| Plan / coverage | `audit_plan.py` | **127/127** |
 | Whole chain | `verify_all.py` | **ALD ALL: PASS** |
 | Visual matrix | `preset_dev/validation/metrics.json` | **36/36 PASS**, mean 1.44 s |
 | Composition | `preset_dev/composition/composition.json` | all events `in_frame`, hero 0.5/0.5, fractions 0.954–1.0 |
 | Clouds | `preset_dev/clouds_bench/metrics.json` | 3 runs, medians: creation 0.10–1.46 s, refresh 1.7–6.6 ms, render 2.15–3.64 s at 720p |
+| Cloud views | `preset_dev/cloud_views/` | shot / side Shot Locked / side Camera Facing at 1280x720 |
 | 2.39 baseline | `preset_dev/clouds_bench/legacy_2_39.json` | 1,536 quads, 0.0072 s, 3.275 s vs 57,968 triangles, 0.518 s, 2.723 s at 1280x720 |
 | Showcase | `preset_dev/showcase/` | 1920x1080 dusk 3-burst and night 5-burst |
-| Package | `dist/anime_look_director-2.55.2.zip` | extension build PASS; 2.55.2 package installed and enabled in an isolated config |
+| Package | `dist/anime_look_director-2.55.3.zip` | extension build PASS; 2.55.2 package installed and enabled in an isolated config |
 
 ## Plan Definition of Done
 
@@ -57,7 +58,7 @@ factory-startup processes and exits 1 on any failure.
   fallback for compatibility.
 - **World/Spatial regional masking**: the global blend is the current control.
 - **Card billboards**: smooth contour and rim, but they remain vertical cards;
-  a free viewport view still shows their plane.
+  a free viewport view still shows their plane (see `preset_dev/cloud_views/`).
 - **Legacy emission isolation**: `preset_dev/emission_isolation/metrics.json`
   is the historical FAIL of the retired path; see the README in that folder.
 - **Animation cost**: the final operators render the pass and the composite,

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.55.3 - 2026-10-27
+Cloud billboard evidence.
+
+### Added
+- `preset_dev/cloud_views.py` and `preset_dev/cloud_views/`: shot camera,
+  side camera with Shot Locked and side camera with Camera Facing, same scene,
+  palette, coverage 0.5, three layers and 1280x720.
+- `cloud_views/README.md` explains the billboard representation and the
+  Camera Facing workflow.
+
+### Notes
+- No product code change.
+
 ## 2.55.2 - 2026-10-27
 2.39 cloud baseline measured on the same camera.
 

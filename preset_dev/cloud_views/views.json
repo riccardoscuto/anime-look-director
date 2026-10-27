@@ -1,0 +1,22 @@
+{
+  "resolution": [
+    1280,
+    720
+  ],
+  "coverage": 0.5,
+  "layers": 3,
+  "views": [
+    {
+      "file": "shot_locked.png",
+      "mode": "SHOT_LOCKED"
+    },
+    {
+      "file": "side_locked.png",
+      "mode": "SHOT_LOCKED"
+    },
+    {
+      "file": "side_facing.png",
+      "mode": "CAMERA_FACING"
+    }
+  ]
+}
