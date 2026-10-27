@@ -2912,6 +2912,75 @@ def migrate(scene):
     return len(upgraded)
 
 
+def ensure_materials(scene):
+    """Copy-on-write the old ownerless FX materials used by this scene.
+
+    Materials created before 2.49.1 could be shared by two scenes. The scene
+    that loads first gets a copy per source material, on the object slots and on
+    the material inputs of the Geometry Nodes modifiers; the other scene keeps
+    the source until it loads. New materials already carry the owner and are
+    skipped.
+    """
+    settings = getattr(scene, "ald", None)
+    if settings is None or not settings.fx_systems:
+        return 0
+    owner = _scene_id(scene)
+    collection = None
+    for candidate in _scene_collections(scene):
+        if candidate.get(OWNER_KEY) != owner:
+            continue
+        if candidate.get("ald_fx_collection") is True \
+                or candidate.name == FX_COLLECTION:
+            collection = candidate
+            break
+    if collection is None:
+        return 0
+    copies = {}
+
+    def owned(material):
+        if material is None or not material.get("ald_fx_material"):
+            return material
+        if material.get("ald_fx_owner") == owner:
+            return material
+        key = material.as_pointer()
+        duplicate = copies.get(key)
+        if duplicate is None:
+            duplicate = material.copy()
+            duplicate.name = material.name + " | " + owner[:8]
+            duplicate["ald_fx_owner"] = owner
+            copies[key] = duplicate
+        return duplicate
+
+    count = 0
+    for obj in collection.objects:
+        for slot in obj.material_slots:
+            replacement = owned(slot.material)
+            if replacement is not slot.material:
+                slot.material = replacement
+                count += 1
+        for modifier in obj.modifiers:
+            if modifier.type != "NODES" or modifier.node_group is None:
+                continue
+            for item in modifier.node_group.interface.items_tree:
+                if getattr(item, "item_type", "") != "SOCKET":
+                    continue
+                if item.in_out != "INPUT" \
+                        or item.socket_type != "NodeSocketMaterial":
+                    continue
+                try:
+                    material = modifier[item.identifier]
+                except Exception:
+                    continue
+                replacement = owned(material)
+                if replacement is not material:
+                    modifier[item.identifier] = replacement
+                    count += 1
+    if count:
+        from . import compositor
+        compositor.refresh_fx_matte(scene)
+    return count
+
+
 def rebuild_registry(scene):
     """Rebuild the runtime registry from the persistent configuration.
 
@@ -2926,6 +2995,7 @@ def rebuild_registry(scene):
     if settings is None:
         return 0
     migrate(scene)
+    ensure_materials(scene)
     objects = _find_objects(scene)
     rebuilt = 0
     for system in settings.fx_systems:

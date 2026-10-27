@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.53.0 - 2026-10-27
+Copy-on-write for old shared FX materials.
+
+### Fixed
+- `fx.ensure_materials` runs from `rebuild_registry` (load/save fixtures) and
+  copies an ownerless FX material per scene, on the object slots and on the
+  material inputs of the Geometry Nodes modifiers; the Cryptomatte matte is
+  refreshed. New per-owner materials skip.
+- The gate creates the same old material in two scenes, migrates both and
+  requires distinct copies with distinct `ald_fx_owner`.
+
 ## 2.52.0 - 2026-10-27
 Strict pass mode and pixel-aspect apparent widths.
 

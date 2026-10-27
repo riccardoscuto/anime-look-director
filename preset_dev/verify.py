@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 52, 0)
+EXPECTED_VERSION = (2, 53, 0)
 TOLERANCE = 1e-4
 
 
@@ -1645,6 +1645,34 @@ def check_fx(scene):
           "fx materials are shared between scenes")
     for material in (owner_a, owner_b):
         if material.users == 0:
+            bpy.data.materials.remove(material)
+
+    # An old ownerless material shared by two scenes is copied per scene.
+    shared = bpy.data.materials.new("ALD Gate Old Material")
+    shared["ald_fx_material"] = True
+    old_objects = []
+    for target in (scene, other):
+        mesh = bpy.data.meshes.new("ALD Gate Old Mesh")
+        mesh.materials.append(shared)
+        obj = bpy.data.objects.new("ALD Gate Old Object", mesh)
+        fx_module._collection(target).objects.link(obj)
+        old_objects.append(obj)
+    fx_module.ensure_materials(scene)
+    fx_module.ensure_materials(other)
+    first = old_objects[0].active_material
+    second = old_objects[1].active_material
+    check(first is not second,
+          "the old shared FX material was not copied per scene")
+    check(first is not None and second is not None
+          and first.get("ald_fx_owner") != second.get("ald_fx_owner"),
+          "the migrated FX materials do not carry the scene owners")
+    for obj in old_objects:
+        mesh = obj.data
+        bpy.data.objects.remove(obj, do_unlink=True)
+        if mesh.users == 0:
+            bpy.data.meshes.remove(mesh)
+    for material in (first, second, shared):
+        if material is not None and material.users == 0:
             bpy.data.materials.remove(material)
 
     signature = _fx_signature(scene)

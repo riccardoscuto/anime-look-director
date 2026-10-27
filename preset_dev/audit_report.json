@@ -506,6 +506,12 @@
     },
     {
       "evidence": "",
+      "label": "Old shared FX materials are copied per scene",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "A missing pass can hide the FX (strict mode)",
       "phase": "VI-SC",
       "state": "OK"
@@ -722,7 +728,7 @@
     }
   ],
   "partial": 0,
-  "passed": 120,
+  "passed": 121,
   "plan": "v2.27.0 P0-P3",
-  "total": 120
+  "total": 121
 }

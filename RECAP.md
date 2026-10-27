@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.52.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.53.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,15 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.53.0 — migrazione dei materiali FX vecchi
+
+- **`fx.ensure_materials`** (da `rebuild_registry`, quindi al load) copia i
+  materiali FX senza owner per scena, sugli slot degli oggetti e sugli input
+  materiale dei modifier Geometry Nodes; aggiorna la matte Cryptomatte. I
+  materiali nuovi con owner vengono saltati.
+- **Gate**: lo stesso materiale vecchio in due scene diventa due copie distinte
+  con owner distinti.
 
 ## Novità 2.52.0 — strict pass e pixel aspect
 
