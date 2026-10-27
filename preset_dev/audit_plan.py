@@ -317,6 +317,9 @@ CHECKS = [
     ("VI-SC", "Old shared FX materials are copied per scene",
      lambda: has("fx.py", "def ensure_materials", "modifier[item.identifier]")
      and has("preset_dev/verify.py", "the old shared FX material")[0]),
+    ("VI-SC", "The legacy isolation failure is labelled, not hidden",
+     lambda: has("preset_dev/emission_isolation/README.md", "Expected failure")
+     and has("preset_dev/emission_isolation.py", "Expected failure")[0]),
     ("VI-SC", "New FX from the UI require the pass",
      lambda: has("operators.py", "fx_pass_required = True")
      and has("preset_dev/verify.py", "FX operator did not require")[0]),

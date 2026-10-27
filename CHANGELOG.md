@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.55.1 - 2026-10-27
+Validation report and explicit legacy labelling.
+
+### Added
+- `preset_dev/VALIDATION.md`: the plan's Definition of Done mapped to the
+  structural, runtime, FX isolation, lifecycle, visual and performance evidence.
+- `verify_all` labels the three steps with their category.
+- `preset_dev/emission_isolation/README.md` and the script docstring label the
+  old FAIL as the expected legacy measurement; the current path is the gate.
+
+### Notes
+- No product code change; the package is rebuilt for the version.
+
 ## 2.55.0 - 2026-10-27
 New FX from the UI require the pass.
 

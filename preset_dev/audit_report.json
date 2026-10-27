@@ -512,6 +512,12 @@
     },
     {
       "evidence": "",
+      "label": "The legacy isolation failure is labelled, not hidden",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "New FX from the UI require the pass",
       "phase": "VI-SC",
       "state": "OK"
@@ -746,7 +752,7 @@
     }
   ],
   "partial": 0,
-  "passed": 124,
+  "passed": 125,
   "plan": "v2.27.0 P0-P3",
-  "total": 124
+  "total": 125
 }

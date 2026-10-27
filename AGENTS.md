@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.55.0**).
+  (currently **2.55.1**).
 
 ## Verify (run after every change)
 ```powershell
@@ -19,7 +19,9 @@ Full chain (gate + duplicate fixture + audit, one fresh Blender per step):
 ```powershell
 & $blender -b --factory-startup --python preset_dev\verify_all.py
 ```
-Expected output: `ALD ALL: PASS`.
+Expected output: `ALD ALL: PASS` (the steps are labelled
+structural/runtime/visual, lifecycle and plan/coverage). The full report is
+`preset_dev/VALIDATION.md`.
 
 Release zip (the manifest excludes `preset_dev/`, `graphify-out/`, `dist/` and
 the internal docs; the LICENSE and the user docs stay):

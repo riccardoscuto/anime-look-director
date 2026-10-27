@@ -1,4 +1,10 @@
-"""P5-B: a foreign emissive surface must not contaminate the FX contribution.
+"""P5-B legacy: a foreign emissive surface contaminates the old FX path.
+
+**Expected failure.** This script measures the retired main-Emission path; the
+FAIL in ``emission_isolation/metrics.json`` is the historical evidence of why
+the external pass exists. The current path is tested by the gate
+(``check_fx_pass_isolation``, ``atomic``, ``strict`` and ``orchestration``).
+Do not treat this folder as the current isolation verdict.
 
 The FX path uses the Emission pass multiplied by a binary presence mask; the
 mask comes from the Cryptomatte of the FX materials. A bright emissive plane is

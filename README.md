@@ -2,7 +2,7 @@
 
 Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
 
-## What it does (v2.55.0)
+## What it does (v2.55.1)
 - Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
   Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
   Scene-Linear Rec.709 color script calibrated for AgX.
@@ -299,7 +299,10 @@ manifest `[build]` list.
 - v2.53.1 - gate test: a failed EXR write leaves the valid pass intact
 - v2.54.0 - ORTHO show fit by the lateral layout
 - v2.55.0 - FX created from the UI require the pass (strict by default for new
-  effects) (current)
+  effects)
+- v2.55.1 - validation report and explicit legacy-failure label (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).
+
+Validation report: [`preset_dev/VALIDATION.md`](preset_dev/VALIDATION.md).

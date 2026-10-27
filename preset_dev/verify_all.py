@@ -17,9 +17,9 @@ import bpy
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 STEPS = (
-    ("gate", "verify.py"),
-    ("fixture", "duplicate_fixture.py"),
-    ("audit", "audit_plan.py"),
+    ("gate [structural/runtime/visual]", "verify.py"),
+    ("fixture [lifecycle]", "duplicate_fixture.py"),
+    ("audit [plan/coverage]", "audit_plan.py"),
 )
 
 

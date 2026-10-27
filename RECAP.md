@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.55.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.55.1** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,15 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.55.1 — report di validazione
+
+- **`preset_dev/VALIDATION.md`** mappa la Definition of Done del piano sulle
+  evidenze structural, runtime, FX isolation, lifecycle, visual e performance.
+- **`emission_isolation/README.md`** etichetta il vecchio FAIL come misura
+  storica del percorso legacy; il percorso attuale è coperto dal gate.
+- **`verify_all`** etichetta i tre passi con la categoria.
+- Nessuna modifica al prodotto: pacchetto ricostruito per la versione.
 
 ## Novità 2.55.0 — i nuovi FX richiedono il pass
 
