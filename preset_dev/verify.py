@@ -4,7 +4,9 @@ Run:
   blender -b --factory-startup --python-exit-code 1 --python preset_dev/verify.py
 """
 
+import json
 import os
+import shutil
 import sys
 import tempfile
 import tomllib
@@ -16,7 +18,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 55, 4)
+EXPECTED_VERSION = (2, 55, 5)
 TOLERANCE = 1e-4
 
 
@@ -1440,6 +1442,7 @@ def check_fx_occlusion(scene):
     previous_size = (scene.render.resolution_x, scene.render.resolution_y)
     previous_engine = scene.render.engine
     previous_backend = scene.ald.fx_backend
+    previous_required = scene.ald.fx_pass_required
 
     origin, forward, _up, _right = fx_module._camera_basis(scene)
     material = bpy.data.materials.new("ALD Gate Occluder")
@@ -1483,6 +1486,9 @@ def check_fx_occlusion(scene):
 
     try:
         scene.ald.fx_backend = "FX3D"
+        # This check measures the FX visibility, not the pass fallback: use the
+        # legacy main Emission so the strict mode cannot hide the burst.
+        scene.ald.fx_pass_required = False
         fx_module.clear(scene)
         fx_module.create_fireworks(scene, 1, seed=5, distance=30.0, time=0.6)
         system = scene.ald.fx_systems[0]
@@ -1537,6 +1543,7 @@ def check_fx_occlusion(scene):
         bpy.data.materials.remove(material)
         fx_module.clear(scene)
         scene.ald.fx_backend = previous_backend
+        scene.ald.fx_pass_required = previous_required
         scene.render.resolution_x, scene.render.resolution_y = previous_size
         scene.render.engine = previous_engine
         scene.frame_set(previous_frame)
@@ -2718,6 +2725,8 @@ def check_fx_reversibility(scene):
     view_layer.use_pass_z = False
     view_layer.use_pass_emit = False
     view_layer.use_pass_normal = False
+    view_layer.use_pass_cryptomatte_material = False
+    view_layer.use_pass_object_index = False
     state = {
         "world": world.name,
         "bg_color": list(background.inputs["Color"].default_value),
@@ -2750,6 +2759,8 @@ def check_fx_reversibility(scene):
     view_layer.use_pass_emit = False
     view_layer.use_pass_normal = False
     view_layer.use_pass_mist = False
+    view_layer.use_pass_cryptomatte_material = False
+    view_layer.use_pass_object_index = False
     del scene[snapshot.SNAPSHOT_KEY]
 
     # The add-on modifies the scene.
@@ -2803,6 +2814,9 @@ def check_fx_reversibility(scene):
              state["stack"]))
     check(not view_layer.use_pass_z and not view_layer.use_pass_emit,
           "the render passes were not restored")
+    check(not view_layer.use_pass_cryptomatte_material
+          and not view_layer.use_pass_object_index,
+          "the Cryptomatte/Object Index passes were not restored")
     check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
           "the FX objects were not removed")
     check(scene.get(snapshot.REMOVED_KEY) is True,
@@ -3184,6 +3198,7 @@ def check_fx_p1_visibility(scene):
     previous_engine = scene.render.engine
     previous_size = (scene.render.resolution_x, scene.render.resolution_y)
     previous_frame = scene.frame_current
+    previous_required = scene.ald.fx_pass_required
     origin, forward, _up, right = fx_module._camera_basis(scene)
     hidden = []
     for obj in scene.objects:
@@ -3245,6 +3260,7 @@ def check_fx_p1_visibility(scene):
         scene.render.resolution_x = 64
         scene.render.resolution_y = 64
         scene.render.resolution_percentage = 100
+        scene.ald.fx_pass_required = False
         try:
             scene.render.use_motion_blur = False
         except Exception:
@@ -3303,6 +3319,7 @@ def check_fx_p1_visibility(scene):
         fx_module.clear(scene)
         scene.render.resolution_x, scene.render.resolution_y = previous_size
         scene.render.engine = previous_engine
+        scene.ald.fx_pass_required = previous_required
         scene.frame_set(previous_frame)
 
 
@@ -3965,9 +3982,9 @@ def check_fx_pass_sequence(scene):
         bpy.context.view_layer.update()
 
         default_path = compositor_module._default_pass_path(scene)
-        check(os.path.basename(default_path)
-              == "ald_fx_pass_%s.exr" % scene.name,
-              "the default FX pass path is not per scene")
+        check(os.path.basename(default_path) == "fx.exr"
+              and "ald_fx_pass_" in default_path,
+              "the default FX pass path is not addressed by the scene UUID")
         first = compositor_module.render_fx_pass_animation(scene, base)
         check(first is not None, "the animation pass did not render")
         check(tuple(scene.ald.fx_pass_frames) == (start, end),
@@ -3977,6 +3994,7 @@ def check_fx_pass_sequence(scene):
         check(os.path.exists(start_path) and os.path.exists(end_path),
               "the pass sequence files are missing")
 
+        scene.frame_set(start)
         bpy.ops.ald.build()
         ng = scene.compositing_node_group
         node = ng.nodes.get("ALD | FX Pass") if ng is not None else None
@@ -4029,11 +4047,49 @@ def check_fx_pass_sequence(scene):
         state, _text = compositor_module.fx_pass_state(scene)
         check(state == "ready",
               "restoring the camera does not restore the pass (%s)" % state)
+
+        # P1-B: a camera shift changes the projection of F, so it invalidates
+        # the pass exactly like a camera move.
+        shift = camera.data.shift_x
+        camera.data.shift_x = shift + 0.05
+        bpy.context.view_layer.update()
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state == "stale",
+              "a camera shift does not invalidate the pass (%s)" % state)
+        camera.data.shift_x = shift
+        bpy.context.view_layer.update()
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state == "ready",
+              "restoring the camera shift does not restore the pass (%s)"
+              % state)
         scene.frame_set(end)
         state, _text = compositor_module.fx_pass_state(scene)
         check(state == "ready",
               "the per-frame signature is not valid at the end frame (%s)"
               % state)
+
+        # P0-04: every file and every frame record is required, not only the
+        # first/last endpoints.
+        middle = start + 1
+        middle_path = compositor_module._frame_path(first, middle)
+        backup = middle_path + ".bak"
+        os.replace(middle_path, backup)
+        try:
+            state, _text = compositor_module.fx_pass_state(scene)
+            check(state != "ready",
+                  "a missing middle frame is reported as ready (%s)" % state)
+        finally:
+            os.replace(backup, middle_path)
+
+        records = json.loads(scene.ald.fx_pass_signature)
+        saved = records.pop(str(middle), None)
+        scene.ald.fx_pass_signature = json.dumps(records, sort_keys=True)
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state != "ready",
+              "a missing frame signature is reported as ready (%s)" % state)
+        if saved is not None:
+            records[str(middle)] = saved
+            scene.ald.fx_pass_signature = json.dumps(records, sort_keys=True)
     finally:
         if first is not None:
             for frame in range(previous_range[0], previous_range[1] + 1):
@@ -4048,6 +4104,79 @@ def check_fx_pass_sequence(scene):
         scene.frame_start, scene.frame_end = previous_range
         scene.frame_set(previous_frame)
         scene.render.resolution_x, scene.render.resolution_y = previous_size
+
+
+def check_fx_pass_sequence_atomic(scene):
+    """P1-C: a failure mid-sequence keeps the previous sequence and manifest."""
+    import hashlib
+    from anime_look_director import compositor as compositor_module
+    from anime_look_director import fx as fx_module
+
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_range = (scene.frame_start, scene.frame_end)
+    previous_frame = scene.frame_current
+    previous_path = scene.ald.fx_pass_path
+    previous_frames = tuple(scene.ald.fx_pass_frames)
+    previous_signature = scene.ald.fx_pass_signature
+    folder = tempfile.mkdtemp(prefix="ald_seq_atomic_")
+    base = os.path.join(folder, "pass.exr")
+    try:
+        scene.render.resolution_x = 96
+        scene.render.resolution_y = 54
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
+        bpy.ops.ald.build()
+        scene.frame_start = 1
+        scene.frame_end = 3
+        first = compositor_module.render_fx_pass_animation(scene, base)
+        check(first is not None, "the reference sequence did not render")
+        valid = (scene.ald.fx_pass_path, tuple(scene.ald.fx_pass_frames),
+                 scene.ald.fx_pass_signature)
+        start_path = compositor_module._frame_path(first, 1)
+        with open(start_path, "rb") as handle:
+            before = hashlib.sha1(handle.read()).hexdigest()
+
+        original = compositor_module._render_pass_still
+        state = {"count": 0}
+
+        def failing(scene_arg, path_arg):
+            state["count"] += 1
+            if state["count"] == 2:
+                raise RuntimeError("forced sequence failure")
+            return original(scene_arg, path_arg)
+
+        compositor_module._render_pass_still = failing
+        failed = False
+        try:
+            compositor_module.render_fx_pass_animation(scene, base)
+        except RuntimeError:
+            failed = True
+        finally:
+            compositor_module._render_pass_still = original
+        check(failed, "the forced sequence failure did not propagate")
+        check((scene.ald.fx_pass_path, tuple(scene.ald.fx_pass_frames),
+               scene.ald.fx_pass_signature) == valid,
+              "a failed sequence changed the active manifest")
+        check(os.path.exists(start_path),
+              "a failed sequence removed the previous frames")
+        with open(start_path, "rb") as handle:
+            after = hashlib.sha1(handle.read()).hexdigest()
+        check(before == after,
+              "a failed sequence overwrote the previous frame")
+        leftovers = [name for name in os.listdir(folder)
+                     if name.startswith(".ald_pass_")]
+        check(not leftovers,
+              "a failed sequence left a staging directory: %s" % leftovers)
+    finally:
+        scene.ald.fx_pass_path = previous_path
+        scene.ald.fx_pass_frames = previous_frames
+        scene.ald.fx_pass_signature = previous_signature
+        scene.frame_start, scene.frame_end = previous_range
+        scene.frame_set(previous_frame)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        fx_module.clear(scene)
+        bpy.ops.ald.build()
+        shutil.rmtree(folder, ignore_errors=True)
 
 
 def check_fx_pass_atomic(scene):
@@ -4097,12 +4226,31 @@ def check_fx_pass_atomic(scene):
 
 
 def check_fx_pass_strict(scene):
-    """A missing pass can hide the FX instead of using the contaminated fallback."""
+    """A missing pass hides the FX: the environment is pixel-identical."""
     from anime_look_director import fx as fx_module
+    import numpy as np
 
     previous_required = scene.ald.fx_pass_required
     previous_path = scene.ald.fx_pass_path
     previous_age = float(scene.ald.fx_age)
+    previous_backend = scene.ald.fx_backend
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y,
+                     scene.render.resolution_percentage)
+    previous_format = scene.render.image_settings.file_format
+    previous_output = scene.render.filepath
+    folder = tempfile.mkdtemp(prefix="ald_strict_")
+    strict_png = os.path.join(folder, "strict.png")
+    environment_png = os.path.join(folder, "environment.png")
+
+    def pixels(path):
+        image = bpy.data.images.load(path, check_existing=False)
+        try:
+            width, height = image.size
+            return np.array(image.pixels[:], dtype=np.float32).reshape(
+                height, width, 4)[:, :, :3]
+        finally:
+            bpy.data.images.remove(image)
+
     try:
         # Creating FX from the UI requires a pass: the fallback is not chosen
         # silently for a new effect.
@@ -4115,23 +4263,154 @@ def check_fx_pass_strict(scene):
         scene.ald.fx_pass_required = True
         bpy.ops.ald.build()
         ng = scene.compositing_node_group
-        check(ng is not None
-              and ng.nodes.get("ALD | FX Strict Black") is not None,
-              "strict mode does not hide the FX")
         check(ng is not None and ng.nodes.get("ALD | FX Pass") is None,
               "strict mode still reads a pass")
+        for name in ("ALD | FX Punch Out", "ALD | FX Restore",
+                     "ALD | FX Glow"):
+            check(ng is not None and ng.nodes.get(name) is None,
+                  "strict mode still recomposes the FX (%s)" % name)
+
+        # The strict output must be the environment, not P(B) * (1 - A).
+        scene.render.resolution_x = 96
+        scene.render.resolution_y = 54
+        scene.render.resolution_percentage = 100
+        scene.render.image_settings.file_format = "PNG"
+        scene.render.filepath = strict_png
+        bpy.ops.render.render(write_still=True)
+
+        scene.ald.fx_pass_required = False
+        scene.ald.fx_backend = "OFF"
+        bpy.ops.ald.build()
+        scene.render.filepath = environment_png
+        bpy.ops.render.render(write_still=True)
+        delta = np.abs(pixels(strict_png) - pixels(environment_png))
+        check(float(delta.max()) <= 0.01,
+              "strict mode changed the environment (max %.4f)"
+              % float(delta.max()))
+
         scene.ald.fx_pass_required = False
         bpy.ops.ald.build()
         ng = scene.compositing_node_group
         check(ng is not None
-              and ng.nodes.get("ALD | FX Strict Black") is None,
-              "strict mode is still active when disabled")
+              and ng.nodes.get("ALD | FX Punch Out") is not None,
+              "the FX recomposition is still disabled when not required")
     finally:
         scene.ald.fx_pass_path = previous_path
         scene.ald.fx_pass_required = previous_required
         scene.ald.fx_age = previous_age
+        scene.ald.fx_backend = previous_backend
+        scene.render.resolution_x, scene.render.resolution_y, \
+            scene.render.resolution_percentage = previous_size
+        scene.render.image_settings.file_format = previous_format
+        scene.render.filepath = previous_output
         fx_module.clear(scene)
         bpy.ops.ald.build()
+        for name in os.listdir(folder):
+            try:
+                os.remove(os.path.join(folder, name))
+            except OSError:
+                pass
+        try:
+            os.rmdir(folder)
+        except OSError:
+            pass
+
+
+def check_fx_pass_cache(scene):
+    """P0-A: a stale EXR is never consumed by the stack."""
+    from anime_look_director import compositor as compositor_module
+    from anime_look_director import fx as fx_module
+    from mathutils import Vector
+
+    previous_required = scene.ald.fx_pass_required
+    previous_path = scene.ald.fx_pass_path
+    previous_frames = tuple(scene.ald.fx_pass_frames)
+    previous_signature = scene.ald.fx_pass_signature
+    previous_age = float(scene.ald.fx_age)
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_frame = scene.frame_current
+    path = os.path.join(tempfile.gettempdir(), "ald_gate_stale.exr")
+    try:
+        scene.render.resolution_x = 96
+        scene.render.resolution_y = 54
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
+        bpy.ops.ald.build()
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        scene.camera.rotation_euler = (Vector(event.target)
+                                       - scene.camera.location).to_track_quat(
+                                           "-Z", "Y").to_euler()
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        scene.frame_set(int(system.origin_frame
+                            + (event.birth + event.rise_time + 0.4) * fps))
+        bpy.context.view_layer.update()
+        compositor_module.render_fx_pass(scene, path)
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state == "ready", "the fresh pass is not ready (%s)" % state)
+
+        scene.ald.fx_age = previous_age + 0.5
+        state, _text = compositor_module.fx_pass_state(scene)
+        check(state == "stale", "the stale pass is still ready (%s)" % state)
+        scene.ald.fx_pass_required = False
+        bpy.ops.ald.build()
+        ng = scene.compositing_node_group
+        check(ng is not None and ng.nodes.get("ALD | FX Pass") is None,
+              "the stack still reads a stale FX pass")
+
+        scene.ald.fx_pass_required = True
+        bpy.ops.ald.build()
+        ng = scene.compositing_node_group
+        for name in ("ALD | FX Pass", "ALD | FX Punch Out",
+                     "ALD | FX Restore", "ALD | FX Glow"):
+            check(ng is not None and ng.nodes.get(name) is None,
+                  "strict stale mode still uses the FX branch (%s)" % name)
+    finally:
+        scene.ald.fx_pass_path = previous_path
+        scene.ald.fx_pass_frames = previous_frames
+        scene.ald.fx_pass_signature = previous_signature
+        scene.ald.fx_pass_required = previous_required
+        scene.ald.fx_age = previous_age
+        scene.frame_set(previous_frame)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        fx_module.clear(scene)
+        if os.path.exists(path):
+            os.remove(path)
+        bpy.ops.ald.build()
+
+
+def check_fx_pass_names(scene):
+    """P0-C: the default pass is addressed by scene UUID and explicit frame."""
+    from anime_look_director import compositor as compositor_module
+
+    first_scene = bpy.data.scenes.new("Scene1")
+    second_scene = bpy.data.scenes.new("Scene2")
+    try:
+        first = compositor_module._default_pass_path(first_scene)
+        second = compositor_module._default_pass_path(second_scene)
+        check(first != second,
+              "two scenes share the default FX pass path: %s" % first)
+        check(compositor_module._frame_path(first, 1)
+              != compositor_module._frame_path(second, 1),
+              "Scene1 and Scene2 collide at frame 1")
+        check(compositor_module._frame_path(first, 1).endswith("_f0001.exr"),
+              "the frame suffix is not explicit: %s"
+              % compositor_module._frame_path(first, 1))
+        check(compositor_module._frame_path(first, 1)
+              != compositor_module._frame_path(first, 2),
+              "the frame number is not part of the path")
+        numbered = compositor_module._frame_path(first, 1)
+        check(compositor_module._frame_path(numbered, 2)
+              == compositor_module._frame_path(first, 2),
+              "the frame path is not idempotent")
+        versioned = os.path.join(tempfile.gettempdir(), "pass_deadbeef",
+                                 "pass_f0001.exr")
+        check(compositor_module._stable_sequence_base(versioned)
+              == os.path.join(tempfile.gettempdir(), "pass.exr"),
+              "a published sequence nests on the next animation render")
+    finally:
+        bpy.data.scenes.remove(first_scene)
+        bpy.data.scenes.remove(second_scene)
 
 
 def check_fx_render_orchestration(scene):
@@ -4768,8 +5047,11 @@ def main():
         check_cloud_contour()
         check_fx_pass_isolation(scene)
         check_fx_pass_sequence(scene)
+        check_fx_pass_sequence_atomic(scene)
         check_fx_pass_atomic(scene)
         check_fx_pass_strict(scene)
+        check_fx_pass_cache(scene)
+        check_fx_pass_names(scene)
         check_fx_render_orchestration(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)

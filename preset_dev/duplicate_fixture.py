@@ -62,6 +62,17 @@ def main():
     fx.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
     bpy.ops.ald.build()
 
+    # An ordinary object and material shared by every scene copy: the fixture
+    # checks that ALD never edits it from the copy.
+    test_mesh = bpy.data.meshes.new("ALD Fixture Shared Mesh")
+    test_mesh.from_pydata([(-1, 0, 0), (1, 0, 0), (0, 1, 0)], [], [(0, 1, 2)])
+    test_mesh.update()
+    test_material = bpy.data.materials.new("ALD Fixture Shared Material")
+    test_material.use_nodes = True
+    test_mesh.materials.append(test_material)
+    test_object = bpy.data.objects.new("ALD Fixture Shared Object", test_mesh)
+    scene.collection.objects.link(test_object)
+
     original_clouds = clouds._collection(scene)
     original_fx = fx._collection(scene)
     check(original_clouds is not None and original_fx is not None,
@@ -130,6 +141,33 @@ def main():
         check(sun is None or (tuple(sun.data.color) == sun_color
                               and sun.data.energy == sun_energy),
               "applying a palette to the copy kept the original sun")
+
+        # A shared ordinary material is never edited from the copy: its slots
+        # and datablock belong to the original scene too.
+        from anime_look_director import materials, palette
+        shared_material = next(
+            (material for obj in automatic.objects
+             if obj.data is not None and hasattr(obj.data, "materials")
+             for material in obj.data.materials
+             if material is not None
+             and materials.material_is_shared(material, automatic)), None)
+        check(shared_material is not None,
+              "the fixture has no shared ordinary material")
+        if shared_material is not None:
+            nodes_before = len(shared_material.node_tree.nodes) \
+                if shared_material.use_nodes and shared_material.node_tree else 0
+            materials.sync_scene(automatic, (0.2, 0.3, 0.9), 0.5, 0.5)
+            nodes_after = len(shared_material.node_tree.nodes) \
+                if shared_material.use_nodes and shared_material.node_tree else 0
+            check(nodes_before == nodes_after,
+                  "a shared material was edited from the copy")
+
+        # A sun shared with the copy never rotates the original.
+        if sun is not None:
+            rotation = tuple(sun.rotation_euler)
+            palette.apply_sun_angles(automatic, 0.35, 1.1)
+            check(tuple(sun.rotation_euler) == rotation,
+                  "a shared sun was rotated from the copy")
     finally:
         if bpy.data.scenes.get(automatic.name) is not None:
             clouds.remove(automatic)

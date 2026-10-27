@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.55.5 - 2026-10-27
+P0 pass-cache correctness and scene-copy safety.
+
+### Fixed
+- `fx_pass_state()` is the single authority of `compositor.build()`: only
+  `READY` feeds `ALD | FX Pass`. A stale, missing, out-of-range or unsigned
+  EXR is never read, even when the file exists.
+- Strict mode with no valid pass skips punch, restore and FX glow: the output
+  is the environment (B), pixel-identical to the no-FX render, instead of
+  dark holes from `P(B) * (1 - A)`.
+- Default pass paths use the persistent scene UUID
+  (`ald_fx_pass_<uid>/fx.exr`) and an explicit `_f0001` frame suffix; Scene1
+  and Scene2 no longer collide.
+- Sequence state checks every frame file (EXR magic, non-empty) and every
+  per-frame signature record, not only the endpoints.
+- The signature includes camera shift, sensor height, pixel aspect, engine,
+  film transparency, motion blur, shutter and EEVEE render samples.
+- An animation pass is written to a staging directory and published with one
+  directory rename: a failure at frame N keeps the previous sequence, files
+  and manifest intact.
+- Remove ALD restores `use_pass_cryptomatte_material` and
+  `use_pass_object_index`.
+- A material used by another scene is left untouched by Shadow Tint / Toon /
+  Rim sync; a sun shared with another scene is never rotated.
+
+### Evidence
+- `preset_dev/verify.py`: `check_fx_pass_cache`, `check_fx_pass_names`,
+  extended sequence test (middle file/signature), strict pixel comparison,
+  camera-shift invalidation and render-pass restoration.
+- `preset_dev/duplicate_fixture.py`: shared ordinary material and shared sun
+  are not edited from the copy.
+- `ALD GATE: PASS`, `DUP FIXTURE: PASS`, audit **135/135**.
+
 ## 2.55.4 - 2026-10-27
 Cloud benchmark: colour, position, shape and memory separated.
 

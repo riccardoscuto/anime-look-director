@@ -554,7 +554,19 @@
     },
     {
       "evidence": "",
-      "label": "A missing pass can hide the FX (strict mode)",
+      "label": "A failed sequence keeps the previous manifest",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "A missing pass hides the FX instead of dark holes",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "A stale pass is never read by the compositor",
       "phase": "VI-SC",
       "state": "OK"
     },
@@ -656,13 +668,43 @@
     },
     {
       "evidence": "",
+      "label": "A shared material is never edited from a scene copy",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "A shared sun is not rotated from a scene copy",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Removal restores the Cryptomatte and Object Index passes",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The auto sun is owned by its scene",
       "phase": "VI-SC",
       "state": "OK"
     },
     {
       "evidence": "",
-      "label": "The default FX pass path is per scene",
+      "label": "The default FX pass path is addressed by the scene UUID",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The FX pass frame suffix is explicit",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Every frame of an FX sequence is validated",
       "phase": "VI-SC",
       "state": "OK"
     },
@@ -770,7 +812,7 @@
     }
   ],
   "partial": 0,
-  "passed": 128,
+  "passed": 135,
   "plan": "v2.27.0 P0-P3",
-  "total": 128
+  "total": 135
 }

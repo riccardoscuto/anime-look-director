@@ -472,6 +472,26 @@ def scene_materials(scene):
     return result
 
 
+def material_is_shared(mat, scene):
+    """True when another scene also uses this material datablock.
+
+    ``Scene.copy()`` shares the ordinary objects and meshes, so editing a
+    material of the copy would edit the original. Shared materials are left
+    untouched until the user makes them single-user.
+    """
+    if len(bpy.data.scenes) < 2:
+        return False
+    for other in bpy.data.scenes:
+        if other == scene:
+            continue
+        for obj in other.objects:
+            data = getattr(obj, "data", None)
+            materials = getattr(data, "materials", None) if data else None
+            if materials and any(slot is mat for slot in materials):
+                return True
+    return False
+
+
 def _look(scene, settings):
     from . import palette
 
@@ -661,12 +681,17 @@ def sync_scene(scene, tint, strength, distance):
     settings = getattr(scene, "ald", None)
     look = _look(scene, settings)
     count = 0
+    skipped = 0
     for mat in scene_materials(scene):
         if mat.get("ald_exclude"):
+            continue
+        if material_is_shared(mat, scene):
+            skipped += 1
             continue
         if sync_material(mat, tint, strength, distance, look):
             count += 1
     scene["ald_shadow_materials"] = count
+    scene["ald_shadow_skipped"] = skipped
     return count
 
 
@@ -674,6 +699,8 @@ def sync_one(scene, mat):
     """Sync a single material, respecting the exclusion flag."""
     settings = getattr(scene, "ald", None)
     if settings is None or mat.get("ald_exclude"):
+        return False
+    if material_is_shared(mat, scene):
         return False
     if not (settings.shadow_tint or settings.toon_shading
             or settings.rim_light):
@@ -689,6 +716,8 @@ def sync_one(scene, mat):
 def clear_scene(scene):
     count = 0
     for mat in scene_materials(scene):
+        if material_is_shared(mat, scene):
+            continue
         if remove_material(mat):
             count += 1
     scene["ald_shadow_materials"] = 0
@@ -772,6 +801,8 @@ def update_sun(scene):
         return
     look = _look(scene, settings)
     for mat in scene_materials(scene):
+        if material_is_shared(mat, scene):
+            continue
         node = _tint_node(mat)
         if node is not None:
             _set_look(node, mat, look)

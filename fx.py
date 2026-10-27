@@ -961,9 +961,24 @@ def pass_signature(scene):
             "type": camera.data.type,
             "lens": round(float(camera.data.lens), 3),
             "sensor": round(float(camera.data.sensor_width), 3),
+            "sensor_height": round(float(camera.data.sensor_height), 3),
+            "shift": [round(float(camera.data.shift_x), 5),
+                      round(float(camera.data.shift_y), 5)],
             "fit": camera.data.sensor_fit,
             "ortho": round(float(camera.data.ortho_scale), 3),
         })
+    render = {
+        "engine": scene.render.engine,
+        "film_transparent": bool(scene.render.film_transparent),
+        "motion_blur": bool(scene.render.use_motion_blur),
+        "shutter": round(float(scene.render.motion_blur_shutter), 4),
+        "pixel_aspect": [round(float(scene.render.pixel_aspect_x), 5),
+                         round(float(scene.render.pixel_aspect_y), 5)],
+    }
+    try:
+        render["samples"] = int(scene.eevee.taa_render_samples)
+    except AttributeError:
+        pass
     data = {
         "scene": _scene_id(scene),
         "palette": scene.get("ald_effective_palette") or settings.palette,
@@ -971,6 +986,7 @@ def pass_signature(scene):
         "style": settings.fx_style,
         "age": round(float(settings.fx_age), 4),
         "camera": camera_data,
+        "render": render,
         "resolution": [scene.render.resolution_x, scene.render.resolution_y,
                        scene.render.resolution_percentage],
         "systems": [],

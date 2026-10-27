@@ -1151,3 +1151,30 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The gate gained two checks: the occlusion of the burst with the motion
   blur on, and the real travel of the meteors across the screen (not only
   the alignment of the velocities).
+
+
+### v2.55.5 notes (the pass cache and the scene copy)
+- `compositor.build` used to accept any existing EXR: `fx_pass_state` said
+  STALE and the graph still loaded the file. The build now consumes only
+  `READY`; a stale/missing/range/unsigned pass is ignored even when the file
+  exists. The negative gate renders the strict case and compares pixels with
+  the no-FX environment, not only the nodes.
+- Strict mode used to replace only F with black, leaving
+  `C = P(B) * (1 - A)`: the particles became dark holes. Strict now skips the
+  whole FX branch (matte, punch, restore, glow), so C is B. The old
+  `ALD | FX Strict Black` node is gone.
+- `_pass_stem` treated any trailing digits as a frame number. `Scene1` and
+  `Scene2` both mapped to `ald_fx_pass_Scene1.exr` at frame 1. Default paths
+  now use the scene UUID (`ald_fx_pass_<uid>/fx.exr`) and the explicit
+  `_f0001` suffix; the sequence validator checks every file (EXR magic) and
+  every per-frame record.
+- The pass sequence is staged in a temporary directory and published with one
+  directory rename. A forced failure at frame 2 keeps the previous files,
+  hash and manifest. Old versioned directories are not deleted automatically.
+- A plain `Scene.copy()` shares ordinary objects, meshes and materials. The
+  add-on now leaves a material used by another scene untouched instead of
+  editing the original through the copy; a shared sun is not rotated. A
+  complete independent copy would require a deep copy of all user objects:
+  that is a deliberate limit, not something the add-on does silently.
+- `snapshot` now saves and restores `use_pass_cryptomatte_material` and
+  `use_pass_object_index`; the old restore left the Cryptomatte pass on.

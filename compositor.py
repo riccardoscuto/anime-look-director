@@ -3,7 +3,9 @@
 import json
 import os
 import re
+import shutil
 import tempfile
+import uuid
 
 import bpy
 from bpy.app.handlers import persistent
@@ -736,20 +738,64 @@ def _pass_layer(scene):
 
 
 def _pass_stem(path):
-    """The path without its frame number, plus the digit width."""
+    """The path without its explicit frame tag, plus the digit width."""
     folder, name = os.path.split(path)
     stem, extension = os.path.splitext(name)
-    match = re.search(r"(\d+)$", stem)
+    match = re.search(r"_f(\d+)$", stem)
     if match:
-        return (os.path.join(folder, stem[:match.start()]),
+        return (os.path.join(folder, stem[:match.start()] + "_f"),
                 extension, len(match.group(1)))
-    return os.path.join(folder, stem) + "_", extension, 4
+    return os.path.join(folder, stem) + "_f", extension, 4
 
 
 def _frame_path(path, frame):
     """The numbered sibling of a pass path, keeping the digit width."""
     base, extension, width = _pass_stem(path)
     return "%s%0*d%s" % (base, width, frame, extension)
+
+
+def _stable_sequence_base(path):
+    """The original base of a published sequence, not its versioned frame."""
+    folder = os.path.dirname(os.path.abspath(path))
+    name = os.path.basename(folder)
+    stem, separator, token = name.rpartition("_")
+    if separator and len(token) == 8 and all(
+            character in "0123456789abcdef" for character in token):
+        return os.path.join(os.path.dirname(folder), stem + ".exr")
+    return os.path.abspath(path)
+
+
+def _sequence_state(settings, path, start, end, frame, signature):
+    """Every file and every frame record must be valid, not only the ends."""
+    if not start <= frame <= end:
+        return "range", "FX pass covers frames %d-%d" % (start, end)
+    stored = settings.fx_pass_signature
+    try:
+        records = json.loads(stored) if stored.startswith("{") else {}
+    except (TypeError, ValueError):
+        records = {}
+    for item in range(start, end + 1):
+        current = bpy.path.abspath(_frame_path(path, item))
+        if not _readable_pass(current):
+            return "missing", "FX pass sequence incomplete at frame %d" % item
+        if not records.get(str(item)):
+            return ("stale",
+                    "FX pass has no signature for frame %d" % item)
+    if records.get(str(frame)) != signature:
+        return "stale", "FX pass outdated: the FX, camera or palette changed"
+    return "ready", "FX pass: frames %d-%d" % (start, end)
+
+
+def _readable_pass(path):
+    """A cached pass must exist, be non-empty and start with the EXR magic."""
+    try:
+        if os.path.getsize(path) < 32:
+            return False
+        with open(path, "rb") as handle:
+            return handle.read(4) == b"\x76\x2f\x31\x01"
+    except OSError:
+        return False
+
 
 
 def _pass_frames(settings):
@@ -765,9 +811,10 @@ def _pass_image_name(scene):
 
 
 def _default_pass_path(scene):
-    """The default EXR path is per scene: two scenes never share the files."""
-    name = re.sub(r"[^A-Za-z0-9_.-]+", "_", scene.name) or "scene"
-    return os.path.join(tempfile.gettempdir(), "ald_fx_pass_%s.exr" % name)
+    """The default EXR path is addressed by the persistent scene UUID."""
+    from .fx import _scene_id
+    folder = "ald_fx_pass_" + _scene_id(scene)
+    return os.path.join(tempfile.gettempdir(), folder, "fx.exr")
 
 
 def _refresh_pass_image(scene):
@@ -789,7 +836,7 @@ def _refresh_pass_image(scene):
 
 
 def fx_pass_state(scene):
-    """What the panel reports: file, frame and coverage, never a path only."""
+    """What the panel and the graph share: READY only for a valid cache."""
     settings = getattr(scene, "ald", None)
     strict = bool(getattr(settings, "fx_pass_required", False))
     missing_text = ("No FX pass: FX hidden (Require FX Pass)" if strict
@@ -797,30 +844,23 @@ def fx_pass_state(scene):
     if settings is None or not settings.fx_pass_path:
         return "missing", missing_text
     path = bpy.path.abspath(settings.fx_pass_path)
-    if not os.path.exists(path):
-        return "missing", missing_text
     start, end = _pass_frames(settings)
+    signature = pass_signature(scene)
     if end > start:
-        if not os.path.exists(bpy.path.abspath(_frame_path(path, end))):
-            return "missing", "FX pass sequence incomplete"
-        if not start <= scene.frame_current <= end:
-            return "range", "FX pass covers frames %d-%d" % (start, end)
-        text = "FX pass: frames %d-%d" % (start, end)
-    elif start == 0:
-        text = "FX pass (frame not recorded)"
-    elif start != scene.frame_current:
+        return _sequence_state(settings, path, start, end,
+                               scene.frame_current, signature)
+    if start == 0:
+        return "stale", "FX pass has no frame record"
+    if not _readable_pass(path):
+        return "missing", missing_text
+    if start != scene.frame_current:
         return "stale", "FX pass stale: rendered at frame %d" % start
-    else:
-        text = "FX pass: frame %d" % start
     stored = settings.fx_pass_signature
-    if end > start and stored.startswith("{"):
-        try:
-            stored = json.loads(stored).get(str(scene.frame_current), "")
-        except (TypeError, ValueError):
-            stored = ""
-    if stored and stored != pass_signature(scene):
+    if not stored or stored.startswith("{"):
+        return "stale", "FX pass has no valid signature"
+    if stored != signature:
         return "stale", "FX pass outdated: the FX, camera or palette changed"
-    return "ready", text
+    return "ready", "FX pass: frame %d" % start
 
 
 def _render_pass_still(scene, path):
@@ -839,6 +879,9 @@ def _render_pass_still(scene, path):
     previous_mode = scene.render.image_settings.color_mode
     previous_path = scene.render.filepath
     previous_compositing = scene.render.use_compositing
+    folder = os.path.dirname(os.path.abspath(path))
+    if folder:
+        os.makedirs(folder, exist_ok=True)
     temporary = path + ".tmp.exr"
     written = False
     try:
@@ -892,7 +935,12 @@ def render_fx_pass(scene, path=None):
 
 
 def render_fx_pass_animation(scene, path=None):
-    """Render the FX emission of every scene frame to a numbered sequence."""
+    """Render the FX emission of every scene frame to a numbered sequence.
+
+    The frames are written to a staging directory and published with one
+    directory rename: a failure at frame N leaves the previous sequence and
+    its settings intact.
+    """
     settings = getattr(scene, "ald", None)
     if settings is None:
         return None
@@ -900,20 +948,36 @@ def render_fx_pass_animation(scene, path=None):
     end = int(scene.frame_end)
     if end < start:
         return None
-    base = path or getattr(settings, "fx_pass_path", "") \
-        or _default_pass_path(scene)
-    first = _frame_path(base, start)
+    base = path
+    if not base:
+        base = (_stable_sequence_base(settings.fx_pass_path)
+                if settings.fx_pass_path else _default_pass_path(scene))
     if end == start:
-        return render_fx_pass(scene, first)
+        return render_fx_pass(scene, base)
+    folder = os.path.dirname(os.path.abspath(base))
+    os.makedirs(folder, exist_ok=True)
+    stem = os.path.splitext(os.path.basename(base))[0]
+    staging = tempfile.mkdtemp(prefix=".ald_pass_", dir=folder)
+    published = os.path.join(
+        folder, "%s_%s" % (stem, uuid.uuid4().hex[:8]))
+    staged_base = os.path.join(staging, os.path.basename(base))
     current = scene.frame_current
     signatures = {}
     try:
         for frame in range(start, end + 1):
             scene.frame_set(frame)
-            _render_pass_still(scene, _frame_path(first, frame))
+            frame_path = _frame_path(staged_base, frame)
+            _render_pass_still(scene, frame_path)
+            if not _readable_pass(frame_path):
+                raise RuntimeError("FX pass frame %d was not written" % frame)
             signatures[frame] = pass_signature(scene)
+        os.replace(staging, published)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
     finally:
         scene.frame_set(current)
+    first = _frame_path(os.path.join(published, os.path.basename(base)), start)
     settings.fx_pass_path = first
     settings.fx_pass_frames = (start, end)
     settings.fx_pass_signature = json.dumps(signatures, sort_keys=True)
@@ -1049,14 +1113,19 @@ def build(scene):
         B_image = rl_base.outputs["Image"]
         environment_layers = rl_base
 
-        # F: the external FX pass when it exists (isolated), otherwise the
-        # main Emission (legacy path, known contamination at the edges).
-        emission_source = emission
-        pass_valid = False
-        pass_path = getattr(settings, "fx_pass_path", "")
-        if pass_path and os.path.exists(bpy.path.abspath(pass_path)):
+        # The cached pass is a dependency of F: only READY may feed it. A
+        # stale, incomplete or unreadable cache is never read, even when the
+        # file still exists.
+        pass_state, _pass_text = fx_pass_state(scene)
+        pass_valid = pass_state == "ready"
+        if pass_valid:
             image = _refresh_pass_image(scene)
-            if image is not None:
+            pass_valid = image is not None
+        strict_hidden = bool(settings.fx_pass_required) and not pass_valid
+        current = B_image
+        if not strict_hidden:
+            emission_source = emission
+            if pass_valid:
                 pass_node = nodes.new("CompositorNodeImage")
                 pass_node.name = NODE_FX_PASS
                 pass_node.image = image
@@ -1067,62 +1136,49 @@ def build(scene):
                 pass_node.frame_offset = 0
                 pass_node.use_auto_refresh = True
                 emission_source = pass_node.outputs["Image"]
-                pass_valid = True
-        if not pass_valid and getattr(settings, "fx_pass_required", False):
-            # The strict mode hides the FX rather than reintroducing the known
-            # edge contamination of the main Emission.
-            black = nodes.new("CompositorNodeRGB")
-            black.name = "ALD | FX Strict Black"
-            black.location = (-1280, -1350)
-            black.outputs[0].default_value = (0.0, 0.0, 0.0, 1.0)
-            emission_source = black.outputs[0]
 
+            matte = nodes.new("CompositorNodeCryptomatte")
+            matte.location = (-1280, -900)
+            matte.name = NODE_FX_MATTE
+            matte.matte_id = ",".join(fx_materials) or "ALD | FX None"
+            links.new(rl.outputs["Image"], matte.inputs["Image"])
+            for slot in range(3):
+                socket = rl.outputs.get("CryptoMaterial%02d" % slot)
+                if socket is not None:
+                    links.new(socket, matte.inputs["Crypto %02d" % slot])
+            fx_matte = matte.outputs["Matte"]
 
+            # Coverage as a grayscale colour: (A, A, A, 1).
+            # The Emission pass is already weighted by the geometric coverage:
+            # a 1.5 px filament carries A of its radiance. Multiplying by the
+            # fractional matte again squares the coverage and lets the
+            # punch-out win, so the trails read as dark lines. F uses a binary
+            # presence mask (the pass keeps its own anti-aliasing); the punch
+            # keeps the fractional matte for smooth edges (P3).
+            presence = nodes.new("ShaderNodeMath")
+            presence.location = (-1180, -980)
+            presence.operation = "GREATER_THAN"
+            links.new(fx_matte, presence.inputs[0])
+            presence.inputs[1].default_value = 0.001
+            coverage_color = nodes.new("CompositorNodeCombineColor")
+            coverage_color.location = (-1100, -900)
+            coverage_color.name = NODE_FX_COVERAGE
+            links.new(presence.outputs[0], coverage_color.inputs["Red"])
+            links.new(presence.outputs[0], coverage_color.inputs["Green"])
+            links.new(presence.outputs[0], coverage_color.inputs["Blue"])
+            coverage_color.inputs["Alpha"].default_value = 1.0
 
-        matte = nodes.new("CompositorNodeCryptomatte")
-        matte.location = (-1280, -900)
-        matte.name = NODE_FX_MATTE
-        matte.matte_id = ",".join(fx_materials) or "ALD | FX None"
-        links.new(rl.outputs["Image"], matte.inputs["Image"])
-        for slot in range(3):
-            socket = rl.outputs.get("CryptoMaterial%02d" % slot)
-            if socket is not None:
-                links.new(socket, matte.inputs["Crypto %02d" % slot])
-        fx_matte = matte.outputs["Matte"]
-
-        # Coverage as a grayscale colour: (A, A, A, 1).
-        # The Emission pass is already weighted by the geometric coverage: a
-        # 1.5 px filament carries A of its radiance. Multiplying by the
-        # fractional matte again squares the coverage and lets the punch-out
-        # win, so the trails read as dark lines. F uses a binary presence mask
-        # (the pass keeps its own anti-aliasing); the punch keeps the
-        # fractional matte for smooth edges (P3).
-        presence = nodes.new("ShaderNodeMath")
-        presence.location = (-1180, -980)
-        presence.operation = "GREATER_THAN"
-        links.new(fx_matte, presence.inputs[0])
-        presence.inputs[1].default_value = 0.001
-        coverage_color = nodes.new("CompositorNodeCombineColor")
-        coverage_color.location = (-1100, -900)
-        coverage_color.name = NODE_FX_COVERAGE
-        links.new(presence.outputs[0], coverage_color.inputs["Red"])
-        links.new(presence.outputs[0], coverage_color.inputs["Green"])
-        links.new(presence.outputs[0], coverage_color.inputs["Blue"])
-        coverage_color.inputs["Alpha"].default_value = 1.0
-
-        # F = Emission * presence (the pass is already premultiplied).
-        multiply = nodes.new("ShaderNodeMix")
-        multiply.location = (-940, -900)
-        multiply.name = NODE_FX_EMISSION
-        multiply.data_type = "RGBA"
-        multiply.blend_type = "MULTIPLY"
-        a_sock, b_sock, result_sock = _mix_sockets(multiply)
-        links.new(emission_source, a_sock)
-        links.new(coverage_color.outputs["Image"], b_sock)
-        multiply.inputs["Factor"].default_value = 1.0
-        fx_color = result_sock
-
-        current = B_image
+            # F = Emission * presence (the pass is already premultiplied).
+            multiply = nodes.new("ShaderNodeMix")
+            multiply.location = (-940, -900)
+            multiply.name = NODE_FX_EMISSION
+            multiply.data_type = "RGBA"
+            multiply.blend_type = "MULTIPLY"
+            a_sock, b_sock, result_sock = _mix_sockets(multiply)
+            links.new(emission_source, a_sock)
+            links.new(coverage_color.outputs["Image"], b_sock)
+            multiply.inputs["Factor"].default_value = 1.0
+            fx_color = result_sock
 
     from . import palette as palette_module
     palette_key = scene.get("ald_effective_palette", settings.palette)

@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.55.4**).
+  (currently **2.55.5**).
 
 ## Verify (run after every change)
 ```powershell
@@ -509,6 +509,23 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     can be stale and it ignores the constraints;
   - `preset_dev/audit_plan.py` audits the operational plan requirement by
     requirement: 69/70, the only open item is the optional atmospheric smoke.
+- P0 pass rules (v2.55.5):
+  - `fx_pass_state` is the single authority: `compositor.build` may create
+    `ALD | FX Pass` only for `READY`; stale/missing/range/unsigned never feed
+    the graph, even when the EXR exists;
+  - strict mode with no valid pass skips the whole FX branch (matte, punch,
+    restore, glow): the output is B, pixel-identical to the no-FX render;
+  - default paths are `ald_fx_pass_<scene uuid>/fx.exr`; frames use the
+    explicit `_f0001` suffix. Never infer a frame from trailing scene digits;
+  - `_sequence_state` checks every frame file (EXR magic, size) and every
+    per-frame signature record, not only the endpoints;
+  - the signature includes camera shift, sensor height, pixel aspect, engine,
+    film transparency, motion blur, shutter and EEVEE samples;
+  - shared materials are skipped by Shadow Tint/Toon/Rim sync and shared suns
+    are not rotated; full material independence of a plain scene copy still
+    needs a deep copy of the ordinary objects (documented limit);
+  - `snapshot` restores `use_pass_cryptomatte_material` and
+    `use_pass_object_index`.
 - P1 rules (compositor FX, v2.31):
   - the main view layer carries the true `Emission` pass and the
     `Cryptomatte Material` pass of the FX; `ALD FX Base` remains the clean

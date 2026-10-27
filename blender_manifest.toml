@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "anime_look_director"
-version = "2.55.4"
+version = "2.55.5"
 name = "Anime Look Director"
 tagline = "Atmospheric palettes + non-destructive anime compositor stack"
 maintainer = "Riccardo"

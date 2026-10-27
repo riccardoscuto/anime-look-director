@@ -339,9 +339,21 @@ CHECKS = [
     ("VI-SC", "A failed EXR write leaves the valid pass intact",
      lambda: has("preset_dev/verify.py", "check_fx_pass_atomic",
                  "the failed pass truncated")),
-    ("VI-SC", "A missing pass can hide the FX (strict mode)",
+    ("VI-SC", "A failed sequence keeps the previous manifest",
+     lambda: has("compositor.py", "tempfile.mkdtemp",
+                 "os.replace(staging, published)")
+     and has("preset_dev/verify.py",
+             "check_fx_pass_sequence_atomic")[0]),
+    ("VI-SC", "A missing pass hides the FX instead of dark holes",
      lambda: has("properties.py", "fx_pass_required")
-     and has("compositor.py", "ALD | FX Strict Black")[0]),
+     and has("compositor.py", "strict_hidden")
+     and has("preset_dev/verify.py",
+             "strict mode still recomposes")[0]),
+    ("VI-SC", "A stale pass is never read by the compositor",
+     lambda: has("compositor.py",
+                 "pass_state, _pass_text = fx_pass_state(scene)",
+                 "pass_valid = pass_state == \"ready\"")
+     and has("preset_dev/verify.py", "a stale FX pass")[0]),
     ("VI-SC", "The shot and animation render the pass and the composite",
      lambda: has("operators.py", "ald.fx_render_shot", "ald.fx_render_animation",
                  "render(animation=True)")),
@@ -386,11 +398,31 @@ CHECKS = [
      and has("preset_dev/build_release.py", "extension", "build")[0]),
     ("VI-SC", "The copy owns its world", 
      lambda: has("ownership.py", "world.copy()", "scene.world")),
+    ("VI-SC", "A shared material is never edited from a scene copy",
+     lambda: has("materials.py", "material_is_shared",
+                 "ald_shadow_skipped")
+     and has("preset_dev/duplicate_fixture.py",
+             "a shared material was edited")[0]),
+    ("VI-SC", "A shared sun is not rotated from a scene copy",
+     lambda: has("palette.py", "foreign or len(sun.users_scene) > 1")
+     and has("preset_dev/duplicate_fixture.py",
+             "a shared sun was rotated")[0]),
+    ("VI-SC", "Removal restores the Cryptomatte and Object Index passes",
+     lambda: has("snapshot.py", "use_pass_cryptomatte_material",
+                 "use_pass_object_index")),
     ("VI-SC", "The auto sun is owned by its scene",
      lambda: has("palette.py", "SUN_OWNER_TAG", "users_scene")),
-    ("VI-SC", "The default FX pass path is per scene",
-     lambda: has("compositor.py", "def _default_pass_path",
-                 "ald_fx_pass_%s")),
+    ("VI-SC", "The default FX pass path is addressed by the scene UUID",
+     lambda: has("compositor.py", "def _default_pass_path", "_scene_id")
+     and has("preset_dev/verify.py", "Scene1 and Scene2 collide")[0]),
+    ("VI-SC", "The FX pass frame suffix is explicit",
+     lambda: has("compositor.py", "def _pass_stem", "def _frame_path")
+     and has("preset_dev/verify.py", "_f0001.exr")[0]),
+    ("VI-SC", "Every frame of an FX sequence is validated",
+     lambda: has("compositor.py", "def _sequence_state",
+                 "FX pass sequence incomplete")
+     and has("preset_dev/verify.py",
+             "a missing middle frame is reported as ready")[0]),
     ("VI-SC", "The sequence signature is per frame",
      lambda: has("compositor.py", "signatures[frame]", "json.dumps")
      and has("compositor.py", "json.loads")[0]),

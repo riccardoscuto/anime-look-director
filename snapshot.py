@@ -97,6 +97,9 @@ def _view_layer_state(scene):
             "use_pass_emit": bool(view_layer.use_pass_emit),
             "use_pass_normal": bool(view_layer.use_pass_normal),
             "use_pass_combined": bool(view_layer.use_pass_combined),
+            "use_pass_cryptomatte_material": bool(
+                view_layer.use_pass_cryptomatte_material),
+            "use_pass_object_index": bool(view_layer.use_pass_object_index),
         })
     return states
 
@@ -270,6 +273,10 @@ def _restore_view_layer(scene, states):
         view_layer.use_pass_emit = bool(state.get("use_pass_emit"))
         view_layer.use_pass_normal = bool(state.get("use_pass_normal"))
         view_layer.use_pass_combined = bool(state.get("use_pass_combined", True))
+        view_layer.use_pass_cryptomatte_material = bool(
+            state.get("use_pass_cryptomatte_material"))
+        view_layer.use_pass_object_index = bool(
+            state.get("use_pass_object_index"))
 
 
 def _forget_pass(scene, strict=None):

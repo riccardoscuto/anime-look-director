@@ -767,6 +767,7 @@ class ALD_OT_fx_render_pass_animation(bpy.types.Operator):
             self.report({"WARNING"},
                         "Anime Look Director: the frame range is empty")
             return {"CANCELLED"}
+        scene.frame_set(scene.frame_start)
         compositor.build(scene)
         self.report({"INFO"},
                     "Anime Look Director: FX pass frames %d-%d"
@@ -811,6 +812,8 @@ class ALD_OT_fx_render_animation(bpy.types.Operator):
             self.report({"WARNING"},
                         "Anime Look Director: the frame range is empty")
             return {"CANCELLED"}
+        # The pass is only valid inside its range: build the stack there.
+        scene.frame_set(scene.frame_start)
         compositor.build(scene)
         bpy.ops.render.render(animation=True)
         scene.frame_set(current)

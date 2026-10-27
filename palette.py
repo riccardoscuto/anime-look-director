@@ -3536,6 +3536,13 @@ def apply_sun_angles(scene, elevation, azimuth):
                     and o.data.type == "SUN"), None)
     if sun is None or sun.library is not None or sun.data.library is not None:
         return
+    from . import fx
+    owner = sun.get(SUN_OWNER_TAG)
+    foreign = bool(owner) and owner != fx._scene_id(scene)
+    if foreign or len(sun.users_scene) > 1:
+        # A sun shared with another scene is never rotated here: the copy owns
+        # its own sun after ownership.repair, a plain scene copy does not.
+        return
     sun.rotation_euler = rotation_from_angles(elevation, azimuth)
     from . import cameras
     cameras.update_transforms(scene, force=True)

@@ -81,6 +81,28 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
 
+## Novità 2.55.5 - P0 del pass FX e delle scene duplicate
+
+- **Solo un pass READY viene letto**: `fx_pass_state` e `build` condividono la
+  stessa decisione. Un EXR obsoleto, mancante, fuori range o senza firma non
+  alimenta mai il compositor, anche se il file esiste.
+- **Strict senza buchi neri**: con pass non valido il ramo FX (punch, restore,
+  glow) non viene costruito; l'output è l'ambiente B, identico al render
+  senza FX.
+- **Nomi per UUID**: `ald_fx_pass_<uid>/fx.exr` e suffisso esplicito
+  `_f0001`; Scene1 e Scene2 non collidono. La sequenza valida ogni file e
+  ogni firma per frame, non solo gli estremi.
+- **Firma estesa**: shift camera, sensor height, pixel aspect, engine, motion
+  blur, otturatore e campioni EEVEE.
+- **Sequenza atomica**: i frame vengono scritti in una staging directory e
+  pubblicati con un solo rename; un errore al frame N lascia intatti la
+  sequenza e il manifest precedenti.
+- **Rimozione**: ripristina anche i pass Cryptomatte Material e Object Index.
+- **Scene duplicate**: materiali condivisi non vengono modificati dalla copia;
+  un sole condiviso non viene ruotato. Resta da rendere i materiali ordinari
+  realmente indipendenti (oggi vengono saltati, non copiati).
+- Gate PASS, fixture PASS, audit **135/135**.
+
 ## Novità 2.55.4 — benchmark nuvole separato
 
 - **5 run** per scenario; mediana e tutti i run.
