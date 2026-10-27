@@ -1,0 +1,126 @@
+{
+  "passed": 20,
+  "total": 20,
+  "results": [
+    {
+      "category": "Reduction",
+      "label": "The version is the World Sky Edition",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Reduction",
+      "label": "The FX and spatial modules are gone",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Reduction",
+      "label": "Registration has no FX/clouds/smoke modules",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Reduction",
+      "label": "Operators no longer create FX, clouds or smoke",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Reduction",
+      "label": "Panels no longer draw FX or spatial clouds",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Reduction",
+      "label": "The compositor has no Cryptomatte or FX pass",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "World",
+      "label": "The four-zone World group is present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "World",
+      "label": "The Sun controls are wired",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "World",
+      "label": "The World clouds are a shader feature",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "World",
+      "label": "The World stars and Milky Way remain",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "World",
+      "label": "Horizon offset and softness are controls",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Persistent",
+      "label": "The scene identity is independent of FX",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Persistent",
+      "label": "The snapshot restores the World and the passes",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Persistent",
+      "label": "A duplicated scene gets its own World",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Compatibility",
+      "label": "Legacy ALD data has explicit disable/remove",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Compatibility",
+      "label": "Old files are not cleaned automatically",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "UI",
+      "label": "The two surfaces share the drawing functions",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "UI",
+      "label": "The quick panel exposes Apply and the compositor state",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Evidence",
+      "label": "The Phase 0 World baseline is frozen",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Evidence",
+      "label": "The World gate and lifecycle fixture are runnable",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

@@ -10,7 +10,7 @@ baseline is accepted**.
 |---|---|---|
 | v1.0.3 | tag `v1.0.3`, isolated `BLENDER_USER_SCRIPTS` | original four-zone World + original clouds |
 | v1.1.0 | tag `v1.1.0`, isolated `BLENDER_USER_SCRIPTS` | same World, later sun/beam additions |
-| v2.56.0 | current `world-sky-edition` branch / tag `v2.56.0` | current World + reworked cloud shading |
+| v2.56.0 | frozen tag `v2.56.0` | current World + reworked cloud shading |
 
 The archived add-ons are activated from a temporary `BLENDER_USER_SCRIPTS`
 with a temporary `BLENDER_USER_CONFIG`, so the current add-on is never the one

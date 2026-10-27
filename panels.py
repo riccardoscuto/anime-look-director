@@ -1,31 +1,28 @@
+"""World Sky Edition panels.
+
+The Scene properties and the View3D sidebar share the same drawing functions,
+so the two surfaces cannot diverge. The retired FX and spatial-cloud panels are
+gone; the optional compositor and material tools remain in their own sections.
+"""
+
 import sys
 
 import bpy
 
 
-# ---------------------------------------------------------------------------
-# shared drawing functions
-#
-# The Scene properties and the View3D sidebar draw exactly the same data with
-# the same operators: the user never has to choose which panel is the real
-# one, and no control exists in one surface and not in the other.
-# ---------------------------------------------------------------------------
-
 def draw_atmosphere(layout, context):
-    """The palette and the state of the compositor stack."""
     scene = context.scene
     s = scene.ald
     col = layout.column(align=True)
     col.prop(s, "palette", text="")
     col.operator("ald.apply_palette", icon="FILE_REFRESH")
     if scene.compositing_node_group is None:
-        col.label(text="Stack not assigned", icon="INFO")
+        col.label(text="Compositor optional: not assigned", icon="INFO")
     else:
-        col.label(text="Stack ready", icon="CHECKMARK")
+        col.label(text="Compositor stack ready", icon="CHECKMARK")
 
 
 def draw_material_presets(layout, context):
-    """The material presets and the exclusion of a material."""
     scene = context.scene
     s = scene.ald
     box = layout.box()
@@ -34,8 +31,7 @@ def draw_material_presets(layout, context):
     row.prop(s, "material_preset", text="")
     row.operator("ald.apply_material_preset", text="Apply", icon="CHECKMARK")
     obj = context.object
-    mat = (getattr(obj, "active_material", None)
-           if obj is not None else None)
+    mat = getattr(obj, "active_material", None) if obj is not None else None
     if mat is not None:
         excluded = bool(mat.get("ald_exclude"))
         box.operator("ald.toggle_exclude_material",
@@ -44,7 +40,6 @@ def draw_material_presets(layout, context):
 
 
 def draw_stack_actions(layout, context):
-    """The stack buttons."""
     row = layout.row(align=True)
     row.operator("ald.build", icon="PLAY")
     row.operator("ald.remove", icon="TRASH")
@@ -52,7 +47,6 @@ def draw_stack_actions(layout, context):
 
 
 def draw_world(layout, context):
-    """The world, the sun, the clouds and the stars."""
     _draw_ownership_warning(layout, context)
     scene = context.scene
     s = scene.ald
@@ -100,30 +94,11 @@ def draw_world(layout, context):
         col.prop(s, "star_strength")
         col.prop(s, "star_density")
         col.prop(s, "milky_way")
-    # The legacy world meteors and fireworks belong to the Legacy World
-    # backend: the 3D ones are in the FX section.
-    if s.fx_backend == "LEGACY":
-        row = box.row(align=True)
-        row.prop(s, "shooting_stars", toggle=True)
-        if s.shooting_stars:
-            col = box.column(align=True)
-            col.prop(s, "shooting_star_amount")
-            col.prop(s, "shooting_star_length")
-            col.prop(s, "shooting_star_angle")
-            col.prop(s, "shooting_star_phase")
-        row = box.row(align=True)
-        row.prop(s, "fireworks", toggle=True)
-        if s.fireworks:
-            col = box.column(align=True)
-            col.prop(s, "fireworks_amount")
-            col.prop(s, "fireworks_scale")
-            col.prop(s, "fireworks_phase")
     col = box.column(align=True)
     col.prop(s, "sun_elevation")
     col.prop(s, "sun_azimuth")
     box.operator("ald.stage_backlight", icon="LIGHT")
-    row = box.row()
-    row.prop(s, "custom_colors", toggle=True)
+    box.prop(s, "custom_colors", toggle=True)
     if s.custom_colors:
         col = box.column(align=True)
         col.prop(s, "custom_sky")
@@ -134,56 +109,17 @@ def draw_world(layout, context):
         col.prop(s, "custom_cloud_shadow")
         col.prop(s, "custom_cloud_mid")
         col.prop(s, "custom_cloud_light")
-    # Atmospheric smoke: a real volume in the environment, not a World node.
-    smoke_box = layout.box()
-    smoke_box.label(text="Atmospheric Smoke", icon="VOLUME_DATA")
-    col = smoke_box.column(align=True)
-    col.prop(s, "smoke_density")
-    col.prop(s, "smoke_height")
-    col.prop(s, "smoke_color")
-    row = smoke_box.row(align=True)
-    row.operator("ald.smoke_create", icon="ADD")
-    row.operator("ald.smoke_remove", icon="REMOVE")
-    if s.smoke_created:
-        smoke_box.label(text="Smoke volume active", icon="CHECKMARK")
-    # Spatial clouds: real masses at several depths, not a World effect.
-    cloud_box = layout.box()
-    cloud_box.label(text="Spatial Clouds", icon="WORLD")
-    col = cloud_box.column(align=True)
-    col.prop(s, "clouds_coverage")
-    col.prop(s, "clouds_layers")
-    col.prop(s, "clouds_altitude")
-    col.prop(s, "clouds_depth")
-    col.prop(s, "clouds_scale")
-    col.prop(s, "clouds_quality")
-    col.prop(s, "clouds_world_blend")
-    col.prop(s, "clouds_mode")
-    row = cloud_box.row(align=True)
-    row.prop(s, "clouds_flash", text="Flash Response")
-    if s.clouds_flash:
-        col = cloud_box.column(align=True)
-        col.prop(s, "clouds_flash_strength")
-    row = cloud_box.row(align=True)
-    row.operator("ald.clouds_create", icon="ADD")
-    row.operator("ald.clouds_remove", icon="REMOVE")
-    if s.clouds_created:
-        cloud_box.label(text="Spatial layers active", icon="CHECKMARK")
-        from . import clouds
-        for line in clouds.diagnostics(context.scene):
-            cloud_box.label(text=line)
 
 
 def _draw_ownership_warning(layout, context):
     from . import ownership
     if ownership.has_shared(context.scene):
         box = layout.box()
-        box.label(text="ALD data shared with another scene",
-                  icon="ERROR")
+        box.label(text="Scene copy shares the original World", icon="ERROR")
         box.operator("ald.repair_ownership", icon="FILE_REFRESH")
 
 
 def draw_shadows(layout, context):
-    """The shadow tint, the toon shading and the rim light."""
     scene = context.scene
     s = scene.ald
     box = layout.box()
@@ -212,7 +148,6 @@ def draw_shadows(layout, context):
 
 
 def draw_camera_override(layout, context):
-    """The palette override of the render camera."""
     scene = context.scene
     cam = scene.camera
     if cam is None or cam.data is None or not hasattr(cam.data, "ald"):
@@ -225,11 +160,10 @@ def draw_camera_override(layout, context):
 
 
 def draw_compositor(layout, context):
-    """The controls of the compositor stack."""
     scene = context.scene
     s = scene.ald
     box = layout.box()
-    box.label(text="Compositor", icon="NODETREE")
+    box.label(text="Compositor (optional)", icon="NODETREE")
     row = box.row(align=True)
     row.prop(s, "halation", toggle=True)
     row.prop(s, "painterly", toggle=True)
@@ -248,7 +182,6 @@ def draw_compositor(layout, context):
     row.prop(s, "aerial_haze", toggle=True)
     if s.aerial_haze:
         row.prop(s, "haze_strength", text="Strength")
-
     col = box.column(align=True)
     if s.halation:
         col.prop(s, "halation_strength")
@@ -264,372 +197,13 @@ def draw_compositor(layout, context):
         col.prop(s, "ink_normal_sensitivity")
 
 
-def _selected_system(context):
-    """The system and the event selected in the panel."""
-    scene = context.scene
-    settings = getattr(scene, "ald", None)
-    if settings is None:
-        return None, None
-    index = int(settings.fx_selected_system)
-    if index < 0 or index >= len(settings.fx_systems):
-        return None, None
-    system = settings.fx_systems[index]
-    event = None
-    event_index = int(settings.fx_selected_event)
-    if 0 <= event_index < len(system.events):
-        event = system.events[event_index]
-    return system, event
-
-
-def draw_fx_systems(layout, context):
-    """The list of the persistent systems and of their events."""
-    scene = context.scene
-    s = scene.ald
+def draw_legacy(layout, context):
     box = layout.box()
-    box.label(text="Systems", icon="OUTLINER")
-    if not s.fx_systems:
-        box.label(text="No FX system", icon="INFO")
-    for index, system in enumerate(s.fx_systems):
-        row = box.row(align=True)
-        row.prop(system, "enabled", text="", icon="CHECKBOX_HLT")
-        row.label(text="%s (%d)" % (system.kind.capitalize(),
-                                   len(system.events)))
-        op = row.operator("ald.fx_select_system", text="",
-                          icon="RESTRICT_SELECT_OFF")
-        op.index = index
-    if s.fx_systems:
-        row = box.row(align=True)
-        row.operator("ald.fx_duplicate_system", icon="DUPLICATE")
-        row.operator("ald.fx_remove_system", icon="X")
-    system, event = _selected_system(context)
-    if system is not None and system.events:
-        col = box.column(align=True)
-        col.label(text="Events", icon="KEYFRAME_HLT")
-        for index, item in enumerate(system.events):
-            row = col.row(align=True)
-            row.prop(item, "enabled", text="", icon="CHECKBOX_HLT")
-            row.label(text="%s %d" % (item.kind.capitalize(), index))
-            op = row.operator("ald.fx_select_event", text="",
-                              icon="RESTRICT_SELECT_OFF")
-            op.index = index
-
-
-def draw_fx_timing(layout, context):
-    """The timing of the selected system."""
-    scene = context.scene
-    s = scene.ald
-    system, _event = _selected_system(context)
-    box = layout.box()
-    box.label(text="Timing", icon="TIME")
-    col = box.column(align=True)
-    col.prop(s, "fx_backend")
-    if system is not None:
-        col.prop(system, "timing_mode")
-        if system.timing_mode == "TIMELINE":
-            col.prop(system, "origin_frame")
-        else:
-            col.prop(system, "origin_time")
-    col = box.column(align=True)
-    col.prop(s, "fx_age", text="Burst Age")
-    col.prop(s, "fx_burst_spread", text="Burst Spread")
-    col.prop(s, "fx_fit_override", text="Intentional Crop")
-    col.prop(s, "fx_composition_offset", text="Offset")
-
-
-def draw_fx_launch(layout, context):
-    """The launcher and the target of the selected event."""
-    system, event = _selected_system(context)
-    box = layout.box()
-    box.label(text="Launch", icon="EMPTY_AXIS")
-    if event is None:
-        box.label(text="No event selected", icon="INFO")
-        return
-    col = box.column(align=True)
-    if event.kind in ("METEOR", "BOLIDE"):
-        col.prop(event, "direction")
-        col.prop(event, "speed")
-        col.prop(event, "life")
-    else:
-        col.prop(event, "launch_mode")
-        col.prop(event, "launcher")
-        col.prop(event, "target")
-        col.prop(event, "rise_time", text="Rise Time")
-        col.prop(event, "drag")
-        col.prop(event, "duration", text="Burst Duration")
-        col.prop(event, "birth", text="Birth")
-
-    # Conflict warning (T15): camera below ground or burst under terrain.
-    scene = context.scene
-    warning = scene.get("ald_fx_conflict_warning")
-    if warning:
-        col.label(text=warning, icon="ERROR")
-
-
-def draw_fx_explosion(layout, context):
-    """The shape of the selected event."""
-    system, event = _selected_system(context)
-    box = layout.box()
-    box.label(text="Explosion", icon="PARTICLE_DATA")
-    if event is None:
-        box.label(text="No event selected", icon="INFO")
-        return
-    col = box.column(align=True)
-    if event.kind == "FIREWORK":
-        col.prop(event, "family")
-    col.prop(event, "seed")
-    col.prop(event, "size")
-    # The counts are three different numbers: the primary stars, the stars of
-    # the pistil and the child sparks. The burst count is the number of
-    # bursts of the event.
-    col.prop(event, "spokes", text="Primary Stars")
-    col.prop(event, "pistil")
-    col.prop(event, "sparks")
-
-
-def draw_fx_look(layout, context):
-    """The look of the selected event."""
-    scene = context.scene
-    s = scene.ald
-    system, event = _selected_system(context)
-    box = layout.box()
-    box.label(text="Look", icon="COLOR")
-    col = box.column(align=True)
-    col.prop(s, "fx_glow_strength", text="FX Glow")
-    col.prop(s, "fx_glow_size", text="Glow Size")
-    col.prop(s, "fx_glow_threshold", text="Glow Threshold")
-    col.prop(s, "fx_energy_head", text="Head Energy")
-    col.prop(s, "fx_energy_grain", text="Grain Energy")
-    col.prop(s, "fx_energy_ember", text="Ember Energy")
-    col.prop(s, "fx_atmospheric_fade", text="Atmospheric Fade")
-    if event is not None:
-        col.prop(event, "glow", text="Event Glow")
-        col.prop(event, "cloud_flash", text="Cloud Flash")
-
-
-def draw_fx_advanced(layout, context):
-    """The debug controls, only in developer mode."""
-    scene = context.scene
-    s = scene.ald
-    box = layout.box()
-    box.label(text="Advanced", icon="PREFERENCES")
+    box.label(text="Legacy ALD data", icon="INFO")
+    box.label(text="Old FX/cloud/smoke objects are never cleaned automatically")
     row = box.row(align=True)
-    row.prop(s, "developer_mode", toggle=True)
-    if not s.developer_mode:
-        box.label(text="Developer mode off", icon="INFO")
-        return
-    col = box.column(align=True)
-    col.prop(s, "fx_gn_prototype")
-    col.prop(s, "fx_meteor_persistence")
-    col.prop(s, "fx_schema")
-    col.label(text="UID %s" % (scene.get("ald_fx_id") or "-"))
-
-    # --- ALD Sky/FX Anchor -----------------------------------------------
-    col.separator()
-    col.label(text="Sky/FX Anchor", icon="EMPTY_AXIS")
-    col.prop(s, "fx_anchor_axis", text="Vertical Axis")
-    col.prop(s, "fx_anchor_ground_elevation", text="Ground Elevation")
-    col.prop(s, "fx_anchor_units_scale", text="Units Scale")
-    if not s.fx_anchor_created:
-        col.operator("ald.fx_anchor_create", icon="ADD")
-    else:
-        col.label(text="Anchor exists: ALD Sky/FX Anchor", icon="CHECKMARK")
-
-    # --- Ground object -----------------------------------------------------
-    col.separator()
-    col.label(text="Ground Object", icon="MESH_PLANE")
-    col.prop_search(s, "fx_ground_object", scene, "objects",
-                    text="Terrain Mesh")
-    if s.fx_ground_object is None:
-        col.operator("ald.fx_ground_create", icon="ADD")
-    else:
-        col.label(text="Ground exists: %s" % s.fx_ground_object.name,
-                  icon="CHECKMARK")
-
-
-def draw_scene_actions(layout, context):
-    """The three actions of the plan on the scene itself.
-
-    Bypass: the add-on stops touching the scene, the look is kept.
-    Remove ALD from Scene: the complete removal, the scene comes back to the
-    state registered before the first modification.
-    Detach and Keep Result: the look is kept but the add-on stops managing it.
-    """
-    scene = context.scene
-    s = scene.ald
-    box = layout.box()
-    box.label(text="Scene", icon="SCENE")
-    col = box.column(align=True)
-    col.prop(s, "bypass", toggle=True)
-    col.operator("ald.remove_from_scene", icon="TRASH")
-    col.operator("ald.detach", icon="UNLINKED")
-    if s.bypass:
-        box.label(text="Bypassed: the scene is not touched", icon="INFO")
-    if s.detached:
-        box.label(text="Detached: the look is kept", icon="INFO")
-    if scene.get("ald_removed"):
-        box.label(text="Removed: the scene is no longer managed", icon="CHECKMARK")
-
-
-def draw_fx_diagnostics(layout, context):
-    """The state of the selected event: why it is or it is not visible.
-
-    Reads from the cached diagnostic report (computed by the Diagnose FX
-    operator). Never modifies the depsgraph or shared Geometry Nodes groups
-    during draw.
-    """
-    from . import diagnostics
-
-    system, event = _selected_system(context)
-    box = layout.box()
-    box.label(text="Diagnostics", icon="INFO")
-    if system is None or event is None:
-        box.label(text="No event selected", icon="INFO")
-        return
-    # Read from the cached report computed by the explicit operator.
-    settings = context.scene.ald
-    state = None
-    report_json = settings.fx_diagnostic_report
-    if report_json:
-        try:
-            import json
-            report = json.loads(report_json)
-            for sys_entry in report.get("systems", []):
-                if sys_entry["uid"] == system.uid:
-                    for ev_entry in sys_entry.get("events", []):
-                        if ev_entry["uid"] == event.uid:
-                            state = ev_entry
-                            break
-                if state is not None:
-                    break
-        except Exception:
-            state = None
-    if state is None:
-        # Fallback: read-only event_state (no depsgraph evaluation).
-        state = diagnostics.event_state(context.scene, system, event)
-    row = box.row(align=True)
-    icon = {"OK": "CHECKMARK", "UNKNOWN": "INFO"}.get(state["state"],
-                                                       "ERROR")
-    row.label(text=state["state"], icon=icon)
-    if state["reason"]:
-        box.label(text=state["reason"])
-    col = box.column(align=True)
-    col.label(text="Local time %.3f s" % state["local_time"])
-    if state["projected"]:
-        col.label(text="Frame %.2f, %.2f (depth %.1f m)"
-                  % (state["projected"][0], state["projected"][1],
-                     state["projected"][2]))
-    col.label(text="Objects %d" % state["objects"])
-    if settings.fx_diagnostic_report:
-        col.operator("ald.fx_diagnose", icon="FILE_REFRESH",
-                     text="Refresh Diagnosis")
-    else:
-        col.operator("ald.fx_diagnose", icon="ZOOM_IN",
-                     text="Run FX Diagnosis")
-
-
-def draw_fx_profile(layout, context):
-    """The visual profile of the selected system, with its sub-roles."""
-    from . import fx
-
-    system, event = _selected_system(context)
-    box = layout.box()
-    box.label(text="Visual Profile", icon="COLOR")
-    if system is None:
-        box.label(text="No system selected", icon="INFO")
-        return
-    kind = "Fireworks" if system.kind == "FIREWORKS" else "Meteors"
-    box.label(text="System: %s" % kind)
-    if event is not None:
-        box.label(text="Event: %s" % event.kind.title())
-    grid = box.grid_flow(columns=2, align=True)
-    for key, label in (("head", "Head"), ("grain", "Grains"),
-                       ("pistil", "Pistil"), ("spark", "Sparks"),
-                       ("flash", "Flash"), ("shell", "Shell"),
-                       ("meteor_head", "Meteor Head"),
-                       ("meteor_train", "Train"),
-                       ("meteor_fragment", "Fragments")):
-        if key in fx.ROLE_ENERGY:
-            grid.label(text=label)
-            grid.label(text="%.2f" % fx.ROLE_ENERGY[key])
-
-
-def draw_fx_actions(layout, context):
-    """The FX actions."""
-    s = context.scene.ald
-    box = layout.box()
-    box.label(text="Actions", icon="PLAY")
-    col = box.column(align=True)
-    col.operator("ald.fx_fireworks", icon="LIGHT")
-    col.operator("ald.fx_meteors", icon="PARTICLE_DATA")
-    col.operator("ald.fx_bolide", icon="TRIA_RIGHT_BAR")
-    box.label(text="Directed Show", icon="SEQUENCE")
-    row = box.row(align=True)
-    three = row.operator("ald.fx_show", text="3 Bursts")
-    three.count = "3"
-    five = row.operator("ald.fx_show", text="5 Bursts")
-    five.count = "5"
-    col = box.column(align=True)
-    col.prop(s, "fx_style")
-    col.operator("ald.fx_update", icon="FILE_REFRESH")
-    col.operator("ald.fx_clear", icon="TRASH")
-    box.label(text="The FX are 3D objects: use the rendered viewport "
-                    "(Z > Rendered) or render the frame", icon="INFO")
-
-
-def draw_fx_pass(layout, context):
-    """The external pass: still, animation and the real state of the read."""
-    from . import compositor
-    box = layout.box()
-    box.label(text="FX Pass (isolated emission)", icon="RENDER_STILL")
-    row = box.row(align=True)
-    row.operator("ald.fx_render_pass", icon="RENDER_STILL")
-    row.operator("ald.fx_render_pass_animation", text="Pass Animation",
-                 icon="RENDER_ANIMATION")
-    row = box.row(align=True)
-    row.operator("ald.fx_render_shot", text="Render Shot",
-                 icon="RENDER_STILL")
-    row.operator("ald.fx_render_animation", text="Render Animation",
-                 icon="RENDER_ANIMATION")
-    state, text = compositor.fx_pass_state(context.scene)
-    icon = {"ready": "CHECKMARK", "missing": "INFO",
-            "stale": "ERROR", "range": "ERROR"}.get(state, "INFO")
-    box.prop(context.scene.ald, "fx_pass_required", text="Require FX Pass")
-    box.label(text=text, icon=icon)
-    if state == "missing":
-        if context.scene.ald.fx_pass_required:
-            box.label(text="FX hidden: render the pass", icon="ERROR")
-        else:
-            box.label(text="The main Emission is used: foreign emitters can leak",
-                      icon="INFO")
-    elif state != "ready":
-        box.label(text="Re-render the pass for the current frame", icon="INFO")
-
-
-def draw_fx(layout, context):
-    """The whole FX section: the same in the two surfaces."""
-    draw_fx_systems(layout, context)
-    draw_fx_timing(layout, context)
-    draw_fx_launch(layout, context)
-    draw_fx_explosion(layout, context)
-    draw_fx_look(layout, context)
-    draw_fx_profile(layout, context)
-    draw_fx_diagnostics(layout, context)
-    draw_fx_advanced(layout, context)
-    draw_fx_actions(layout, context)
-    draw_fx_pass(layout, context)
-    draw_scene_actions(layout, context)
-
-
-def draw_all(layout, context):
-    """The whole interface: the same in the Scene properties and the sidebar."""
-    draw_atmosphere(layout, context)
-    draw_material_presets(layout, context)
-    draw_stack_actions(layout, context)
-    draw_fx(layout, context)
-    draw_world(layout, context)
-    draw_shadows(layout, context)
-    draw_camera_override(layout, context)
-    draw_compositor(layout, context)
+    row.operator("ald.legacy_disable", icon="HIDE_ON")
+    row.operator("ald.legacy_remove", icon="TRASH")
 
 
 class ALD_PT_scene(bpy.types.Panel):
@@ -683,16 +257,17 @@ class ALD_PT_compositor(bpy.types.Panel):
         draw_camera_override(self.layout, context)
 
 
-class ALD_PT_fx(bpy.types.Panel):
-    bl_label = "FX Particles"
-    bl_idname = "ALD_PT_fx"
+class ALD_PT_legacy(bpy.types.Panel):
+    bl_label = "Legacy ALD Data"
+    bl_idname = "ALD_PT_legacy"
     bl_parent_id = "ALD_PT_scene"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "scene"
+    bl_order = 10
 
     def draw(self, context):
-        draw_fx(self.layout, context)
+        draw_legacy(self.layout, context)
 
 
 class ALD_PT_view3d(bpy.types.Panel):
@@ -739,21 +314,8 @@ class ALD_PT_view3d_compositor(bpy.types.Panel):
         draw_camera_override(self.layout, context)
 
 
-class ALD_PT_view3d_fx(bpy.types.Panel):
-    bl_label = "FX Particles"
-    bl_idname = "ALD_PT_view3d_fx"
-    bl_parent_id = "ALD_PT_view3d"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "Anime Look"
-
-    def draw(self, context):
-        draw_fx(self.layout, context)
-
-
-_classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor, ALD_PT_fx,
-             ALD_PT_view3d, ALD_PT_view3d_world, ALD_PT_view3d_compositor,
-             ALD_PT_view3d_fx)
+_classes = (ALD_PT_scene, ALD_PT_world, ALD_PT_compositor, ALD_PT_legacy,
+            ALD_PT_view3d, ALD_PT_view3d_world, ALD_PT_view3d_compositor)
 
 
 def register():

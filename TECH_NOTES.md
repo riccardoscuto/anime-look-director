@@ -1213,3 +1213,28 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - `validation_stack.py` is the full path matrix: strict pass, clouds, World
   and composite, three palettes, fixed and travelling camera. It is stricter
   than the old FX-only matrix because a stale pass cannot be consumed.
+
+
+### v2.57.0 notes (World Sky reduction)
+- The FX/cloud/smoke modules were removed, not merely hidden. `identity.py`
+  now owns the persistent UUID (`ald_fx_id`, kept for compatibility); palette,
+  ownership and snapshot no longer import `fx`.
+- A plain palette apply does not create a compositor group: `look.apply` only
+  rebuilds an existing stack. The gate asserts this.
+- The compositor lost the FX branch, Cryptomatte, pass image, FX layers and
+  FX glow. `build()` is now Render Layers -> optional general filters ->
+  Output; the FX view layers are not created.
+- The old World fireworks/meteors are forced off at the shader inputs. The
+  node groups still exist in `palette.py`; Phase 4 will replace them with
+  controlled 2D shooting stars.
+- `snapshot.restore` no longer calls the FX/cloud/smoke modules. It restores
+  World, Sun, materials, passes and compositor; legacy ALD collections are
+  handled only by the explicit Legacy ALD Data operators.
+- `ownership.repair` now only gives a duplicated scene a new identity and its
+  own World. It no longer rebuilds FX/cloud collections.
+- The World-only gate covers palette precedence, World inputs, Sun owner and
+  angles, custom colors, compositor optionality, no FX objects, legacy
+  disable/remove, render, ownership and snapshot restore.
+- The World baseline was rendered by checking out v1.0.3/v1.1.0 in temporary
+  worktrees and enabling the old add-on from a temporary
+  `BLENDER_USER_SCRIPTS`. The comparison is in `preset_dev/world_baseline/`.

@@ -1,313 +1,72 @@
-# Anime Look Director
+# Anime Look Director — World Sky Edition
 
-Atmospheric palettes and a non-destructive anime compositor stack for Blender 5.1+.
+Procedural anime skies for Blender 5.1.2. The World is the product: four-zone
+gradient, Sun, clouds, stars and Milky Way, with optional material and
+compositor tools.
 
-## What it does (v2.55.1)
-- Seven atmosphere presets (Golden Hour, **After School Sunset**, Summer Noon,
-  Rainy Tokyo, Cyberpunk Neon, Sakura Spring, Twilight Dusk) with a
-  Scene-Linear Rec.709 color script calibrated for AgX.
-- **Four-zone sky**: ground → horizon → mid-sky bridge → zenith, with a dedicated
-  mid color that avoids muddy sunset midpoints.
-- **Perspective planar anime clouds**: the view ray is projected onto a curved
-  atmospheric deck, so clouds stretch into layered bands near the horizon.
-  The **Cloud Flatness** control blends billowy cumuli (0) and flat horizontal
-  strata (1). Perlin-Worley density gives compact lobes, while a solar
-  finite difference drives violet/mauve cores and a thin silver-lining rim.
-  **Delta Gain** and **Rim Boost** expose the painterly transfers; cloud color is
-  independent from the horizon tint and an optional **Sky Accent** paints a turquoise or
-  coral band around the mid-sky stop.
-- **Visible-sky / ambient split**: `World Strength` controls ambient light while
-  the camera-visible sky stays vivid (Light Path `Is Camera Ray`).
-- **Shadow Hue Lift**: a small additive tint veil so warm materials take the cool
-  palette shadow instead of turning muddy olive.
-- **Auto Sun**: applying a palette creates a sun light when the scene has none
-  (can be disabled in the panel).
-- Palette-driven **world gradient** with separate sky, horizon and ground colors,
-  plus horizon offset and softness.
-- **Sun disk** aligned with the sun direction, with size and strength.
-- **Sun Elevation / Sun Azimuth** sliders, a two-lobe **Sun Glow** (narrow
-  corona + wide horizon haze) and a one-click **Stage Backlight** operator that
-  places the sun in front of the camera and enables the full backlight stack.
-- **Anime clouds**: Perlin-Worley procedural clouds in palette colors, with
-  amount, scale, **Cloud Flatness**, **Cloud Wind** animation and optional
-  **Contrails**.
-- **Three-tier clustered painterly starfield**: dense stardust, medium
-  constellation stars and soft gouache hero stars with halos, using per-cell
-  Voronoi Color hashes, translated grids, warm/cool temperatures and a
-  palette-tinted glow; masked by clouds and the sun disk.
-- **Custom cloud colors**: dedicated Cloud Shadow, Cloud Mid and Cloud Light
-  controls in Custom Colors, independent from Horizon, Sun and Shadow.
-- **Custom palette colors** for sky, horizon, sun and shadow (per scene).
-  The custom Sun only drives the sun disk/light; cloud light stays on the preset.
-- **Shadow tint** on scene materials: a reversible **multiplicative** node group
-  that preserves texture detail while shifting shadowed areas toward the palette
-  color. Turning it off zeroes AO but keeps Cel/Rim; the X button removes the
-  group and disables Cel/Rim.
-- **Cel terminator** driven by the palette sun (`N·L`), with Cel Shadow strength
-  and Terminator sharpness; combined with AO for contact shadows.
-- **Terminator Warmth**: a narrow warm subsurface band around `N·L = 0`, with a
-  Skin preset boost.
-- **Rim light** with Sun Side, 360 Contour and Backlight modes, tinted by the sun
-  color; the HAIR preset gets a stronger angel-ring rim.
-- **Rim emission** wired into Principled Emission Color (reversible), so rims read
-  in backlight without being flattened by diffuse shading.
-- **Real-time viewport updates**: moving the sun or camera updates the sky disk,
-  God Rays and cel shading without a rebuild.
-- **Light Wrap** around object silhouettes and environment edges.
-- **Aerial Haze**: distant geometry loses contrast and takes the horizon/shadow
-  color for painted anime backgrounds.
-- **Anime Ink Lines**: thin depth + Normal-based outlines tinted by the palette
-  shadow, including internal creases and hard corners.
-- **God Rays** (optional Sun Beams glare anchored to the sun's screen position,
-  refreshed on frame change).
-- **Shot markers**: palettes driven by `ALD:<PALETTE>` timeline markers, with a
-  `Mark Shot` button.
-- **Per-camera palette overrides**: each camera can carry its own atmosphere;
-  switching cameras applies it. Precedence: camera > marker > scene palette.
-- **Material presets** (Skin, Hair, Fabric, Metal, Emission) for selected objects.
-- **Material exclusion**: exclude the active material from the global tint sync
-  without changing its shader.
-- A node-group compositor stack, **one per scene**:
-  `Render Layers → Glare (Bloom) → Sun Beams → Kuwahara (depth-mixed) → Light Wrap → Aerial Haze → Ink Lines → Lens Distortion → Group Output`.
-- One-click enable of the viewport compositor.
-- **Sidebar N panel** (`View3D > Anime Look`) for palette, world, shadow and
-  compositor controls without leaving the viewport.
+The 3D FX, Spatial Clouds, atmospheric smoke and FX EXR pass of 2.56.0 are
+gone. The full previous version is preserved at the tag
+`archive/v2.56.0-full` and in the `v2.56.0` tag.
 
-## Install (development)
-The folder lives in `Blender/5.1/scripts/addons/anime_look_director`.
-Enable it in Preferences → Add-ons (or keep it enabled in this profile).
+## What it does
 
-## Look-dev
+- Seven atmospheric palettes, applied to the World and Sun without touching the
+  compositor.
+- Four-zone sky: Ground, Horizon, Mid Sky, Zenith, with horizon offset and
+  softness.
+- Sun disk, Sun Glow, Sun Beams, elevation/azimuth and backlight staging.
+- World clouds: amount, scale, vertical/flatness, wind, contrails, delta gain,
+  rim boost, custom cloud colors.
+- Stars, density, Milky Way.
+- Optional Shadow Tint / Cel / Rim and material presets.
+- Optional general compositor: halation, painterly, light wrap, dispersion,
+  sun beams, ink, aerial haze.
+- Camera overrides and timeline palette markers.
+- Reversible removal and explicit handling of legacy ALD data.
+
+## Install
+
+Build the extension:
+
 ```powershell
-& "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup `
-  --python preset_dev\lookdev.py -- --out "C:\Temp\ald_lookdev"
+$blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
+& $blender -b --factory-startup --python preset_dev\build_release.py
 ```
-Renders the seven palettes on a fixed scene, writes a 4-column contact sheet and
-prints luminance, contrast and saturation per palette. It never saves a `.blend`.
+
+Install `dist/anime_look_director-2.57.0.zip` in Blender 5.1.2:
+`Edit > Preferences > Extensions > Install from Disk`.
+
+The add-on is also usable from the source directory as a legacy add-on.
+
+## Quick start
+
+1. Open the Scene properties or the View3D sidebar (`N > Anime Look`).
+2. Choose a palette.
+3. **Apply Palette**. The World and Sun update immediately; no Build Stack is
+   required.
+4. Adjust World, Sun, clouds and stars in **World & Shadows**.
+5. Enable the compositor only if you want the optional art filters.
+
+## Version 2.57.0 scope
+
+- World-only operational path.
+- No FX objects, collections, Geometry Nodes, smoke volumes or EXR pass.
+- The compositor is optional and contains only general effects.
+- Old `.blend` files are not cleaned automatically. Use the **Legacy ALD Data**
+  panel: **Disable** hides the old ALD collections (reversible), **Remove**
+  deletes them after an explicit action. See `MIGRATION_2_57.md`.
 
 ## Verification
+
 ```powershell
-# gate only
-& "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup `
-  --python-exit-code 1 --python preset_dev\verify.py
-
-# gate + duplicate fixture + audit, one fresh Blender per step
-& "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup `
-  --python preset_dev\verify_all.py
+& $blender -b --factory-startup --python-exit-code 1 --python preset_dev\verify.py
+& $blender -b --factory-startup --python-exit-code 1 --python preset_dev\verify_all.py
 ```
-Expected output: `ALD GATE: PASS` and `ALD ALL: PASS`.
 
-## Release
-```powershell
-& "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup `
-  --python preset_dev\build_release.py
-```
-Writes `dist/anime_look_director-<version>.zip` with the add-on, the manifest,
-the GPL license and the user docs. The research evidence is excluded by the
-manifest `[build]` list.
+The Phase 0 comparison against v1.0.3 and v1.1.0 is in
+`preset_dev/world_baseline/` (`contact_1280.png`, `contact_1920.png`,
+`contact_sun.png`, README with the findings).
 
-## Roadmap
-- v0.1 — stack + palettes
-- v0.2 — world gradient, material shadow tint, light wrap
-- v0.2.1 — auto sun, per-scene stacks
-- v0.3 — God Rays, shot markers, material presets
-- v0.3.1 — God Rays refresh/size, Emission preset
-- v0.3.2 — in-place sliders, multiplicative shadow tint, sidebar N panel
-- v0.4.0 — sun disk, anime clouds, ink lines, Sakura/Twilight, custom colors
-- v0.5.0 — cel terminator, directional rim light, hair angel ring
-- v0.6.0 — per-camera palette overrides, effective look coordinator
-- v0.6.1 — normalized sun disk, live transforms, ink gain, rim emission
-- v0.6.2 — Camera Override panel icon fix
-- v0.7.0 — Linear Rec.709 color script, mid-sky bridge, directional clouds, hue lift
-- v0.8.0 - sun controls + Stage Backlight, stars/cloud wind, aerial haze,
-  normal ink, terminator warmth, rim modes, material exclusion
-- v0.8.1 - custom Sun no longer repaints the clouds
-- v0.9.0 - After School palette, planar cloud deck, backlit silver-lining
-  shading, micro starfield and new sky gradient mapping
-- v0.9.1 - per-preset cloud morphology/style calibration from reference images
-- v0.9.2 - Sidebar cloud amount/scale controls
-- v0.9.3 - edge-local silver lining at full Cloud Amount
-- v0.9.4 - zero Cloud Light body base + visible sidebar version
-- v0.9.5 - world group marker 10 forces the new cloud graph to rebuild
-- v0.9.6 - fix Sidebar panel draw/version label
-- v0.9.7 - coverage-based Cloud Amount, corrected solar delta, isoline contrails
-- v0.9.8 - domain-warped Perlin-Worley clouds, per-cloud lighting, planar contrails
-- v0.9.9 - straight gnomonic contrails + group rebuild marker 13
-- v1.0.0 - dome-sampled cloud density, fBm morphology, 3-band cel shading
-- v1.0.1 - cauliflower clouds, 4-band gouache, Apply Palette slider reset
-- v1.0.2 - restored organic fBm clouds; Cloud Light confined to the sun fringe
-- v1.0.3 - envelope-driven shading, internal Cloud Light suppression, atmosphere resets
-- v1.0.4 - cloud/horizon decoupling, clustered painterly stars, richer presets, neutral UI names
-- v1.0.5 - dedicated cloud color controls and three-tier hash-based starfield
-- v1.0.6 - reliable sky toggles, true Star Amount, warped readable stars, panel parity
-- v1.0.7 - sharp Kuwahara-masked sky, pinpoint stars, true horizon shift, tinted contrails
-- v1.0.8 - anti-aliased PSF stars with X/Y/Z hash channels and Perlin-Worley clouds
-- v1.1.0 - Sun Beams/Glow quick toggles, shooting stars and anime fireworks
-- v1.1.1 - 2D stereographic meteors, Milky Way river and Hanabi bursts
-- v1.1.2 - tangent-plane meteors/fireworks, Milky Way fix and vivid Hanabi colors
-- v1.1.3 - stereographic hollow Hanabi shells with high-chroma palettes
-- v1.1.4 - spherical foreshortened Hanabi shells, constant-width trails and hot hoshi heads
-- v2.0.0 - 3D FX particle fireworks/meteors with real depth and overlap
-- v2.0.1 - tapered physical firework trails, hollow shells and stronger droop
-- v2.1.0 - deterministic FX solver, per-scene ownership, FX backend selector
-- v2.2.0 - FX compositing separation with dedicated glow
-- v2.3.0 - animated in-place FX, burst roles and staggered families
-- v2.4.0 - beaded spark trails and a live Burst Age control
-- v2.5.0 - inner pistil population, FX system editor, verified occlusion
-- v2.6.0 - granular trails, meteor fragments and composition controls
-- v2.7.0 - Geometry Nodes prototype for the burst heads
-- v2.8.0 - Geometry Nodes evaluation of the whole burst population, verified
-  against the Python solver
-- v2.9.0 - the trails, the flash and the meteors are evaluated by the nodes
-  too: the frame handler writes no geometry any more
-- v2.9.1 - drag free limit in the node group and the missing mandatory gate
-  tests of the technical guide
-- v2.9.2 - FX lookdev comparison renders with the recorded metadata, FX panel
-  listing fix and UI verified with real screenshots
-- v2.10.0 - the caches are invalidated when a new file is loaded and the
-  frame handler no longer touches the node group systems
-- v2.10.1 - family comparison renders (Chrysanthemum, Peony and Willow with
-  the same palette and seed)
-- v2.11.0 - the Burst Age slider moves the systems without rebuilding the
-  geometry: real time, 189 times faster
-- v2.11.1 - the UI verification is a tool of the repository
-  (`preset_dev/ui_probe.py`)
-- v2.12.0 - phase P0-A of the operational plan: the decay, the composition
-  rule, the meteor geometry and the child origins are corrected and the two
-  backends share the same deterministic data
-- v2.13.0 - phase P0-B: persistent systems and events, robust scene identity
-  with duplication handling, registry rebuilt from the saved configuration
-- v2.14.0 - phase P1-A: one interface for both surfaces, exclusive backends
-  (OFF / Legacy World / FX 3D), the FX system editor and the look controls
-- v2.15.0 - phase P1-B: the state of the user is snapshotted before the first
-  modification and "Remove ALD from Scene" restores the world, the sun, the
-  materials, the passes and the compositor
-- v2.16.0 - phase P1-C: the firework is a complete event, from the launcher
-  to the rising shell, the burst without discontinuity and the residuals
-- v2.17.0 - phase P1-D: the meteors are events and the Hero Meteor (Bolide)
-  has its own preset, bigger and with a long persistent train
-- v2.18.0 - phase P2: the material contract of the particles (role, age_norm,
-  energy, trail_u, stable_noise, event_color) and the isolation of the FX
-  layer in the compositor
-- v2.19.0 - phase P3: a numerically stable solver, the evaluated camera
-  frame, the clouds and the legacy stars in seconds, the Kamuro family and the
-  backend chosen before the allocation
-- v2.20.0 - the milestone of the plan: a single complete and reversible
-  firework, the visible launcher and the Definition of Done verified by
-  `preset_dev/milestone.py`
-- v2.20.1 - the legacy world meteors follow the backend, the legacy controls
-  only appear in the legacy backend and the FX section comes first in the
-  sidebar
-- v2.21.0 - the View3D sidebar and the Scene properties expose exactly the
-  same controls, with the same structure
-- v2.22.0 - the three actions on the scene (Bypass, Remove ALD from Scene,
-  Detach and Keep Result), the FX are visible at once after the creation and
-  the icons of the panels are validated against the real list
-- v2.22.1 - the registration survives the reload of Blender, the camera and
-  the sun use the evaluated transform and `preset_dev/audit_plan.py` audits
-  the compliance with the operational plan
-- v2.24.0 - the compositor FX isolation is replaced with a clean
-  environment/FX-only/coverage pipeline (`C = (1-A)*Painted_B + F + Glare(F)`),
-  per-event visibility diagnostics, corrected physics (gravity, velocity
-  derivative, sparks inheritance, train decay, negative age clamp) and a real
-  per-system clock
-- v2.25.0 - fixes the `Writing to ID classes` crash during panel draw, adds the
-  ALD Sky/FX Anchor (vertical axis, ground elevation, units scale), the camera
-  below-ground conflict warning (T15) and the acceptance tests T25-T28
-  (migration, undo/redo, failed build, UI screenshots)
-- v2.26.0 - completes the ALD Sky/FX Anchor with an explicit terrain object:
-  the conflict warning reads the ground mesh world matrix when assigned,
-  falling back to the numeric elevation
-- v2.27.0 - critical bug fix in the FX Python writer: `_update_meteors`
-  crashed with `'NoneType' object has no attribute 'data'` because the
-  non-GN path stores trail/head/fragment objects per-event but the updater
-  read them from the wrong place. Gate test T24 (three FX profiles at fixed
-  exposure) added
-- v2.28.0 - P0 of the operational plan: safe FX operators (update by UID,
-  atomic compile, record/geometry coordinated), snapshot on every mutation
-  path with the REMOVED lifecycle state, real B/F/A FX isolation with
-  depth-based occlusion and zero-FX identity, read-only diagnostics with
-  explicit `UNKNOWN`
-- v2.29.0 - P1-P2: persistent model (UID + roles, stable random keys,
-  migration, undo/redo), anchor gravity and `p_shell(T)`, GN→Python per-event
-  fallback, material contract (`event_color`, `stable_noise`, `age_norm`,
-  `trail_u`) and AgX calibration matrix
-- v2.30.0 - P3: volumetric atmospheric smoke, FX Style variants, directed 3/5
-  burst show, benchmarks with declared budgets and hardware
-- v2.30.1 - verification pass: UI probe fixed for Blender 5.1 (screenshots in
-  `preset_dev/ui/`), milestone 13/13, smoke aligned to the Anchor, Visual
-  Profile panel, P0-P3 audit 39/39
-- v2.31.0 - P1 of the visual integration milestone: real FX coverage from the
-  Cryptomatte Material pass, F = Emission x A, occlusion inherited from the
-  visible render; removed the ALD FX Only layer, the transparent world override,
-  the max(R,G,B) coverage and the depth comparison for opaque occluders
-- v2.32.0 - P2: the filament tube was empty (`Points to Curves` needs a point
-  cloud: added `Mesh to Points`), apparent width in pixels, round tube chosen
-  over ribbon by measurement, secondary stars and per-star trail caps
-- v2.33.0 - P3: fixed the grey punch veil, the double coverage and the black
-  instanced particles; tail falloff, sky-tinted FX palette, calibrated glow
-  (1.0 / 0.0 / 0.35)
-- v2.34.0 - P4: depth hierarchy (hero 1.0x, secondary 1.18x, distant 1.42x),
-  show spacing, earlier distant birth, composition renders and gate
-- v2.35.0 - P5: 2.5D cloud bands at 160/230/320 m, opaque and depth-writing,
-  palette-synced, removed by Remove ALD; they occlude the FX behind them
-- v2.36.0 - P6: validation matrix 3 palettes x 4 families x 3 ages, per-cell
-  metrics and contact sheet, 36/36 PASS; apparent-size floor for the beads
-- v2.37.0 - verification: fixed the broken World panel (invalid CLOUD icon),
-  wired the UI icon/parity checks, absolute UI probe paths, temporal strip
-- v2.38.0 - cloud bands tuned as a depth layer; 1920x1080 integration showcase
-  (night 5 bursts, dusk 3 bursts) with the whole stack
-- v2.39.0 - showcase foreground: a dark skyline and antenna for scale and ink
-- v2.40.0 - Spatial Clouds 2.0: coverage-driven island geometry, Anchor
-  altitude/depth, persistent in-place layers, camera modes, local flash;
-  environment masks from the base layer; FX colour/size/width fixes
-- v2.41.0 - consolidation: coverage edge, shot-locked rotation, material/LOD,
-  scene-owned UID/materials, Kuwahara depth, flash distance, C0 test
-- v2.42.0 - P0 closed: external FX pass (FX emission only) read by the stack,
-  isolation gate; two-step workflow, fallback for missing pass
-- v2.43.0 - framing envelope and lens-aware show fit; the composition report
-  records the real envelope fraction
-- v2.44.0 - cloud benchmark (coverage x layers, 720p) and a guard that unlinks
-  shared objects on removal
-- v2.45.0 - duplicated-scene ownership repair + dedicated fixture; PA2 volume
-  spike (cards confirmed as the default)
-- v2.46.0 - animated FX pass (numbered EXR sequence), per-scene pass image and
-  real pass state
-- v2.46.1 - content-aware pass state (FX, palette, camera), one command for
-  gate + fixture + audit
-- v2.46.2 - Build and Apply Palette repair a duplicated scene automatically
-- v2.46.3 - Remove ALD and Detach are safe on duplicated scenes; shared worlds
-  and suns are never restored
-- v2.46.4 - per-frame pass signature for animated cameras
-- v2.46.5 - per-scene default pass path (two scenes no longer share EXRs)
-- v2.46.6 - the copy owns its world; the auto sun is scene-owned
-- v2.46.7 - installable extension zip (LICENSE + `[build]` exclusions, build
-  script)
-- v2.47.0 - continuous cloud contours (marching squares) and a sensitive top
-  Coverage range
-- v2.48.0 - FX pass atomic write and nesting, cloud Preview/Final and World
-  Cloud Blend, duplicate fixture save/reload
-- v2.49.0 - solver-driven 0.95 show fit, intentional crop, physical light
-  events with two cloud sources
-- v2.49.1 - per-scene FX materials (no mutable material sharing)
-- v2.50.0 - cloud card border rim from the contour attribute; linked-copy
-  fixture
-- v2.51.0 - explicit shot/animation orchestration (pass + composite)
-- v2.52.0 - strict pass mode (hide the FX without a pass) and pixel-aspect
-  apparent widths
-- v2.53.0 - copy-on-write for old shared FX materials on load
-- v2.53.1 - gate test: a failed EXR write leaves the valid pass intact
-- v2.54.0 - ORTHO show fit by the lateral layout
-- v2.55.0 - FX created from the UI require the pass (strict by default for new
-  effects)
-- v2.55.1 - validation report and explicit legacy-failure label
-- v2.55.2 - 2.39 cloud baseline measured on the same camera
-- v2.55.3 - cloud billboard views (shot / side locked / side facing)
-- v2.55.4 - cloud benchmark: 5 runs, colour/position/shape/memory separated
-- v2.55.5 - P0 pass cache, strict bypass, UUID paths, scene-copy safety
-- v2.56.0 - P1 contract/framing, P2 cloud rim/flash, P3 strict stack matrix (current)
+## License
 
-## Recap
-Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).
-
-Validation report: [`preset_dev/VALIDATION.md`](preset_dev/VALIDATION.md).
+GPL-3.0-or-later. See `LICENSE`.

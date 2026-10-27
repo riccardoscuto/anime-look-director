@@ -3,9 +3,9 @@
 Usage:
   blender --factory-startup --python preset_dev/ui_probe.py -- [--out DIR]
 
-Opens a fresh Blender, enables the add-on, creates the FX systems and writes
+Opens a fresh Blender, enables the add-on, applies a World palette and writes
 the screenshots of the sidebar panel and of the Scene properties (Anime Look
-Director, World & Shadows, Compositor Stack and FX Particles).
+Director, World & Shadows and the optional Compositor Stack).
 
 The Properties editor is maximised so the whole panel fits, and the window
 must be on screen: a screenshot taken while the window is minimized or off
@@ -90,6 +90,16 @@ def scroll(area, steps):
     return False
 
 
+def check_fx_absent():
+    for name in ("fx_fireworks", "fx_meteors", "clouds_create",
+                 "smoke_create", "fx_render_shot"):
+        if hasattr(bpy.ops.ald, name):
+            print("ALD UI RETIRED OP PRESENT", name)
+            return False
+    print("ALD UI RETIRED OPS ABSENT")
+    return True
+
+
 def step():
     STATE["step"] += 1
     index = STATE["step"]
@@ -100,11 +110,18 @@ def step():
                 bpy.ops.preferences.addon_enable(module=MODULE)
             except Exception as exc:
                 print("ALD UI ENABLE FAILED", exc)
-            try:
-                bpy.ops.ald.fx_fireworks(count=3, age=0.8)
-                bpy.ops.ald.fx_meteors(count=4, age=0.6)
-            except Exception as exc:
-                print("ALD UI FX FAILED", exc)
+            scene = bpy.context.scene
+            if scene.camera is None:
+                data = bpy.data.cameras.new("ALD UI Camera")
+                data.lens = 32.0
+                cam = bpy.data.objects.new("ALD UI Camera", data)
+                scene.collection.objects.link(cam)
+                cam.location = (0.0, -12.0, 3.0)
+                cam.rotation_euler = (1.75, 0.0, 0.45)
+                scene.camera = cam
+            scene.ald.palette = "AFTER_SCHOOL"
+            bpy.ops.ald.apply_palette()
+            check_fx_absent()
             window, area = find_area("PROPERTIES")
             if area is not None:
                 area.spaces.active.context = "SCENE"
@@ -123,10 +140,10 @@ def step():
             window, area = find_area("PROPERTIES")
             if area is not None:
                 scroll(area, 120)
-            print("ALD UI STEP 3: the properties were scrolled to the FX")
+            print("ALD UI STEP 3: the properties were scrolled down")
             return 1.0
         if index == 4:
-            shot(out_dir, "ui_fx_pass.png")
+            shot(out_dir, "ui_compositor.png")
             window, area = find_area("PROPERTIES")
             if area is not None:
                 scroll(area, -120)

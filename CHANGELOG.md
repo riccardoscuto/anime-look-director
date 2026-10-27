@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.57.0 - 2026-10-27
+World Sky Edition: the World is now the product.
+
+### Removed
+- 3D fireworks, meteors, Geometry Nodes and the FX pass/Cryptomatte/cache.
+- Spatial Clouds 2.5D, atmospheric smoke and their UI/handlers.
+- World fireworks and World meteors: the shader amounts are forced to zero.
+- FX panels, operators, cloud/smoke settings in the operational path.
+- FX audit, fixtures and development scripts.
+
+### Kept and adapted
+- Four-zone World gradient, Sun disk/glow/beams, clouds, stars and Milky Way.
+- Palette, camera override, shot markers, materials and optional compositor.
+- Persistent scene identity, ownership repair and snapshot restore.
+- Explicit Legacy ALD Data: disable or remove old collections; nothing is
+  cleaned automatically.
+
+### Evidence
+- Phase 0 visual baseline against v1.0.3/v1.1.0 in `preset_dev/world_baseline/`.
+- World gate, lifecycle fixture and World audit: `ALD GATE: PASS`,
+  `WORLD FIXTURE: PASS`, `ALD WORLD AUDIT 20/20`.
+- UI screenshots updated in `preset_dev/ui/`.
+
+### Compatibility
+- See `MIGRATION_2_57.md`; rollback is the `archive/v2.56.0-full` tag.
+
 ## 2.56.0 - 2026-10-27
 P1 contract and framing, P2 light/cloud response, P3 full-stack evidence.
 

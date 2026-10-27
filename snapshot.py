@@ -279,34 +279,13 @@ def _restore_view_layer(scene, states):
             state.get("use_pass_object_index"))
 
 
-def _forget_pass(scene, strict=None):
-    """Drop the pass state and the per-scene image after a restore/detach."""
-    settings = getattr(scene, "ald", None)
-    if settings is None:
-        return
-    settings.fx_pass_path = ""
-    settings.fx_pass_frames = (0, 0)
-    settings.fx_pass_signature = ""
-    if strict is not None:
-        settings.fx_pass_required = bool(strict)
-    for name in ("ALD | FX Pass Image",
-                 "ALD | FX Pass | " + scene.name):
-        image = bpy.data.images.get(name)
-        if image is not None and image.users == 0:
-            bpy.data.images.remove(image)
-
-
 def detach(scene):
     """Keep the current result but stop managing the scene.
 
     The world, the materials, the lights and the compositor stay as they are:
-    only the live systems (the FX objects), the markers and the internal
-    properties are removed, and the add-on is told to leave the scene alone.
+    only the markers and the internal properties are removed, and the add-on is told to leave the scene alone.
     The shadow tint of the materials is NOT cleared: Detach keeps the result.
     """
-    from . import fx
-
-    fx.clear(scene)
     for marker in list(scene.timeline_markers):
         if marker.name.startswith("ALD"):
             scene.timeline_markers.remove(marker)
@@ -317,34 +296,12 @@ def detach(scene):
     if settings is not None:
         scene[MAINTENANCE_KEY] = True
         try:
-            _forget_pass(scene, strict=True)
             from . import compositor
             compositor.build(scene)
         finally:
             scene[MAINTENANCE_KEY] = False
         settings.detached = True
     return True
-
-
-def _remove_orphans(scene, owner=None):
-    """Remove the datablocks of the add-on that nothing uses any more."""
-    from . import fx
-
-    if owner is None:
-        owner = fx._scene_id(scene)
-    for coll in list(bpy.data.collections):
-        if coll.get(fx.OWNER_KEY) != owner:
-            continue
-        if fx._shared_with_other_scene(coll, scene):
-            # A collection linked into another scene is not ours to delete.
-            continue
-        bpy.data.collections.remove(coll)
-    for mat in list(bpy.data.materials):
-        if mat.get("ald_fx_material") and mat.users == 0:
-            bpy.data.materials.remove(mat)
-    for group in list(bpy.data.node_groups):
-        if group.get("ald_fx") and group.users == 0:
-            bpy.data.node_groups.remove(group)
 
 
 def restore(scene):
@@ -354,24 +311,13 @@ def restore(scene):
     (an old scene, a direct call without a palette) the conservative clean up
     is done and the limit is reported.
     """
-    from . import fx, materials
-    from . import compositor as compositor_module
-    from . import clouds as clouds_module
-    from . import smoke as smoke_module
+    from . import materials
 
     state = snapshot(scene)
-    owner = fx._scene_id(scene)
     scene[MAINTENANCE_KEY] = True
     try:
-        # The FX systems and the objects they own.
-        fx.clear(scene)
-        # The atmospheric smoke is an ALD-managed object: it goes away too.
-        smoke_module.remove(scene)
-        clouds_module.remove(scene)
         # The materials: the original base colour and emission come back.
         materials.clear_scene(scene)
-        # The dedicated FX view layers and the transparent world.
-        compositor_module.remove_fx_layers(scene)
         has_valid_snapshot = bool(state) and not _snapshot_contains_ald(state)
         shared_world = world_is_shared(scene)
         if has_valid_snapshot:
@@ -402,14 +348,12 @@ def restore(scene):
                 del scene[key]
         if SNAPSHOT_KEY in scene:
             del scene[SNAPSHOT_KEY]
-        _forget_pass(scene)
         # The scene is no longer managed by the add-on: the UI must say so
         # instead of pretending the stack is still owned.
         scene[REMOVED_KEY] = True
         for marker in list(scene.timeline_markers):
             if marker.name.startswith("ALD"):
                 scene.timeline_markers.remove(marker)
-        _remove_orphans(scene, owner)
         settings = getattr(scene, "ald", None)
         if settings is not None:
             settings.detached = False

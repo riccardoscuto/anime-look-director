@@ -18,8 +18,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 STEPS = (
     ("gate [structural/runtime/visual]", "verify.py"),
-    ("fixture [lifecycle]", "duplicate_fixture.py"),
-    ("audit [plan/coverage]", "audit_plan.py"),
+    ("fixture [lifecycle]", "world_fixture.py"),
+    ("audit [reduction/world]", "audit_world.py"),
 )
 
 
