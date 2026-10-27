@@ -23,6 +23,6 @@ clouds off so the trajectory is unambiguous. `contact.png` shows all five.
 - The list and the add/duplicate/remove controls are in World & Shadows >
   Shooting Stars.
 
-This is the third visual gate; it is a candidate, not approved.
+This is the third visual gate; it was approved on 2.60.1.
 The UI has a Preview button that moves the timeline into the event and aims
 the camera at its start. Editing a field refreshes the World immediately.

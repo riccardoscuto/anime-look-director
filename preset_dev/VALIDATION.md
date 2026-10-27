@@ -43,7 +43,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 2 cloudless sky | DONE | broad accent, Sun fade, `preset_dev/sky/` |
 | Phase 3 cloud families | DAY GATE APPROVED | Cumulus 2.59.1 |
 | Phase 3 sunset | APPROVED | GOLDEN_HOUR side/backlit |
-| Shooting stars | GATE PENDING | controlled event; approval requested |
+| Shooting stars | APPROVED | controlled event, Preview, starfield-consistent line |
 
 ## Deliberate limits
 
