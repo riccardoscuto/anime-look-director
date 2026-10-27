@@ -1,0 +1,27 @@
+{
+  "tag": "v2.56.0",
+  "resolution": [
+    1280,
+    720
+  ],
+  "renders": [
+    {
+      "file": "sun_golden_hour_1280x720.png",
+      "palette": "GOLDEN_HOUR",
+      "sun_toward": [
+        -0.47148120403289795,
+        -0.8346723318099976,
+        0.2846534252166748
+      ]
+    },
+    {
+      "file": "sun_after_school_1280x720.png",
+      "palette": "AFTER_SCHOOL",
+      "sun_toward": [
+        -0.442683607339859,
+        -0.862005889415741,
+        0.24693557620048523
+      ]
+    }
+  ]
+}

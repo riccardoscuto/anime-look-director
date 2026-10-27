@@ -1,0 +1,81 @@
+{
+  "tag": "v1.0.3",
+  "palettes": [
+    "SUMMER_NOON",
+    "AFTER_SCHOOL",
+    "NEON_NIGHT"
+  ],
+  "camera": {
+    "location": [
+      0.0,
+      -12.0,
+      3.0
+    ],
+    "rotation": [
+      1.75,
+      0.0,
+      0.45
+    ],
+    "lens": 32.0
+  },
+  "frame": 1,
+  "exposure": 0.0,
+  "engine": "BLENDER_EEVEE",
+  "view_transform": "AgX",
+  "renders": [
+    {
+      "file": "summer_noon_1280x720.png",
+      "palette": "SUMMER_NOON",
+      "resolution": [
+        1280,
+        720
+      ],
+      "world": "ALD | Atmosphere"
+    },
+    {
+      "file": "after_school_1280x720.png",
+      "palette": "AFTER_SCHOOL",
+      "resolution": [
+        1280,
+        720
+      ],
+      "world": "ALD | Atmosphere"
+    },
+    {
+      "file": "neon_night_1280x720.png",
+      "palette": "NEON_NIGHT",
+      "resolution": [
+        1280,
+        720
+      ],
+      "world": "ALD | Atmosphere"
+    },
+    {
+      "file": "summer_noon_1920x1080.png",
+      "palette": "SUMMER_NOON",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "world": "ALD | Atmosphere"
+    },
+    {
+      "file": "after_school_1920x1080.png",
+      "palette": "AFTER_SCHOOL",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "world": "ALD | Atmosphere"
+    },
+    {
+      "file": "neon_night_1920x1080.png",
+      "palette": "NEON_NIGHT",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "world": "ALD | Atmosphere"
+    }
+  ]
+}
