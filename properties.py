@@ -11,6 +11,11 @@ PALETTES = [
     ("NEON_NIGHT", "Cyberpunk Neon", "Deep night sky with magenta-cyan rim-lit clouds"),
     ("SAKURA_SPRING", "Sakura Spring", "Cornflower sky, warm sakura horizon and soft lilac clouds"),
     ("TWILIGHT_DUSK", "Twilight Dusk", "Prussian blue dusk, vermilion horizon and starfield"),
+    ("SOFT_DAWN", "Soft Dawn", "Pastel dawn with light clouds and a low warm Sun"),
+    ("BLUE_HOUR", "Blue Hour", "Blue-violet sky after sunset with cool clouds and stars"),
+    ("CLOUDY_AFTERNOON", "Cloudy Afternoon", "Stratocumulus cover with a soft silver sun"),
+    ("STORMY_SUNSET", "Stormy Sunset", "Dark dramatic masses against a burning horizon"),
+    ("MOONLIT_NIGHT", "Moonlit Night", "Deep night, stars and Milky Way, no dedicated moon"),
 ]
 
 MATERIALS = [

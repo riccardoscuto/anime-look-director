@@ -10,7 +10,8 @@ gone. The full previous version is preserved at the tag
 
 ## What it does
 
-- Seven atmospheric palettes, applied to the World and Sun without touching the
+- Twelve atmospheric palettes (seven original + Soft Dawn, Blue Hour,
+  Cloudy Afternoon, Stormy Sunset, Moonlit Night), applied to the World and Sun without touching the
   compositor.
 - Four-zone sky: Ground, Horizon, Mid Sky, Zenith, with horizon offset and
   softness.
@@ -34,7 +35,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 & $blender -b --factory-startup --python preset_dev\build_release.py
 ```
 
-Install `dist/anime_look_director-2.60.1.zip` in Blender 5.1.2:
+Install `dist/anime_look_director-2.61.0.zip` in Blender 5.1.2:
 `Edit > Preferences > Extensions > Install from Disk`.
 
 The add-on is also usable from the source directory as a legacy add-on.
@@ -48,7 +49,7 @@ The add-on is also usable from the source directory as a legacy add-on.
 4. Adjust World, Sun, clouds and stars in **World & Shadows**.
 5. Enable the compositor only if you want the optional art filters.
 
-## Version 2.60.1 scope
+## Version 2.61.0 scope
 
 - World-only operational path.
 - No FX objects, collections, Geometry Nodes, smoke volumes or EXR pass.

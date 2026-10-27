@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.61.0 - 2026-10-27
+Phase 5: presets and compact UI.
+
+### Added
+- Soft Dawn, Blue Hour, Cloudy Afternoon, Stormy Sunset and Moonlit Night.
+- Reset Look and Save as Custom (the preset is never overwritten).
+- Quick Look sidebar: preset, Apply/Reset, Sun elevation, cloud type/coverage/
+  wind and stars.
+- One collapsed Advanced Sky panel; full sections in Scene properties:
+  Atmosphere & Sun, World Clouds, Stars & Milky Way + Shooting Stars,
+  Palette Customization, Materials & Shadows, Compositor, Advanced Settings.
+- Compositor: explicit Enable Compositor, inactive state without controls,
+  viewport ALWAYS/CAMERA/DISABLED label.
+
+### Evidence
+- `preset_dev/palettes/sheet.png` with all 12 palettes.
+- UI screenshots regenerated; World/compositor sections.
+- Audit **38/38**.
+
 ## 2.60.1 - 2026-10-27
 Shooting-star visibility and starfield consistency.
 

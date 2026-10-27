@@ -36,8 +36,8 @@ def exists(*paths):
 
 CHECKS = [
     ("Reduction", "The version is the World Sky Edition",
-     lambda: has("__init__.py", '"version": (2, 60, 1)')
-     and has("blender_manifest.toml", 'version = "2.60.1"')),
+     lambda: has("__init__.py", '"version": (2, 61, 0)')
+     and has("blender_manifest.toml", 'version = "2.61.0"')),
     ("Reduction", "The FX and spatial modules are gone",
      lambda: not any(os.path.exists(os.path.join(ROOT, name))
                      for name in ("fx.py", "fx_nodes.py", "clouds.py",
@@ -86,12 +86,30 @@ CHECKS = [
      and has("panels.py", "draw_legacy")[0]),
     ("Compatibility", "Old files are not cleaned automatically",
      lambda: has("panels.py", "never cleaned automatically")),
-    ("UI", "The two surfaces share the drawing functions",
-     lambda: has("panels.py", "draw_world", "draw_compositor",
-                 "ALD_PT_view3d_world", "ALD_PT_view3d_compositor")),
-    ("UI", "The quick panel exposes Apply and the compositor state",
-     lambda: has("panels.py", "ald.apply_palette",
-                 "Compositor optional")),
+    ("UI", "The surfaces share the drawing functions",
+     lambda: has("panels.py", "draw_quick_look", "draw_atmosphere",
+                 "draw_clouds", "draw_stars", "draw_shooting_stars",
+                 "draw_custom_colors", "draw_compositor")),
+    ("UI", "The sidebar is compact: Quick Look + Advanced Sky",
+     lambda: has("panels.py", "Quick Look", "Advanced Sky",
+                 "ALD_PT_view3d_advanced", "DEFAULT_CLOSED")),
+    ("UI", "The quick panel exposes the low-frequency controls",
+     lambda: has("panels.py", "sun_elevation", "cloud_type",
+                 "cloud_amount", "cloud_wind", "stars")),
+    ("UI", "The compositor controls are hidden when inactive",
+     lambda: has("panels.py", "Inactive: the World renders without it",
+                 "Enable Compositor")),
+    ("Presets", "The five Phase 5 presets are registered",
+     lambda: has("properties.py", "SOFT_DAWN", "BLUE_HOUR",
+                 "CLOUDY_AFTERNOON", "STORMY_SUNSET", "MOONLIT_NIGHT")
+     and has("palette.py", "SOFT_DAWN", "BLUE_HOUR",
+             "CLOUDY_AFTERNOON", "STORMY_SUNSET", "MOONLIT_NIGHT")[0]),
+    ("Presets", "Reset and Save as Custom are explicit",
+     lambda: has("operators.py", "ald.reset_look",
+                 "ald.save_custom_palette")
+     and has("panels.py", "save_custom_palette")[0]),
+    ("Evidence", "The full preset sheet is recorded",
+     lambda: exists("preset_dev/palettes/sheet.png")[0]),
     ("Sky", "The sky accent band is soft, not a stripe",
      lambda: has("palette.py", 'accent_band.inputs["From Max"].default_value = 0.20')),
     ("Sky", "The Sun disk and glow fade below the horizon",

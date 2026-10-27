@@ -17,7 +17,9 @@ import numpy as np
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PALETTES = ("GOLDEN_HOUR", "AFTER_SCHOOL", "SUMMER_NOON", "RAINY_TOKYO",
-            "NEON_NIGHT", "SAKURA_SPRING", "TWILIGHT_DUSK")
+            "NEON_NIGHT", "SAKURA_SPRING", "TWILIGHT_DUSK", "SOFT_DAWN",
+            "BLUE_HOUR", "CLOUDY_AFTERNOON", "STORMY_SUNSET",
+            "MOONLIT_NIGHT")
 
 
 def parse_args():

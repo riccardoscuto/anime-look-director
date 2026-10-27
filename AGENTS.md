@@ -7,7 +7,7 @@ Blender add-on focused on **procedural anime skies** in the World shader. The
 - Blender **5.1.2** on Windows (compositor node-group API).
 - Python 3.13 / NumPy inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.60.1**).
+  (currently **2.61.0**).
 
 ## Verify
 ```powershell
@@ -53,6 +53,18 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   Sun Lighting` scales the solar derivative; `Cloud Seed` offsets the field.
 - Cumulus lighting adds a height tone (lower cloud darker) and a stronger
   solar body range (-0.030..0.004); the default Sun Lighting is 1.2.
+- The Scene properties are the complete surface: Atmosphere & Sun, World
+  Clouds, Stars & Milky Way + Shooting Stars, Palette Customization,
+  Materials & Shadows, Compositor, Advanced Settings. The View3D sidebar is
+  Quick Look (preset, Apply/Reset, Sun elevation, cloud type/coverage/wind,
+  stars) plus one collapsed Advanced Sky panel; no compositor or material
+  controls in the quick area.
+- The compositor is inactive by default. Its panel shows Enable Compositor
+  when no stack is assigned and the full controls only when active; the viewport
+  state is reported as ALWAYS / CAMERA / DISABLED.
+- Seven original presets plus Soft Dawn, Blue Hour, Cloudy Afternoon, Stormy
+  Sunset and Moonlit Night. All use the same World generator. Save as Custom
+  copies the current colors into the custom fields without changing the preset.
 - The first Phase 3 gate (Cumulus in daylight) is approved at 2.59.1; the
   sunset gate is approved at 2.59.1. The shooting-star gate is approved at
   2.60.1. Phase 5 (presets and compact UI) is next; master stays at 2.56.0

@@ -77,6 +77,52 @@ class ALD_OT_apply_palette(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_reset_look(bpy.types.Operator):
+    bl_idname = "ald.reset_look"
+    bl_label = "Reset Look"
+    bl_description = "Reset the current palette to its preset values"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import palette
+        scene = context.scene
+        if scene is None:
+            return {"CANCELLED"}
+        scene.ald.custom_colors = False
+        scene.pop("ald_last_palette", None)
+        preset = palette.preset(scene.ald.palette)
+        palette.apply_preset_style(scene, preset)
+        look.apply(scene, force=True)
+        self.report({"INFO"}, "Anime Look Director: palette reset")
+        return {"FINISHED"}
+
+
+class ALD_OT_save_custom_palette(bpy.types.Operator):
+    bl_idname = "ald.save_custom_palette"
+    bl_label = "Save as Custom"
+    bl_description = ("Keep the current colors as custom overrides without "
+                      "changing the preset")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        from . import palette
+        scene = context.scene
+        settings = scene.ald
+        key = scene.get("ald_effective_palette", settings.palette)
+        current = palette.effective(scene, key)
+        settings.custom_colors = True
+        settings.custom_sky = current["sky_color"]
+        settings.custom_horizon = current["horizon_color"]
+        settings.custom_sun = current["sun_color"]
+        settings.custom_shadow = current["shadow_tint"]
+        settings.custom_cloud_shadow = current["cloud_shadow"]
+        settings.custom_cloud_mid = current["cloud_mid"]
+        settings.custom_cloud_light = current["cloud_light"]
+        look.apply_world(scene)
+        self.report({"INFO"}, "Anime Look Director: custom colors saved")
+        return {"FINISHED"}
+
+
 class ALD_OT_clear_shadow_tint(bpy.types.Operator):
     bl_idname = "ald.clear_shadow_tint"
     bl_label = "Clear Shadow Tint"
@@ -442,6 +488,7 @@ def _legacy_collections():
 
 
 _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
+            ALD_OT_reset_look, ALD_OT_save_custom_palette,
             ALD_OT_shooting_star_add, ALD_OT_shooting_star_duplicate,
             ALD_OT_shooting_star_remove, ALD_OT_shooting_star_preview,
             ALD_OT_clear_shadow_tint, ALD_OT_toggle_exclude_material,

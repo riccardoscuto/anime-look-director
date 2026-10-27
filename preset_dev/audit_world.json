@@ -1,6 +1,6 @@
 {
-  "passed": 33,
-  "total": 33,
+  "passed": 38,
+  "total": 38,
   "results": [
     {
       "category": "Reduction",
@@ -100,13 +100,43 @@
     },
     {
       "category": "UI",
-      "label": "The two surfaces share the drawing functions",
+      "label": "The surfaces share the drawing functions",
       "passed": true,
       "detail": ""
     },
     {
       "category": "UI",
-      "label": "The quick panel exposes Apply and the compositor state",
+      "label": "The sidebar is compact: Quick Look + Advanced Sky",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "UI",
+      "label": "The quick panel exposes the low-frequency controls",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "UI",
+      "label": "The compositor controls are hidden when inactive",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Presets",
+      "label": "The five Phase 5 presets are registered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Presets",
+      "label": "Reset and Save as Custom are explicit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Evidence",
+      "label": "The full preset sheet is recorded",
       "passed": true,
       "detail": ""
     },

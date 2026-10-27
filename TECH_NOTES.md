@@ -1308,3 +1308,18 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   event start. It is an explicit operator, not a handler.
 - The star is a thin line (default thickness 0.0018), body energy 55% of the
   old, a short head band at the leading end and a cool-white default color.
+
+
+### v2.61.0 notes (presets and compact UI)
+- The five new presets are complete dictionaries in `palette.PRESETS` and
+  labels in `properties.PALETTES`; they use the same World group and only set
+  values. `apply_preset_style` also carries the family and cloud controls.
+- The sidebar is now Quick Look plus one collapsed Advanced Sky panel. The
+  Scene properties keep the full sections; the quick area has no compositor or
+  material controls.
+- The compositor panel shows only Enable Compositor when no stack is assigned;
+  when active it shows the controls and reports the Viewport state. Camera
+  override moved to the palette section so it is reachable without the stack.
+- Reset Look reapplies the preset style and resets the Sun rotation; Save as
+  Custom copies the current effective colors into the custom fields and enables
+  custom colors, leaving the preset untouched.

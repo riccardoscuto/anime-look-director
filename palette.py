@@ -214,6 +214,95 @@ PRESETS = {
         "glare_tint": (1.0, 0.42, 0.20, 1.0),
         "shadow_tint": (0.25, 0.30, 0.88),
     },
+    "SOFT_DAWN": {
+        "world_color": (0.75, 0.55, 0.62), "world_strength": 0.82,
+        "sky_color": (0.16, 0.25, 0.52), "mid_sky_color": (0.72, 0.45, 0.55),
+        "horizon_color": (1.25, 0.62, 0.45), "ground_color": (0.12, 0.10, 0.14),
+        "cloud_shadow": (0.25, 0.18, 0.30), "cloud_mid": (0.65, 0.38, 0.42),
+        "cloud_light": (1.30, 0.75, 0.55), "cloud_flatness": 0.55,
+        "cloud_scale": 3.8, "cloud_rim_boost": 1.5, "cloud_amount": 0.55,
+        "cloud_type": "CUMULUS", "cloud_vertical": 0.75, "cloud_breakup": 0.30,
+        "cloud_detail": 0.55, "cloud_sun_lighting": 1.3,
+        "star_amount": 0.05, "star_density": 120.0, "milky_way": 0.0,
+        "contrails": 0.0, "sun_glow": 0.65, "sky_accent": (0.25, 0.45, 0.62),
+        "sky_accent_amount": 0.20, "horizon_offset": -0.03,
+        "horizon_softness": 0.60, "sun_color": (1.0, 0.65, 0.45),
+        "sun_energy": 3.0, "sun_rotation": (1.40, 0.05, -0.70),
+        "glare_tint": (1.0, 0.70, 0.50, 1.0),
+        "shadow_tint": (0.30, 0.32, 0.85),
+    },
+    "BLUE_HOUR": {
+        "world_color": (0.18, 0.22, 0.48), "world_strength": 0.70,
+        "sky_color": (0.03, 0.05, 0.22), "mid_sky_color": (0.18, 0.16, 0.45),
+        "horizon_color": (0.55, 0.30, 0.45), "ground_color": (0.04, 0.04, 0.08),
+        "cloud_shadow": (0.08, 0.07, 0.18), "cloud_mid": (0.25, 0.20, 0.38),
+        "cloud_light": (0.70, 0.60, 0.80), "cloud_flatness": 0.75,
+        "cloud_scale": 4.2, "cloud_rim_boost": 1.4, "cloud_amount": 0.60,
+        "cloud_type": "STRATOCUMULUS", "cloud_vertical": 0.20,
+        "cloud_breakup": 0.45, "cloud_detail": 0.60,
+        "cloud_sun_lighting": 0.9,
+        "star_amount": 0.45, "star_density": 170.0, "milky_way": 0.30,
+        "contrails": 0.0, "sun_glow": 0.25, "sky_accent": (0.12, 0.22, 0.45),
+        "sky_accent_amount": 0.25, "horizon_offset": 0.0,
+        "horizon_softness": 0.60, "sun_color": (0.65, 0.55, 0.85),
+        "sun_energy": 1.2, "sun_rotation": (1.48, 0.12, -0.50),
+        "glare_tint": (0.60, 0.50, 0.80, 1.0),
+        "shadow_tint": (0.25, 0.28, 0.80),
+    },
+    "CLOUDY_AFTERNOON": {
+        "world_color": (0.45, 0.55, 0.65), "world_strength": 0.80,
+        "sky_color": (0.18, 0.32, 0.62), "mid_sky_color": (0.48, 0.58, 0.72),
+        "horizon_color": (0.95, 0.80, 0.65), "ground_color": (0.12, 0.13, 0.15),
+        "cloud_shadow": (0.22, 0.25, 0.32), "cloud_mid": (0.62, 0.66, 0.72),
+        "cloud_light": (1.35, 1.25, 1.10), "cloud_flatness": 0.85,
+        "cloud_scale": 3.2, "cloud_rim_boost": 1.1, "cloud_amount": 0.85,
+        "cloud_type": "STRATOCUMULUS", "cloud_vertical": 0.15,
+        "cloud_breakup": 0.55, "cloud_detail": 0.65,
+        "cloud_sun_lighting": 1.0,
+        "star_amount": 0.0, "star_density": 100.0, "milky_way": 0.0,
+        "contrails": 0.0, "sun_glow": 0.30, "sky_accent": (0.30, 0.45, 0.60),
+        "sky_accent_amount": 0.15, "horizon_offset": 0.0,
+        "horizon_softness": 0.70, "sun_color": (1.0, 0.90, 0.75),
+        "sun_energy": 3.5, "sun_rotation": (1.00, 0.10, -0.60),
+        "glare_tint": (1.0, 0.90, 0.75, 1.0),
+        "shadow_tint": (0.32, 0.36, 0.80),
+    },
+    "STORMY_SUNSET": {
+        "world_color": (0.55, 0.28, 0.30), "world_strength": 0.80,
+        "sky_color": (0.06, 0.05, 0.16), "mid_sky_color": (0.30, 0.12, 0.22),
+        "horizon_color": (1.20, 0.35, 0.18), "ground_color": (0.05, 0.04, 0.06),
+        "cloud_shadow": (0.06, 0.04, 0.08), "cloud_mid": (0.22, 0.10, 0.14),
+        "cloud_light": (1.40, 0.55, 0.25), "cloud_flatness": 0.80,
+        "cloud_scale": 3.0, "cloud_rim_boost": 2.2, "cloud_amount": 0.95,
+        "cloud_type": "CUMULUS", "cloud_vertical": 0.80,
+        "cloud_breakup": 0.70, "cloud_detail": 0.80,
+        "cloud_sun_lighting": 1.6,
+        "star_amount": 0.05, "star_density": 100.0, "milky_way": 0.0,
+        "contrails": 0.0, "sun_glow": 0.70, "sky_accent": (0.50, 0.20, 0.18),
+        "sky_accent_amount": 0.30, "horizon_offset": -0.05,
+        "horizon_softness": 0.45, "sun_color": (1.0, 0.35, 0.12),
+        "sun_energy": 3.0, "sun_rotation": (1.45, 0.10, -0.50),
+        "glare_tint": (1.0, 0.35, 0.15, 1.0),
+        "shadow_tint": (0.30, 0.20, 0.60),
+    },
+    "MOONLIT_NIGHT": {
+        "world_color": (0.12, 0.16, 0.35), "world_strength": 0.55,
+        "sky_color": (0.015, 0.025, 0.08), "mid_sky_color": (0.04, 0.07, 0.20),
+        "horizon_color": (0.18, 0.22, 0.40), "ground_color": (0.02, 0.02, 0.04),
+        "cloud_shadow": (0.03, 0.04, 0.08), "cloud_mid": (0.10, 0.12, 0.22),
+        "cloud_light": (0.55, 0.62, 0.85), "cloud_flatness": 0.90,
+        "cloud_scale": 3.8, "cloud_rim_boost": 1.2, "cloud_amount": 0.50,
+        "cloud_type": "STRATOCUMULUS", "cloud_vertical": 0.10,
+        "cloud_breakup": 0.35, "cloud_detail": 0.50,
+        "cloud_sun_lighting": 0.6,
+        "star_amount": 0.80, "star_density": 190.0, "milky_way": 0.60,
+        "contrails": 0.0, "sun_glow": 0.10, "sky_accent": (0.05, 0.12, 0.28),
+        "sky_accent_amount": 0.20, "horizon_offset": 0.0,
+        "horizon_softness": 0.60, "sun_color": (0.55, 0.65, 0.95),
+        "sun_energy": 0.5, "sun_rotation": (1.55, 0.20, -0.40),
+        "glare_tint": (0.40, 0.50, 0.80, 1.0),
+        "shadow_tint": (0.18, 0.20, 0.55),
+    },
 }
 
 
@@ -2595,6 +2684,11 @@ def apply_preset_style(scene, p):
         settings.sun_disk_strength = p.get("sun_disk_strength", 6.0)
         settings.clouds = p.get("clouds", True)
         settings.cloud_wind = p.get("cloud_wind", 0.0)
+        settings.cloud_type = p.get("cloud_type", "CUMULUS")
+        settings.cloud_vertical = p.get("cloud_vertical", 0.55)
+        settings.cloud_breakup = p.get("cloud_breakup", 0.35)
+        settings.cloud_detail = p.get("cloud_detail", 0.60)
+        settings.cloud_sun_lighting = p.get("cloud_sun_lighting", 1.2)
         settings.stars = p.get("stars", True)
         settings.star_strength = p.get("star_amount", 0.0)
         settings.star_density = p.get("star_density", 180.0)
