@@ -1494,11 +1494,27 @@ def _build_gradient_group(ng):
     body_mix.location = (2620, -720)
     body_mix.clamp = True
     _smooth(body_mix)
-    body_mix.inputs["From Min"].default_value = -0.022
-    body_mix.inputs["From Max"].default_value = 0.006
+    body_mix.inputs["From Min"].default_value = -0.030
+    body_mix.inputs["From Max"].default_value = 0.004
     body_mix.inputs["To Min"].default_value = 0.0
     body_mix.inputs["To Max"].default_value = 1.0
     links.new(body_signal.outputs[0], body_mix.inputs["Value"])
+
+    height_tone = nodes.new("ShaderNodeMapRange")
+    height_tone.location = (2620, -840)
+    height_tone.clamp = True
+    _smooth(height_tone)
+    height_tone.inputs["From Min"].default_value = 0.0
+    height_tone.inputs["From Max"].default_value = 0.32
+    height_tone.inputs["To Min"].default_value = 0.62
+    height_tone.inputs["To Max"].default_value = 1.0
+    links.new(shifted_z.outputs[0], height_tone.inputs["Value"])
+    body_tone = nodes.new("ShaderNodeMath")
+    body_tone.location = (2800, -760)
+    body_tone.operation = "MULTIPLY"
+    body_tone.use_clamp = True
+    links.new(body_mix.outputs["Result"], body_tone.inputs[0])
+    links.new(height_tone.outputs["Result"], body_tone.inputs[1])
 
     fringe = nodes.new("ShaderNodeMapRange")
     fringe.location = (2440, -540)
@@ -1603,7 +1619,7 @@ def _build_gradient_group(ng):
     a_sock, b_sock, result_sock = _rgba_sockets(mix_body)
     links.new(group_in.outputs["Cloud Shadow"], a_sock)
     links.new(group_in.outputs["Cloud Mid"], b_sock)
-    links.new(body_mix.outputs["Result"], mix_body.inputs["Factor"])
+    links.new(body_tone.outputs[0], mix_body.inputs["Factor"])
 
     mix_light = nodes.new("ShaderNodeMix")
     mix_light.location = (2980, -680)
@@ -2556,7 +2572,7 @@ def _apply_gradient(scene, settings, nt, background, p):
     node.inputs["Cloud Detail"].default_value = (
         getattr(settings, "cloud_detail", 0.60) if settings else 0.60)
     node.inputs["Cloud Sun Lighting"].default_value = (
-        getattr(settings, "cloud_sun_lighting", 1.0) if settings else 1.0)
+        getattr(settings, "cloud_sun_lighting", 1.2) if settings else 1.2)
     node.inputs["Contrails"].default_value = (
         getattr(settings, "contrails", 0.0) if settings else 0.0)
     node.inputs["Cloud Delta Gain"].default_value = (

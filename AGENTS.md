@@ -7,7 +7,7 @@ Blender add-on focused on **procedural anime skies** in the World shader. The
 - Blender **5.1.2** on Windows (compositor node-group API).
 - Python 3.13 / NumPy inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.59.0**).
+  (currently **2.59.1**).
 
 ## Verify
 ```powershell
@@ -51,6 +51,8 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 - `Cloud Breakup` erodes density before the threshold; `Cloud Detail` scales
   the border/body noise; `Cloud Vertical` lowers effective flatness; `Cloud
   Sun Lighting` scales the solar derivative; `Cloud Seed` offsets the field.
+- Cumulus lighting adds a height tone (lower cloud darker) and a stronger
+  solar body range (-0.030..0.004); the default Sun Lighting is 1.2.
 - The first Phase 3 gate is Cumulus in daylight. Do not start sunset or
   Stratocumulus/Cirrus work until that image is approved.
 - The sky accent is a broad band (`From Max 0.20`), not a narrow stripe.

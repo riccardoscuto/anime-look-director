@@ -1269,3 +1269,13 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   visual gate is in `preset_dev/cloud_families/contact.png`; it is not
   approved. The next iteration should raise the rounded top and vertical
   shading before any sunset work.
+
+
+### v2.59.1 notes (Cumulus lighting)
+- The Cumulus body was too uniformly white. The solar body range is now
+  -0.030..0.004 and a height tone maps the lower sky to 0.62..1.0, so the
+  cloud base darkens while the top stays light.
+- The Cumulus defaults are coverage 0.48, scale 3.4, breakup 0.28; they produce
+  larger isolated masses than 2.59.0 without filling the frame.
+- The family contact sheet was regenerated; the gate is still open because the
+  top is not as rounded as the v1 reference.

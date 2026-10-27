@@ -22,7 +22,7 @@ if HERE not in sys.path:
 
 OUT = os.path.join(HERE, "cloud_families")
 FAMILIES = (
-    ("cumulus", "CUMULUS", 0.50, 0.15, 0.90, 0.40, 4.0),
+    ("cumulus", "CUMULUS", 0.48, 0.15, 0.90, 0.28, 3.4),
     ("stratocumulus", "STRATOCUMULUS", 0.75, 0.95, 0.10, 0.20, 3.8),
     ("cirrus", "CIRRUS", 0.38, 0.30, 0.10, 0.02, 11.0),
 )
@@ -76,6 +76,7 @@ def main():
         scene.ald.cloud_vertical = vertical
         scene.ald.cloud_breakup = breakup
         scene.ald.cloud_scale = scale
+        scene.ald.cloud_sun_lighting = 1.4
         palette.apply_palette(scene, scene.ald.palette)
         bpy.context.view_layer.update()
         path = os.path.join(OUT, name + ".png")

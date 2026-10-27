@@ -6,7 +6,7 @@ set.
 
 | Family | Coverage | Flatness | Vertical | Breakup | Scale |
 |---|---:|---:|---:|---:|---:|
-| Cumulus | 0.50 | 0.15 | 0.90 | 0.40 | 4.0 |
+| Cumulus | 0.48 | 0.15 | 0.90 | 0.28 | 3.4 |
 | Stratocumulus | 0.75 | 0.95 | 0.10 | 0.20 | 3.8 |
 | Cirrus | 0.38 | 0.30 | 0.10 | 0.02 | 11.0 |
 
@@ -29,7 +29,9 @@ isolated rounded masses (Cumulus), horizontal bands and openings
 
 ## Gate
 
-The first gate is **Cumulus in daylight**. It is not approved yet: the masses
-are still flatter than the v1 reference and the Cirrus reads more like
-altocumulus than a true cirrus veil. Sunset, Stratocumulus and Cirrus are not
-started until this day gate is accepted or the Cumulus shape is revised.
+The first gate is **Cumulus in daylight**. This is the first lighting iteration:
+the body has a height tone (the base is darker), a stronger solar range
+(-0.030..0.004) and a default Sun Lighting of 1.2. The masses are still flatter
+than the v1 reference and the Cirrus still reads more like altocumulus than a
+true cirrus veil. Sunset, Stratocumulus and Cirrus are not started until this
+day gate is accepted or the Cumulus shape is revised.

@@ -408,7 +408,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Deterministic cloud configuration",
         update=_on_world)
     cloud_sun_lighting: FloatProperty(
-        name="Sun Lighting", default=1.0, min=0.0, max=2.0,
+        name="Sun Lighting", default=1.2, min=0.0, max=2.0,
         description="Strength of the light/dark variation inside the clouds",
         update=_on_world)
     contrails: FloatProperty(

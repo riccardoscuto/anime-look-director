@@ -36,8 +36,8 @@ def exists(*paths):
 
 CHECKS = [
     ("Reduction", "The version is the World Sky Edition",
-     lambda: has("__init__.py", '"version": (2, 59, 0)')
-     and has("blender_manifest.toml", 'version = "2.59.0"')),
+     lambda: has("__init__.py", '"version": (2, 59, 1)')
+     and has("blender_manifest.toml", 'version = "2.59.1"')),
     ("Reduction", "The FX and spatial modules are gone",
      lambda: not any(os.path.exists(os.path.join(ROOT, name))
                      for name in ("fx.py", "fx_nodes.py", "clouds.py",

@@ -8,12 +8,12 @@
     {
       "file": "cumulus.png",
       "type": "CUMULUS",
-      "amount": 0.5,
+      "amount": 0.48,
       "flatness": 0.15,
       "vertical": 0.9,
-      "breakup": 0.4,
-      "scale": 4.0,
-      "mean_luminance": 0.62758
+      "breakup": 0.28,
+      "scale": 3.4,
+      "mean_luminance": 0.64
     },
     {
       "file": "stratocumulus.png",
@@ -23,7 +23,7 @@
       "vertical": 0.1,
       "breakup": 0.2,
       "scale": 3.8,
-      "mean_luminance": 0.6476
+      "mean_luminance": 0.6466
     },
     {
       "file": "cirrus.png",
@@ -33,7 +33,7 @@
       "vertical": 0.1,
       "breakup": 0.02,
       "scale": 11.0,
-      "mean_luminance": 0.61799
+      "mean_luminance": 0.61777
     }
   ]
 }

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.59.1 - 2026-10-27
+Cumulus shape/lighting iteration.
+
+### Changed
+- Cumulus coverage/scale/breakup tuned for larger isolated masses.
+- Body shading: height tone darkens the lower cloud, solar range widened to
+  -0.030..0.004, default Sun Lighting 1.2.
+- The family contact sheet and silhouettes were regenerated.
+
+### Gate
+- The first Cumulus day gate is still open: the masses are improved but the
+  rounded top is not yet at the v1 reference level.
+
 ## 2.59.0 - 2026-10-27
 Phase 3 first gate: World cloud families.
 

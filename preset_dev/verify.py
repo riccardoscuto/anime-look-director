@@ -14,7 +14,7 @@ import bpy
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 59, 0)
+EXPECTED_VERSION = (2, 59, 1)
 
 
 def fail(message):
