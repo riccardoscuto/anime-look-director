@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.55.1**).
+  (currently **2.55.2**).
 
 ## Verify (run after every change)
 ```powershell
@@ -921,6 +921,16 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     copy gets a fake user so it survives): the identities and the cloud
     collections stay distinct, and removing the reloaded copy keeps the
     original;
+- 2.55.2 benchmark rules:
+  - the 2.39 baseline comes from the `v2.39.0` tag in a temporary worktree,
+    enabled through a temporary `BLENDER_USER_SCRIPTS` so the current add-on is
+    not the one running; `BLENDER_USER_CONFIG` is temporary too;
+  - 2.39: 3 wavy bands, amount 0.65, 1,536 quads, creation 0.0072 s, render
+    median 3.275 s at 1280x720 AFTER_SCHOOL; 2.55: coverage 0.5, 3 Final layers,
+    57,968 triangles, creation 0.518 s, render 2.723 s;
+  - the old mesh is quads and the new triangulated, the scenes/world differ;
+    never call the render difference a general performance win;
+  - `preset_dev/clouds_bench/LEGACY_2_39.md` records the method and the caveats.
 - PA2 volume spike 2.45 rules:
   - the cards stay the default: a native EEVEE volume placed in the same layer
     is cheaper (1.1 s vs 2.1 s at 640x360) but reads as a soft rectangle with

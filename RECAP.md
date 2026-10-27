@@ -81,6 +81,18 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
 
+## Novità 2.55.2 — baseline 2.39 misurata
+
+- Il tag `v2.39.0` è eseguito in un worktree temporaneo con
+  `BLENDER_USER_SCRIPTS` isolato: 3 bande, 1.536 quad, creazione 0.0072 s,
+  render mediano 3.275 s a 1280x720, AFTER_SCHOOL, AgX.
+- Le card 2.55 Final (coverage 0.5, 3 layer): 57.968 triangoli, creazione
+  0.518 s, render mediano 2.723 s con la stessa camera/risoluzione.
+- Dettagli e caveat in `preset_dev/clouds_bench/LEGACY_2_39.md`; la vecchia
+  immagine è `legacy_2_39.png`.
+- Non è un vantaggio generale: il nuovo mesh ha ~19× i triangoli e ~72× il
+  tempo di creazione; il render è comparabile.
+
 ## Novità 2.55.1 — report di validazione
 
 - **`preset_dev/VALIDATION.md`** mappa la Definition of Done del piano sulle

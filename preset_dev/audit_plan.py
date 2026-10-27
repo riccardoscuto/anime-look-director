@@ -317,6 +317,9 @@ CHECKS = [
     ("VI-SC", "Old shared FX materials are copied per scene",
      lambda: has("fx.py", "def ensure_materials", "modifier[item.identifier]")
      and has("preset_dev/verify.py", "the old shared FX material")[0]),
+    ("VI-SC", "The 2.39 cloud baseline is measured on the same camera",
+     lambda: exists("preset_dev/clouds_bench/legacy_2_39.json")[0]
+     and has("preset_dev/clouds_bench/LEGACY_2_39.md", "2.39.0")[0]),
     ("VI-SC", "The legacy isolation failure is labelled, not hidden",
      lambda: has("preset_dev/emission_isolation/README.md", "Expected failure")
      and has("preset_dev/emission_isolation.py", "Expected failure")[0]),

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.55.2 - 2026-10-27
+2.39 cloud baseline measured on the same camera.
+
+### Evidence
+- The `v2.39.0` tag is checked out in a temporary worktree and its add-on is
+  enabled from a temporary `BLENDER_USER_SCRIPTS`: 3 wavy bands, 1,536 quads,
+  creation 0.0072 s, render median 3.275 s at 1280x720, AFTER_SCHOOL, AgX.
+- The 2.55 Final spatial cards (coverage 0.5, 3 layers): 57,968 triangles,
+  creation 0.518 s, render median 2.723 s under the same camera/resolution.
+- `preset_dev/clouds_bench/LEGACY_2_39.md`, `legacy_2_39.json`,
+  `legacy_2_39.png`.
+
+### Notes
+- The old mesh is quads, the new is triangles: the new is about 19x the
+  triangles and 72x the creation time; the render is comparable, not a general
+  performance win. The two baseline scenes/world implementations differ; the
+  comparison is between the two looks as well as the two meshes.
+
 ## 2.55.1 - 2026-10-27
 Validation report and explicit legacy labelling.
 
