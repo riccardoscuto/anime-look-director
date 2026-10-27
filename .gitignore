@@ -5,3 +5,6 @@ _launch/
 output/
 .pytest_cache/
 dist/
+/forcopingallthecodes.md
+/opencode.json
+/graphify-out/
