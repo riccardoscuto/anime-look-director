@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.50.0 - 2026-10-27
+Cloud card border rim and linked-copy fixture.
+
+### Added
+- `_cloud_mesh` writes `ald_edge` (1 on the contour vertices, 0 inside); the
+  card material mixes Cloud Light with the vertical gradient through the
+  attribute. The islands now have a soft border rim without alpha, a second
+  pass or a change to the opaque Cryptomatte/Depth contract.
+- The duplicate fixture asserts that the copy starts with the shared
+  collections before the repair, so the linked/full case is explicit.
+
+### Evidence
+- `preset_dev/clouds/` regenerated with the rim; the showcase and the cloud
+  benchmark are regenerated from the same build.
+
 ## 2.49.1 - 2026-10-26
 Per-scene FX materials.
 

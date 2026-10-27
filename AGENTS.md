@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.49.1**).
+  (currently **2.50.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -623,6 +623,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     (`_cell_rings`): the vertices sit on the iso-line, the mesh is triangulated
     and manifold. Never keep or drop whole cells again: that produced the
     10-20 px staircase at 1920;
+  - v2.50: the contour vertices carry `ald_edge=1`, the interior 0; the
+    material adds Cloud Light through the attribute (`edge_gain` + `rim`). The
+    rim is a vertex attribute, never alpha or a second pass: the cards stay
+    opaque and write depth/Cryptomatte;
   - `Clouds Coverage` is the threshold of that field: 0 builds no faces, 0.5 an
     intermediate mass, 1 the densest. It is geometry, never only a colour. The
     v2.47 mapping is `0.98 - 1.02 * coverage` (clamped at 0): 0.9 and 1.0 are

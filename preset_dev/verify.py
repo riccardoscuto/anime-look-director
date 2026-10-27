@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 49, 1)
+EXPECTED_VERSION = (2, 50, 0)
 TOLERANCE = 1e-4
 
 
@@ -3528,6 +3528,12 @@ def check_cloud_contour():
         edges, fractional = stats(low)
         check(fractional > 0, "the contour has no interpolated vertices")
         check(max(edges.values()) <= 2, "the contour has non-manifold edges")
+        attribute = low.attributes.get("ald_edge")
+        check(attribute is not None, "the contour has no edge attribute")
+        if attribute is not None:
+            values = [item.value for item in attribute.data]
+            check(values and max(values) == 1.0 and min(values) == 0.0,
+                  "the edge attribute does not mark the border")
         mid = build(0.9)
         meshes.append(mid)
         high = build(1.0)

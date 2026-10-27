@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.49.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.50.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,15 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.50.0 — bordo delle card e fixture linked-copy
+
+- **Rim dal contorno**: `_cloud_mesh` scrive l'attributo `ald_edge` (1 sui
+  vertici del contorno, 0 all'interno); il materiale mescola Cloud Light con il
+  gradiente verticale tramite l'attributo. Bordo morbido senza alpha, senza
+  pass aggiuntivo e senza rompere Cryptomatte/Depth.
+- **Fixture**: la copia deve partire con le collection condivise prima del
+  repair, così il caso linked/full è esplicito.
 
 ## Novità 2.49.1 — materiali FX per scena
 

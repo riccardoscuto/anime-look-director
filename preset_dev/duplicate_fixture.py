@@ -71,6 +71,8 @@ def main():
     fx_count = len(original_fx.objects)
 
     copy = scene.copy()
+    check(clouds._collection(copy) is None,
+          "the copy did not start with the shared collections")
     repaired = ownership.repair(copy)
     check(repaired > 0, "the copy is detected as shared")
     copy_clouds = clouds._collection(copy)

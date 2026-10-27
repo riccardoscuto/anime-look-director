@@ -313,6 +313,8 @@ CHECKS = [
      and has("panels.py", "fx_pass_state")[0]),
     ("VI-SC", "Build repairs a duplicated scene before modifying it",
      lambda: has("operators.py", "ownership.repair", "ald.build")),
+    ("VI-SC", "Cloud cards carry a border rim",
+     lambda: has("clouds.py", "ald_edge", "edge_gain")),
     ("VI-SC", "FX materials are owned by the scene",
      lambda: has("fx.py", "owner=owner", "ald_fx_owner")
      and has("preset_dev/verify.py",

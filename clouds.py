@@ -182,6 +182,7 @@ def _cloud_mesh(name, seed, coverage, columns, rows):
                for column in range(columns + 1)]
               for row in range(rows + 1)]
     verts = []
+    edge_flags = []
     index_of = {}
     faces = []
 
@@ -192,6 +193,7 @@ def _cloud_mesh(name, seed, coverage, columns, rows):
             index = len(verts)
             index_of[key] = index
             verts.append((column / columns - 0.5, row / rows - 0.5, 0.0))
+            edge_flags.append(0.0)
         return index
 
     def edge(kind, column, row, t):
@@ -206,6 +208,7 @@ def _cloud_mesh(name, seed, coverage, columns, rows):
             else:
                 verts.append((column / columns - 0.5,
                               (row + t) / rows - 0.5, 0.0))
+            edge_flags.append(1.0)
         return index
 
     for row in range(rows):
@@ -240,6 +243,8 @@ def _cloud_mesh(name, seed, coverage, columns, rows):
                                   polygon[index + 1]))
     if verts:
         mesh.from_pydata(verts, [], faces)
+        attribute = mesh.attributes.new("ald_edge", "FLOAT", "POINT")
+        attribute.data.foreach_set("value", edge_flags)
         mesh.update()
     return mesh
 
@@ -321,7 +326,24 @@ def _material(name, colors):
     vertical.inputs["From Min"].default_value = 0.0
     vertical.inputs["From Max"].default_value = 0.62
     links.new(separate.outputs["Y"], vertical.inputs["Value"])
-    links.new(vertical.outputs["Result"], second.inputs["Factor"])
+    # The contour vertices carry ald_edge=1: a light rim on the island border,
+    # interpolated into the card by the mesh attribute.
+    edge_attribute = nodes.new("ShaderNodeAttribute")
+    edge_attribute.attribute_name = "ald_edge"
+    edge_attribute.attribute_type = "GEOMETRY"
+    edge_attribute.location = (-660, 780)
+    edge_gain = nodes.new("ShaderNodeMath")
+    edge_gain.location = (-460, 780)
+    edge_gain.operation = "MULTIPLY"
+    edge_gain.inputs[1].default_value = 0.65
+    links.new(edge_attribute.outputs["Fac"], edge_gain.inputs[0])
+    rim = nodes.new("ShaderNodeMath")
+    rim.location = (-260, 660)
+    rim.operation = "ADD"
+    rim.use_clamp = True
+    links.new(vertical.outputs["Result"], rim.inputs[0])
+    links.new(edge_gain.outputs[0], rim.inputs[1])
+    links.new(rim.outputs[0], second.inputs["Factor"])
 
     # Stylised local flash: the burst lights the card around the projected
     # point. The handler writes the local position and the energy every frame.

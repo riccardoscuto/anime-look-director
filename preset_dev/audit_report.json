@@ -506,6 +506,12 @@
     },
     {
       "evidence": "",
+      "label": "Cloud cards carry a border rim",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "FX materials are owned by the scene",
       "phase": "VI-SC",
       "state": "OK"
@@ -704,7 +710,7 @@
     }
   ],
   "partial": 0,
-  "passed": 117,
+  "passed": 118,
   "plan": "v2.27.0 P0-P3",
-  "total": 117
+  "total": 118
 }
