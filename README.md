@@ -304,7 +304,8 @@ manifest `[build]` list.
 - v2.55.2 - 2.39 cloud baseline measured on the same camera
 - v2.55.3 - cloud billboard views (shot / side locked / side facing)
 - v2.55.4 - cloud benchmark: 5 runs, colour/position/shape/memory separated
-- v2.55.5 - P0 pass cache, strict bypass, UUID paths, scene-copy safety (current)
+- v2.55.5 - P0 pass cache, strict bypass, UUID paths, scene-copy safety
+- v2.56.0 - P1 contract/framing, P2 cloud rim/flash, P3 strict stack matrix (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

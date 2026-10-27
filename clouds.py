@@ -337,12 +337,47 @@ def _material(name, colors):
     edge_gain.operation = "MULTIPLY"
     edge_gain.inputs[1].default_value = 0.65
     links.new(edge_attribute.outputs["Fac"], edge_gain.inputs[0])
+    # A directional rim: the sunward half of the island and a lit face keep
+    # the silver lining; the far side fades instead of glowing all around.
+    sun_side = _value(nodes, "ALD | Cloud Sun Side", 0.0, (-660, 840))
+    sun_face = _value(nodes, "ALD | Cloud Sun Face", 1.0, (-660, 920))
+    side_mask = nodes.new("ShaderNodeMath")
+    side_mask.location = (-460, 840)
+    side_mask.operation = "MULTIPLY"
+    links.new(sun_side.outputs[0], side_mask.inputs[0])
+    links.new(separate.outputs["X"], side_mask.inputs[1])
+    side_range = nodes.new("ShaderNodeMapRange")
+    side_range.location = (-260, 840)
+    side_range.clamp = True
+    side_range.inputs["From Min"].default_value = -0.45
+    side_range.inputs["From Max"].default_value = 0.45
+    side_range.inputs["To Min"].default_value = 0.15
+    side_range.inputs["To Max"].default_value = 1.0
+    links.new(side_mask.outputs[0], side_range.inputs["Value"])
+    face_range = nodes.new("ShaderNodeMapRange")
+    face_range.location = (-260, 940)
+    face_range.clamp = True
+    face_range.inputs["From Min"].default_value = 0.0
+    face_range.inputs["From Max"].default_value = 1.0
+    face_range.inputs["To Min"].default_value = 0.30
+    face_range.inputs["To Max"].default_value = 1.0
+    links.new(sun_face.outputs[0], face_range.inputs["Value"])
+    edge_side = nodes.new("ShaderNodeMath")
+    edge_side.location = (-80, 840)
+    edge_side.operation = "MULTIPLY"
+    links.new(edge_gain.outputs[0], edge_side.inputs[0])
+    links.new(side_range.outputs["Result"], edge_side.inputs[1])
+    edge_lit = nodes.new("ShaderNodeMath")
+    edge_lit.location = (100, 840)
+    edge_lit.operation = "MULTIPLY"
+    links.new(edge_side.outputs[0], edge_lit.inputs[0])
+    links.new(face_range.outputs["Result"], edge_lit.inputs[1])
     rim = nodes.new("ShaderNodeMath")
     rim.location = (-260, 660)
     rim.operation = "ADD"
     rim.use_clamp = True
     links.new(vertical.outputs["Result"], rim.inputs[0])
-    links.new(edge_gain.outputs[0], rim.inputs[1])
+    links.new(edge_lit.outputs[0], rim.inputs[1])
     links.new(rim.outputs[0], second.inputs["Factor"])
 
     # Stylised local flash: the burst lights the card around the projected
@@ -351,6 +386,8 @@ def _material(name, colors):
     flash_y = _value(nodes, "ALD | Flash Y", 0.0, (-660, -600))
     flash_energy = _value(nodes, "ALD | Flash Energy", 0.0, (-660, -680))
     flash_color = _rgb(nodes, "ALD | Flash Color", FLASH_COLOR, (-660, -760))
+    flash_color2 = _rgb(nodes, "ALD | Flash Color2", FLASH_COLOR,
+                        (-660, -1120))
     combine = nodes.new("ShaderNodeCombineXYZ")
     combine.location = (-460, -560)
     links.new(flash_x.outputs[0], combine.inputs["X"])
@@ -426,11 +463,8 @@ def _material(name, colors):
     energy2.operation = "MULTIPLY"
     links.new(falloff2.outputs[0], energy2.inputs[0])
     links.new(flash_energy2.outputs[0], energy2.inputs[1])
-    total_energy = nodes.new("ShaderNodeMath")
-    total_energy.location = (280, -620)
-    total_energy.operation = "ADD"
-    links.new(energy.outputs[0], total_energy.inputs[0])
-    links.new(energy2.outputs[0], total_energy.inputs[1])
+    # Each source keeps its own colour: a red and a blue burst light the same
+    # cloud with different tints, instead of both using one warm flash.
     tinted = nodes.new("ShaderNodeMix")
     tinted.data_type = "RGBA"
     tinted.blend_type = "ADD"
@@ -443,8 +477,21 @@ def _material(name, colors):
                       if s.name == "Result" and s.type == "RGBA")
     links.new(second_out, tinted_a)
     links.new(flash_color.outputs[0], tinted_b)
-    links.new(total_energy.outputs[0], tinted.inputs["Factor"])
-    links.new(tinted_out, emission.inputs["Color"])
+    links.new(energy.outputs[0], tinted.inputs["Factor"])
+    tinted2 = nodes.new("ShaderNodeMix")
+    tinted2.data_type = "RGBA"
+    tinted2.blend_type = "ADD"
+    tinted2.location = (480, 400)
+    tinted2_a = next(s for s in tinted2.inputs
+                     if s.name == "A" and s.type == "RGBA")
+    tinted2_b = next(s for s in tinted2.inputs
+                     if s.name == "B" and s.type == "RGBA")
+    tinted2_out = next(s for s in tinted2.outputs
+                       if s.name == "Result" and s.type == "RGBA")
+    links.new(tinted_out, tinted2_a)
+    links.new(flash_color2.outputs[0], tinted2_b)
+    links.new(energy2.outputs[0], tinted2.inputs["Factor"])
+    links.new(tinted2_out, emission.inputs["Color"])
     emission.inputs["Strength"].default_value = 1.0
     return material
 
@@ -759,6 +806,9 @@ def update_flash(scene):
     if getattr(settings, "clouds_flash", True):
         from . import fx
         sources = fx.light_events(scene, 2)
+    from . import palette
+    sun = palette.sun_toward(scene)
+    sun_dir = Vector(sun).normalized() if sun is not None else None
     strength = float(settings.clouds_flash_strength)
     strongest = 0.0
     strongest_position = None
@@ -769,6 +819,20 @@ def update_flash(scene):
         if material is None or not material.get(TAG):
             continue
         nodes = material.node_tree.nodes
+        if sun_dir is not None:
+            basis = obj.matrix_world.to_3x3()
+            right = (basis @ Vector((1.0, 0.0, 0.0))).normalized()
+            normal = (basis @ Vector((0.0, 0.0, 1.0))).normalized()
+            side = max(-1.0, min(1.0, sun_dir.dot(right)))
+            face = max(0.0, sun_dir.dot(normal))
+        else:
+            side, face = 0.0, 1.0
+        node = nodes.get("ALD | Cloud Sun Side")
+        if node is not None:
+            node.outputs[0].default_value = side
+        node = nodes.get("ALD | Cloud Sun Face")
+        if node is not None:
+            node.outputs[0].default_value = face
         for index, suffix in enumerate(("", "2")):
             source = sources[index] if index < len(sources) else None
             local_x = 0.0
@@ -793,6 +857,10 @@ def update_flash(scene):
             node = nodes.get("ALD | Flash Energy" + suffix)
             if node is not None:
                 node.outputs[0].default_value = energy
+            node = nodes.get("ALD | Flash Color" + suffix)
+            if node is not None:
+                color = source.get("color", FLASH_COLOR) if source else FLASH_COLOR
+                node.outputs[0].default_value = (*color, 1.0)
     flash = [round(strongest, 4), 0.0, 0.0, 0.0]
     if strongest_position is not None:
         flash[1:] = [round(v, 2) for v in strongest_position]

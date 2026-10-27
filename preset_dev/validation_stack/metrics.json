@@ -1,0 +1,82 @@
+{
+  "resolution": [
+    800,
+    450
+  ],
+  "age": 1.4,
+  "strict": true,
+  "cells": [
+    {
+      "file": "twilight_dusk_fixed.png",
+      "palette": "TWILIGHT_DUSK",
+      "view": "fixed",
+      "pass_state": "ready",
+      "pass_s": 2.952,
+      "render_s": 1.553,
+      "mean_luminance": 0.17799,
+      "max_luminance": 0.7634,
+      "clipped_fraction": 0.0,
+      "mean_saturation": 0.6023
+    },
+    {
+      "file": "twilight_dusk_travelling.png",
+      "palette": "TWILIGHT_DUSK",
+      "view": "travelling",
+      "pass_state": "ready",
+      "pass_s": 1.961,
+      "render_s": 1.442,
+      "mean_luminance": 0.17985,
+      "max_luminance": 0.7569,
+      "clipped_fraction": 0.0,
+      "mean_saturation": 0.5986
+    },
+    {
+      "file": "neon_night_fixed.png",
+      "palette": "NEON_NIGHT",
+      "view": "fixed",
+      "pass_state": "ready",
+      "pass_s": 2.074,
+      "render_s": 1.428,
+      "mean_luminance": 0.14621,
+      "max_luminance": 0.8412,
+      "clipped_fraction": 0.0,
+      "mean_saturation": 0.7392
+    },
+    {
+      "file": "neon_night_travelling.png",
+      "palette": "NEON_NIGHT",
+      "view": "travelling",
+      "pass_state": "ready",
+      "pass_s": 1.967,
+      "render_s": 1.448,
+      "mean_luminance": 0.14845,
+      "max_luminance": 0.8205,
+      "clipped_fraction": 0.0,
+      "mean_saturation": 0.7343
+    },
+    {
+      "file": "golden_hour_fixed.png",
+      "palette": "GOLDEN_HOUR",
+      "view": "fixed",
+      "pass_state": "ready",
+      "pass_s": 2.135,
+      "render_s": 1.428,
+      "mean_luminance": 0.23257,
+      "max_luminance": 0.6539,
+      "clipped_fraction": 0.0,
+      "mean_saturation": 0.53
+    },
+    {
+      "file": "golden_hour_travelling.png",
+      "palette": "GOLDEN_HOUR",
+      "view": "travelling",
+      "pass_state": "ready",
+      "pass_s": 1.951,
+      "render_s": 1.431,
+      "mean_luminance": 0.23409,
+      "max_luminance": 0.637,
+      "clipped_fraction": 0.0,
+      "mean_saturation": 0.5273
+    }
+  ]
+}

@@ -864,7 +864,13 @@ def fx_pass_state(scene):
 
 
 def _render_pass_still(scene, path):
-    """Render the FX emission of the current frame to ``path``."""
+    """Render the FX emission of the current frame to ``path``.
+
+    The file carries the unoccluded coverage in its alpha: the compositor
+    divides the visible Cryptomatte coverage by it, so a particle behind a
+    two-pixel occluder edge loses exactly the hidden fraction. A legacy RGB
+    pass keeps the binary fallback.
+    """
     layer = _pass_layer(scene)
     group = bpy.data.node_groups.new(NODE_FX_PASS, "CompositorNodeTree")
     group.interface.new_socket(name="Image", in_out="OUTPUT",
@@ -872,13 +878,20 @@ def _render_pass_still(scene, path):
     rl = group.nodes.new("CompositorNodeRLayers")
     rl.scene = scene
     rl.layer = layer.name
+    combine = group.nodes.new("CompositorNodeCombineColor")
+    combine.location = (240, 0)
+    group.links.new(rl.outputs["Emission"], combine.inputs["Red"])
+    group.links.new(rl.outputs["Emission"], combine.inputs["Green"])
+    group.links.new(rl.outputs["Emission"], combine.inputs["Blue"])
+    group.links.new(rl.outputs["Alpha"], combine.inputs["Alpha"])
     output = group.nodes.new("NodeGroupOutput")
-    group.links.new(rl.outputs["Emission"], output.inputs[0])
+    group.links.new(combine.outputs["Image"], output.inputs[0])
     previous = scene.compositing_node_group
     previous_format = scene.render.image_settings.file_format
     previous_mode = scene.render.image_settings.color_mode
     previous_path = scene.render.filepath
     previous_compositing = scene.render.use_compositing
+    previous_film = scene.render.film_transparent
     folder = os.path.dirname(os.path.abspath(path))
     if folder:
         os.makedirs(folder, exist_ok=True)
@@ -887,13 +900,15 @@ def _render_pass_still(scene, path):
     try:
         scene.compositing_node_group = group
         scene.render.use_compositing = True
+        scene.render.film_transparent = True
         scene.render.image_settings.file_format = "OPEN_EXR"
-        scene.render.image_settings.color_mode = "RGB"
+        scene.render.image_settings.color_mode = "RGBA"
         scene.render.filepath = temporary
         bpy.ops.render.render(write_still=True)
         written = True
     finally:
         scene.compositing_node_group = previous
+        scene.render.film_transparent = previous_film
         scene.render.image_settings.file_format = previous_format
         scene.render.image_settings.color_mode = previous_mode
         scene.render.filepath = previous_path
@@ -1118,6 +1133,7 @@ def build(scene):
         # file still exists.
         pass_state, _pass_text = fx_pass_state(scene)
         pass_valid = pass_state == "ready"
+        pass_alpha = None
         if pass_valid:
             image = _refresh_pass_image(scene)
             pass_valid = image is not None
@@ -1136,6 +1152,9 @@ def build(scene):
                 pass_node.frame_offset = 0
                 pass_node.use_auto_refresh = True
                 emission_source = pass_node.outputs["Image"]
+                if (getattr(image, "channels", 3) == 4
+                        and "Alpha" in pass_node.outputs):
+                    pass_alpha = pass_node.outputs["Alpha"]
 
             matte = nodes.new("CompositorNodeCryptomatte")
             matte.location = (-1280, -900)
@@ -1179,6 +1198,35 @@ def build(scene):
             links.new(coverage_color.outputs["Image"], b_sock)
             multiply.inputs["Factor"].default_value = 1.0
             fx_color = result_sock
+
+            if pass_alpha is not None:
+                # The pass alpha is the unoccluded FX coverage; the matte is
+                # the visible coverage. Their ratio removes exactly the hidden
+                # fraction at a subpixel occluder edge, without weighting the
+                # particle's own anti-aliasing twice.
+                safe = nodes.new("ShaderNodeMath")
+                safe.location = (-1180, -1120)
+                safe.name = "ALD | FX Pass Alpha Safe"
+                safe.operation = "MAXIMUM"
+                links.new(pass_alpha, safe.inputs[0])
+                safe.inputs[1].default_value = 0.001
+                ratio = nodes.new("ShaderNodeMath")
+                ratio.location = (-1000, -1120)
+                ratio.name = "ALD | FX Visibility Ratio"
+                ratio.operation = "DIVIDE"
+                ratio.use_clamp = True
+                links.new(fx_matte, ratio.inputs[0])
+                links.new(safe.outputs[0], ratio.inputs[1])
+                visibility = nodes.new("ShaderNodeMix")
+                visibility.location = (-820, -1120)
+                visibility.name = "ALD | FX Visibility"
+                visibility.data_type = "RGBA"
+                visibility.blend_type = "MULTIPLY"
+                a_sock, b_sock, result_sock = _mix_sockets(visibility)
+                links.new(fx_color, a_sock)
+                links.new(ratio.outputs[0], b_sock)
+                visibility.inputs["Factor"].default_value = 1.0
+                fx_color = result_sock
 
     from . import palette as palette_module
     palette_key = scene.get("ald_effective_palette", settings.palette)

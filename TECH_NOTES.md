@@ -1178,3 +1178,38 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   that is a deliberate limit, not something the add-on does silently.
 - `snapshot` now saves and restores `use_pass_cryptomatte_material` and
   `use_pass_object_index`; the old restore left the Cryptomatte pass on.
+
+
+### v2.56.0 notes (contract, framing and the subpixel pass)
+- `event.duration` used to be written at creation and then ignored by
+  `_event_config`: the slider changed a saved value, not the burst. The
+  config now uses the duration as `life`; the duration callback rebuilds, but
+  it stays quiet while a new system is being written (the compile at the end
+  already sees the value).
+- `layout_distance` stores the requested distance of an automatic show.
+  `relayout_system` recomputes the targets and launchers from that distance,
+  the current spread and the current offset. Without it, offset and spread
+  were creation-only controls and Update FX rewrote geometry from stale
+  positions.
+- The framing radius now includes the gravity drop and the spark margin; in
+  Physical mode it also includes the shell residual, bounded by the drag
+  terminal distance. Director mode does not add its residual: its authored
+  burst point is the frame target. The gate samples the real particles from
+  `burst_population` and requires the radius to cover them.
+- The FX pass is now RGBA. The compositor `CombineColor` writes the Emission
+  pass in RGB and the Render Layers Alpha in A with `film_transparent` during
+  the pass render. This alpha is the unoccluded FX coverage, not the visible
+  matte. `ALD | FX Visibility` divides the visible Cryptomatte matte by the
+  unoccluded alpha and multiplies F. At a subpixel occluder edge the FX loses
+  exactly the hidden fraction instead of the old binary `matte > 0.001`
+  presence. A 3-channel legacy pass keeps the binary path.
+- The subpixel gate renders the same frame twice, with the visibility factor
+  0 and 1; the corrected image is never brighter and the edge differs by more
+  than 0.02. This is a measurement of the correction, not only a node check.
+- The cloud rim multiplies `ald_edge` by a sun-side range and a face range
+  written per card from `palette.sun_toward` and the card basis. The two
+  flash sources have separate colours; `update_flash` writes `Flash Color`
+  and `Flash Color2` from the event palette.
+- `validation_stack.py` is the full path matrix: strict pass, clouds, World
+  and composite, three palettes, fixed and travelling camera. It is stricter
+  than the old FX-only matrix because a stale pass cannot be consumed.

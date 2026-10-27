@@ -18,7 +18,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 55, 5)
+EXPECTED_VERSION = (2, 56, 0)
 TOLERANCE = 1e-4
 
 
@@ -3569,10 +3569,22 @@ def check_fx_composition(scene):
                                        time=0.0)
             bpy.ops.ald.build()
             system = scene.ald.fx_systems[0]
+            narrow = min(fx_module.event_frame_fraction(scene, event)
+                         for event in system.events)
+            # A gravity-aware envelope at 300 m genuinely cuts the long
+            # Kamuro: the report must say so instead of pretending a fit.
+            check(narrow < 0.95,
+                  "the ORTHO report hides a real cut (%.3f)" % narrow)
+            camera.data.ortho_scale = 600.0
+            fx_module.clear(scene)
+            fx_module.create_fireworks(scene, 3, seed=17, distance=95.0,
+                                       time=0.0)
+            bpy.ops.ald.build()
+            system = scene.ald.fx_systems[0]
             for event in system.events:
                 fraction = fx_module.event_frame_fraction(scene, event)
                 check(fraction >= 0.95 - 1e-3,
-                      "an ORTHO burst is cut (envelope fraction %.3f)"
+                      "a 600 m ORTHO burst is cut (envelope fraction %.3f)"
                       % fraction)
         finally:
             camera.data.type = previous_type
@@ -3582,6 +3594,97 @@ def check_fx_composition(scene):
         fx_module.clear(scene)
         scene.ald.fx_fit_override = previous_override
         scene.render.resolution_x, scene.render.resolution_y = previous_size
+
+
+def check_fx_envelope_solver(scene):
+    """P1-2: the framing radius covers the actual solver particles."""
+    from anime_look_director import fx as fx_module
+
+    previous_age = float(scene.ald.fx_age)
+    try:
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
+        bpy.ops.ald.build()
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        registry = fx_module.SYSTEMS.get(fx_module._scene_id(scene), {})
+        runtime = registry.get(system.uid)
+        check(runtime is not None, "the solver runtime is missing")
+        burst = runtime["bursts"][0]
+        center = fx_module._burst_origin(scene, event)
+        maximum = 0.0
+        for role in ("heads", "pistil", "grains", "sparks"):
+            particles = burst["population"][role]
+            for particle in particles[::2]:
+                for step in (0.0, 0.25, 0.5, 0.75, 1.0):
+                    moment = particle["birth"] + step * particle["life"]
+                    position, _scale, _energy, _alive = \
+                        fx_module._particle_state(particle, moment)
+                    maximum = max(maximum,
+                                  (position - center).length
+                                  + particle["radius"])
+        radius = fx_module.event_radius(event, scene)
+        check(radius >= maximum - 1e-3,
+              "the framing radius %.3f does not cover the solver %.3f"
+              % (radius, maximum))
+    finally:
+        scene.ald.fx_age = previous_age
+        fx_module.clear(scene)
+        bpy.ops.ald.build()
+
+
+def check_fx_layout_contract(scene):
+    """P1-1: duration, spread and offset really change the generated show."""
+    from anime_look_director import fx as fx_module
+
+    previous_spread = scene.ald.fx_burst_spread
+    previous_offset = tuple(scene.ald.fx_composition_offset)
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    try:
+        scene.render.resolution_x = 800
+        scene.render.resolution_y = 450
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 3, seed=17, distance=95.0, time=0.0)
+        system = scene.ald.fx_systems[0]
+        events = [event for event in system.events if event.enabled]
+        check(len(events) == 3, "the layout fixture has the wrong events")
+        check(system.layout_distance > 0.0,
+              "the requested show distance was not stored")
+        baseline = [tuple(event.target) for event in events]
+        requested = system.layout_distance
+
+        with bpy.context.temp_override(scene=scene):
+            scene.ald.fx_burst_spread = 0.5
+        moved = [tuple(event.target) for event in events]
+        check(any(abs(a[i] - b[i]) > 0.05 for a, b in zip(baseline, moved)
+                  for i in range(3)),
+              "Burst Spread did not move the existing show")
+        check(abs(system.layout_distance - requested) < 1e-4,
+              "the spread overwrote the requested distance")
+
+        with bpy.context.temp_override(scene=scene):
+            scene.ald.fx_composition_offset = (5.0, 0.0, 0.0)
+        offset = [tuple(event.target) for event in events]
+        for before, after in zip(moved, offset):
+            check(abs(after[0] - before[0] - 5.0) < 1e-3
+                  and abs(after[1] - before[1]) < 1e-3
+                  and abs(after[2] - before[2]) < 1e-3,
+                  "Composition Offset was not applied to the existing show")
+
+        # Duration drives the solver lifetime, not only the UI field.
+        event = events[0]
+        radius_before = fx_module.event_radius(event)
+        event.duration = 4.0
+        check(abs(fx_module._event_config(event)["life"] - 4.0) < 1e-6,
+              "Burst Duration is not the solver lifetime")
+        check(fx_module.event_radius(event) > radius_before,
+              "a longer Burst Duration did not enlarge the envelope")
+    finally:
+        scene.ald.fx_burst_spread = previous_spread
+        scene.ald.fx_composition_offset = previous_offset
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        fx_module.clear(scene)
+        bpy.ops.ald.build()
 
 
 def check_cloud_contour():
@@ -3765,6 +3868,9 @@ def check_clouds(scene):
             nodes = material.node_tree.nodes
             energy = nodes["ALD | Flash Energy"].outputs[0].default_value
             energies.append(energy)
+            check("ALD | Cloud Sun Side" in nodes
+                  and "ALD | Cloud Sun Face" in nodes,
+                  "the cloud rim is not directional")
             if (abs(nodes["ALD | Flash X"].outputs[0].default_value) <= 0.6
                     and abs(nodes["ALD | Flash Y"].outputs[0].default_value)
                     <= 0.6):
@@ -3772,6 +3878,18 @@ def check_clouds(scene):
         check(energies and max(energies) > 0.05,
               "the burst does not light the cloud (%s)" % energies)
         check(locals_ok, "the flash is not projected inside the card")
+        source = fx_module.light_events(scene, 1)[0]
+        for item in clouds_module._collection(scene).objects:
+            material = item.active_material
+            if material is None:
+                continue
+            nodes = material.node_tree.nodes
+            colour = tuple(nodes["ALD | Flash Color"].outputs[
+                0].default_value)[:3]
+            check(all(abs(a - b) < 1e-4 for a, b in
+                      zip(colour, source["color"])),
+                  "the cloud flash does not use the event colour")
+            break
         scene.ald.clouds_flash = False
         clouds_module.update_flash(scene)
         cleared = [material.node_tree.nodes["ALD | Flash Energy"].outputs[
@@ -4009,6 +4127,11 @@ def check_fx_pass_sequence(scene):
         check(node is not None and node.image is not None
               and node.image.name == "ALD | FX Pass | " + scene.name,
               "the pass image is not owned by the scene")
+        check(node is not None and node.image is not None
+              and getattr(node.image, "channels", 3) == 4,
+              "the FX pass carries no alpha coverage")
+        check(ng is not None and ng.nodes.get("ALD | FX Visibility") is not None,
+              "the stack does not correct the subpixel occlusion")
 
         def load(path):
             image = bpy.data.images.load(path)
@@ -4377,6 +4500,94 @@ def check_fx_pass_cache(scene):
         if os.path.exists(path):
             os.remove(path)
         bpy.ops.ald.build()
+
+
+def check_fx_subpixel_visibility(scene):
+    """P1-A: the pass alpha reduces the FX at a subpixel occluder edge."""
+    from mathutils import Vector
+    from anime_look_director import compositor as compositor_module
+    from anime_look_director import fx as fx_module
+
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    previous_frame = scene.frame_current
+    previous_required = scene.ald.fx_pass_required
+    previous_path = scene.ald.fx_pass_path
+    previous_frames = tuple(scene.ald.fx_pass_frames)
+    previous_signature = scene.ald.fx_pass_signature
+    folder = tempfile.mkdtemp(prefix="ald_subpixel_")
+    plane = None
+    material = None
+    try:
+        scene.render.engine = "BLENDER_EEVEE"
+        scene.render.resolution_x = 160
+        scene.render.resolution_y = 90
+        scene.render.resolution_percentage = 100
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
+        bpy.ops.ald.build()
+        system = scene.ald.fx_systems[0]
+        event = system.events[0]
+        scene.camera.rotation_euler = (
+            Vector(event.target) - scene.camera.location).to_track_quat(
+                "-Z", "Y").to_euler()
+        fps = scene.render.fps / max(scene.render.fps_base, 1e-6)
+        scene.frame_set(int(system.origin_frame
+                            + (event.birth + event.rise_time + 0.35) * fps))
+        bpy.context.view_layer.update()
+
+        origin, forward, _up, right = fx_module._camera_basis(scene)
+        bpy.ops.mesh.primitive_plane_add(
+            size=80.0, location=tuple(origin + forward * 30.0 + right * 40.0))
+        plane = bpy.context.object
+        plane.rotation_euler = (-forward).to_track_quat("Z", "Y").to_euler()
+        material = bpy.data.materials.new("ALD Gate Subpixel Occluder")
+        material.use_nodes = True
+        bsdf = material.node_tree.nodes.get("Principled BSDF")
+        if bsdf is not None:
+            bsdf.inputs["Base Color"].default_value = (0.01, 0.01, 0.02, 1.0)
+        plane.data.materials.append(material)
+
+        pass_path = os.path.join(folder, "pass.exr")
+        compositor_module.render_fx_pass(scene, pass_path)
+        scene.ald.fx_pass_required = True
+        bpy.ops.ald.build()
+        ng = scene.compositing_node_group
+        visibility = ng.nodes.get("ALD | FX Visibility") if ng is not None else None
+        check(visibility is not None,
+              "the subpixel visibility node is missing")
+        check(ng.nodes.get("ALD | FX Pass") is not None,
+              "the subpixel test has no valid pass")
+        images = {}
+        for factor, name in ((0.0, "old"), (1.0, "new")):
+            visibility.inputs["Factor"].default_value = factor
+            path = os.path.join(folder, name + ".png")
+            scene.render.filepath = path
+            bpy.ops.render.render(write_still=True)
+            image = bpy.data.images.load(path)
+            images[name] = list(image.pixels)
+            bpy.data.images.remove(image)
+        old = images["old"]
+        new = images["new"]
+        check(all(b <= a + 1e-5 for a, b in zip(old, new)),
+              "the visibility correction adds FX energy")
+        difference = max(abs(a - b) for a, b in zip(old, new))
+        check(difference > 0.02,
+              "the visibility correction does not change the subpixel edge "
+              "(max %.4f)" % difference)
+    finally:
+        scene.ald.fx_pass_path = previous_path
+        scene.ald.fx_pass_frames = previous_frames
+        scene.ald.fx_pass_signature = previous_signature
+        scene.ald.fx_pass_required = previous_required
+        scene.frame_set(previous_frame)
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        fx_module.clear(scene)
+        if plane is not None:
+            bpy.data.objects.remove(plane, do_unlink=True)
+        if material is not None:
+            bpy.data.materials.remove(material)
+        bpy.ops.ald.build()
+        shutil.rmtree(folder, ignore_errors=True)
 
 
 def check_fx_pass_names(scene):
@@ -5043,6 +5254,8 @@ def main():
         check_fx_trail_width(scene)
         check_fx_p3_shading(scene)
         check_fx_composition(scene)
+        check_fx_envelope_solver(scene)
+        check_fx_layout_contract(scene)
         check_clouds(scene)
         check_cloud_contour()
         check_fx_pass_isolation(scene)
@@ -5051,6 +5264,7 @@ def main():
         check_fx_pass_atomic(scene)
         check_fx_pass_strict(scene)
         check_fx_pass_cache(scene)
+        check_fx_subpixel_visibility(scene)
         check_fx_pass_names(scene)
         check_fx_render_orchestration(scene)
         check_fx_identity(scene)

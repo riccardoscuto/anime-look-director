@@ -1396,6 +1396,9 @@ def _event_config(event):
     if int(event.sparks) >= 0 and int(event.sparks) != FAMILY_CONFIG[
             event.family]["sparks"]:
         config["sparks"] = int(event.sparks)
+    if event.kind == "FIREWORK" and float(event.duration) > 0.0:
+        # Burst Duration is the lifetime used by the solver, not a label.
+        config["life"] = float(event.duration)
     return config
 
 
@@ -2236,8 +2239,8 @@ def _scene_fx_materials(scene):
     return names
 
 
-def _family_reach(family, size=1.0):
-    """The maximum distance a primary star reaches, from the solver params."""
+def _family_reach(family, size=1.0, scene=None):
+    """The maximum distance a star reaches, including gravity and sparks."""
     config = FAMILY_CONFIG.get(family, FAMILY_CONFIG["CHRYSANTHEMUM"])
     speed = float(config["speed"]) * 1.15
     drag = float(config["drag"])
@@ -2247,13 +2250,21 @@ def _family_reach(family, size=1.0):
     else:
         reach = speed * life
     size = max(0.1, min(4.0, float(size)))
-    return reach * size * 1.08
+    reach *= size * 1.08
+    if scene is not None:
+        # The envelope is not a static radius: gravity bends the stars down
+        # and the child sparks leave the parent shell. The fit must reserve
+        # that room, not only the unperturbed solver reach.
+        gravity = _gravity(scene)
+        reach += 0.5 * gravity.length * life * life
+        reach *= 1.12
+    return reach
 
 
-def event_radius(event):
-    """World radius of the burst at its maximum extent, from the solver."""
-    config = FAMILY_CONFIG.get(event.family,
-                               FAMILY_CONFIG["CHRYSANTHEMUM"])
+def event_radius(event, scene=None):
+    """World radius of the burst, including gravity and the shell residual."""
+    config = _event_config(event) if event.kind == "FIREWORK" else FAMILY_CONFIG.get(
+        event.family, FAMILY_CONFIG["CHRYSANTHEMUM"])
     if event.kind in {"METEOR", "BOLIDE"}:
         speed = float(event.speed) or config["speed"]
         drag = float(event.drag) or config["drag"]
@@ -2261,13 +2272,30 @@ def event_radius(event):
     else:
         speed = float(config["speed"]) * 1.15
         drag = float(config["drag"])
-        life = float(event.life) or config["life"]
+        life = float(event.duration) or float(event.life) or float(config["life"])
     if drag > 1e-4:
         reach = speed * (-math.expm1(-drag * life)) / drag
     else:
         reach = speed * life
     size = max(0.1, min(4.0, float(event.size)))
-    return reach * size * 1.08
+    reach *= size * 1.08
+    if scene is not None:
+        gravity = _gravity(scene)
+        reach += 0.5 * gravity.length * life * life
+        if event.kind == "FIREWORK" and event.launch_mode == "PHYSICAL":
+            # Physical mode authors the speed: the shell residual is part of
+            # the shot. Director mode authors the burst point, so its residual
+            # is not added to the framing envelope.
+            launcher = Vector(event.launcher)
+            v0 = _rise_velocity(
+                launcher, Vector(event.target), float(event.rise_time), drag,
+                gravity, mode=event.launch_mode, speed=float(event.speed),
+                direction=Vector(event.direction))
+            residual = _rise_velocity_at(v0, drag, gravity,
+                                         float(event.rise_time))
+            reach += residual.length / max(drag, 1e-3)
+        reach *= 1.12
+    return reach
 
 
 def _burst_origin(scene, event):
@@ -2323,7 +2351,7 @@ def event_envelope(scene, event):
     agree.
     """
     return _projected_envelope(scene, _burst_origin(scene, event),
-                               event_radius(event))
+                               event_radius(event, scene))
 
 
 def event_frame_fraction(scene, event):
@@ -2332,6 +2360,13 @@ def event_frame_fraction(scene, event):
 
 
 LIGHT_COLOR = (1.0, 0.62, 0.32)
+
+
+def _event_light_color(scene, event):
+    """The light colour of an event, from the same family palette as the FX."""
+    key = _event_key(event)
+    colors = _sky_tinted_colors(scene, PALETTES[key % len(PALETTES)])
+    return tuple(colors[0])
 
 
 def light_events(scene, limit=2):
@@ -2365,20 +2400,20 @@ def light_events(scene, limit=2):
                 strength *= float(getattr(event, "cloud_flash", 1.0))
             else:
                 age = time - (birth + float(event.rise_time))
-                life = max(float(event.life), 1e-3)
+                life = max(float(event.duration) or float(event.life), 1e-3)
                 if age < 0.0 or age > life:
                     continue
                 position = _burst_origin(scene, event)
                 strength = float(event.glow) * (1.0 - age / life) ** 2
                 strength *= float(getattr(event, "cloud_flash", 1.0))
-            radius = max(event_radius(event) * 0.35, 0.1)
+            radius = max(event_radius(event, scene) * 0.35, 0.1)
             sources.append({
                 "position": position,
                 "energy": strength,
                 "age": age,
                 "life": life,
                 "radius": radius,
-                "color": LIGHT_COLOR,
+                "color": _event_light_color(scene, event),
                 "kind": event.kind,
                 "event": event.uid,
             })
@@ -2486,7 +2521,7 @@ def _fit_distance(scene, families):
     tan_v = max(sensor_v * 0.5 / max(float(data.lens), 1e-3), 1e-4)
     radius = 0.0
     for family in families:
-        radius = max(radius, _family_reach(family))
+        radius = max(radius, _family_reach(family, scene=scene))
     return radius / (0.95 * tan_v)
 
 
@@ -2550,7 +2585,8 @@ def _fit_show(scene, origin, forward, up, right, families, seed, total,
     if ortho:
         # The ortho frame does not change with the distance: fit the lateral
         # layout and let the report show a burst that cannot fit.
-        radius = max(_family_reach(item) for item in families)
+        radius = max(_family_reach(item, scene=scene)
+                     for item in families)
         spread = max(0.2, min(spread,
                               _spread_limit(scene, distance, radius, target)))
         return distance, spread
@@ -2560,13 +2596,15 @@ def _fit_show(scene, origin, forward, up, right, families, seed, total,
         worst = 1.0
         for center, family, size in centers:
             bounds = _projected_envelope(scene, center,
-                                         _family_reach(family, size))
+                                         _family_reach(family, size,
+                                                       scene=scene))
             fraction = _envelope_fraction(bounds)
             worst = min(worst, fraction)
         if worst >= target:
             break
         distance *= 1.1
-        radius = max(_family_reach(item) for item in families)
+        radius = max(_family_reach(item, scene=scene)
+                     for item in families)
         spread = max(0.2, min(spread,
                               _spread_limit(scene, distance, radius, target)))
     return distance, spread
@@ -2587,6 +2625,7 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
     origin, forward, up, right = _camera_basis(scene)
     axis, elevation, units = _anchor(scene)
     distance = float(distance) * units
+    system.layout_distance = distance
     settings = getattr(scene, "ald", None)
     spread = float(getattr(settings, "fx_burst_spread", 1.0)) if settings else 1.0
     offset = Vector(getattr(settings, "fx_composition_offset", (0.0, 0.0, 0.0))) \
@@ -2606,7 +2645,7 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
         # The lateral spread must leave the edge bursts in frame too.
         radius = 0.0
         for item in families:
-            radius = max(radius, _family_reach(item))
+            radius = max(radius, _family_reach(item, scene=scene))
         spread = max(0.2, min(spread,
                               _spread_limit(scene, distance, radius)))
         if settings is None or not getattr(settings, "fx_fit_override", False):
@@ -2831,6 +2870,72 @@ def update_system(scene, system):
     if system is None:
         return None
     return compile_system(scene, system)
+
+
+def relayout_system(scene, system):
+    """Re-apply Composition Offset / Burst Spread to an automatic show."""
+    if system is None or system.kind != "FIREWORKS":
+        return False
+    events = [event for event in system.events if event.enabled]
+    if not events:
+        return False
+    settings = getattr(scene, "ald", None)
+    origin, forward, up, right = _camera_basis(scene)
+    axis, elevation, units = _anchor(scene)
+    total = len(events)
+    requested = float(getattr(system, "layout_distance", 0.0))
+    if requested <= 0.0:
+        depths = (1.0, 1.18, 1.42)
+        values = [(Vector(event.target) - origin).length
+                  / depths[index % 3]
+                  for index, event in enumerate(events)]
+        values.sort()
+        requested = values[len(values) // 2]
+    if requested <= 0.0:
+        return False
+    spread = float(getattr(settings, "fx_burst_spread", 1.0)) if settings else 1.0
+    offset = Vector(getattr(settings, "fx_composition_offset", (0.0, 0.0, 0.0))) \
+        if settings else Vector((0.0, 0.0, 0.0))
+    distance = requested
+    if total > 1:
+        distance *= 1.4
+        spread *= 1.3
+        families = [event.family for event in events]
+        distance = max(distance, _fit_distance(scene, families))
+        radius = max(_family_reach(family, scene=scene)
+                     for family in families)
+        spread = max(0.2, min(spread,
+                              _spread_limit(scene, distance, radius)))
+        if settings is None or not getattr(settings, "fx_fit_override", False):
+            distance, spread = _fit_show(
+                scene, origin, forward, up, right, families, system.seed,
+                total, distance, spread, offset)
+    for index, event in enumerate(events):
+        role = index % 3
+        depth = (1.0, 1.18, 1.42)[role]
+        family_distance = distance * depth
+        center = _burst_center(
+            origin, forward, up, right, index, total,
+            family_distance * (0.85 + 0.25
+                               * _hash_unit(system.seed, index, 0, 1)),
+            spread) + offset
+        event.target = tuple(center)
+        event.launcher = tuple(_launch_point(
+            origin, forward, up, right, center, axis=axis, scale=units,
+            elevation=elevation))
+    return True
+
+
+def relayout_all(scene):
+    """Recompose the automatic firework shows from their stored distance."""
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return 0
+    count = 0
+    for system in settings.fx_systems:
+        if system.enabled and relayout_system(scene, system):
+            count += 1
+    return count
 
 
 def update_all(scene):

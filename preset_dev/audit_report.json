@@ -572,6 +572,54 @@
     },
     {
       "evidence": "",
+      "label": "Burst Duration drives the generated lifetime",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "Spread and offset recompose an existing show",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The envelope includes gravity and the shell residual",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The FX pass carries the unoccluded alpha coverage",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The subpixel visibility is measured, not only wired",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The cloud rim is directional",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The cloud flash uses the event colour",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
+      "label": "The full stack is validated with a strict pass",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The shot and animation render the pass and the composite",
       "phase": "VI-SC",
       "state": "OK"
@@ -812,7 +860,7 @@
     }
   ],
   "partial": 0,
-  "passed": 135,
+  "passed": 143,
   "plan": "v2.27.0 P0-P3",
-  "total": 135
+  "total": 143
 }

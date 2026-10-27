@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.56.0 - 2026-10-27
+P1 contract and framing, P2 light/cloud response, P3 full-stack evidence.
+
+### Fixed
+- Burst Duration is the solver lifetime (`_event_config`), not a UI-only field;
+  the envelope and the cloud flash use it.
+- Composition Offset and Burst Spread recompose an existing automatic show;
+  the requested distance is stored on the system (`layout_distance`) so
+  repeated updates do not drift.
+- Intentional Crop is honoured by the recomposition.
+- The framing envelope includes gravity, spark margin and the physical shell
+  residual; the gate compares it with the actual sampled solver particles.
+- The FX pass now carries the unoccluded coverage in its alpha; the compositor
+  divides the visible Cryptomatte coverage by it (`ALD | FX Visibility`), so a
+  particle behind a subpixel occluder edge loses exactly the hidden fraction.
+  A legacy RGB pass keeps the binary fallback.
+- The cloud rim is directional (`Cloud Sun Side/Face`), driven by the real sun
+  and card orientation.
+- The cloud flash uses the event colour, and the two simultaneous sources keep
+  separate colours (`ALD | Flash Color`, `ALD | Flash Color2`).
+
+### Evidence
+- `check_fx_layout_contract`, `check_fx_envelope_solver`,
+  `check_fx_subpixel_visibility`, cloud sun-side nodes.
+- `preset_dev/validate_stack.py`: 3 palettes x fixed/travelling camera through
+  the strict pass path, 800x450, `validation_stack/metrics.json`.
+- `preset_dev/cloud_rim.py`: A/B sun azimuths, `cloud_rim/metrics.json`.
+- `ALD GATE: PASS`, `DUP FIXTURE: PASS`, audit **143/143**.
+
 ## 2.55.5 - 2026-10-27
 P0 pass-cache correctness and scene-copy safety.
 

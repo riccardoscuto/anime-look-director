@@ -303,6 +303,39 @@ def _on_fx_rebuild(self, context):
         pass
 
 
+def _on_fx_layout(self, context):
+    """Re-apply the automatic show layout when spread/offset changes."""
+    try:
+        from . import fx
+        if _in_maintenance(context):
+            return
+        scene = context.scene
+        fx.relayout_all(scene)
+        fx.update_all(scene)
+    except Exception:
+        pass
+
+
+def _on_event_duration(self, context):
+    """Burst Duration is the solver lifetime: apply it immediately."""
+    try:
+        from . import fx
+        if _in_maintenance(context):
+            return
+        self.life = self.duration
+        scene = context.scene
+        if scene is None:
+            return
+        registry = fx.SYSTEMS.get(fx._scene_id(scene), {})
+        if any(system.uid not in registry for system in scene.ald.fx_systems):
+            # Creation is still writing the events: the compile at the end
+            # already uses the new duration.
+            return
+        fx.update_all(scene)
+    except Exception:
+        pass
+
+
 def _on_shots(self, context):
     try:
         from . import shots
@@ -399,10 +432,11 @@ class ALD_FX_Event(bpy.types.PropertyGroup):
         description="Lifetime of a meteor")
     duration: FloatProperty(
         name="Duration", default=1.0, min=0.05, max=20.0,
+        update=_on_event_duration,
         description="Duration of the burst of a firework")
     glow: FloatProperty(
         name="Glow", default=0.6, min=0.0, max=3.0,
-        description="Glow profile of the event")
+        description="Energy this event gives to the cloud flash")
     cloud_flash: FloatProperty(
         name="Cloud Flash", default=1.0, min=0.0, max=4.0,
         description=("How much this event lights the spatial clouds, "
@@ -466,6 +500,9 @@ class ALD_FX_System(bpy.types.PropertyGroup):
     fx_schema: IntProperty(
         name="FX Schema", default=0, min=0,
         description="Version of the persistent FX schema of this system")
+    layout_distance: FloatProperty(
+        name="Layout Distance", default=0.0, min=0.0,
+        description="Requested distance of an automatic firework layout")
     events: CollectionProperty(type=ALD_FX_Event)
     material_profile: StringProperty(
         name="Material Profile", default="",
@@ -741,16 +778,16 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="Composition Offset", size=3, subtype="TRANSLATION",
         default=(0.0, 0.0, 0.0),
         description="World-space offset applied to the whole firework group",
-        update=_on_fx_rebuild)
+        update=_on_fx_layout)
     fx_burst_spread: FloatProperty(
         name="Burst Spread", default=1.0, min=0.2, max=3.0,
         description="Horizontal and vertical spread of the bursts",
-        update=_on_fx_rebuild)
+        update=_on_fx_layout)
     fx_fit_override: BoolProperty(
         name="Intentional Crop", default=False,
         description=("Keep the authored distance even when an automatic show "
                      "would cut a burst: the report marks the crop as chosen"),
-        update=_on_fx_rebuild)
+        update=_on_fx_layout)
     fx_gn_prototype: BoolProperty(
         name="GN Particles (Prototype)", default=True,
         description="Evaluate the burst particles with Geometry Nodes "

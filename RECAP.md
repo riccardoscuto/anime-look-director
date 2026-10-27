@@ -81,6 +81,25 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
 
+## Novità 2.56.0 - P1/P2 e matrice full-stack
+
+- **Contratto UI**: Burst Duration è la vita reale del solver; Spread e
+  Composition Offset ricompongono uno show esistente; Intentional Crop viene
+  rispettato anche dopo l'aggiornamento.
+- **Framing**: l'inviluppo include gravità, margine delle scintille e
+  velocità residua del guscio in modalità Physical; il gate lo confronta
+  con le particelle campionate dal solver.
+- **Occlusione subpixel**: il pass EXR porta l'alpha di copertura non occlusa;
+  il compositor divide la matte visibile per quell'alpha (`ALD | FX
+  Visibility`). Un pass RGB legacy mantiene il fallback binario.
+- **Nuvole**: rim direzionale rispetto al sole e all'orientamento della card.
+- **Flash**: ogni evento porta il proprio colore; le due sorgenti simultanee
+  hanno tinte separate (`Flash Color` / `Flash Color2`).
+- **Evidenza full-stack**: `preset_dev/validation_stack/` con 3 palette x
+  camera fissa/in movimento attraverso il pass strict; `cloud_rim/` con due
+  azimuth solari.
+- Gate PASS, fixture PASS, audit **143/143**.
+
 ## Novità 2.55.5 - P0 del pass FX e delle scene duplicate
 
 - **Solo un pass READY viene letto**: `fx_pass_state` e `build` condividono la

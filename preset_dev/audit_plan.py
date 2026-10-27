@@ -354,6 +354,39 @@ CHECKS = [
                  "pass_state, _pass_text = fx_pass_state(scene)",
                  "pass_valid = pass_state == \"ready\"")
      and has("preset_dev/verify.py", "a stale FX pass")[0]),
+    ("VI-SC", "Burst Duration drives the generated lifetime",
+     lambda: has("fx.py", "config[\"life\"] = float(event.duration)",
+                 "event.duration")
+     and has("preset_dev/verify.py",
+             "Burst Duration is not the solver lifetime")[0]),
+    ("VI-SC", "Spread and offset recompose an existing show",
+     lambda: has("fx.py", "def relayout_system", "layout_distance")
+     and has("properties.py", "_on_fx_layout")[0]),
+    ("VI-SC", "The envelope includes gravity and the shell residual",
+     lambda: has("fx.py", "gravity.length * life * life",
+                 "residual.length / max(drag")
+     and has("preset_dev/verify.py",
+             "check_fx_envelope_solver")[0]),
+    ("VI-SC", "The FX pass carries the unoccluded alpha coverage",
+     lambda: has("compositor.py", "CompositorNodeCombineColor",
+                 "rl.outputs[\"Alpha\"]")
+     and has("compositor.py", "ALD | FX Visibility")[0]),
+    ("VI-SC", "The subpixel visibility is measured, not only wired",
+     lambda: has("preset_dev/verify.py",
+                 "check_fx_subpixel_visibility",
+                 "the visibility correction adds FX energy")),
+    ("VI-SC", "The cloud rim is directional",
+     lambda: has("clouds.py", "ALD | Cloud Sun Side",
+                 "ALD | Cloud Sun Face")),
+    ("VI-SC", "The cloud flash uses the event colour",
+     lambda: has("fx.py", "def _event_light_color", "color\": _event_light_color")
+     and has("clouds.py", "ALD | Flash Color2")[0]),
+    ("VI-SC", "The full stack is validated with a strict pass",
+     lambda: exists("preset_dev/validate_stack.py",
+                    "preset_dev/validation_stack/metrics.json")[0]
+     and has("preset_dev/validate_stack.py", "fx_pass_required = True",
+             "strict")[0]
+     and has("preset_dev/cloud_rim/metrics.json", "asymmetry")[0]),
     ("VI-SC", "The shot and animation render the pass and the composite",
      lambda: has("operators.py", "ald.fx_render_shot", "ald.fx_render_animation",
                  "render(animation=True)")),
@@ -375,7 +408,8 @@ CHECKS = [
      lambda: has("fx.py", "def light_events", "METEOR")
      and has("clouds.py", "fx.light_events")[0]),
     ("VI-SC", "Two cloud light sources add",
-     lambda: has("clouds.py", "ALD | Flash X2", "total_energy")),
+     lambda: has("clouds.py", "ALD | Flash X2", "Flash Color2",
+                 "tinted2")),
     ("VI-SC", "The FX pass writes atomically and restores the render state",
      lambda: has("compositor.py", "os.replace", "previous_compositing")),
     ("VI-SC", "The FX pass isolates a nested FX collection",

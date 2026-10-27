@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.55.5**).
+  (currently **2.56.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -526,6 +526,22 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     needs a deep copy of the ordinary objects (documented limit);
   - `snapshot` restores `use_pass_cryptomatte_material` and
     `use_pass_object_index`.
+- P1/P2 rules (v2.56.0):
+  - Burst Duration is the solver lifetime: `_event_config` overrides
+    `config["life"]`, and the envelope/flash read the same value;
+  - `layout_distance` stores the requested show distance; `relayout_system`
+    recomposes spread, offset and Intentional Crop without drifting;
+  - the framing envelope includes gravity (`0.5 g t^2`), spark margin and the
+    physical shell residual; the gate compares it with sampled particles;
+  - the FX pass EXR is RGBA: RGB is the emission, alpha is the unoccluded
+    coverage. `ALD | FX Visibility` is `matte / max(alpha, 0.001)` and scales
+    F; a legacy 3-channel pass keeps the binary presence fallback;
+  - the cloud rim is directional via `ALD | Cloud Sun Side/Face`, written by
+    `clouds.update_flash` from the real sun and card basis;
+  - cloud flash colours are per event; `Flash Color2` belongs to the second
+    source;
+  - `preset_dev/validate_stack.py` is the full strict path matrix; the older
+    `validate_matrix.py` remains the FX-only matrix.
 - P1 rules (compositor FX, v2.31):
   - the main view layer carries the true `Emission` pass and the
     `Cryptomatte Material` pass of the FX; `ALD FX Base` remains the clean
