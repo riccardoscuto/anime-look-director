@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 53, 1)
+EXPECTED_VERSION = (2, 54, 0)
 TOLERANCE = 1e-4
 
 
@@ -3516,6 +3516,28 @@ def check_fx_composition(scene):
         check(len(set(screens)) == len(screens),
               "the bursts overlap on screen")
         print("ALD GATE framing envelope", fractions)
+
+        # ORTHO: the distance cannot shrink the burst; the lateral spread and
+        # the report are the only controls.
+        previous_type = camera.data.type
+        previous_ortho = camera.data.ortho_scale
+        try:
+            camera.data.type = "ORTHO"
+            camera.data.ortho_scale = 300.0
+            fx_module.clear(scene)
+            fx_module.create_fireworks(scene, 3, seed=17, distance=95.0,
+                                       time=0.0)
+            bpy.ops.ald.build()
+            system = scene.ald.fx_systems[0]
+            for event in system.events:
+                fraction = fx_module.event_frame_fraction(scene, event)
+                check(fraction >= 0.95 - 1e-3,
+                      "an ORTHO burst is cut (envelope fraction %.3f)"
+                      % fraction)
+        finally:
+            camera.data.type = previous_type
+            camera.data.ortho_scale = previous_ortho
+            fx_module.clear(scene)
     finally:
         fx_module.clear(scene)
         scene.ald.fx_fit_override = previous_override

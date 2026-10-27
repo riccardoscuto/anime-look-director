@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.53.1**).
+  (currently **2.54.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -603,6 +603,9 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - `_fit_show` grows the distance until every envelope is >= 0.95 in frame;
     an ortho camera or a huge offset returns the measured fraction, never a
     silent physical scale change;
+  - v2.54: in ORTHO the distance cannot change the projected size;
+    `_spread_limit` uses the orthographic half-width and `_fit_show` reduces the
+    spread, then the fraction reports a burst that still cannot fit;
   - `fx_fit_override` (Intentional Crop) is the only accepted exception; the
     gate requires 0.95 unless it is on. The composition report records
     `intentional_crop`;

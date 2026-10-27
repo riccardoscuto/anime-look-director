@@ -2491,6 +2491,35 @@ def _show_layout(origin, forward, up, right, families, seed, total, distance,
     return centers
 
 
+def _spread_limit(scene, distance, radius, target=0.95):
+    """The maximum spread that keeps the edge burst inside the frame.
+
+    Orthographic cameras have a fixed world frame: the distance cannot shrink
+    the burst, so only the lateral spread helps and an oversized burst is
+    reported as cut by the caller.
+    """
+    camera = scene.camera
+    if camera is None or camera.data is None or distance <= 1e-3:
+        return 3.0
+    data = camera.data
+    res_x = max(int(scene.render.resolution_x
+                    * max(scene.render.resolution_percentage, 1) / 100.0), 1)
+    res_y = max(int(scene.render.resolution_y
+                    * max(scene.render.resolution_percentage, 1) / 100.0), 1)
+    aspect = res_x / float(res_y)
+    if data.type == "ORTHO":
+        scale = float(data.ortho_scale)
+        if aspect >= 1.0:
+            half_w = scale * 0.5
+        else:
+            half_w = scale * 0.5 * aspect
+        allowance = target * half_w - radius
+    else:
+        tan_h = _tan_half(scene, horizontal=True)
+        allowance = target * tan_h * distance - radius
+    return max(0.0, allowance / (0.18 * distance))
+
+
 def _fit_show(scene, origin, forward, up, right, families, seed, total,
               distance, spread, offset, target=0.95):
     """Grow the distance until every envelope is inside the target fraction.
@@ -2502,6 +2531,13 @@ def _fit_show(scene, origin, forward, up, right, families, seed, total,
     if scene.camera is None or scene.camera.data is None:
         return distance, spread
     ortho = scene.camera.data.type == "ORTHO"
+    if ortho:
+        # The ortho frame does not change with the distance: fit the lateral
+        # layout and let the report show a burst that cannot fit.
+        radius = max(_family_reach(item) for item in families)
+        spread = max(0.2, min(spread,
+                              _spread_limit(scene, distance, radius, target)))
+        return distance, spread
     for _ in range(12):
         centers = _show_layout(origin, forward, up, right, families, seed,
                                total, distance, spread, offset)
@@ -2511,13 +2547,12 @@ def _fit_show(scene, origin, forward, up, right, families, seed, total,
                                          _family_reach(family, size))
             fraction = _envelope_fraction(bounds)
             worst = min(worst, fraction)
-        if worst >= target or ortho:
+        if worst >= target:
             break
         distance *= 1.1
         radius = max(_family_reach(item) for item in families)
-        tan_h = _tan_half(scene, horizontal=True)
-        limit = (target * tan_h * distance - radius) / (0.18 * distance)
-        spread = max(0.2, min(spread, limit))
+        spread = max(0.2, min(spread,
+                              _spread_limit(scene, distance, radius, target)))
     return distance, spread
 
 
@@ -2556,9 +2591,8 @@ def create_fireworks(scene, count=3, seed=7, distance=110.0, time=0.0,
         radius = 0.0
         for item in families:
             radius = max(radius, _family_reach(item))
-        tan_h = _tan_half(scene, horizontal=True)
-        limit = (0.95 * tan_h * distance - radius) / (0.18 * distance)
-        spread = max(0.2, min(spread, limit))
+        spread = max(0.2, min(spread,
+                              _spread_limit(scene, distance, radius)))
         if settings is None or not getattr(settings, "fx_fit_override", False):
             distance, spread = _fit_show(
                 scene, origin, forward, up, right, families, seed, total,

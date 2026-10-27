@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.53.1** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.54.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,14 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.54.0 — fit ORTHO
+
+- `_spread_limit` usa la semilarghezza ortografica quando la camera è ORTHO;
+  `_fit_show` riduce lo spread invece di aumentare la distanza, che in ORTHO non
+  cambia la dimensione proiettata. Un burst troppo grande è riportato dalla
+  frazione misurata, mai scalato in silenzio.
+- Il gate crea uno show ORTHO da tre burst e richiede 0.95.
 
 ## Novità 2.53.1 — test di scrittura atomica
 

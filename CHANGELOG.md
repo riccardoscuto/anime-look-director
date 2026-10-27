@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.54.0 - 2026-10-27
+ORTHO show fit by the lateral layout.
+
+### Fixed
+- `_spread_limit` uses the orthographic half-width for an ORTHO camera;
+  `_fit_show` reduces the spread instead of increasing the distance, which
+  cannot change the projected size in ORTHO. An oversized burst is reported by
+  the measured fraction, never silently scaled.
+- The gate creates a three-burst ORTHO show and requires 0.95.
+
 ## 2.53.1 - 2026-10-27
 Atomic pass failure test.
 

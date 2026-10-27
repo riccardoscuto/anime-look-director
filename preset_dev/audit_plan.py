@@ -290,7 +290,8 @@ CHECKS = [
      lambda: has("fx.py", "def event_envelope", "def event_frame_fraction")
      and has("preset_dev/verify.py", "event_frame_fraction")[0]),
     ("VI-SC", "A show fits its distance and lateral spread to the lens",
-     lambda: has("fx.py", "def _fit_distance", "_tan_half", "limit =")),
+     lambda: has("fx.py", "def _fit_distance", "_family_reach",
+                 "def _fit_show", "def _spread_limit")),
     ("VI-SC", "The composition report uses the envelope",
      lambda: has("preset_dev/composition.py", "frame_fraction",
                  "event_frame_fraction")),
@@ -316,6 +317,9 @@ CHECKS = [
     ("VI-SC", "Old shared FX materials are copied per scene",
      lambda: has("fx.py", "def ensure_materials", "modifier[item.identifier]")
      and has("preset_dev/verify.py", "the old shared FX material")[0]),
+    ("VI-SC", "ORTHO shows fit by layout, not by distance",
+     lambda: has("fx.py", "def _spread_limit", "ORTHO")
+     and has("preset_dev/verify.py", "ORTHO burst")[0]),
     ("VI-SC", "A failed EXR write leaves the valid pass intact",
      lambda: has("preset_dev/verify.py", "check_fx_pass_atomic",
                  "the failed pass truncated")),
