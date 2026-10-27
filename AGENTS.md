@@ -53,8 +53,9 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   Sun Lighting` scales the solar derivative; `Cloud Seed` offsets the field.
 - Cumulus lighting adds a height tone (lower cloud darker) and a stronger
   solar body range (-0.030..0.004); the default Sun Lighting is 1.2.
-- The first Phase 3 gate is Cumulus in daylight. Do not start sunset or
-  Stratocumulus/Cirrus work until that image is approved.
+- The first Phase 3 gate (Cumulus in daylight) is approved at 2.59.1. The
+  second gate is the sunset response in `preset_dev/cloud_sunset/`; do not
+  start shooting stars until it is approved.
 - The sky accent is a broad band (`From Max 0.20`), not a narrow stripe.
   Keep the dusk/night transition smooth; the Phase 2 before/after is in
   `preset_dev/sky/contact.png`.

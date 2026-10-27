@@ -1,0 +1,22 @@
+{
+  "palette": "GOLDEN_HOUR",
+  "sun_elevation": 4.0,
+  "sun_azimuth": 25.0,
+  "resolution": [
+    1280,
+    720
+  ],
+  "cloud": "CUMULUS",
+  "coverage": 0.5,
+  "scale": 4.0,
+  "views": [
+    {
+      "file": "sunset_side.png",
+      "mean_luminance": 0.49841
+    },
+    {
+      "file": "sunset_backlit.png",
+      "mean_luminance": 0.65963
+    }
+  ]
+}

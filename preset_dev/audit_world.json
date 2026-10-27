@@ -1,6 +1,6 @@
 {
-  "passed": 26,
-  "total": 26,
+  "passed": 27,
+  "total": 27,
   "results": [
     {
       "category": "Reduction",
@@ -149,6 +149,12 @@
     {
       "category": "Evidence",
       "label": "The three-family cloud gate is recorded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Evidence",
+      "label": "The sunset cloud gate is recorded",
       "passed": true,
       "detail": ""
     },
