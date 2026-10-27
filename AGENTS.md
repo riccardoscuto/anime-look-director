@@ -7,7 +7,7 @@ Blender add-on focused on **procedural anime skies** in the World shader. The
 - Blender **5.1.2** on Windows (compositor node-group API).
 - Python 3.13 / NumPy inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.60.0**).
+  (currently **2.60.1**).
 
 ## Verify
 ```powershell
@@ -55,6 +55,11 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   solar body range (-0.030..0.004); the default Sun Lighting is 1.2.
 - The first Phase 3 gate (Cumulus in daylight) is approved at 2.59.1; the
   sunset gate is approved at 2.59.1. Shooting stars are the third gate.
+- A field edit calls `_on_star` and refreshes the World immediately; Add
+  places the event in the current camera view and 1/3 into its life, and the
+  Preview operator moves the timeline and aims the camera at the start.
+- The star head is a short bright band, the tail is a thin tapered line and
+  the color is cool white by default, matching the starfield.
 - Shooting stars are persistent `ALD_ShootingStar` events: start frame,
   duration, azimuth/elevation, direction, angular length, trail, thickness,
   brightness, glow and color. The World shader evaluates four fixed slots in

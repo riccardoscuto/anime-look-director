@@ -206,30 +206,50 @@ def _on_shots(self, context):
         pass
 
 
+def _on_star(self, context):
+    """Refresh the World when a shooting-star event is edited."""
+    try:
+        from . import look
+        if context.scene is not None:
+            if not len(context.scene.ald.shooting_star_events):
+                return
+            look.apply_world(context.scene)
+    except Exception:
+        pass
+
+
 class ALD_ShootingStar(bpy.types.PropertyGroup):
     """A controlled 2D shooting star in the World shader."""
 
     name: StringProperty(name="Name", default="Shooting Star")
-    enabled: BoolProperty(name="Enabled", default=True)
+    enabled: BoolProperty(name="Enabled", default=True, update=_on_star)
     start_frame: IntProperty(name="Start Frame", default=1, min=-100000,
-                             max=100000)
-    duration: IntProperty(name="Duration", default=24, min=2, max=240)
+                             max=100000, update=_on_star)
+    duration: IntProperty(name="Duration", default=24, min=2, max=240,
+                          update=_on_star)
     azimuth: FloatProperty(name="Azimuth", default=120.0, min=-180.0,
-                           max=180.0, description="Degrees around the sky")
+                           max=180.0, description="Degrees around the sky",
+                           update=_on_star)
     elevation: FloatProperty(name="Elevation", default=40.0, min=-10.0,
-                             max=89.0, description="Degrees above the horizon")
+                             max=89.0, description="Degrees above the horizon",
+                             update=_on_star)
     direction: FloatProperty(name="Direction", default=-35.0, min=-180.0,
-                             max=180.0, description="Trajectory angle in degrees")
+                             max=180.0, description="Trajectory angle in degrees",
+                             update=_on_star)
     length: FloatProperty(name="Angular Length", default=18.0, min=1.0,
-                          max=90.0, description="Trajectory length in degrees")
-    trail: FloatProperty(name="Trail", default=0.55, min=0.0, max=0.95)
-    thickness: FloatProperty(name="Thickness", default=0.006, min=0.0005,
-                             max=0.05)
-    brightness: FloatProperty(name="Brightness", default=5.0, min=0.0,
-                              max=30.0)
-    glow: FloatProperty(name="Glow", default=1.0, min=0.0, max=3.0)
+                          max=90.0, description="Trajectory length in degrees",
+                          update=_on_star)
+    trail: FloatProperty(name="Trail", default=0.55, min=0.0, max=0.95,
+                         update=_on_star)
+    thickness: FloatProperty(name="Thickness", default=0.0018, min=0.0005,
+                             max=0.05, update=_on_star)
+    brightness: FloatProperty(name="Brightness", default=3.0, min=0.0,
+                              max=30.0, update=_on_star)
+    glow: FloatProperty(name="Glow", default=0.8, min=0.0, max=3.0,
+                        update=_on_star)
     color: FloatVectorProperty(name="Color", size=3, subtype="COLOR",
-                               default=(1.0, 0.86, 0.65), min=0.0, max=10.0)
+                               default=(0.88, 0.94, 1.0), min=0.0, max=10.0,
+                               update=_on_star)
 
 
 class ALD_Settings(bpy.types.PropertyGroup):

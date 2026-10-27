@@ -640,10 +640,10 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         fade = math("SUBTRACT", 5260, 2000 - index * 260, "SUBTRACT", s, tail)
         fade = math("DIVIDE", 5440, 2000 - index * 260, "DIVIDE", fade,
                     head_span)
-        fade = math("MAXIMUM", 5620, 2000 - index * 260, "MINIMUM", fade, 1.0)
+        fade = math("MAXIMUM", 5620, 2000 - index * 260, "MINIMUM", fade, 0.55)
         fade = math("MAXIMUM", 5800, 2000 - index * 260, "MAXIMUM", fade, 0.0)
         tailfade = math("MULTIPLY", 5980, 2000 - index * 260, "MULTIPLY",
-                        fade, 1.0)
+                        fade, 0.55)
         tailfade = math("ADD", 6160, 2000 - index * 260, "ADD", tailfade,
                         0.35)
         taper = math("MULTIPLY", 6160, 2120 - index * 260, "MULTIPLY",
@@ -657,23 +657,26 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         body = math("MULTIPLY", 6340, 1840 - index * 260, "MULTIPLY",
                     width.outputs["Result"], tailfade)
 
-        glow_span = math("MULTIPLY", 5080, 2300 - index * 260, "MULTIPLY",
-                         thickness, 3.0)
-        head_glow = nodes.new("ShaderNodeMapRange")
-        head_glow.location = (5260, 2300 - index * 260)
-        head_glow.clamp = True
-        _smooth(head_glow)
-        head_glow.inputs["From Min"].default_value = 0.0
-        links.new(glow_span, head_glow.inputs["From Max"])
-        head_glow.inputs["To Min"].default_value = 1.0
-        head_glow.inputs["To Max"].default_value = 0.0
-        links.new(dist, head_glow.inputs["Value"])
-        glow_part = math("MULTIPLY", 5440, 2300 - index * 260, "MULTIPLY",
-                         head_glow.outputs["Result"], glow)
-        glow_part = math("MULTIPLY", 5620, 2300 - index * 260, "MULTIPLY",
-                         glow_part, fade)
+        head_start = math("SUBTRACT", 5080, 2300 - index * 260,
+                          "SUBTRACT", phase, 0.06)
+        head_start = math("MAXIMUM", 5260, 2300 - index * 260, "MAXIMUM",
+                          head_start, tail)
+        head_band = nodes.new("ShaderNodeMapRange")
+        head_band.location = (5440, 2300 - index * 260)
+        head_band.clamp = True
+        _smooth(head_band)
+        links.new(head_start, head_band.inputs["From Min"])
+        links.new(phase, head_band.inputs["From Max"])
+        head_band.inputs["To Min"].default_value = 0.0
+        head_band.inputs["To Max"].default_value = 1.0
+        links.new(s, head_band.inputs["Value"])
+        head_band = math("MULTIPLY", 5620, 2300 - index * 260, "MULTIPLY",
+                         head_band.outputs["Result"],
+                         width.outputs["Result"])
         glow_part = math("MULTIPLY", 5800, 2300 - index * 260, "MULTIPLY",
-                         glow_part, 0.6)
+                         head_band, glow)
+        glow_part = math("MULTIPLY", 5980, 2300 - index * 260, "MULTIPLY",
+                         glow_part, 1.4)
         value = math("ADD", 6520, 1950 - index * 260, "ADD", body, glow_part)
         value = math("MULTIPLY", 6700, 1950 - index * 260, "MULTIPLY",
                      value, brightness)

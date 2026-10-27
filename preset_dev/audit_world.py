@@ -36,8 +36,8 @@ def exists(*paths):
 
 CHECKS = [
     ("Reduction", "The version is the World Sky Edition",
-     lambda: has("__init__.py", '"version": (2, 60, 0)')
-     and has("blender_manifest.toml", 'version = "2.60.0"')),
+     lambda: has("__init__.py", '"version": (2, 60, 1)')
+     and has("blender_manifest.toml", 'version = "2.60.1"')),
     ("Reduction", "The FX and spatial modules are gone",
      lambda: not any(os.path.exists(os.path.join(ROOT, name))
                      for name in ("fx.py", "fx_nodes.py", "clouds.py",
@@ -130,6 +130,11 @@ CHECKS = [
     ("Shooting stars", "The World shader evaluates the events",
      lambda: has("palette.py", "def _build_shooting_stars",
                  "Star0 Start U", 'prefix + "Color"')),
+    ("Shooting stars", "Editing a star refreshes the World",
+     lambda: has("properties.py", "def _on_star", "update=_on_star")),
+    ("Shooting stars", "The star can be previewed in the camera",
+     lambda: has("operators.py", "ald.shooting_star_preview")
+     and has("panels.py", "ald.shooting_star_preview")[0]),
     ("Evidence", "The shooting-star gate is recorded",
      lambda: exists("preset_dev/shooting_star/contact.png",
                     "preset_dev/shooting_star/metrics.json",

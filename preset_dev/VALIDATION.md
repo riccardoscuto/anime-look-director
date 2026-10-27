@@ -1,6 +1,6 @@
 # Anime Look Director — World Sky Edition validation
 
-Current release: **2.60.0** (Blender 5.1.2, Windows 11).
+Current release: **2.60.1** (Blender 5.1.2, Windows 11).
 
 ## Commands
 
@@ -25,7 +25,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 3 sunset | `cloud_sunset/contact.png`, `metrics.json` | GOLDEN_HOUR, side and backlit |
 | Shooting stars | `shooting_star/contact.png`, `metrics.json` | persistent event, frames 1/8/16/25/30 |
 | UI | `preset_dev/ui/ui_properties.png`, `ui_sidebar.png`, `ui_compositor.png` | panels draw; no FX section |
-| Package | `dist/anime_look_director-2.60.0.zip` | extension build PASS; 2.60.0 installed and enabled in an isolated config |
+| Package | `dist/anime_look_director-2.60.1.zip` | extension build PASS; 2.60.1 installed and enabled in an isolated config |
 
 ## Phase 1 definition of done
 

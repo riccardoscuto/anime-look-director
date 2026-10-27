@@ -1295,3 +1295,16 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The star is multiplied by `1 - cloud coverage`, so the World clouds hide it.
   The gate frames show no star at frame 1, a tapered moving star at 8/16, and
   none at 25/30.
+
+
+### v2.60.1 notes (star visibility)
+- Add previously placed the star at azimuth 120/elevation 35 and at frame 0 of
+  its life. It was often off-screen and at phase 0, so the user saw nothing.
+  Add now derives the azimuth/elevation from the camera forward and sets the
+  start 1/3 of the duration in the past; the current frame shows the event.
+- Event fields have no update callbacks before; editing azimuth/frame did not
+  refresh the World. `_on_star` now calls `look.apply_world` for every edit.
+- Preview sets the timeline to start + duration/3 and aims the camera at the
+  event start. It is an explicit operator, not a handler.
+- The star is a thin line (default thickness 0.0018), body energy 55% of the
+  old, a short head band at the leading end and a cool-white default color.

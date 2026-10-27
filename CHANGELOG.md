@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.60.1 - 2026-10-27
+Shooting-star visibility and starfield consistency.
+
+### Fixed
+- Add places the event in the current camera view and 1/3 into its life, so it
+  is visible immediately.
+- Editing any event field refreshes the World via `_on_star`; before, the
+  changes waited for a palette apply.
+- New Preview operator moves the timeline into the event and aims the camera
+  at its start.
+- The star is now a thin tapered line with a short bright head, cool-white by
+  default, instead of a thick white capsule.
+
+### Evidence
+- `preset_dev/shooting_star/` regenerated frames and contact.
+- UI screenshot includes the Shooting Stars panel and Preview button.
+- Audit **33/33**.
+
 ## 2.60.0 - 2026-10-27
 Phase 4: controlled 2D shooting stars.
 

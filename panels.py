@@ -112,6 +112,7 @@ def draw_shooting_stars(layout, context):
     row.operator("ald.shooting_star_add", icon="ADD")
     row.operator("ald.shooting_star_duplicate", icon="DUPLICATE")
     row.operator("ald.shooting_star_remove", icon="REMOVE")
+    box.operator("ald.shooting_star_preview", icon="PLAY")
     if not len(s.shooting_star_events):
         box.label(text="No controlled event (max 4)", icon="INFO")
         return

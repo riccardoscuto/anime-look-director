@@ -7,8 +7,10 @@ clouds off so the trajectory is unambiguous. `contact.png` shows all five.
 
 - Start frame 1, duration 24 frames (24 fps).
 - Start azimuth 120, elevation 35, direction -35, angular length 22.
-- Trail 0.40, thickness 0.005, brightness 0.9, glow 2.0.
+- Trail 0.60, thickness 0.0018, brightness 3.0, glow 0.8,
+  cool-white color to match the starfield.
 - The shader uses gnomonic sky coordinates, not a Voronoi field.
+- The head is a short bright band; the tail is a thin, tapered line.
 - No object, particle or collection is created; the event is a World-shader
   value.
 
@@ -22,3 +24,5 @@ clouds off so the trajectory is unambiguous. `contact.png` shows all five.
   Shooting Stars.
 
 This is the third visual gate; it is a candidate, not approved.
+The UI has a Preview button that moves the timeline into the event and aims
+the camera at its start. Editing a field refreshes the World immediately.

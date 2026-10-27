@@ -307,7 +307,15 @@ class ALD_OT_shooting_star_add(bpy.types.Operator):
             return {"CANCELLED"}
         event = settings.shooting_star_events.add()
         event.name = "Shooting Star %d" % len(settings.shooting_star_events)
-        event.start_frame = context.scene.frame_current
+        camera = context.scene.camera
+        if camera is not None:
+            forward = camera.matrix_world.to_quaternion() @ Vector(
+                (0.0, 0.0, -1.0))
+            event.azimuth = math.degrees(math.atan2(forward.x, forward.y))
+            event.elevation = max(5.0, min(80.0, math.degrees(math.asin(
+                max(-1.0, min(1.0, forward.z))))))
+        event.start_frame = (context.scene.frame_current
+                             - max(1, event.duration // 3))
         settings.shooting_star_selected = len(settings.shooting_star_events) - 1
         look.apply_world(context.scene)
         return {"FINISHED"}
@@ -334,6 +342,37 @@ class ALD_OT_shooting_star_duplicate(bpy.types.Operator):
         event.name = source.name + " Copy"
         event.start_frame += 12
         settings.shooting_star_selected = len(events) - 1
+        look.apply_world(context.scene)
+        return {"FINISHED"}
+
+
+class ALD_OT_shooting_star_preview(bpy.types.Operator):
+    bl_idname = "ald.shooting_star_preview"
+    bl_label = "Preview Shooting Star"
+    bl_description = ("Move the timeline into the event and aim the camera at "
+                      "its start")
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        settings = context.scene.ald
+        events = settings.shooting_star_events
+        index = settings.shooting_star_selected
+        if index < 0 or index >= len(events):
+            return {"CANCELLED"}
+        event = events[index]
+        context.scene.frame_set(int(event.start_frame
+                                    + max(1, event.duration // 3)))
+        camera = context.scene.camera
+        if camera is not None:
+            azimuth = math.radians(event.azimuth)
+            elevation = math.radians(event.elevation)
+            direction = Vector((
+                math.cos(elevation) * math.sin(azimuth),
+                math.cos(elevation) * math.cos(azimuth),
+                math.sin(elevation)))
+            target = camera.location + direction * 100.0
+            camera.rotation_euler = (
+                target - camera.location).to_track_quat("-Z", "Y").to_euler()
         look.apply_world(context.scene)
         return {"FINISHED"}
 
@@ -404,7 +443,7 @@ def _legacy_collections():
 
 _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_shooting_star_add, ALD_OT_shooting_star_duplicate,
-            ALD_OT_shooting_star_remove,
+            ALD_OT_shooting_star_remove, ALD_OT_shooting_star_preview,
             ALD_OT_clear_shadow_tint, ALD_OT_toggle_exclude_material,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,

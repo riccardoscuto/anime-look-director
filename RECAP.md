@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.60.0 — Blender 5.1.2 — GPL-3.0-or-later**
+**Versione 2.60.1 — Blender 5.1.2 — GPL-3.0-or-later**
 
 ## In breve
 
@@ -25,7 +25,8 @@ progetto completo 2.56.0 resta nel tag `archive/v2.56.0-full`.
 7. **Materiali**: Shadow Tint, Cel, Rim e preset, reversibili.
 8. **Compositor opzionale**: halation, Kuwahara, light wrap, dispersione,
    Sun Beams, ink, aerial haze. Non serve per applicare il cielo.
-9. **Shooting stars controllate**: fino a 4 eventi persistenti nel World shader.
+9. **Shooting stars controllate**: fino a 4 eventi persistenti; Add le mette
+   nella vista corrente, Preview mira la camera e il campo si aggiorna subito.
 10. **Legacy ALD Data**: Disable/Remove espliciti per i vecchi oggetti FX,
    nuvole spaziali e smoke. Nessuna pulizia automatica dei `.blend`.
 

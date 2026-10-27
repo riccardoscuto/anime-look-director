@@ -66,11 +66,11 @@ def main():
     event.elevation = 35.0
     event.direction = -35.0
     event.length = 22.0
-    event.trail = 0.40
-    event.thickness = 0.005
-    event.brightness = 0.9
-    event.glow = 2.0
-    event.color = (1.0, 0.9, 0.7)
+    event.trail = 0.60
+    event.thickness = 0.0018
+    event.brightness = 3.0
+    event.glow = 0.8
+    event.color = (0.88, 0.94, 1.0)
     palette.apply_palette(scene, "NEON_NIGHT")
 
     data = bpy.data.cameras.new("Star Gate Camera")
