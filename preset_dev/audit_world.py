@@ -34,10 +34,31 @@ def exists(*paths):
     return not missing, ("missing: " + ", ".join(missing)) if missing else ""
 
 
+def phase6_matrix():
+    path = os.path.join(ROOT, "preset_dev/phase6/metrics.json")
+    if not os.path.exists(path):
+        return False, "missing metrics"
+    with io.open(path, "r", encoding="utf-8") as f:
+        report = json.load(f)
+    count = len(report.get("cells", []))
+    return count == 22, "%d cells" % count
+
+
+def phase6_gate():
+    path = os.path.join(ROOT, "preset_dev/phase6/technical.json")
+    if not os.path.exists(path):
+        return False, "missing technical report"
+    with io.open(path, "r", encoding="utf-8") as f:
+        report = json.load(f)
+    passed = report.get("passed", 0)
+    total = report.get("total", 0)
+    return passed == total and total >= 17, "%s/%s" % (passed, total)
+
+
 CHECKS = [
     ("Reduction", "The version is the World Sky Edition",
-     lambda: has("__init__.py", '"version": (2, 61, 0)')
-     and has("blender_manifest.toml", 'version = "2.61.0"')),
+     lambda: has("__init__.py", '"version": (2, 62, 0)')
+     and has("blender_manifest.toml", 'version = "2.62.0"')),
     ("Reduction", "The FX and spatial modules are gone",
      lambda: not any(os.path.exists(os.path.join(ROOT, name))
                      for name in ("fx.py", "fx_nodes.py", "clouds.py",
@@ -157,6 +178,13 @@ CHECKS = [
      lambda: exists("preset_dev/shooting_star/contact.png",
                     "preset_dev/shooting_star/metrics.json",
                     "preset_dev/shooting_star/README.md")[0]),
+    ("Evidence", "The Phase 6 release matrix is recorded",
+     lambda: exists("preset_dev/phase6/contact.png",
+                    "preset_dev/phase6/metrics.json",
+                    "preset_dev/phase6/README.md")[0]
+     and phase6_matrix()),
+    ("Release", "The Phase 6 technical gate passes",
+     phase6_gate),
     ("Evidence", "The World gate and lifecycle fixture are runnable",
      lambda: exists("preset_dev/verify.py",
                     "preset_dev/world_fixture.py")[0]),

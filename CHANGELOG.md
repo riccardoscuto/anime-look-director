@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.62.0 - 2026-10-27
+Phase 6: final World Sky release.
+
+### Added
+- 22-cell release matrix: three cloud families x three Sun directions, three
+  palettes, four coverage steps, two cameras, wind and two shooting stars.
+- `phase6_technical.py`: 17 checks covering idempotent apply, deterministic
+  generation, wind continuity, star-slot isolation, duplicate-scene ownership,
+  save/reload persistence and resource cost.
+- Phase 6 evidence in `preset_dev/phase6/` and source-audit gates.
+
+### Changed
+- Release version 2.62.0; the World Sky Edition is merged to `master`.
+- Stratocumulus and Cirrus are documented in the release matrix; Cumulus
+  remains the family with an explicit aesthetic approval.
+
+### Evidence
+- `preset_dev/phase6/contact.png`, `metrics.json`, `README.md`.
+- Technical gate **17/17 PASS**; audit **40/40**.
+- Extension 2.62.0 installed and enabled in an isolated config.
+
 ## 2.61.0 - 2026-10-27
 Phase 5: presets and compact UI.
 

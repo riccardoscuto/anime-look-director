@@ -1,0 +1,95 @@
+{
+  "checks": [
+    {
+      "name": "apply is idempotent",
+      "passed": true,
+      "detail": "signature equal, nodes 3"
+    },
+    {
+      "name": "idempotent render is identical",
+      "passed": true,
+      "detail": "max delta 0.000000"
+    },
+    {
+      "name": "generation is deterministic",
+      "passed": true,
+      "detail": "second scene signature"
+    },
+    {
+      "name": "deterministic render is identical",
+      "passed": true,
+      "detail": "max delta 0.000000"
+    },
+    {
+      "name": "wind advances the cloud field",
+      "passed": true,
+      "detail": "offset [0.289833, 0.187208] -> [0.329, 0.197], delta 0.0197"
+    },
+    {
+      "name": "wind is deterministic at a fixed frame",
+      "passed": true,
+      "detail": "max delta 0.000000"
+    },
+    {
+      "name": "disabling a star leaves the other slot intact",
+      "passed": true,
+      "detail": "Star0 0.0, Star1 equal"
+    },
+    {
+      "name": "the disabled star leaves the render",
+      "passed": true,
+      "detail": "max 0.8235 vs 0.8235"
+    },
+    {
+      "name": "re-enabling restores the exact slot",
+      "passed": true,
+      "detail": "Star0 Enabled 1.0"
+    },
+    {
+      "name": "a plain scene copy shares identity and World",
+      "passed": true,
+      "detail": "id b7f9af78"
+    },
+    {
+      "name": "ownership repair gives a new identity and World",
+      "passed": true,
+      "detail": "id 3f65a93c"
+    },
+    {
+      "name": "the original scene is untouched by the copy",
+      "passed": true,
+      "detail": "sky [0.008, 0.012, 0.065, 1.0]"
+    },
+    {
+      "name": "the World builds four fixed star slots",
+      "passed": true,
+      "detail": "4 slots"
+    },
+    {
+      "name": "no FX object or legacy collection exists",
+      "passed": true,
+      "detail": "5 objects"
+    },
+    {
+      "name": "apply and render stay within budget",
+      "passed": true,
+      "detail": "apply 1.3 ms, render 173 ms"
+    },
+    {
+      "name": "the shooting star survives save/reload",
+      "passed": true,
+      "detail": "2 events"
+    },
+    {
+      "name": "the World group survives save/reload",
+      "passed": true,
+      "detail": "gradient marker"
+    }
+  ],
+  "passed": 17,
+  "total": 17,
+  "apply_ms": 1.32,
+  "render_ms": 173.5,
+  "objects": 5,
+  "world_nodes": 3
+}

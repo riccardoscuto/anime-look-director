@@ -1323,3 +1323,30 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - Reset Look reapplies the preset style and resets the Sun rotation; Save as
   Custom copies the current effective colors into the custom fields and enables
   custom colors, leaving the preset untouched.
+
+
+### v2.62.0 notes (Phase 6 release gate)
+- `phase6_matrix.py` renders 22 cells at 640x360/32 samples: nine family x Sun
+  cells, three palettes, four coverage steps, two cameras, two wind frames and
+  two shooting-star frames. `contact.png` is ordered left to right, top to
+  bottom; `metrics.json` carries the labels and values.
+- The `front` Sun is azimuth 180 for the fixed camera, so the disk is in view;
+  `side` is 90 and `back` is 0. Comparing front cells by mean luminance is
+  misleading because the disk is part of the frame.
+- `phase6_technical.py` isolates every scene with `scene.world = None`. A new
+  scene made with `bpy.data.scenes.new()` inherits the active scene World;
+  without the reset, two test scenes share one sky and render-time handlers
+  rewrite it.
+- Rendering with `bpy.ops.render.render(scene=name)` rewinds the scene frame
+  and can fire handlers against the active scene. The harness sets
+  `bpy.context.window.scene` before rendering instead; frame and Cloud Offset
+  then stay stable.
+- The technical gate proves exact (byte-identical) renders for repeated apply
+  and for a second independently generated world. Wind at frame 48 changes
+  the Cloud Offset from seed 17 to seed + 0.04 and the render changes.
+- Four star slots exist whether or not events are present; disabling event 0
+  leaves the Star1 inputs unchanged and removes only that star from the image.
+- A plain scene copy shares both the identity and the World. `ownership.repair`
+  gives a new id and a copied World; the original sky is unchanged.
+- Cost on this machine: apply ~1.3 ms, 320x180 EEVEE render ~172 ms. No FX
+  objects or legacy collections are created.

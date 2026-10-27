@@ -1,4 +1,4 @@
-"""Run the whole verification chain: gate, duplicate fixture, audit.
+"""Run the whole verification chain: gate, fixture, audit, Phase 6.
 
 Run with Blender (it needs the binary path)::
 
@@ -20,6 +20,7 @@ STEPS = (
     ("gate [structural/runtime/visual]", "verify.py"),
     ("fixture [lifecycle]", "world_fixture.py"),
     ("audit [reduction/world]", "audit_world.py"),
+    ("phase6 [technical]", "phase6_technical.py"),
 )
 
 

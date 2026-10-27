@@ -35,7 +35,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 & $blender -b --factory-startup --python preset_dev\build_release.py
 ```
 
-Install `dist/anime_look_director-2.61.0.zip` in Blender 5.1.2:
+Install `dist/anime_look_director-2.62.0.zip` in Blender 5.1.2:
 `Edit > Preferences > Extensions > Install from Disk`.
 
 The add-on is also usable from the source directory as a legacy add-on.
@@ -46,16 +46,20 @@ The add-on is also usable from the source directory as a legacy add-on.
 2. Choose a palette.
 3. **Apply Palette**. The World and Sun update immediately; no Build Stack is
    required.
-4. Adjust World, Sun, clouds and stars in **World & Shadows**.
+4. Adjust Sun, clouds and stars in **Atmosphere & Sun** and **World Clouds**.
 5. Enable the compositor only if you want the optional art filters.
 
-## Version 2.61.0 scope
+## Version 2.62.0 scope
 
 - World-only operational path.
 - No FX objects, collections, Geometry Nodes, smoke volumes or EXR pass.
 - The compositor is optional and contains only general effects.
 - Phase 2 cloudless sky: broad sky-accent transition and Sun below-horizon fade.
 - Phase 3 first gate: Cumulus / Stratocumulus / Cirrus silhouettes under the same sun.
+- Phase 6 release matrix: 22 cells covering families, Sun direction, palettes,
+  coverage, camera, wind and shooting stars (`preset_dev/phase6/`).
+- 17-check technical gate: idempotence, determinism, wind, event isolation,
+  scene ownership, persistence and cost.
 - Old `.blend` files are not cleaned automatically. Use the **Legacy ALD Data**
   panel: **Disable** hides the old ALD collections (reversible), **Remove**
   deletes them after an explicit action. See `MIGRATION_2_57.md`.

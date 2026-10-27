@@ -7,7 +7,7 @@ Blender add-on focused on **procedural anime skies** in the World shader. The
 - Blender **5.1.2** on Windows (compositor node-group API).
 - Python 3.13 / NumPy inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.61.0**).
+  (currently **2.62.0**).
 
 ## Verify
 ```powershell
@@ -17,6 +17,13 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 & $blender -b --factory-startup --python preset_dev\build_release.py
 ```
 Expected: `ALD GATE: PASS`, `ALD ALL: PASS`, `ALD BUILD: PASS`.
+
+Phase 6 release evidence and technical gate:
+```powershell
+& $blender -b --factory-startup --python-exit-code 1 --python preset_dev\phase6_matrix.py
+& $blender -b --factory-startup --python-exit-code 1 --python preset_dev\phase6_technical.py
+```
+Expected: `P6 SHEET`, `ALD PHASE6 TECHNICAL 17/17 PASS`.
 
 World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 ```powershell
@@ -67,8 +74,14 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   copies the current colors into the custom fields without changing the preset.
 - The first Phase 3 gate (Cumulus in daylight) is approved at 2.59.1; the
   sunset gate is approved at 2.59.1. The shooting-star gate is approved at
-  2.60.1. Phase 5 (presets and compact UI) is next; master stays at 2.56.0
-  until the final release.
+  2.60.1. Phase 5 (presets and compact UI) and Phase 6 (release matrix,
+  technical gate, package) are complete at 2.62.0; `master` carries the World
+  Sky Edition.
+- Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
+  `metrics.json` and `technical.json` (17/17). The technical gate covers
+  idempotence, determinism, wind, star isolation, ownership, persistence and
+  cost. Stratocumulus and Cirrus are documented but have no individual
+  aesthetic sign-off; Cumulus is the approved family.
 - A field edit calls `_on_star` and refreshes the World immediately; Add
   places the event in the current camera view and 1/3 into its life, and the
   Preview operator moves the timeline and aims the camera at the start.

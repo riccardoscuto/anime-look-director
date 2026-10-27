@@ -1,6 +1,6 @@
 {
-  "passed": 38,
-  "total": 38,
+  "passed": 40,
+  "total": 40,
   "results": [
     {
       "category": "Reduction",
@@ -223,6 +223,18 @@
       "label": "The shooting-star gate is recorded",
       "passed": true,
       "detail": ""
+    },
+    {
+      "category": "Evidence",
+      "label": "The Phase 6 release matrix is recorded",
+      "passed": true,
+      "detail": "22 cells"
+    },
+    {
+      "category": "Release",
+      "label": "The Phase 6 technical gate passes",
+      "passed": true,
+      "detail": "17/17"
     },
     {
       "category": "Evidence",
