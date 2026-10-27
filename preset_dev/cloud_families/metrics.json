@@ -8,12 +8,12 @@
     {
       "file": "cumulus.png",
       "type": "CUMULUS",
-      "amount": 0.48,
-      "flatness": 0.15,
-      "vertical": 0.9,
-      "breakup": 0.28,
-      "scale": 3.4,
-      "mean_luminance": 0.64
+      "amount": 0.5,
+      "flatness": 0.05,
+      "vertical": 0.95,
+      "breakup": 0.45,
+      "scale": 4.0,
+      "mean_luminance": 0.62565
     },
     {
       "file": "stratocumulus.png",

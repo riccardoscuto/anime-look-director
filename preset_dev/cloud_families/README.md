@@ -6,12 +6,13 @@ set.
 
 | Family | Coverage | Flatness | Vertical | Breakup | Scale |
 |---|---:|---:|---:|---:|---:|
-| Cumulus | 0.48 | 0.15 | 0.90 | 0.28 | 3.4 |
+| Cumulus | 0.50 | 0.05 | 0.95 | 0.45 | 4.0 |
 | Stratocumulus | 0.75 | 0.95 | 0.10 | 0.20 | 3.8 |
 | Cirrus | 0.38 | 0.30 | 0.10 | 0.02 | 11.0 |
 
 `contact.png` shows the color rows and the silhouettes extracted from the
-luminance/neutrality mask. The silhouettes are the first gate evidence:
+luminance/neutrality mask. `iteration.png` compares the 2.59.0 Cumulus with
+the 2.59.1 lighting iteration. The silhouettes are the first gate evidence:
 isolated rounded masses (Cumulus), horizontal bands and openings
 (Stratocumulus), stretched thin structures (Cirrus).
 
