@@ -121,6 +121,13 @@ def step():
                 scene.camera = cam
             scene.ald.palette = "AFTER_SCHOOL"
             bpy.ops.ald.apply_palette()
+            if not len(scene.ald.shooting_star_events):
+                star = scene.ald.shooting_star_events.add()
+                star.name = "UI Shooting Star"
+                star.start_frame = 1
+                star.duration = 24
+            from anime_look_director import look
+            look.apply_world(scene)
             check_fx_absent()
             window, area = find_area("PROPERTIES")
             if area is not None:

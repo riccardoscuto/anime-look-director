@@ -4,6 +4,7 @@ import math
 
 import bpy
 from bpy.app.handlers import persistent
+from mathutils import Vector
 
 GRADIENT_GROUP = "ALD | World Gradient"
 AUTO_SUN_TAG = "ald_auto_sun"
@@ -298,13 +299,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 28):
+                           or ng.get("ald_build") != 29):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 28
+        ng["ald_build"] = 29
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -316,11 +317,11 @@ def _gradient_group():
              "Cloud Rim Boost", "Cloud Cumulus", "Cloud Stratocumulus",
              "Cloud Cirrus", "Cloud Vertical", "Cloud Breakup", "Cloud Detail",
              "Cloud Sun Lighting", "Star Amount", "Star Density",
-             "Cloud Offset"} <= names
+             "Cloud Offset", "Star0 Start U"} <= names
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 28
+        ng["ald_build"] = 29
     return ng
 
 
@@ -507,6 +508,199 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
             warped_pos.outputs["Vector"])
 
 
+def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
+    """Four controlled 2D shooting stars in gnomonic sky coordinates."""
+    def math(name, x, y, operation, a=None, b=None, clamp=False):
+        node = nodes.new("ShaderNodeMath")
+        node.location = (x, y)
+        node.operation = operation
+        node.use_clamp = clamp
+        if a is not None:
+            links.new(a, node.inputs[0])
+        if b is not None:
+            if hasattr(b, "bl_idname") or hasattr(b, "is_output"):
+                links.new(b, node.inputs[1])
+            else:
+                node.inputs[1].default_value = b
+        return node.outputs[0]
+
+    time = nodes.new("ShaderNodeValue")
+    time.location = (2200, 1200)
+    time.name = "ALD | Star Time"
+    time.outputs[0].default_value = 0.0
+    try:
+        driver = time.outputs[0].driver_add("default_value").driver
+        driver.expression = "frame"
+    except Exception:
+        pass
+
+    # Build gnomonic sky coordinates from the same Generated vector used by
+    # the World.
+    # gnomonic coordinates from the same Generated vector used by the World.
+    tex = nodes.new("ShaderNodeTexCoord")
+    tex.location = (2200, 1520)
+    view = nodes.new("ShaderNodeVectorMath")
+    view.location = (2380, 1520)
+    view.operation = "NORMALIZE"
+    links.new(tex.outputs["Generated"], view.inputs[0])
+    vsep = nodes.new("ShaderNodeSeparateXYZ")
+    vsep.location = (2560, 1520)
+    links.new(view.outputs["Vector"], vsep.inputs["Vector"])
+    zpos = math("MAXIMUM", 2740, 1460, "MAXIMUM", vsep.outputs["Z"], 0.05)
+    u = math("DIVIDE", 2920, 1540, "DIVIDE", vsep.outputs["X"], zpos)
+    v = math("DIVIDE", 2920, 1400, "DIVIDE", vsep.outputs["Y"], zpos)
+
+    total = nodes.new("ShaderNodeRGB")
+    total.location = (2200, 1000)
+    total.outputs[0].default_value = (0.0, 0.0, 0.0, 1.0)
+    current = total.outputs[0]
+    for index in range(4):
+        prefix = "Star%d " % index
+        start_u = group_in.outputs[prefix + "Start U"]
+        start_v = group_in.outputs[prefix + "Start V"]
+        end_u = group_in.outputs[prefix + "End U"]
+        end_v = group_in.outputs[prefix + "End V"]
+        start_frame = group_in.outputs[prefix + "Start Frame"]
+        duration = group_in.outputs[prefix + "Duration"]
+        trail = group_in.outputs[prefix + "Trail"]
+        thickness = group_in.outputs[prefix + "Thickness"]
+        brightness = group_in.outputs[prefix + "Brightness"]
+        glow = group_in.outputs[prefix + "Glow"]
+        enabled = group_in.outputs[prefix + "Enabled"]
+        color = group_in.outputs[prefix + "Color"]
+
+        phase_raw = math("SUBTRACT", 3100, 1300 - index * 260,
+                         "SUBTRACT", time.outputs[0], start_frame)
+        phase = math("DIVIDE", 3280, 1300 - index * 260, "DIVIDE",
+                     phase_raw, duration)
+        phase = math("MAXIMUM", 3460, 1300 - index * 260, "MINIMUM",
+                     phase, 1.0)
+        phase = math("MAXIMUM", 3640, 1300 - index * 260, "MAXIMUM",
+                     phase, 0.0)
+        alive_low = math("GREATER_THAN", 3820, 1240 - index * 260,
+                         "GREATER_THAN", phase, 0.0)
+        alive_high = math("LESS_THAN", 3820, 1360 - index * 260,
+                          "LESS_THAN", phase, 1.0)
+        alive = math("MULTIPLY", 4000, 1300 - index * 260, "MULTIPLY",
+                     alive_low, alive_high)
+        tail = math("SUBTRACT", 3820, 1480 - index * 260, "SUBTRACT",
+                    phase, trail)
+        tail = math("MAXIMUM", 4000, 1480 - index * 260, "MAXIMUM", tail, 0.0)
+
+        du = math("SUBTRACT", 3100, 1660 - index * 260, "SUBTRACT",
+                  end_u, start_u)
+        dv = math("SUBTRACT", 3100, 1780 - index * 260, "SUBTRACT",
+                  end_v, start_v)
+        pu = math("SUBTRACT", 3100, 1900 - index * 260, "SUBTRACT",
+                  u, start_u)
+        pv = math("SUBTRACT", 3100, 2020 - index * 260, "SUBTRACT",
+                  v, start_v)
+        dot = math("ADD", 3280, 1960 - index * 260, "ADD",
+                   math("MULTIPLY", 3280, 1840 - index * 260, "MULTIPLY",
+                        pu, du),
+                   math("MULTIPLY", 3280, 2080 - index * 260, "MULTIPLY",
+                        pv, dv))
+        den = math("ADD", 3280, 2200 - index * 260, "ADD",
+                   math("MULTIPLY", 3280, 2140 - index * 260, "MULTIPLY",
+                        du, du),
+                   math("MULTIPLY", 3280, 2260 - index * 260, "MULTIPLY",
+                        dv, dv))
+        den = math("MAXIMUM", 3460, 2200 - index * 260, "MAXIMUM", den,
+                   0.0001)
+        s = math("DIVIDE", 3640, 2020 - index * 260, "DIVIDE", dot, den)
+        s = math("MAXIMUM", 3820, 2020 - index * 260, "MAXIMUM", s, tail)
+        s = math("MINIMUM", 4000, 2020 - index * 260, "MINIMUM", s, phase)
+        q_u = math("MULTIPLY", 4180, 1900 - index * 260, "MULTIPLY", s, du)
+        q_u = math("ADD", 4360, 1900 - index * 260, "ADD", start_u, q_u)
+        q_v = math("MULTIPLY", 4180, 2140 - index * 260, "MULTIPLY", s, dv)
+        q_v = math("ADD", 4360, 2140 - index * 260, "ADD", start_v, q_v)
+        dx = math("SUBTRACT", 4540, 1900 - index * 260, "SUBTRACT", u, q_u)
+        dy = math("SUBTRACT", 4540, 2140 - index * 260, "SUBTRACT", v, q_v)
+        dist2 = math("ADD", 4720, 2000 - index * 260, "ADD",
+                     math("MULTIPLY", 4720, 1880 - index * 260, "MULTIPLY",
+                          dx, dx),
+                     math("MULTIPLY", 4720, 2120 - index * 260, "MULTIPLY",
+                          dy, dy))
+        dist = math("SQRT", 4900, 2000 - index * 260, "SQRT", dist2)
+
+        width = nodes.new("ShaderNodeMapRange")
+        width.location = (5080, 1840 - index * 260)
+        width.clamp = True
+        _smooth(width)
+        width.inputs["From Min"].default_value = 0.0
+        links.new(thickness, width.inputs["From Max"])
+        width.inputs["To Min"].default_value = 1.0
+        width.inputs["To Max"].default_value = 0.0
+        links.new(dist, width.inputs["Value"])
+
+        head_span = math("SUBTRACT", 5080, 2120 - index * 260, "SUBTRACT",
+                         phase, tail)
+        head_span = math("MAXIMUM", 5260, 2120 - index * 260, "MAXIMUM",
+                         head_span, 0.0001)
+        fade = math("SUBTRACT", 5260, 2000 - index * 260, "SUBTRACT", s, tail)
+        fade = math("DIVIDE", 5440, 2000 - index * 260, "DIVIDE", fade,
+                    head_span)
+        fade = math("MAXIMUM", 5620, 2000 - index * 260, "MINIMUM", fade, 1.0)
+        fade = math("MAXIMUM", 5800, 2000 - index * 260, "MAXIMUM", fade, 0.0)
+        tailfade = math("MULTIPLY", 5980, 2000 - index * 260, "MULTIPLY",
+                        fade, 1.0)
+        tailfade = math("ADD", 6160, 2000 - index * 260, "ADD", tailfade,
+                        0.35)
+        taper = math("MULTIPLY", 6160, 2120 - index * 260, "MULTIPLY",
+                     fade, 0.75)
+        taper = math("ADD", 6340, 2120 - index * 260, "ADD", taper, 0.25)
+        local_width = math("MULTIPLY", 6520, 2120 - index * 260, "MULTIPLY",
+                           thickness, taper)
+        for link in list(width.inputs["From Max"].links):
+            links.remove(link)
+        links.new(local_width, width.inputs["From Max"])
+        body = math("MULTIPLY", 6340, 1840 - index * 260, "MULTIPLY",
+                    width.outputs["Result"], tailfade)
+
+        glow_span = math("MULTIPLY", 5080, 2300 - index * 260, "MULTIPLY",
+                         thickness, 3.0)
+        head_glow = nodes.new("ShaderNodeMapRange")
+        head_glow.location = (5260, 2300 - index * 260)
+        head_glow.clamp = True
+        _smooth(head_glow)
+        head_glow.inputs["From Min"].default_value = 0.0
+        links.new(glow_span, head_glow.inputs["From Max"])
+        head_glow.inputs["To Min"].default_value = 1.0
+        head_glow.inputs["To Max"].default_value = 0.0
+        links.new(dist, head_glow.inputs["Value"])
+        glow_part = math("MULTIPLY", 5440, 2300 - index * 260, "MULTIPLY",
+                         head_glow.outputs["Result"], glow)
+        glow_part = math("MULTIPLY", 5620, 2300 - index * 260, "MULTIPLY",
+                         glow_part, fade)
+        glow_part = math("MULTIPLY", 5800, 2300 - index * 260, "MULTIPLY",
+                         glow_part, 0.6)
+        value = math("ADD", 6520, 1950 - index * 260, "ADD", body, glow_part)
+        value = math("MULTIPLY", 6700, 1950 - index * 260, "MULTIPLY",
+                     value, brightness)
+        value = math("MULTIPLY", 6880, 1950 - index * 260, "MULTIPLY",
+                     value, enabled)
+        value = math("MULTIPLY", 7060, 1950 - index * 260, "MULTIPLY",
+                     value, alive)
+        value = math("MULTIPLY", 7240, 1950 - index * 260, "MULTIPLY",
+                     value, cloud_visibility)
+
+        tint = nodes.new("ShaderNodeVectorMath")
+        tint.location = (7420, 1950 - index * 260)
+        tint.operation = "SCALE"
+        links.new(color, tint.inputs["Vector"])
+        links.new(value, tint.inputs["Scale"])
+        add = nodes.new("ShaderNodeMix")
+        add.location = (7600, 1000 - index * 260)
+        add.data_type = "RGBA"
+        add.blend_type = "ADD"
+        a_sock, b_sock, result_sock = _rgba_sockets(add)
+        links.new(current, a_sock)
+        links.new(tint.outputs["Vector"], b_sock)
+        add.inputs["Factor"].default_value = 1.0
+        current = result_sock
+    return current
+
+
 def _build_gradient_group(ng):
     ng.nodes.clear()
     if hasattr(ng.interface, "clear"):
@@ -633,6 +827,22 @@ def _build_gradient_group(ng):
     star_density.default_value = 180.0
     milky_way = ng.interface.new_socket(name="Milky Way", in_out="INPUT",
                                          socket_type="NodeSocketFloat")
+    for index in range(4):
+        prefix = "Star%d " % index
+        for suffix, default in (("Start U", 0.0), ("Start V", 0.0),
+                                ("End U", 0.0), ("End V", 0.0),
+                                ("Start Frame", 1.0), ("Duration", 24.0),
+                                ("Trail", 0.55), ("Thickness", 0.006),
+                                ("Brightness", 0.0), ("Glow", 1.0),
+                                ("Enabled", 0.0)):
+            socket = ng.interface.new_socket(name=prefix + suffix,
+                                             in_out="INPUT",
+                                             socket_type="NodeSocketFloat")
+            socket.default_value = default
+        socket = ng.interface.new_socket(name=prefix + "Color",
+                                         in_out="INPUT",
+                                         socket_type="NodeSocketColor")
+        socket.default_value = (1.0, 0.86, 0.65, 1.0)
     milky_way.min_value = 0.0
     milky_way.max_value = 1.0
     milky_way.default_value = 0.0
@@ -2260,6 +2470,23 @@ def _build_gradient_group(ng):
     links.new(mw_mask_amt.outputs[0], mw_mix.inputs["Factor"])
     sky_color = mw_mix.outputs["Result"]
 
+    star_visibility = nodes.new("ShaderNodeMath")
+    star_visibility.location = (2040, 1200)
+    star_visibility.operation = "SUBTRACT"
+    star_visibility.inputs[0].default_value = 1.0
+    links.new(cloud_amount_node.outputs[0], star_visibility.inputs[1])
+    star_color = _build_shooting_stars(nodes, links, group_in,
+                                       star_visibility.outputs[0])
+    star_add = nodes.new("ShaderNodeMix")
+    star_add.location = (2800, 1200)
+    star_add.data_type = "RGBA"
+    star_add.blend_type = "ADD"
+    a_sock, b_sock, result_sock = _rgba_sockets(star_add)
+    links.new(sky_color, a_sock)
+    links.new(star_color, b_sock)
+    star_add.inputs["Factor"].default_value = 1.0
+    sky_color = result_sock
+
     # Visible sky stays vivid; ambient light is scaled by World Strength.
     light_path = nodes.new("ShaderNodeLightPath")
     light_path.location = (2320, 420)
@@ -2475,6 +2702,62 @@ def _sun_fade(direction):
             _smoothstep(-0.12, 0.02, height))
 
 
+def _star_endpoints(event):
+    """Start/end gnomonic coordinates of a controlled shooting star."""
+    azimuth = math.radians(float(event.azimuth))
+    elevation = math.radians(float(event.elevation))
+    direction = math.radians(float(event.direction))
+    length = math.radians(max(0.5, float(event.length)))
+    start = Vector((math.cos(elevation) * math.sin(azimuth),
+                    math.cos(elevation) * math.cos(azimuth),
+                    math.sin(elevation))).normalized()
+    east = Vector((-math.sin(azimuth), math.cos(azimuth), 0.0)).normalized()
+    north = Vector((-math.cos(azimuth) * math.sin(elevation),
+                    -math.sin(azimuth) * math.sin(elevation),
+                    math.cos(elevation))).normalized()
+    tangent = east * math.cos(direction) + north * math.sin(direction)
+    end = (start * math.cos(length) + tangent * math.sin(length)).normalized()
+
+    def uv(vector):
+        z = max(float(vector.z), 0.05)
+        return float(vector.x) / z, float(vector.y) / z
+
+    start_u, start_v = uv(start)
+    end_u, end_v = uv(end)
+    return start_u, start_v, end_u, end_v
+
+
+def _apply_star_slots(scene, settings, node):
+    events = list(getattr(settings, "shooting_star_events", []))
+    for index in range(4):
+        prefix = "Star%d " % index
+        event = events[index] if index < len(events) else None
+        if event is None:
+            node.inputs[prefix + "Brightness"].default_value = 0.0
+            node.inputs[prefix + "Enabled"].default_value = 0.0
+            continue
+        u0, v0, u1, v1 = _star_endpoints(event)
+        node.inputs[prefix + "Start U"].default_value = u0
+        node.inputs[prefix + "Start V"].default_value = v0
+        node.inputs[prefix + "End U"].default_value = u1
+        node.inputs[prefix + "End V"].default_value = v1
+        node.inputs[prefix + "Start Frame"].default_value = float(
+            event.start_frame)
+        node.inputs[prefix + "Duration"].default_value = float(
+            max(2, event.duration))
+        node.inputs[prefix + "Trail"].default_value = float(event.trail)
+        node.inputs[prefix + "Thickness"].default_value = float(
+            event.thickness)
+        node.inputs[prefix + "Brightness"].default_value = float(
+            event.brightness)
+        node.inputs[prefix + "Glow"].default_value = float(event.glow)
+        node.inputs[prefix + "Enabled"].default_value = (
+            1.0 if event.enabled else 0.0)
+        color = tuple(event.color)
+        node.inputs[prefix + "Color"].default_value = (
+            color[0], color[1], color[2], 1.0)
+
+
 def _apply_gradient(scene, settings, nt, background, p):
     enabled = settings.world_gradient if settings is not None else True
     node = _gradient_node(nt)
@@ -2595,6 +2878,8 @@ def _apply_gradient(scene, settings, nt, background, p):
     wind = _cloud_offset(scene, settings)
     node.inputs["Cloud Offset"].default_value = (
         wind[0] + seed * 0.017, wind[1] + seed * 0.011, 0.0)
+    if settings is not None:
+        _apply_star_slots(scene, settings, node)
 
     # Remember the original world background so disabling the gradient can
     # restore an HDRI or the user's own color instead of a flat fill.

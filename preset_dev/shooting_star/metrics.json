@@ -1,0 +1,37 @@
+{
+  "event": "Gate Star",
+  "frames": [
+    {
+      "frame": 1,
+      "file": "frame_001.png",
+      "max_luminance": 0.9529,
+      "mean_luminance": 0.1981
+    },
+    {
+      "frame": 8,
+      "file": "frame_008.png",
+      "max_luminance": 0.9529,
+      "mean_luminance": 0.19858
+    },
+    {
+      "frame": 16,
+      "file": "frame_016.png",
+      "max_luminance": 0.9529,
+      "mean_luminance": 0.19875
+    },
+    {
+      "frame": 25,
+      "file": "frame_025.png",
+      "max_luminance": 0.9529,
+      "mean_luminance": 0.1981
+    },
+    {
+      "frame": 30,
+      "file": "frame_030.png",
+      "max_luminance": 0.9529,
+      "mean_luminance": 0.1981
+    }
+  ],
+  "objects": 2,
+  "fx_objects": 0
+}

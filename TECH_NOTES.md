@@ -1279,3 +1279,19 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   larger isolated masses than 2.59.0 without filling the frame.
 - The family contact sheet was regenerated; the gate is still open because the
   top is not as rounded as the v1 reference.
+
+
+### v2.60.0 notes (controlled shooting stars)
+- The star is a World-shader event, not an object. Four fixed slots in the
+  World group carry start/end gnomonic coordinates, start frame, duration,
+  trail, thickness, brightness, glow and color.
+- The time is a `ShaderNodeValue` with the simple driver expression `frame`.
+  The segment is sampled in gnomonic `X/Z, Y/Z`; the tail is tapered by the
+  parameter fade and the head glow is multiplied by the same fade, so the
+  capsule does not read as a uniform line.
+- Two fields per event are evaluated in Python (`_star_endpoints`): the start
+  sky direction and the end after rotating by the event's angular length.
+  Events are capped at 4 and persist in the scene collection.
+- The star is multiplied by `1 - cloud coverage`, so the World clouds hide it.
+  The gate frames show no star at frame 1, a tapered moving star at 8/16, and
+  none at 25/30.

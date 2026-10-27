@@ -42,6 +42,13 @@ def main():
     bpy.ops.ald.build()
     scene.ald.custom_sky = (0.12, 0.2, 0.4)
     palette.sync_custom_colors(scene.ald, palette.preset(scene.ald.palette))
+    star = scene.ald.shooting_star_events.add()
+    star.name = "Fixture Star"
+    star.start_frame = 1
+    star.duration = 24
+    star.azimuth = 120.0
+    star.elevation = 35.0
+    star.brightness = 2.0
     palette.apply_palette(scene, scene.ald.palette)
 
     original_id = identity.scene_id(scene)
@@ -60,6 +67,9 @@ def main():
           "the scene identity changed after the reload")
     check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
           "the reload created an FX object")
+    check(len(scene.ald.shooting_star_events) == 1
+          and scene.ald.shooting_star_events[0].name == "Fixture Star",
+          "the shooting star did not survive the reload")
 
     copy = scene.copy()
     copy.use_fake_user = True

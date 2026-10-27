@@ -206,6 +206,32 @@ def _on_shots(self, context):
         pass
 
 
+class ALD_ShootingStar(bpy.types.PropertyGroup):
+    """A controlled 2D shooting star in the World shader."""
+
+    name: StringProperty(name="Name", default="Shooting Star")
+    enabled: BoolProperty(name="Enabled", default=True)
+    start_frame: IntProperty(name="Start Frame", default=1, min=-100000,
+                             max=100000)
+    duration: IntProperty(name="Duration", default=24, min=2, max=240)
+    azimuth: FloatProperty(name="Azimuth", default=120.0, min=-180.0,
+                           max=180.0, description="Degrees around the sky")
+    elevation: FloatProperty(name="Elevation", default=40.0, min=-10.0,
+                             max=89.0, description="Degrees above the horizon")
+    direction: FloatProperty(name="Direction", default=-35.0, min=-180.0,
+                             max=180.0, description="Trajectory angle in degrees")
+    length: FloatProperty(name="Angular Length", default=18.0, min=1.0,
+                          max=90.0, description="Trajectory length in degrees")
+    trail: FloatProperty(name="Trail", default=0.55, min=0.0, max=0.95)
+    thickness: FloatProperty(name="Thickness", default=0.006, min=0.0005,
+                             max=0.05)
+    brightness: FloatProperty(name="Brightness", default=5.0, min=0.0,
+                              max=30.0)
+    glow: FloatProperty(name="Glow", default=1.0, min=0.0, max=3.0)
+    color: FloatVectorProperty(name="Color", size=3, subtype="COLOR",
+                               default=(1.0, 0.86, 0.65), min=0.0, max=10.0)
+
+
 class ALD_Settings(bpy.types.PropertyGroup):
     palette: EnumProperty(
         name="Atmosphere",
@@ -443,6 +469,10 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="Milky Way", default=0.0, min=0.0, max=1.0,
         description="Luminous anime Galactic River with dark cosmic dust rift",
         update=_on_world)
+    shooting_star_events: CollectionProperty(type=ALD_ShootingStar)
+    shooting_star_selected: IntProperty(
+        name="Selected Shooting Star", default=0, min=0, max=7,
+        update=_on_world)
     bypass: BoolProperty(
         name="Bypass", default=False,
         description="The add-on stops touching the scene: the current look is "
@@ -582,7 +612,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
                              update=_on_params)
 
 
-_classes = (ALD_Settings,)
+_classes = (ALD_ShootingStar, ALD_Settings)
 
 
 def register():

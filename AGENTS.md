@@ -7,7 +7,7 @@ Blender add-on focused on **procedural anime skies** in the World shader. The
 - Blender **5.1.2** on Windows (compositor node-group API).
 - Python 3.13 / NumPy inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.59.1**).
+  (currently **2.60.0**).
 
 ## Verify
 ```powershell
@@ -53,15 +53,19 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   Sun Lighting` scales the solar derivative; `Cloud Seed` offsets the field.
 - Cumulus lighting adds a height tone (lower cloud darker) and a stronger
   solar body range (-0.030..0.004); the default Sun Lighting is 1.2.
-- The first Phase 3 gate (Cumulus in daylight) is approved at 2.59.1. The
-  second gate is the sunset response in `preset_dev/cloud_sunset/`; do not
-  start shooting stars until it is approved.
+- The first Phase 3 gate (Cumulus in daylight) is approved at 2.59.1; the
+  sunset gate is approved at 2.59.1. Shooting stars are the third gate.
+- Shooting stars are persistent `ALD_ShootingStar` events: start frame,
+  duration, azimuth/elevation, direction, angular length, trail, thickness,
+  brightness, glow and color. The World shader evaluates four fixed slots in
+  gnomonic sky coordinates with a frame driver; no object is created. The
+  event list is capped at 4 and survives save/reload.
 - The sky accent is a broad band (`From Max 0.20`), not a narrow stripe.
   Keep the dusk/night transition smooth; the Phase 2 before/after is in
   `preset_dev/sky/contact.png`.
 - `_sun_fade` hides the Sun disk below the horizon and fades the glow by
   about -7 degrees; `update_sun_controls` uses the same gates.
-- The World is a node group (`ALD | World Gradient`, marker 28) with
+- The World is a node group (`ALD | World Gradient`, marker 29) with
   `Ground`, `Horizon`, `Mid Sky`, `Zenith` plus Sun, clouds, stars, Milky Way,
   contrails and sky accent. Palette colors are wired through group sockets,
   never baked into ColorRamp stops.

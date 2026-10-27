@@ -14,7 +14,7 @@ import bpy
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 59, 1)
+EXPECTED_VERSION = (2, 60, 0)
 
 
 def fail(message):
@@ -179,6 +179,24 @@ def check_controls(scene):
     check(offset != moved, "Cloud Seed does not change the field")
     s.cloud_type = "CUMULUS"
     s.cloud_seed = 17
+    palette.apply_palette(scene, s.palette)
+
+    # A controlled shooting star is a World slot, not an object.
+    s.shooting_star_events.clear()
+    star = s.shooting_star_events.add()
+    star.name = "Gate Star"
+    star.start_frame = scene.frame_current
+    star.duration = 24
+    star.brightness = 2.0
+    palette.apply_palette(scene, s.palette)
+    node = gradient(scene)
+    check(node.inputs["Star0 Enabled"].default_value > 0.5,
+          "the shooting star slot is not enabled")
+    check(node.inputs["Star0 Brightness"].default_value > 0.0,
+          "the shooting star has no brightness")
+    check(node.inputs["Star0 Duration"].default_value == 24.0,
+          "the shooting star duration is not wired")
+    s.shooting_star_events.clear()
     palette.apply_palette(scene, s.palette)
 
 

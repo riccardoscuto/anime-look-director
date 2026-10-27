@@ -293,6 +293,69 @@ class ALD_OT_repair_ownership(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_shooting_star_add(bpy.types.Operator):
+    bl_idname = "ald.shooting_star_add"
+    bl_label = "Add Shooting Star"
+    bl_description = "Add a controlled 2D shooting star (maximum 4)"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        settings = context.scene.ald
+        if len(settings.shooting_star_events) >= 4:
+            self.report({"WARNING"},
+                        "Anime Look Director: at most 4 shooting stars")
+            return {"CANCELLED"}
+        event = settings.shooting_star_events.add()
+        event.name = "Shooting Star %d" % len(settings.shooting_star_events)
+        event.start_frame = context.scene.frame_current
+        settings.shooting_star_selected = len(settings.shooting_star_events) - 1
+        look.apply_world(context.scene)
+        return {"FINISHED"}
+
+
+class ALD_OT_shooting_star_duplicate(bpy.types.Operator):
+    bl_idname = "ald.shooting_star_duplicate"
+    bl_label = "Duplicate Shooting Star"
+    bl_description = "Duplicate the selected shooting star"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        settings = context.scene.ald
+        events = settings.shooting_star_events
+        index = settings.shooting_star_selected
+        if index < 0 or index >= len(events) or len(events) >= 4:
+            return {"CANCELLED"}
+        source = events[index]
+        event = events.add()
+        for key in ("enabled", "start_frame", "duration", "azimuth",
+                    "elevation", "direction", "length", "trail",
+                    "thickness", "brightness", "glow", "color"):
+            setattr(event, key, getattr(source, key))
+        event.name = source.name + " Copy"
+        event.start_frame += 12
+        settings.shooting_star_selected = len(events) - 1
+        look.apply_world(context.scene)
+        return {"FINISHED"}
+
+
+class ALD_OT_shooting_star_remove(bpy.types.Operator):
+    bl_idname = "ald.shooting_star_remove"
+    bl_label = "Remove Shooting Star"
+    bl_description = "Remove the selected shooting star"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        settings = context.scene.ald
+        events = settings.shooting_star_events
+        index = settings.shooting_star_selected
+        if index < 0 or index >= len(events):
+            return {"CANCELLED"}
+        events.remove(index)
+        settings.shooting_star_selected = max(0, min(index, len(events) - 1))
+        look.apply_world(context.scene)
+        return {"FINISHED"}
+
+
 class ALD_OT_legacy_disable(bpy.types.Operator):
     bl_idname = "ald.legacy_disable"
     bl_label = "Disable Legacy ALD Objects"
@@ -340,6 +403,8 @@ def _legacy_collections():
 
 
 _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
+            ALD_OT_shooting_star_add, ALD_OT_shooting_star_duplicate,
+            ALD_OT_shooting_star_remove,
             ALD_OT_clear_shadow_tint, ALD_OT_toggle_exclude_material,
             ALD_OT_apply_material_preset, ALD_OT_mark_shot,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,

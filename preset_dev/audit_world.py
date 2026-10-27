@@ -36,8 +36,8 @@ def exists(*paths):
 
 CHECKS = [
     ("Reduction", "The version is the World Sky Edition",
-     lambda: has("__init__.py", '"version": (2, 59, 1)')
-     and has("blender_manifest.toml", 'version = "2.59.1"')),
+     lambda: has("__init__.py", '"version": (2, 60, 0)')
+     and has("blender_manifest.toml", 'version = "2.60.0"')),
     ("Reduction", "The FX and spatial modules are gone",
      lambda: not any(os.path.exists(os.path.join(ROOT, name))
                      for name in ("fx.py", "fx_nodes.py", "clouds.py",
@@ -119,6 +119,21 @@ CHECKS = [
      lambda: exists("preset_dev/cloud_sunset/contact.png",
                     "preset_dev/cloud_sunset/metrics.json",
                     "preset_dev/cloud_sunset/README.md")[0]),
+    ("Shooting stars", "Events are persistent and bounded",
+     lambda: has("properties.py", "ALD_ShootingStar",
+                 "shooting_star_events", "start_frame", "duration")),
+    ("Shooting stars", "The event controls are exposed",
+     lambda: has("operators.py", "ald.shooting_star_add",
+                 "ald.shooting_star_duplicate",
+                 "ald.shooting_star_remove")
+     and has("panels.py", "draw_shooting_stars")[0]),
+    ("Shooting stars", "The World shader evaluates the events",
+     lambda: has("palette.py", "def _build_shooting_stars",
+                 "Star0 Start U", 'prefix + "Color"')),
+    ("Evidence", "The shooting-star gate is recorded",
+     lambda: exists("preset_dev/shooting_star/contact.png",
+                    "preset_dev/shooting_star/metrics.json",
+                    "preset_dev/shooting_star/README.md")[0]),
     ("Evidence", "The World gate and lifecycle fixture are runnable",
      lambda: exists("preset_dev/verify.py",
                     "preset_dev/world_fixture.py")[0]),

@@ -100,6 +100,40 @@ def draw_world(layout, context):
         col.prop(s, "star_strength")
         col.prop(s, "star_density")
         col.prop(s, "milky_way")
+    draw_shooting_stars(layout, context)
+
+
+def draw_shooting_stars(layout, context):
+    from . import panels
+    s = context.scene.ald
+    box = layout.box()
+    box.label(text="Shooting Stars", icon="LIGHT")
+    row = box.row(align=True)
+    row.operator("ald.shooting_star_add", icon="ADD")
+    row.operator("ald.shooting_star_duplicate", icon="DUPLICATE")
+    row.operator("ald.shooting_star_remove", icon="REMOVE")
+    if not len(s.shooting_star_events):
+        box.label(text="No controlled event (max 4)", icon="INFO")
+        return
+    box.template_list("UI_UL_list", "", s, "shooting_star_events",
+                      s, "shooting_star_selected", rows=3)
+    index = max(0, min(s.shooting_star_selected,
+                       len(s.shooting_star_events) - 1))
+    event = s.shooting_star_events[index]
+    col = box.column(align=True)
+    col.prop(event, "name")
+    col.prop(event, "enabled")
+    col.prop(event, "start_frame")
+    col.prop(event, "duration")
+    col.prop(event, "azimuth")
+    col.prop(event, "elevation")
+    col.prop(event, "direction")
+    col.prop(event, "length")
+    col.prop(event, "trail")
+    col.prop(event, "thickness")
+    col.prop(event, "brightness")
+    col.prop(event, "glow")
+    col.prop(event, "color")
     col = box.column(align=True)
     col.prop(s, "sun_elevation")
     col.prop(s, "sun_azimuth")

@@ -1,6 +1,6 @@
 {
-  "passed": 27,
-  "total": 27,
+  "passed": 31,
+  "total": 31,
   "results": [
     {
       "category": "Reduction",
@@ -155,6 +155,30 @@
     {
       "category": "Evidence",
       "label": "The sunset cloud gate is recorded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Shooting stars",
+      "label": "Events are persistent and bounded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Shooting stars",
+      "label": "The event controls are exposed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Shooting stars",
+      "label": "The World shader evaluates the events",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Evidence",
+      "label": "The shooting-star gate is recorded",
       "passed": true,
       "detail": ""
     },

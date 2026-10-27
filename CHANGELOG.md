@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.60.0 - 2026-10-27
+Phase 4: controlled 2D shooting stars.
+
+### Added
+- Persistent `ALD_ShootingStar` events with start frame, duration, sky
+  position, direction, angular length, trail, thickness, brightness, glow and
+  color.
+- Add / duplicate / remove operators and a Shooting Stars panel (max 4).
+- Four World-shader slots evaluated in gnomonic sky coordinates with a frame
+  driver; the head moves, the tail tapers and the event disappears after its
+  duration. No objects or particles are created.
+- Clouds attenuate the star through the World coverage mask.
+
+### Evidence
+- `preset_dev/shooting_star/` frames 1 / 8 / 16 / 25 / 30, contact and README.
+- `world_fixture.py` saves and reloads the event.
+- Audit **31/31**.
+
 ## 2.59.1 - 2026-10-27
 Cumulus shape/lighting iteration.
 

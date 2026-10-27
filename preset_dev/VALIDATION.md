@@ -1,6 +1,6 @@
 # Anime Look Director — World Sky Edition validation
 
-Current release: **2.59.1** (Blender 5.1.2, Windows 11).
+Current release: **2.60.0** (Blender 5.1.2, Windows 11).
 
 ## Commands
 
@@ -23,8 +23,9 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 2 sky | `sky/contact.png`, `sky/metrics.json` | noon / sunset / dusk / night, clouds off |
 | Phase 3 clouds | `cloud_families/contact.png`, `metrics.json` | Cumulus / Stratocumulus / Cirrus, same day sun |
 | Phase 3 sunset | `cloud_sunset/contact.png`, `metrics.json` | GOLDEN_HOUR, side and backlit |
+| Shooting stars | `shooting_star/contact.png`, `metrics.json` | persistent event, frames 1/8/16/25/30 |
 | UI | `preset_dev/ui/ui_properties.png`, `ui_sidebar.png`, `ui_compositor.png` | panels draw; no FX section |
-| Package | `dist/anime_look_director-2.59.1.zip` | extension build PASS; 2.59.1 installed and enabled in an isolated config |
+| Package | `dist/anime_look_director-2.60.0.zip` | extension build PASS; 2.60.0 installed and enabled in an isolated config |
 
 ## Phase 1 definition of done
 
@@ -41,7 +42,8 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 0 visual baseline | DONE | `preset_dev/world_baseline/` |
 | Phase 2 cloudless sky | DONE | broad accent, Sun fade, `preset_dev/sky/` |
 | Phase 3 cloud families | DAY GATE APPROVED | Cumulus 2.59.1 |
-| Phase 3 sunset | GATE PENDING | GOLDEN_HOUR side/backlit; approval requested |
+| Phase 3 sunset | APPROVED | GOLDEN_HOUR side/backlit |
+| Shooting stars | GATE PENDING | controlled event; approval requested |
 
 ## Deliberate limits
 
