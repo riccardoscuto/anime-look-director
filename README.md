@@ -302,7 +302,8 @@ manifest `[build]` list.
   effects)
 - v2.55.1 - validation report and explicit legacy-failure label
 - v2.55.2 - 2.39 cloud baseline measured on the same camera
-- v2.55.3 - cloud billboard views (shot / side locked / side facing) (current)
+- v2.55.3 - cloud billboard views (shot / side locked / side facing)
+- v2.55.4 - cloud benchmark: 5 runs, colour/position/shape/memory separated (current)
 
 ## Recap
 Italian overview of the whole add-on: [`RECAP.md`](RECAP.md).

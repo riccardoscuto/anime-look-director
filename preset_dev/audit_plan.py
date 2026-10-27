@@ -317,6 +317,9 @@ CHECKS = [
     ("VI-SC", "Old shared FX materials are copied per scene",
      lambda: has("fx.py", "def ensure_materials", "modifier[item.identifier]")
      and has("preset_dev/verify.py", "the old shared FX material")[0]),
+    ("VI-SC", "The cloud benchmark separates colour/position/shape/memory",
+     lambda: has("preset_dev/bench_clouds.py", "color_s", "position_s",
+                 "shape_s", "memory_mb")),
     ("VI-SC", "The cloud side views and Camera Facing are recorded",
      lambda: exists("preset_dev/cloud_views/side_locked.png")[0]
      and exists("preset_dev/cloud_views/side_facing.png")[0]

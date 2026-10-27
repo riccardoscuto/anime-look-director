@@ -512,6 +512,12 @@
     },
     {
       "evidence": "",
+      "label": "The cloud benchmark separates colour/position/shape/memory",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "The cloud side views and Camera Facing are recorded",
       "phase": "VI-SC",
       "state": "OK"
@@ -764,7 +770,7 @@
     }
   ],
   "partial": 0,
-  "passed": 127,
+  "passed": 128,
   "plan": "v2.27.0 P0-P3",
-  "total": 127
+  "total": 128
 }

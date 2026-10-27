@@ -81,6 +81,18 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
 
+## Novità 2.55.4 — benchmark nuvole separato
+
+- **5 run** per scenario; mediana e tutti i run.
+- Il refresh misurato è quello del **callback della proprietà** (depth/coverage);
+  prima si misurava un refresh no-op dopo l'aggiornamento.
+- La **memoria** è una sonda separata (`tracemalloc`, picco Python, non GPU):
+  attivarla durante i timing rallenta la creazione di 5-8×.
+- Mediane 720p: creazione 0.12–1.54 s, colore 0.16–0.78 ms, posizione
+  1.0–3.6 ms, forma 0.12–1.40 s, render 2.13–3.41 s, picco Python 1.9–29.0 MB.
+- Confronto 2.39: 0.569 s / 2.905 s (2.55, 0.5/3 layer) contro
+  0.0072 s / 3.275 s (2.39).
+
 ## Novità 2.55.3 — viste delle card
 
 - **`preset_dev/cloud_views/`**: la stessa scena, palette, coverage 0.5, 3 layer

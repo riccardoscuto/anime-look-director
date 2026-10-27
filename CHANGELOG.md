@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.55.4 - 2026-10-27
+Cloud benchmark: colour, position, shape and memory separated.
+
+### Changed
+- Five runs per scenario; the table records the median and every run.
+- The property update is the timed refresh (`clouds_depth`,
+  `clouds_coverage`); the old code timed a no-op refresh after the callback.
+- The memory probe is separate: `tracemalloc` slows the creation 5-8x and must
+  not contaminate the timing table. The value is the Python peak, not GPU.
+- Medians at 720p: creation 0.12-1.54 s, colour 0.16-0.78 ms, position
+  1.0-3.6 ms, shape 0.12-1.40 s, render 2.13-3.41 s, Python peak 1.9-29.0 MB.
+- The 2.39 comparison uses the 5-run 0.5 / 3-layer median: 0.569 s creation,
+  2.905 s render against the old 0.0072 s / 3.275 s.
+
 ## 2.55.3 - 2026-10-27
 Cloud billboard evidence.
 

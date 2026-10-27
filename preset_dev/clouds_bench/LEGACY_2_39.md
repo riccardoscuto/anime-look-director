@@ -24,7 +24,7 @@ superseded by this measurement.
 | Add-on | Geometry | Creation | Render (median) |
 |---|---|---|---|
 | 2.39.0 | 1,536 quads (3 cards) | 0.0072 s | 3.275 s (first run 4.438 s) |
-| 2.55 | 57,968 triangles (3 card layers) | 0.518 s | 2.723 s |
+| 2.55.4 | 57,968 triangles (3 card layers) | 0.569 s | 2.905 s |
 
 Raw records: `legacy_2_39.json`, `metrics.json`; the old render is
 `legacy_2_39.png`, the new reference `c0.50_l3.png`.
@@ -32,7 +32,7 @@ Raw records: `legacy_2_39.json`, `metrics.json`; the old render is
 ## Caveats
 
 - The old mesh is quads, the new one triangles; the new is about **19x** the
-  triangles and **72x** the creation time. The render is comparable/slightly
+  triangles and **79x** the creation time. The render is comparable/slightly
   faster on this machine and scene, not a general performance win.
 - The old amount 0.65 and the new coverage 0.5 are the closest artistic
   settings, not an exact same-coverage measurement.

@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.55.3**).
+  (currently **2.55.4**).
 
 ## Verify (run after every change)
 ```powershell
@@ -925,6 +925,16 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     copy gets a fake user so it survives): the identities and the cloud
     collections stay distinct, and removing the reloaded copy keeps the
     original;
+- 2.55.4 benchmark rules:
+  - the creation, colour, position, shape, render and memory are six separate
+    numbers; five runs, median and all runs;
+  - the refresh is timed through the property update (`clouds_depth`,
+    `clouds_coverage`): the `_on_clouds` callback performs it; a manual
+    `clouds.refresh` after the set is a no-op;
+  - `tracemalloc` is a separate probe (one creation) because it slows the
+    creation 5-8x; the value is the Python peak, not the GPU memory;
+  - 720p medians: creation 0.12-1.54 s, colour 0.16-0.78 ms, position
+    1.0-3.6 ms, shape 0.12-1.40 s, render 2.13-3.41 s, Python peak 1.9-29.0 MB;
 - 2.55.2 benchmark rules:
   - the 2.39 baseline comes from the `v2.39.0` tag in a temporary worktree,
     enabled through a temporary `BLENDER_USER_SCRIPTS` so the current add-on is
