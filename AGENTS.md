@@ -7,7 +7,7 @@ Blender add-on focused on **procedural anime skies** in the World shader. The
 - Blender **5.1.2** on Windows (compositor node-group API).
 - Python 3.13 / NumPy inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.57.0**).
+  (currently **2.58.0**).
 
 ## Verify
 ```powershell
@@ -18,7 +18,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 ```
 Expected: `ALD GATE: PASS`, `ALD ALL: PASS`, `ALD BUILD: PASS`.
 
-World-only visual baseline (Phase 0 evidence):
+World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 ```powershell
 & $blender -b --factory-startup --python preset_dev\world_baseline.py -- `
   --out preset_dev\world_baseline\current --tag v2.57.0
@@ -44,6 +44,11 @@ World-only visual baseline (Phase 0 evidence):
   `audit_world.py` source audit.
 
 ## World invariants
+- The sky accent is a broad band (`From Max 0.20`), not a narrow stripe.
+  Keep the dusk/night transition smooth; the Phase 2 before/after is in
+  `preset_dev/sky/contact.png`.
+- `_sun_fade` hides the Sun disk below the horizon and fades the glow by
+  about -7 degrees; `update_sun_controls` uses the same gates.
 - The World is a node group (`ALD | World Gradient`, marker 28) with
   `Ground`, `Horizon`, `Mid Sky`, `Zenith` plus Sun, clouds, stars, Milky Way,
   contrails and sky accent. Palette colors are wired through group sockets,

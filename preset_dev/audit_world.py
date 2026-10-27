@@ -36,8 +36,8 @@ def exists(*paths):
 
 CHECKS = [
     ("Reduction", "The version is the World Sky Edition",
-     lambda: has("__init__.py", '"version": (2, 57, 0)')
-     and has("blender_manifest.toml", 'version = "2.57.0"')),
+     lambda: has("__init__.py", '"version": (2, 58, 0)')
+     and has("blender_manifest.toml", 'version = "2.58.0"')),
     ("Reduction", "The FX and spatial modules are gone",
      lambda: not any(os.path.exists(os.path.join(ROOT, name))
                      for name in ("fx.py", "fx_nodes.py", "clouds.py",
@@ -92,9 +92,17 @@ CHECKS = [
     ("UI", "The quick panel exposes Apply and the compositor state",
      lambda: has("panels.py", "ald.apply_palette",
                  "Compositor optional")),
+    ("Sky", "The sky accent band is soft, not a stripe",
+     lambda: has("palette.py", 'accent_band.inputs["From Max"].default_value = 0.20')),
+    ("Sky", "The Sun disk and glow fade below the horizon",
+     lambda: has("palette.py", "def _sun_fade", "disk_gate", "glow_gate")),
     ("Evidence", "The Phase 0 World baseline is frozen",
      lambda: exists("preset_dev/world_baseline/contact_1280.png",
                     "preset_dev/world_baseline/README.md")[0]),
+    ("Evidence", "The Phase 2 cloudless sky matrix is recorded",
+     lambda: exists("preset_dev/sky/contact.png",
+                    "preset_dev/sky/metrics.json",
+                    "preset_dev/sky/README.md")[0]),
     ("Evidence", "The World gate and lifecycle fixture are runnable",
      lambda: exists("preset_dev/verify.py",
                     "preset_dev/world_fixture.py")[0]),

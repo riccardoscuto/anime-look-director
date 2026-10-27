@@ -792,7 +792,7 @@ def _build_gradient_group(ng):
     accent_band.clamp = True
     _smooth(accent_band)
     accent_band.inputs["From Min"].default_value = 0.0
-    accent_band.inputs["From Max"].default_value = 0.07
+    accent_band.inputs["From Max"].default_value = 0.20
     accent_band.inputs["To Min"].default_value = 1.0
     accent_band.inputs["To Max"].default_value = 0.0
     links.new(accent_abs.outputs[0], accent_band.inputs["Value"])
@@ -2310,6 +2310,21 @@ def _cloud_offset(scene, settings):
     return (seconds * wind * 0.02, seconds * wind * 0.005, 0.0)
 
 
+def _smoothstep(edge0, edge1, value):
+    span = max(edge1 - edge0, 1e-6)
+    t = max(0.0, min(1.0, (value - edge0) / span))
+    return t * t * (3.0 - 2.0 * t)
+
+
+def _sun_fade(direction):
+    """The disk and glow response when the Sun crosses the horizon."""
+    if direction is None:
+        return 0.0, 0.0
+    height = float(direction[2])
+    return (_smoothstep(-0.015, 0.02, height),
+            _smoothstep(-0.12, 0.02, height))
+
+
 def _apply_gradient(scene, settings, nt, background, p):
     enabled = settings.world_gradient if settings is not None else True
     node = _gradient_node(nt)
@@ -2366,8 +2381,9 @@ def _apply_gradient(scene, settings, nt, background, p):
     sun_disk = getattr(settings, "sun_disk", True) if settings else True
     sun_strength = (getattr(settings, "sun_disk_strength", 6.0)
                     if settings else 6.0)
+    disk_gate, glow_gate = _sun_fade(direction)
     node.inputs["Sun Strength"].default_value = (
-        sun_strength if sun_disk and direction is not None else 0.0)
+        sun_strength * disk_gate if sun_disk and direction is not None else 0.0)
     radius = max(0.1, getattr(settings, "sun_disk_size", 1.5)
                  if settings else 1.5)
     softness = max(0.2, radius * 0.25)
@@ -2377,7 +2393,7 @@ def _apply_gradient(scene, settings, nt, background, p):
     sun_glow_on = getattr(settings, "sun_glow_enabled", True) if settings else True
     node.inputs["Sun Glow"].default_value = (
         (getattr(settings, "sun_glow", 0.45) if settings else 0.45)
-        if sun_glow_on else 0.0)
+        * glow_gate if sun_glow_on else 0.0)
     node.inputs["Sky Accent"].default_value = _rgba(
         getattr(settings, "sky_accent", (0.05, 0.32, 0.42))
         if settings else (0.05, 0.32, 0.42))
@@ -2386,11 +2402,6 @@ def _apply_gradient(scene, settings, nt, background, p):
 
     clouds = getattr(settings, "clouds", True) if settings else False
     cloud_amount = getattr(settings, "cloud_amount", 0.6) if clouds else 0.0
-    if settings is not None and getattr(settings, "clouds_created", False):
-        # The spatial cards and the World clouds are two populations: the
-        # blend keeps the World from drawing the same sky twice.
-        cloud_amount *= max(0.0, 1.0 - float(
-            getattr(settings, "clouds_world_blend", 0.0)))
     node.inputs["Cloud Amount"].default_value = cloud_amount
     node.inputs["Cloud Scale"].default_value = (
         getattr(settings, "cloud_scale", 3.0) if settings else 3.0)
@@ -2505,10 +2516,16 @@ def update_sun_controls(scene):
                 and o.data.type == "SUN"), None)
     if sun is not None and sun.data is not None:
         node.inputs["Sun Color"].default_value = _rgba(sun.data.color)
+    disk_gate, glow_gate = _sun_fade(direction)
     if settings is not None and settings.sun_disk:
-        node.inputs["Sun Strength"].default_value = settings.sun_disk_strength
+        node.inputs["Sun Strength"].default_value = (
+            settings.sun_disk_strength * disk_gate)
+        node.inputs["Sun Glow"].default_value = (
+            settings.sun_glow * glow_gate
+            if settings.sun_glow_enabled else 0.0)
     else:
         node.inputs["Sun Strength"].default_value = 0.0
+        node.inputs["Sun Glow"].default_value = 0.0
 
 
 @persistent

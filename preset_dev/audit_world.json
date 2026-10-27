@@ -1,6 +1,6 @@
 {
-  "passed": 20,
-  "total": 20,
+  "passed": 23,
+  "total": 23,
   "results": [
     {
       "category": "Reduction",
@@ -111,8 +111,26 @@
       "detail": ""
     },
     {
+      "category": "Sky",
+      "label": "The sky accent band is soft, not a stripe",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Sky",
+      "label": "The Sun disk and glow fade below the horizon",
+      "passed": true,
+      "detail": ""
+    },
+    {
       "category": "Evidence",
       "label": "The Phase 0 World baseline is frozen",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Evidence",
+      "label": "The Phase 2 cloudless sky matrix is recorded",
       "passed": true,
       "detail": ""
     },

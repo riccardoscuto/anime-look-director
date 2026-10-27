@@ -33,7 +33,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 & $blender -b --factory-startup --python preset_dev\build_release.py
 ```
 
-Install `dist/anime_look_director-2.57.0.zip` in Blender 5.1.2:
+Install `dist/anime_look_director-2.58.0.zip` in Blender 5.1.2:
 `Edit > Preferences > Extensions > Install from Disk`.
 
 The add-on is also usable from the source directory as a legacy add-on.
@@ -47,11 +47,12 @@ The add-on is also usable from the source directory as a legacy add-on.
 4. Adjust World, Sun, clouds and stars in **World & Shadows**.
 5. Enable the compositor only if you want the optional art filters.
 
-## Version 2.57.0 scope
+## Version 2.58.0 scope
 
 - World-only operational path.
 - No FX objects, collections, Geometry Nodes, smoke volumes or EXR pass.
 - The compositor is optional and contains only general effects.
+- Phase 2 cloudless sky: broad sky-accent transition and Sun below-horizon fade.
 - Old `.blend` files are not cleaned automatically. Use the **Legacy ALD Data**
   panel: **Disable** hides the old ALD collections (reversible), **Remove**
   deletes them after an explicit action. See `MIGRATION_2_57.md`.

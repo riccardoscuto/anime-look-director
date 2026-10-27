@@ -1238,3 +1238,17 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The World baseline was rendered by checking out v1.0.3/v1.1.0 in temporary
   worktrees and enabling the old add-on from a temporary
   `BLENDER_USER_SCRIPTS`. The comparison is in `preset_dev/world_baseline/`.
+
+
+### v2.58.0 notes (cloudless sky)
+- The Sky Accent was a narrow 0.07 band. At dusk and night it read as a hard
+  blue stripe across the sky. The band is now 0.20 wide; the transition reads
+  as atmosphere. The before/after matrix is `preset_dev/sky/contact.png`.
+- The Sun disk stayed at full strength below the horizon. `_sun_fade` now
+  gates the disk between -0.015 and +0.02 in view-space Z and the glow between
+  -0.12 and +0.02; `update_sun_controls` uses the same gates during animation.
+- The cloudless matrix renders noon/sunset/dusk/night with clouds off. Noon and
+  sunset are unchanged; dusk/night lost the stripe.
+- The remaining legacy World firework/meteor shader blocks and settings were
+  removed; the World group schema is now 28. The Phase 4 shooting-star system
+  will be a new controlled generator, not the old Voronoi field.

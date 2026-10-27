@@ -1,0 +1,49 @@
+{
+  "resolution": [
+    1280,
+    720
+  ],
+  "clouds": false,
+  "cells": [
+    {
+      "file": "noon.png",
+      "palette": "SUMMER_NOON",
+      "sun_elevation": 35.0,
+      "sun_azimuth": -25.0,
+      "clouds": false,
+      "stars": false,
+      "mean_luminance": 0.60812,
+      "max_luminance": 0.7765
+    },
+    {
+      "file": "sunset.png",
+      "palette": "AFTER_SCHOOL",
+      "sun_elevation": 4.0,
+      "sun_azimuth": 25.0,
+      "clouds": false,
+      "stars": false,
+      "mean_luminance": 0.57132,
+      "max_luminance": 0.8039
+    },
+    {
+      "file": "dusk.png",
+      "palette": "TWILIGHT_DUSK",
+      "sun_elevation": -6.0,
+      "sun_azimuth": 25.0,
+      "clouds": false,
+      "stars": false,
+      "mean_luminance": 0.4129,
+      "max_luminance": 0.8196
+    },
+    {
+      "file": "night.png",
+      "palette": "NEON_NIGHT",
+      "sun_elevation": -18.0,
+      "sun_azimuth": 25.0,
+      "clouds": false,
+      "stars": true,
+      "mean_luminance": 0.39842,
+      "max_luminance": 0.9451
+    }
+  ]
+}

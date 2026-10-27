@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.58.0 - 2026-10-27
+Phase 2: cloudless sky consolidation.
+
+### Changed
+- Sky Accent is a broad, smooth band (0.20 half-width) instead of a narrow
+  0.07 stripe: the dusk/night blue band is gone.
+- `_sun_fade` gates the Sun disk below the horizon and fades the glow around
+  -7 degrees; the frame handler uses the same gates.
+- The legacy World fireworks and meteors were already removed from the
+  operational path; their remaining shader blocks and settings are gone.
+
+### Evidence
+- `preset_dev/sky/` - noon, sunset, dusk, night with clouds off; before/after
+  against v2.57.0, `contact.png`, `metrics.json`, README.
+- World gate covers the Sun below-horizon response.
+- Audit **23/23**.
+
 ## 2.57.0 - 2026-10-27
 World Sky Edition: the World is now the product.
 

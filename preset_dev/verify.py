@@ -14,7 +14,7 @@ import bpy
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 57, 0)
+EXPECTED_VERSION = (2, 58, 0)
 
 
 def fail(message):
@@ -111,6 +111,18 @@ def check_world_and_sun(scene):
     check(abs(light.rotation_euler.x - palette.rotation_from_angles(24, 35)[0])
           < 1e-4, "the elevation was not applied")
     check(light.name == first, "the Sun was replaced by the angle update")
+
+    palette.apply_palette(scene, scene.ald.palette)
+    node = gradient(scene)
+    check(node.inputs["Sun Strength"].default_value > 0.1,
+          "the Sun disk is dark above the horizon")
+    palette.apply_sun_angles(scene, -8.0, 35.0)
+    palette.apply_palette(scene, scene.ald.palette)
+    node = gradient(scene)
+    check(node.inputs["Sun Strength"].default_value < 0.01,
+          "the Sun disk is visible below the horizon")
+    check(node.inputs["Sun Glow"].default_value < 0.1,
+          "the Sun glow is too strong below the horizon")
 
 
 def check_controls(scene):
