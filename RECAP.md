@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.50.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.51.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,16 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.51.0 — regia esplicita shot/animazione
+
+- **Render Shot (FX + Composite)** e **Render Animation (FX + Composite)**:
+  generano prima il pass (still o sequenza), ricostruiscono lo stack e poi
+  renderizzano il composite nell'output della scena. Nessun render annidato
+  dentro un handler.
+- Il box FX Pass separa i pulsanti **pass-only** dai due pulsanti finali.
+- Il gate rende uno shot e un'animazione di due frame con i nuovi operatori e
+  controlla i file e l'intervallo del pass.
 
 ## Novità 2.50.0 — bordo delle card e fixture linked-copy
 

@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 50, 0)
+EXPECTED_VERSION = (2, 51, 0)
 TOLERANCE = 1e-4
 
 
@@ -3977,6 +3977,59 @@ def check_fx_pass_sequence(scene):
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
+def check_fx_render_orchestration(scene):
+    """C1: the shot and the animation render the pass and the composite."""
+    from anime_look_director import fx as fx_module
+
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y,
+                     scene.render.resolution_percentage)
+    previous_range = (scene.frame_start, scene.frame_end)
+    previous_frame = scene.frame_current
+    previous_output = scene.render.filepath
+    folder = tempfile.mkdtemp(prefix="ald_orch_")
+    try:
+        scene.render.resolution_x = 128
+        scene.render.resolution_y = 72
+        scene.render.resolution_percentage = 100
+        scene.render.image_settings.file_format = "PNG"
+        scene.frame_start = 1
+        scene.frame_end = 2
+        scene.frame_set(1)
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
+        bpy.ops.ald.build()
+
+        shot = os.path.join(folder, "shot.png")
+        scene.render.filepath = shot
+        bpy.ops.ald.fx_render_shot()
+        check(os.path.exists(shot), "the shot composite was not written")
+
+        scene.render.filepath = os.path.join(folder, "anim_")
+        bpy.ops.ald.fx_render_animation()
+        for frame in (1, 2):
+            path = os.path.join(folder, "anim_%04d.png" % frame)
+            check(os.path.exists(path),
+                  "the animation composite frame %d is missing" % frame)
+        check(scene.ald.fx_pass_frames[1] >= scene.ald.fx_pass_frames[0],
+              "the animation pass lost its frame range")
+    finally:
+        scene.render.filepath = previous_output
+        scene.render.resolution_x, scene.render.resolution_y, \
+            scene.render.resolution_percentage = previous_size
+        scene.frame_start, scene.frame_end = previous_range
+        scene.frame_set(previous_frame)
+        fx_module.clear(scene)
+        for name in os.listdir(folder):
+            try:
+                os.remove(os.path.join(folder, name))
+            except OSError:
+                pass
+        try:
+            os.rmdir(folder)
+        except OSError:
+            pass
+
+
 def check_fx_identity(scene):
     """P0-D: with zero FX the recomposition is the identity."""
     from anime_look_director import fx as fx_module
@@ -4546,6 +4599,7 @@ def main():
         check_cloud_contour()
         check_fx_pass_isolation(scene)
         check_fx_pass_sequence(scene)
+        check_fx_render_orchestration(scene)
         check_fx_identity(scene)
         check_world_time_seconds(scene)
         check_fx_kamuro(scene)

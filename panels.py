@@ -583,7 +583,12 @@ def draw_fx_pass(layout, context):
     box.label(text="FX Pass (isolated emission)", icon="RENDER_STILL")
     row = box.row(align=True)
     row.operator("ald.fx_render_pass", icon="RENDER_STILL")
-    row.operator("ald.fx_render_pass_animation", text="Animation",
+    row.operator("ald.fx_render_pass_animation", text="Pass Animation",
+                 icon="RENDER_ANIMATION")
+    row = box.row(align=True)
+    row.operator("ald.fx_render_shot", text="Render Shot",
+                 icon="RENDER_STILL")
+    row.operator("ald.fx_render_animation", text="Render Animation",
                  icon="RENDER_ANIMATION")
     state, text = compositor.fx_pass_state(context.scene)
     icon = {"ready": "CHECKMARK", "missing": "INFO",

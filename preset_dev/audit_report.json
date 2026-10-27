@@ -506,6 +506,12 @@
     },
     {
       "evidence": "",
+      "label": "The shot and animation render the pass and the composite",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "Cloud cards carry a border rim",
       "phase": "VI-SC",
       "state": "OK"
@@ -710,7 +716,7 @@
     }
   ],
   "partial": 0,
-  "passed": 118,
+  "passed": 119,
   "plan": "v2.27.0 P0-P3",
-  "total": 118
+  "total": 119
 }

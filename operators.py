@@ -770,6 +770,51 @@ class ALD_OT_fx_render_pass_animation(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ALD_OT_fx_render_shot(bpy.types.Operator):
+    bl_idname = "ald.fx_render_shot"
+    bl_label = "Render Shot (FX + Composite)"
+    bl_description = ("Render the FX pass of the current frame, rebuild the "
+                      "stack and then render the composite to the scene output")
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        from . import compositor
+        scene = context.scene
+        path = compositor.render_fx_pass(scene)
+        if not path:
+            self.report({"WARNING"}, "Anime Look Director: no FX to render")
+            return {"CANCELLED"}
+        compositor.build(scene)
+        bpy.ops.render.render(write_still=True)
+        self.report({"INFO"},
+                    "Anime Look Director: shot and FX pass %s rendered" % path)
+        return {"FINISHED"}
+
+
+class ALD_OT_fx_render_animation(bpy.types.Operator):
+    bl_idname = "ald.fx_render_animation"
+    bl_label = "Render Animation (FX + Composite)"
+    bl_description = ("Render the FX pass sequence first, then the full "
+                      "composite animation: the pass follows every frame")
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        from . import compositor
+        scene = context.scene
+        current = scene.frame_current
+        path = compositor.render_fx_pass_animation(scene)
+        if not path:
+            self.report({"WARNING"},
+                        "Anime Look Director: the frame range is empty")
+            return {"CANCELLED"}
+        compositor.build(scene)
+        bpy.ops.render.render(animation=True)
+        scene.frame_set(current)
+        self.report({"INFO"},
+                    "Anime Look Director: animation and FX pass rendered")
+        return {"FINISHED"}
+
+
 class ALD_OT_clouds_create(bpy.types.Operator):
     bl_idname = "ald.clouds_create"
     bl_label = "Create Spatial Clouds"
@@ -825,6 +870,7 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_fx_show, ALD_OT_smoke_create, ALD_OT_smoke_remove,
             ALD_OT_clouds_create, ALD_OT_clouds_remove,
             ALD_OT_fx_render_pass, ALD_OT_fx_render_pass_animation,
+            ALD_OT_fx_render_shot, ALD_OT_fx_render_animation,
             ALD_OT_repair_ownership,
             ALD_OT_fx_anchor_create, ALD_OT_fx_ground_create,
             ALD_OT_fx_diagnose,
