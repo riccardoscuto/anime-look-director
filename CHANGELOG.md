@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.59.0 - 2026-10-27
+Phase 3 first gate: World cloud families.
+
+### Added
+- `Cloud Type`: Cumulus, Stratocumulus, Cirrus.
+- Controls: Vertical Development, Breakup, Detail, Seed, Sun Lighting.
+- The same density drives the three family silhouettes: Cumulus lowers the
+  effective flatness, Stratocumulus raises it, Cirrus stretches the sky ray
+  and thins the field.
+
+### Evidence
+- `preset_dev/cloud_families/` - three color renders, silhouettes and
+  `contact.png` under one day sky and camera.
+- `Cloud Type`/Seed checks in the World gate.
+- Audit **26/26**.
+
 ## 2.58.0 - 2026-10-27
 Phase 2: cloudless sky consolidation.
 

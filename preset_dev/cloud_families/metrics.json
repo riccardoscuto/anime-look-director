@@ -1,0 +1,39 @@
+{
+  "palette": "SUMMER_NOON",
+  "resolution": [
+    1280,
+    720
+  ],
+  "families": [
+    {
+      "file": "cumulus.png",
+      "type": "CUMULUS",
+      "amount": 0.5,
+      "flatness": 0.15,
+      "vertical": 0.9,
+      "breakup": 0.4,
+      "scale": 4.0,
+      "mean_luminance": 0.62758
+    },
+    {
+      "file": "stratocumulus.png",
+      "type": "STRATOCUMULUS",
+      "amount": 0.75,
+      "flatness": 0.95,
+      "vertical": 0.1,
+      "breakup": 0.2,
+      "scale": 3.8,
+      "mean_luminance": 0.6476
+    },
+    {
+      "file": "cirrus.png",
+      "type": "CIRRUS",
+      "amount": 0.38,
+      "flatness": 0.3,
+      "vertical": 0.1,
+      "breakup": 0.02,
+      "scale": 11.0,
+      "mean_luminance": 0.61799
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.58.0 — Blender 5.1.2 — GPL-3.0-or-later**
+**Versione 2.59.0 — Blender 5.1.2 — GPL-3.0-or-later**
 
 ## In breve
 
@@ -51,7 +51,7 @@ Risultati attuali: `ALD GATE: PASS`, `WORLD FIXTURE: PASS`,
 
 ## Limiti dichiarati
 
-- Le nuvole sono ancora il generatore World 2.56; le tre famiglie
-  Cumulus/Stratocumulus/Cirrus sono la Fase 3.
+- La Fase 3 ha introdotto le tre famiglie World; il primo gate artistico
+  (Cumulus diurno) e in attesa di approvazione.
 - I vecchi dati FX non vengono valutati né rimossi automaticamente.
 - Il rollback completo è il tag `archive/v2.56.0-full`.

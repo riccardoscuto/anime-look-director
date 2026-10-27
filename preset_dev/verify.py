@@ -14,7 +14,7 @@ import bpy
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 58, 0)
+EXPECTED_VERSION = (2, 59, 0)
 
 
 def fail(message):
@@ -157,6 +157,28 @@ def check_controls(scene):
           "Custom Sky is not wired")
     s.custom_colors = False
     s.horizon_offset = 0.0
+    # Cloud families are real group inputs, one hot.
+    for family, socket in (("CUMULUS", "Cloud Cumulus"),
+                           ("STRATOCUMULUS", "Cloud Stratocumulus"),
+                           ("CIRRUS", "Cloud Cirrus")):
+        s.cloud_type = family
+        palette.apply_palette(scene, s.palette)
+        node = gradient(scene)
+        check(abs(node.inputs[socket].default_value - 1.0) < 1e-5,
+              "the %s family is not selected" % family)
+        check(all(abs(node.inputs[name].default_value) < 1e-5
+                  for name in ("Cloud Cumulus", "Cloud Stratocumulus",
+                               "Cloud Cirrus") if name != socket),
+              "two cloud families are active at once")
+    s.cloud_seed = 23
+    palette.apply_palette(scene, s.palette)
+    offset = tuple(gradient(scene).inputs["Cloud Offset"].default_value)
+    s.cloud_seed = 24
+    palette.apply_palette(scene, s.palette)
+    moved = tuple(gradient(scene).inputs["Cloud Offset"].default_value)
+    check(offset != moved, "Cloud Seed does not change the field")
+    s.cloud_type = "CUMULUS"
+    s.cloud_seed = 17
     palette.apply_palette(scene, s.palette)
 
 

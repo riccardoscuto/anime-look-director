@@ -1,6 +1,6 @@
 {
-  "passed": 23,
-  "total": 23,
+  "passed": 26,
+  "total": 26,
   "results": [
     {
       "category": "Reduction",
@@ -129,8 +129,26 @@
       "detail": ""
     },
     {
+      "category": "Clouds",
+      "label": "Three cloud families are selectable and exclusive",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Clouds",
+      "label": "Family shape and artistic controls are wired",
+      "passed": true,
+      "detail": ""
+    },
+    {
       "category": "Evidence",
       "label": "The Phase 2 cloudless sky matrix is recorded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Evidence",
+      "label": "The three-family cloud gate is recorded",
       "passed": true,
       "detail": ""
     },

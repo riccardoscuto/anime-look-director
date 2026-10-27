@@ -1,6 +1,6 @@
 # Anime Look Director — World Sky Edition validation
 
-Current release: **2.58.0** (Blender 5.1.2, Windows 11).
+Current release: **2.59.0** (Blender 5.1.2, Windows 11).
 
 ## Commands
 
@@ -17,12 +17,13 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 |---|---|---|
 | World / structural / runtime | `verify.py` | **ALD GATE: PASS** |
 | Lifecycle | `world_fixture.py` | **WORLD FIXTURE: PASS** |
-| Source audit | `audit_world.py` | **ALD WORLD AUDIT 23/23 OK** |
+| Source audit | `audit_world.py` | **ALD WORLD AUDIT 26/26 OK** |
 | Whole chain | `verify_all.py` | **ALD ALL: PASS** |
 | Phase 0 baseline | `world_baseline/contact_1280.png`, `contact_1920.png`, `contact_sun.png` | v1.0.3 / v1.1.0 / v2.56.0 compared |
 | Phase 2 sky | `sky/contact.png`, `sky/metrics.json` | noon / sunset / dusk / night, clouds off |
+| Phase 3 clouds | `cloud_families/contact.png`, `metrics.json` | Cumulus / Stratocumulus / Cirrus, same day sun |
 | UI | `preset_dev/ui/ui_properties.png`, `ui_sidebar.png`, `ui_compositor.png` | panels draw; no FX section |
-| Package | `dist/anime_look_director-2.58.0.zip` | extension build PASS; 2.58.0 installed and enabled in an isolated config |
+| Package | `dist/anime_look_director-2.59.0.zip` | extension build PASS; 2.59.0 installed and enabled in an isolated config |
 
 ## Phase 1 definition of done
 
@@ -38,6 +39,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Old files are not auto-cleaned | DONE | documented, source audit |
 | Phase 0 visual baseline | DONE | `preset_dev/world_baseline/` |
 | Phase 2 cloudless sky | DONE | broad accent, Sun fade, `preset_dev/sky/` |
+| Phase 3 cloud families | GATE PENDING | three silhouettes; Cumulus approval requested |
 
 ## Deliberate limits
 

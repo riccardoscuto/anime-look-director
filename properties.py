@@ -378,9 +378,38 @@ class ALD_Settings(bpy.types.PropertyGroup):
     cloud_scale: FloatProperty(
         name="Cloud Scale", default=2.5, min=0.5, max=12.0,
         update=_on_world)
+    cloud_type: EnumProperty(
+        name="Cloud Type",
+        items=[("CUMULUS", "Cumulus", "Rounded, vertically developed masses"),
+               ("STRATOCUMULUS", "Stratocumulus",
+                "Horizontal bands, irregular openings"),
+               ("CIRRUS", "Cirrus", "Thin, stretched filaments")],
+        default="CUMULUS",
+        description="Morphological family of the World clouds",
+        update=_on_world)
     cloud_flatness: FloatProperty(
-        name="Cloud Flatness", default=0.65, min=0.0, max=1.0,
+        name="Flatness", default=0.60, min=0.0, max=1.0,
         description="0 = billowy cumuli, 1 = flat horizontal strata",
+        update=_on_world)
+    cloud_vertical: FloatProperty(
+        name="Vertical Development", default=0.55, min=0.0, max=1.0,
+        description="Vertical growth of the masses",
+        update=_on_world)
+    cloud_breakup: FloatProperty(
+        name="Breakup", default=0.35, min=0.0, max=1.0,
+        description="Fragmentation and openings between groups",
+        update=_on_world)
+    cloud_detail: FloatProperty(
+        name="Detail", default=0.60, min=0.0, max=1.0,
+        description="Fine erosion of the cloud borders",
+        update=_on_world)
+    cloud_seed: IntProperty(
+        name="Seed", default=17, min=0, max=99999,
+        description="Deterministic cloud configuration",
+        update=_on_world)
+    cloud_sun_lighting: FloatProperty(
+        name="Sun Lighting", default=1.0, min=0.0, max=2.0,
+        description="Strength of the light/dark variation inside the clouds",
         update=_on_world)
     contrails: FloatProperty(
         name="Contrails", default=0.0, min=0.0, max=1.0,

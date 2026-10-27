@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Anime Look Director",
     "author": "Riccardo",
-    "version": (2, 58, 0),
+    "version": (2, 59, 0),
     "blender": (5, 1, 0),
     "location": "Scene Properties > Anime Look Director",
     "description": "Procedural anime skies, atmospheric palettes and an optional compositor",

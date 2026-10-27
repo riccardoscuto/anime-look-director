@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "anime_look_director"
-version = "2.58.0"
+version = "2.59.0"
 name = "Anime Look Director"
 tagline = "Procedural anime skies: World, Sun, clouds and stars"
 maintainer = "Riccardo"

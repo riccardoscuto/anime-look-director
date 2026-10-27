@@ -313,7 +313,9 @@ def _gradient_group():
              "Horizon Offset", "Softness", "Sun Direction", "World Strength",
              "Sun Glow", "Sky Accent", "Sky Accent Amount", "Cloud Amount",
              "Cloud Flatness", "Contrails", "Cloud Delta Gain",
-             "Cloud Rim Boost", "Star Amount", "Star Density",
+             "Cloud Rim Boost", "Cloud Cumulus", "Cloud Stratocumulus",
+             "Cloud Cirrus", "Cloud Vertical", "Cloud Breakup", "Cloud Detail",
+             "Cloud Sun Lighting", "Star Amount", "Star Density",
              "Cloud Offset"} <= names
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
@@ -323,7 +325,7 @@ def _gradient_group():
 
 
 def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
-                          flat_inv, y_offset=0.0):
+                          flat_inv, y_offset=0.0, flatness_socket=None):
     """Sample Perlin-Worley cloud density and its low-frequency envelope."""
     def node(idname, x, y):
         item = nodes.new(idname)
@@ -369,7 +371,8 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     planar_base = node("ShaderNodeVectorMath", -120, 80)
     planar_base.operation = "SCALE"
     links.new(planar_shell.outputs["Vector"], planar_base.inputs["Vector"])
-    links.new(group_in.outputs["Cloud Flatness"], planar_base.inputs["Scale"])
+    links.new(flatness_socket or group_in.outputs["Cloud Flatness"],
+              planar_base.inputs["Scale"])
 
     cloud_base = node("ShaderNodeVectorMath", 80, 0)
     cloud_base.operation = "ADD"
@@ -589,6 +592,18 @@ def _build_gradient_group(ng):
     cloud_flatness.min_value = 0.0
     cloud_flatness.max_value = 1.0
     cloud_flatness.default_value = 0.65
+    for name, default in (("Cloud Cumulus", 1.0),
+                          ("Cloud Stratocumulus", 0.0),
+                          ("Cloud Cirrus", 0.0),
+                          ("Cloud Vertical", 0.55),
+                          ("Cloud Breakup", 0.35),
+                          ("Cloud Detail", 0.60),
+                          ("Cloud Sun Lighting", 1.0)):
+        socket = ng.interface.new_socket(name=name, in_out="INPUT",
+                                         socket_type="NodeSocketFloat")
+        socket.min_value = 0.0
+        socket.max_value = 2.0 if name == "Cloud Sun Lighting" else 1.0
+        socket.default_value = default
     contrails = ng.interface.new_socket(name="Contrails", in_out="INPUT",
                                         socket_type="NodeSocketFloat")
     contrails.min_value = 0.0
@@ -643,6 +658,37 @@ def _build_gradient_group(ng):
     view_norm.location = (-1020, 440)
     view_norm.operation = "NORMALIZE"
     links.new(texcoord.outputs["Generated"], view_norm.inputs[0])
+
+    cirrus_x = nodes.new("ShaderNodeMath")
+    cirrus_x.location = (-880, 280)
+    cirrus_x.operation = "MULTIPLY"
+    cirrus_x.inputs[1].default_value = 2.4
+    links.new(group_in.outputs["Cloud Cirrus"], cirrus_x.inputs[0])
+    cirrus_x_add = nodes.new("ShaderNodeMath")
+    cirrus_x_add.location = (-700, 280)
+    cirrus_x_add.operation = "ADD"
+    cirrus_x_add.inputs[1].default_value = 1.0
+    links.new(cirrus_x.outputs[0], cirrus_x_add.inputs[0])
+    cirrus_y = nodes.new("ShaderNodeMath")
+    cirrus_y.location = (-880, 140)
+    cirrus_y.operation = "MULTIPLY"
+    cirrus_y.inputs[1].default_value = -0.68
+    links.new(group_in.outputs["Cloud Cirrus"], cirrus_y.inputs[0])
+    cirrus_y_add = nodes.new("ShaderNodeMath")
+    cirrus_y_add.location = (-700, 140)
+    cirrus_y_add.operation = "ADD"
+    cirrus_y_add.inputs[1].default_value = 1.0
+    links.new(cirrus_y.outputs[0], cirrus_y_add.inputs[0])
+    family_scale = nodes.new("ShaderNodeCombineXYZ")
+    family_scale.location = (-520, 200)
+    links.new(cirrus_x_add.outputs[0], family_scale.inputs["X"])
+    links.new(cirrus_y_add.outputs[0], family_scale.inputs["Y"])
+    family_scale.inputs["Z"].default_value = 1.0
+    family_view = nodes.new("ShaderNodeVectorMath")
+    family_view.location = (-340, 320)
+    family_view.operation = "MULTIPLY"
+    links.new(view_norm.outputs["Vector"], family_view.inputs[0])
+    links.new(family_scale.outputs["Vector"], family_view.inputs[1])
 
     sun_norm = nodes.new("ShaderNodeVectorMath")
     sun_norm.location = (-1020, 600)
@@ -998,13 +1044,50 @@ def _build_gradient_group(ng):
     links.new(planar_sep.outputs["Y"], planar_shell.inputs["Y"])
     links.new(separate.outputs["Z"], planar_shell.inputs["Z"])
 
+    # The family changes the vertical organization without changing the
+    # coverage slider: Cumulus is billowy, Stratocumulus is flat, Cirrus is
+    # stretched along the wind.
+    cum_reduce = nodes.new("ShaderNodeMath")
+    cum_reduce.location = (820, -520)
+    cum_reduce.operation = "MULTIPLY"
+    cum_reduce.inputs[1].default_value = 0.62
+    links.new(group_in.outputs["Cloud Cumulus"], cum_reduce.inputs[0])
+    and_flatness = nodes.new("ShaderNodeMath")
+    and_flatness.location = (1000, -520)
+    and_flatness.operation = "SUBTRACT"
+    and_flatness.use_clamp = True
+    links.new(group_in.outputs["Cloud Flatness"], and_flatness.inputs[0])
+    links.new(cum_reduce.outputs[0], and_flatness.inputs[1])
+    strat_bias = nodes.new("ShaderNodeMath")
+    strat_bias.location = (820, -680)
+    strat_bias.operation = "MULTIPLY"
+    strat_bias.inputs[1].default_value = 0.20
+    links.new(group_in.outputs["Cloud Stratocumulus"], strat_bias.inputs[0])
+    strat_flatness = nodes.new("ShaderNodeMath")
+    strat_flatness.location = (1000, -680)
+    strat_flatness.operation = "ADD"
+    strat_flatness.use_clamp = True
+    links.new(and_flatness.outputs[0], strat_flatness.inputs[0])
+    links.new(strat_bias.outputs[0], strat_flatness.inputs[1])
+    vertical_reduce = nodes.new("ShaderNodeMath")
+    vertical_reduce.location = (820, -820)
+    vertical_reduce.operation = "MULTIPLY"
+    vertical_reduce.inputs[1].default_value = 0.16
+    links.new(group_in.outputs["Cloud Vertical"], vertical_reduce.inputs[0])
+    family_flatness = nodes.new("ShaderNodeMath")
+    family_flatness.location = (1180, -820)
+    family_flatness.operation = "SUBTRACT"
+    family_flatness.use_clamp = True
+    links.new(strat_flatness.outputs[0], family_flatness.inputs[0])
+    links.new(vertical_reduce.outputs[0], family_flatness.inputs[1])
+
     # Cloud Flatness: 0 = billowy cumuli, 0.65 = current strata,
     # 1 = strongly flat horizontal bands. At 0.65 this is exactly 3.2.
     flat_z = nodes.new("ShaderNodeMath")
     flat_z.location = (1000, -360)
     flat_z.operation = "MULTIPLY"
     flat_z.inputs[1].default_value = 3.0
-    links.new(group_in.outputs["Cloud Flatness"], flat_z.inputs[0])
+    links.new(family_flatness.outputs[0], flat_z.inputs[0])
 
     flat_z_add = nodes.new("ShaderNodeMath")
     flat_z_add.location = (1180, -360)
@@ -1025,7 +1108,7 @@ def _build_gradient_group(ng):
     flat_inv.operation = "SUBTRACT"
     flat_inv.use_clamp = True
     flat_inv.inputs[0].default_value = 1.0
-    links.new(group_in.outputs["Cloud Flatness"], flat_inv.inputs[1])
+    links.new(family_flatness.outputs[0], flat_inv.inputs[1])
 
     # Optional contrails: straight gnomonic-plane filaments. Use X/Z and Y/Z
     # (not the curved shell projection) so a constant-u line stays straight.
@@ -1213,8 +1296,9 @@ def _build_gradient_group(ng):
     sky_color = result_sock
 
     rho_here, env_here, warped_pos = _sample_cloud_density(
-        nodes, links, view_norm.outputs["Vector"], group_in,
-        flat_scale, flat_inv, y_offset=0.0)
+        nodes, links, family_view.outputs["Vector"], group_in,
+        flat_scale, flat_inv, y_offset=0.0,
+        flatness_socket=family_flatness.outputs[0])
 
     # Displace the *view ray* by ~2 degrees on the sky dome, not the mapped
     # cloud point. Sun+zenith defines the per-cloud light direction.
@@ -1245,10 +1329,16 @@ def _build_gradient_group(ng):
     view_sun_norm.location = (2260, -720)
     view_sun_norm.operation = "NORMALIZE"
     links.new(view_sun_raw.outputs["Vector"], view_sun_norm.inputs[0])
+    family_view_sun = nodes.new("ShaderNodeVectorMath")
+    family_view_sun.location = (2260, -900)
+    family_view_sun.operation = "MULTIPLY"
+    links.new(view_sun_norm.outputs["Vector"], family_view_sun.inputs[0])
+    links.new(family_scale.outputs["Vector"], family_view_sun.inputs[1])
 
     rho_sun, env_sun, _warped_sun = _sample_cloud_density(
-        nodes, links, view_sun_norm.outputs["Vector"], group_in,
-        flat_scale, flat_inv, y_offset=-1200.0)
+        nodes, links, family_view_sun.outputs["Vector"], group_in,
+        flat_scale, flat_inv, y_offset=-1200.0,
+        flatness_socket=family_flatness.outputs[0])
 
     delta = nodes.new("ShaderNodeMath")
     delta.location = (2440, -900)
@@ -1261,6 +1351,11 @@ def _build_gradient_group(ng):
     delta_used.operation = "MULTIPLY"
     links.new(delta.outputs[0], delta_used.inputs[0])
     links.new(group_in.outputs["Cloud Delta Gain"], delta_used.inputs[1])
+    sun_lighting = nodes.new("ShaderNodeMath")
+    sun_lighting.location = (2620, -1020)
+    sun_lighting.operation = "MULTIPLY"
+    links.new(delta_used.outputs[0], sun_lighting.inputs[0])
+    links.new(group_in.outputs["Cloud Sun Lighting"], sun_lighting.inputs[1])
 
     detail_scale = nodes.new("ShaderNodeMath")
     detail_scale.location = (2440, -1140)
@@ -1281,17 +1376,27 @@ def _build_gradient_group(ng):
     detail_center.inputs[1].default_value = 0.5
     links.new(detail.outputs["Fac"], detail_center.inputs[0])
 
+    detail_edge_gain = nodes.new("ShaderNodeMath")
+    detail_edge_gain.location = (2800, -1000)
+    detail_edge_gain.operation = "MULTIPLY"
+    detail_edge_gain.inputs[1].default_value = 0.030
+    links.new(group_in.outputs["Cloud Detail"], detail_edge_gain.inputs[0])
+    detail_body_gain = nodes.new("ShaderNodeMath")
+    detail_body_gain.location = (2800, -1080)
+    detail_body_gain.operation = "MULTIPLY"
+    detail_body_gain.inputs[1].default_value = 0.017
+    links.new(group_in.outputs["Cloud Detail"], detail_body_gain.inputs[0])
     detail_edge = nodes.new("ShaderNodeMath")
     detail_edge.location = (2980, -1140)
     detail_edge.operation = "MULTIPLY"
-    detail_edge.inputs[1].default_value = 0.018
     links.new(detail_center.outputs[0], detail_edge.inputs[0])
+    links.new(detail_edge_gain.outputs[0], detail_edge.inputs[1])
 
     detail_body = nodes.new("ShaderNodeMath")
     detail_body.location = (2980, -1260)
     detail_body.operation = "MULTIPLY"
-    detail_body.inputs[1].default_value = 0.010
     links.new(detail_center.outputs[0], detail_body.inputs[0])
+    links.new(detail_body_gain.outputs[0], detail_body.inputs[1])
 
     rho_sculpted = nodes.new("ShaderNodeMath")
     rho_sculpted.location = (3160, -1080)
@@ -1300,10 +1405,39 @@ def _build_gradient_group(ng):
     links.new(rho_here, rho_sculpted.inputs[0])
     links.new(detail_edge.outputs[0], rho_sculpted.inputs[1])
 
+    breakup_amount = nodes.new("ShaderNodeMath")
+    breakup_amount.location = (3340, -1200)
+    breakup_amount.operation = "MULTIPLY"
+    breakup_amount.inputs[1].default_value = 0.10
+    links.new(group_in.outputs["Cloud Breakup"], breakup_amount.inputs[0])
+    rho_break = nodes.new("ShaderNodeMath")
+    rho_break.location = (3520, -1080)
+    rho_break.operation = "SUBTRACT"
+    rho_break.use_clamp = True
+    links.new(rho_sculpted.outputs[0], rho_break.inputs[0])
+    links.new(breakup_amount.outputs[0], rho_break.inputs[1])
+    cirrus_thin = nodes.new("ShaderNodeMath")
+    cirrus_thin.location = (3340, -1340)
+    cirrus_thin.operation = "MULTIPLY"
+    cirrus_thin.inputs[1].default_value = 0.05
+    links.new(group_in.outputs["Cloud Cirrus"], cirrus_thin.inputs[0])
+    cirrus_gain = nodes.new("ShaderNodeMath")
+    cirrus_gain.location = (3520, -1340)
+    cirrus_gain.operation = "SUBTRACT"
+    cirrus_gain.use_clamp = True
+    cirrus_gain.inputs[0].default_value = 1.0
+    links.new(cirrus_thin.outputs[0], cirrus_gain.inputs[1])
+    rho_family = nodes.new("ShaderNodeMath")
+    rho_family.location = (3700, -1200)
+    rho_family.operation = "MULTIPLY"
+    rho_family.use_clamp = True
+    links.new(rho_break.outputs[0], rho_family.inputs[0])
+    links.new(cirrus_gain.outputs[0], rho_family.inputs[1])
+
     body_signal = nodes.new("ShaderNodeMath")
     body_signal.location = (3160, -900)
     body_signal.operation = "ADD"
-    links.new(delta_used.outputs[0], body_signal.inputs[0])
+    links.new(sun_lighting.outputs[0], body_signal.inputs[0])
     links.new(detail_body.outputs[0], body_signal.inputs[1])
     # Cloud Amount is coverage, not opacity: 0 -> few compact islands,
     # 1 -> sky-filling banks. tau0 maps 0.68..0.42.
@@ -1336,7 +1470,7 @@ def _build_gradient_group(ng):
     _smooth(coverage)
     links.new(coverage_center.outputs["Result"], coverage.inputs["From Min"])
     links.new(coverage_top.outputs[0], coverage.inputs["From Max"])
-    links.new(rho_sculpted.outputs[0], coverage.inputs["Value"])
+    links.new(rho_family.outputs[0], coverage.inputs["Value"])
 
     amount_gate = nodes.new("ShaderNodeMapRange")
     amount_gate.location = (2440, -80)
@@ -1374,7 +1508,7 @@ def _build_gradient_group(ng):
     fringe.inputs["To Max"].default_value = 0.0
     links.new(coverage_center.outputs["Result"], fringe.inputs["From Min"])
     links.new(fringe_top.outputs[0], fringe.inputs["From Max"])
-    links.new(rho_sculpted.outputs[0], fringe.inputs["Value"])
+    links.new(rho_family.outputs[0], fringe.inputs["Value"])
 
     sun_edge = nodes.new("ShaderNodeMapRange")
     sun_edge.location = (2440, -900)
@@ -2406,7 +2540,23 @@ def _apply_gradient(scene, settings, nt, background, p):
     node.inputs["Cloud Scale"].default_value = (
         getattr(settings, "cloud_scale", 3.0) if settings else 3.0)
     node.inputs["Cloud Flatness"].default_value = (
-        getattr(settings, "cloud_flatness", 0.65) if settings else 0.65)
+        getattr(settings, "cloud_flatness", 0.60) if settings else 0.60)
+    cloud_type = getattr(settings, "cloud_type", "CUMULUS") \
+        if settings else "CUMULUS"
+    node.inputs["Cloud Cumulus"].default_value = (
+        1.0 if cloud_type == "CUMULUS" else 0.0)
+    node.inputs["Cloud Stratocumulus"].default_value = (
+        1.0 if cloud_type == "STRATOCUMULUS" else 0.0)
+    node.inputs["Cloud Cirrus"].default_value = (
+        1.0 if cloud_type == "CIRRUS" else 0.0)
+    node.inputs["Cloud Vertical"].default_value = (
+        getattr(settings, "cloud_vertical", 0.55) if settings else 0.55)
+    node.inputs["Cloud Breakup"].default_value = (
+        getattr(settings, "cloud_breakup", 0.35) if settings else 0.35)
+    node.inputs["Cloud Detail"].default_value = (
+        getattr(settings, "cloud_detail", 0.60) if settings else 0.60)
+    node.inputs["Cloud Sun Lighting"].default_value = (
+        getattr(settings, "cloud_sun_lighting", 1.0) if settings else 1.0)
     node.inputs["Contrails"].default_value = (
         getattr(settings, "contrails", 0.0) if settings else 0.0)
     node.inputs["Cloud Delta Gain"].default_value = (
@@ -2425,7 +2575,10 @@ def _apply_gradient(scene, settings, nt, background, p):
         (getattr(settings, "milky_way", 0.0)
          if getattr(settings, "stars", True) else 0.0)
         if settings else 0.0)
-    node.inputs["Cloud Offset"].default_value = _cloud_offset(scene, settings)
+    seed = int(getattr(settings, "cloud_seed", 17)) if settings else 17
+    wind = _cloud_offset(scene, settings)
+    node.inputs["Cloud Offset"].default_value = (
+        wind[0] + seed * 0.017, wind[1] + seed * 0.011, 0.0)
 
     # Remember the original world background so disabling the gradient can
     # restore an HDRI or the user's own color instead of a flat fill.
@@ -2505,7 +2658,10 @@ def update_sun_controls(scene):
         return
     settings = getattr(scene, "ald", None)
     if settings is not None:
-        node.inputs["Cloud Offset"].default_value = _cloud_offset(scene, settings)
+        seed = int(getattr(settings, "cloud_seed", 17))
+        wind = _cloud_offset(scene, settings)
+        node.inputs["Cloud Offset"].default_value = (
+            wind[0] + seed * 0.017, wind[1] + seed * 0.011, 0.0)
     direction = sun_toward(scene)
     if direction is None:
         node.inputs["Sun Strength"].default_value = 0.0

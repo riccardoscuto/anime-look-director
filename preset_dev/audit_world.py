@@ -36,8 +36,8 @@ def exists(*paths):
 
 CHECKS = [
     ("Reduction", "The version is the World Sky Edition",
-     lambda: has("__init__.py", '"version": (2, 58, 0)')
-     and has("blender_manifest.toml", 'version = "2.58.0"')),
+     lambda: has("__init__.py", '"version": (2, 59, 0)')
+     and has("blender_manifest.toml", 'version = "2.59.0"')),
     ("Reduction", "The FX and spatial modules are gone",
      lambda: not any(os.path.exists(os.path.join(ROOT, name))
                      for name in ("fx.py", "fx_nodes.py", "clouds.py",
@@ -99,10 +99,22 @@ CHECKS = [
     ("Evidence", "The Phase 0 World baseline is frozen",
      lambda: exists("preset_dev/world_baseline/contact_1280.png",
                     "preset_dev/world_baseline/README.md")[0]),
+    ("Clouds", "Three cloud families are selectable and exclusive",
+     lambda: has("properties.py", "cloud_type", "CUMULUS", "STRATOCUMULUS",
+                 "CIRRUS")
+     and has("palette.py", "Cloud Cumulus", "Cloud Stratocumulus",
+             "Cloud Cirrus")[0]),
+    ("Clouds", "Family shape and artistic controls are wired",
+     lambda: has("palette.py", "Cloud Vertical", "Cloud Breakup",
+                 "Cloud Detail", "Cloud Sun Lighting", "family_flatness")),
     ("Evidence", "The Phase 2 cloudless sky matrix is recorded",
      lambda: exists("preset_dev/sky/contact.png",
                     "preset_dev/sky/metrics.json",
                     "preset_dev/sky/README.md")[0]),
+    ("Evidence", "The three-family cloud gate is recorded",
+     lambda: exists("preset_dev/cloud_families/contact.png",
+                    "preset_dev/cloud_families/metrics.json",
+                    "preset_dev/cloud_families/README.md")[0]),
     ("Evidence", "The World gate and lifecycle fixture are runnable",
      lambda: exists("preset_dev/verify.py",
                     "preset_dev/world_fixture.py")[0]),

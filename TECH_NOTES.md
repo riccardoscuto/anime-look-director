@@ -1252,3 +1252,20 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 - The remaining legacy World firework/meteor shader blocks and settings were
   removed; the World group schema is now 28. The Phase 4 shooting-star system
   will be a new controlled generator, not the old Voronoi field.
+
+
+### v2.59.0 notes (cloud families)
+- The three families share one density field. `family_flatness` subtracts
+  0.62 * Cumulus, adds 0.20 * Stratocumulus and subtracts 0.16 * Vertical.
+  Cirrus stretches the view ray by 2.4 on X and 0.32 on Y; the cirrus gain
+  removes only 5% of the density so it stays visible.
+- `Cloud Breakup` subtracts up to 0.10 from the density before the threshold;
+  `Cloud Detail` scales the border/body noise; `Cloud Sun Lighting` scales the
+  solar derivative; `Cloud Seed` offsets the field by a deterministic vector.
+- The family weights are one-hot group inputs set by `cloud_type`; preparse
+  flatness is lowered by the family formula, so a Cumulus does not inherit the
+  flat preset default.
+- The Cumulus silhouette is still flatter than the v1 reference. The first
+  visual gate is in `preset_dev/cloud_families/contact.png`; it is not
+  approved. The next iteration should raise the rounded top and vertical
+  shading before any sunset work.
