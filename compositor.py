@@ -861,7 +861,12 @@ def _render_pass_still(scene, path):
         if written:
             # Publish only after a complete frame: a failed render must not
             # truncate the valid pass already on disk.
-            os.replace(temporary, path)
+            try:
+                os.replace(temporary, path)
+            except OSError:
+                if os.path.exists(temporary):
+                    os.remove(temporary)
+                raise
         elif os.path.exists(temporary):
             os.remove(temporary)
     return path

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.53.1 - 2026-10-27
+Atomic pass failure test.
+
+### Added
+- The gate renders a valid pass, then attempts a pass under a missing directory:
+  the valid EXR hash must stay identical and no partial file may be published.
+
 ## 2.53.0 - 2026-10-27
 Copy-on-write for old shared FX materials.
 

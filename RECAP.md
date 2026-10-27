@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.53.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.53.1** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,12 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.53.1 — test di scrittura atomica
+
+- Il gate scrive un pass valido, poi tenta un pass sotto una directory
+  inesistente: l'hash dell'EXR valido deve restare identico e nessun file
+  parziale deve essere pubblicato.
 
 ## Novità 2.53.0 — migrazione dei materiali FX vecchi
 

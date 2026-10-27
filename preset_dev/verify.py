@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 53, 0)
+EXPECTED_VERSION = (2, 53, 1)
 TOLERANCE = 1e-4
 
 
@@ -4005,6 +4005,52 @@ def check_fx_pass_sequence(scene):
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
+def check_fx_pass_atomic(scene):
+    """A failed EXR write must not truncate the valid pass on disk."""
+    import hashlib
+    from anime_look_director import compositor as compositor_module
+    from anime_look_director import fx as fx_module
+
+    previous_pass = scene.ald.fx_pass_path
+    previous_frames = tuple(scene.ald.fx_pass_frames)
+    previous_size = (scene.render.resolution_x, scene.render.resolution_y)
+    good = os.path.join(tempfile.gettempdir(), "ald_atomic_good.exr")
+    try:
+        scene.render.resolution_x = 160
+        scene.render.resolution_y = 90
+        fx_module.clear(scene)
+        fx_module.create_fireworks(scene, 1, seed=17, distance=55.0, time=0.0)
+        bpy.ops.ald.build()
+        compositor_module.render_fx_pass(scene, good)
+        check(os.path.exists(good), "the reference pass was not written")
+        with open(good, "rb") as handle:
+            before = hashlib.sha1(handle.read()).hexdigest()
+        invalid = os.path.join(tempfile.gettempdir(), "ald_pass_target")
+        os.makedirs(invalid, exist_ok=True)
+        failed = False
+        try:
+            compositor_module.render_fx_pass(scene, invalid)
+        except Exception:
+            failed = True
+        check(failed, "a pass published over a directory did not fail")
+        with open(good, "rb") as handle:
+            after = hashlib.sha1(handle.read()).hexdigest()
+        check(before == after,
+              "the failed pass truncated the valid EXR")
+        check(not os.path.exists(invalid + ".tmp.exr"),
+              "the failed publish left a temporary EXR")
+    finally:
+        scene.ald.fx_pass_path = previous_pass
+        scene.ald.fx_pass_frames = previous_frames
+        scene.render.resolution_x, scene.render.resolution_y = previous_size
+        fx_module.clear(scene)
+        if os.path.exists(good):
+            os.remove(good)
+        target = os.path.join(tempfile.gettempdir(), "ald_pass_target")
+        if os.path.isdir(target):
+            os.rmdir(target)
+
+
 def check_fx_pass_strict(scene):
     """A missing pass can hide the FX instead of using the contaminated fallback."""
     previous_required = scene.ald.fx_pass_required
@@ -4653,6 +4699,7 @@ def main():
         check_cloud_contour()
         check_fx_pass_isolation(scene)
         check_fx_pass_sequence(scene)
+        check_fx_pass_atomic(scene)
         check_fx_pass_strict(scene)
         check_fx_render_orchestration(scene)
         check_fx_identity(scene)

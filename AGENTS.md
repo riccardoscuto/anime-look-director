@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.53.0**).
+  (currently **2.53.1**).
 
 ## Verify (run after every change)
 ```powershell
@@ -961,6 +961,8 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
   - `_render_pass_still` renders to `path + ".tmp.exr"` and publishes with
     `os.replace`; a failed render removes the temp and leaves the valid pass.
     It saves and restores `use_compositing` with the other render state;
+  - the gate writes a valid pass, then attempts one under a missing directory:
+    the valid EXR hash must stay identical and no partial file may exist;
   - `_isolate_collection` walks the layer tree: the FX collection can be nested
     at any depth, not only a direct child;
   - the gate renders a four-frame sequence and checks the node fields, the

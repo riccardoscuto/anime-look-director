@@ -512,6 +512,12 @@
     },
     {
       "evidence": "",
+      "label": "A failed EXR write leaves the valid pass intact",
+      "phase": "VI-SC",
+      "state": "OK"
+    },
+    {
+      "evidence": "",
       "label": "A missing pass can hide the FX (strict mode)",
       "phase": "VI-SC",
       "state": "OK"
@@ -728,7 +734,7 @@
     }
   ],
   "partial": 0,
-  "passed": 121,
+  "passed": 122,
   "plan": "v2.27.0 P0-P3",
-  "total": 121
+  "total": 122
 }

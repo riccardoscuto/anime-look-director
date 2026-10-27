@@ -316,6 +316,9 @@ CHECKS = [
     ("VI-SC", "Old shared FX materials are copied per scene",
      lambda: has("fx.py", "def ensure_materials", "modifier[item.identifier]")
      and has("preset_dev/verify.py", "the old shared FX material")[0]),
+    ("VI-SC", "A failed EXR write leaves the valid pass intact",
+     lambda: has("preset_dev/verify.py", "check_fx_pass_atomic",
+                 "the failed pass truncated")),
     ("VI-SC", "A missing pass can hide the FX (strict mode)",
      lambda: has("properties.py", "fx_pass_required")
      and has("compositor.py", "ALD | FX Strict Black")[0]),
