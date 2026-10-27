@@ -182,9 +182,8 @@ def _on_sun_angles(self, context):
 def _on_stack(self, context):
     try:
         from . import compositor, palette
-        if palette.style_syncing():
+        if palette.style_syncing() or _in_maintenance(context):
             return
-        scene = context.scene
         scene = context.scene
         if scene is not None and scene.compositing_node_group:
             compositor.build(scene)

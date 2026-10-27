@@ -317,6 +317,9 @@ CHECKS = [
     ("VI-SC", "Old shared FX materials are copied per scene",
      lambda: has("fx.py", "def ensure_materials", "modifier[item.identifier]")
      and has("preset_dev/verify.py", "the old shared FX material")[0]),
+    ("VI-SC", "New FX from the UI require the pass",
+     lambda: has("operators.py", "fx_pass_required = True")
+     and has("preset_dev/verify.py", "FX operator did not require")[0]),
     ("VI-SC", "ORTHO shows fit by layout, not by distance",
      lambda: has("fx.py", "def _spread_limit", "ORTHO")
      and has("preset_dev/verify.py", "ORTHO burst")[0]),

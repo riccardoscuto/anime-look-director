@@ -6,7 +6,7 @@ Blender add-on: atmospheric palettes + non-destructive anime compositor stack.
 - Blender **5.1.2** on Windows (compositor node-group API `scene.compositing_node_group`).
 - Python 3.13 / NumPy available inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.54.0**).
+  (currently **2.55.0**).
 
 ## Verify (run after every change)
 ```powershell
@@ -959,6 +959,10 @@ Prints luminance / contrast / saturation per palette and writes `sheet.png`.
     feeds a black F (`ALD | FX Strict Black`), so the FX are hidden instead of
     using the contaminated main Emission. Default off for compatibility; the
     panel says which path is active;
+  - v2.55: the FX creation **operators** set `fx_pass_required = True`; a new
+    effect from the UI never silently uses the fallback. The direct Python API
+    (`fx.create_fireworks` / `create_meteors`) leaves the property unchanged for
+    the tests and the evidence scripts;
   - `_world_per_pixel` includes `resolution_percentage` and the pixel aspect
     stretch; the apparent trail width is stable at 50% and non-square pixels;
   - `_render_pass_still` renders to `path + ".tmp.exr"` and publishes with

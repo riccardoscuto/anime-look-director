@@ -16,7 +16,7 @@ import numpy as np
 
 MODULE = "anime_look_director"
 ADDON_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPECTED_VERSION = (2, 54, 0)
+EXPECTED_VERSION = (2, 55, 0)
 TOLERANCE = 1e-4
 
 
@@ -2742,6 +2742,14 @@ def check_fx_reversibility(scene):
     check(saved.get("world", {}).get("name") == state["world"],
           "the snapshot was not taken before the FX mutation")
     fx_module.clear(scene)
+    # The FX operator now builds the strict stack; restore the user stack and
+    # the user render passes before the manual snapshot of this test.
+    scene.compositing_node_group = user_group
+    scene.render.use_compositing = True
+    view_layer.use_pass_z = False
+    view_layer.use_pass_emit = False
+    view_layer.use_pass_normal = False
+    view_layer.use_pass_mist = False
     del scene[snapshot.SNAPSHOT_KEY]
 
     # The add-on modifies the scene.
@@ -2789,7 +2797,10 @@ def check_fx_reversibility(scene):
           "the emission strength of the material was not restored")
     check(scene.compositing_node_group is not None
           and scene.compositing_node_group.name == state["stack"],
-          "the stack of the user was not restored")
+          "the stack of the user was not restored (%s != %s)"
+          % (scene.compositing_node_group.name
+             if scene.compositing_node_group is not None else None,
+             state["stack"]))
     check(not view_layer.use_pass_z and not view_layer.use_pass_emit,
           "the render passes were not restored")
     check(not [obj for obj in bpy.data.objects if obj.get("ald_fx")],
@@ -3406,12 +3417,21 @@ def check_fx_p3_shading(scene):
                 scene.ald.fx_glow_size)
     previous_size = (scene.render.resolution_x, scene.render.resolution_y)
     previous_gn = bool(scene.ald.fx_gn_prototype)
+    previous_pass = scene.ald.fx_pass_path
+    previous_frames = tuple(scene.ald.fx_pass_frames)
+    previous_required = scene.ald.fx_pass_required
     try:
         scene.ald.fx_gn_prototype = True
         scene.render.resolution_x = 320
         scene.render.resolution_y = 180
         fx_module.clear(scene)
+        # This test measures the shade and the glow of the FX themselves; the
+        # external pass has its own isolation test. Keep the main emission so
+        # a stale pass cannot blank the measurement.
+        scene.ald.fx_pass_path = ""
+        scene.ald.fx_pass_frames = (0, 0)
         bpy.ops.ald.fx_fireworks(count=1, seed=13, distance=55.0, age=0.0)
+        scene.ald.fx_pass_required = False
         bpy.ops.ald.build()
         domains = set()
         for material in bpy.data.materials:
@@ -3465,6 +3485,9 @@ def check_fx_p3_shading(scene):
         (scene.ald.fx_glow_strength, scene.ald.fx_glow_threshold,
          scene.ald.fx_glow_size) = previous
         fx_module.clear(scene)
+        scene.ald.fx_pass_path = previous_pass
+        scene.ald.fx_pass_frames = previous_frames
+        scene.ald.fx_pass_required = previous_required
         scene.render.resolution_x, scene.render.resolution_y = previous_size
 
 
@@ -4075,9 +4098,19 @@ def check_fx_pass_atomic(scene):
 
 def check_fx_pass_strict(scene):
     """A missing pass can hide the FX instead of using the contaminated fallback."""
+    from anime_look_director import fx as fx_module
+
     previous_required = scene.ald.fx_pass_required
     previous_path = scene.ald.fx_pass_path
+    previous_age = float(scene.ald.fx_age)
     try:
+        # Creating FX from the UI requires a pass: the fallback is not chosen
+        # silently for a new effect.
+        fx_module.clear(scene)
+        scene.ald.fx_pass_required = False
+        bpy.ops.ald.fx_fireworks(count=1, seed=17, distance=55.0)
+        check(scene.ald.fx_pass_required,
+              "the FX operator did not require the pass")
         scene.ald.fx_pass_path = ""
         scene.ald.fx_pass_required = True
         bpy.ops.ald.build()
@@ -4096,6 +4129,8 @@ def check_fx_pass_strict(scene):
     finally:
         scene.ald.fx_pass_path = previous_path
         scene.ald.fx_pass_required = previous_required
+        scene.ald.fx_age = previous_age
+        fx_module.clear(scene)
         bpy.ops.ald.build()
 
 
@@ -4243,6 +4278,7 @@ def check_fx_system_operators(scene):
     check(not objects_of(copy.uid), "Remove System left the geometry behind")
     check(objects_of(uid), "Remove System removed another system")
     fx_module.clear(scene)
+    scene.ald.fx_pass_required = False
 
 
 def check_fx_visual_profiles(scene):
@@ -4260,8 +4296,16 @@ def check_fx_visual_profiles(scene):
     previous_exp = float(scene.view_settings.exposure)
     previous_size = (scene.render.resolution_x, scene.render.resolution_y)
     previous_age = float(scene.ald.fx_age)
+    previous_pass = scene.ald.fx_pass_path
+    previous_frames = tuple(scene.ald.fx_pass_frames)
+    previous_required = scene.ald.fx_pass_required
 
     try:
+        # The T24 measures the FX shade/glow themselves: use the main emission,
+        # not a possible stale external pass or the strict black.
+        scene.ald.fx_pass_path = ""
+        scene.ald.fx_pass_frames = (0, 0)
+        scene.ald.fx_pass_required = False
         scene.render.engine = "BLENDER_EEVEE"
         scene.render.resolution_x = 256
         scene.render.resolution_y = 256
@@ -4395,6 +4439,9 @@ def check_fx_visual_profiles(scene):
         scene.view_settings.exposure = previous_exp
         scene.render.resolution_x, scene.render.resolution_y = previous_size
         scene.ald.fx_age = previous_age
+        scene.ald.fx_pass_path = previous_pass
+        scene.ald.fx_pass_frames = previous_frames
+        scene.ald.fx_pass_required = previous_required
 
 
 def check_fx_ui_screenshots(scene):

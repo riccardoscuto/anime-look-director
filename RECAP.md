@@ -1,6 +1,6 @@
 # Anime Look Director — Recap
 
-**Versione 2.54.0** · Blender 5.1.2 · GPL-3.0-or-later
+**Versione 2.55.0** · Blender 5.1.2 · GPL-3.0-or-later
 
 ## In breve
 
@@ -80,6 +80,15 @@ Non salva mai il `.blend` dell'utente e non richiede dipendenze esterne.
 26. **Diagnostica e benchmark** — report esplicito `Diagnose FX` (read-only nel
     pannello, stato `UNKNOWN` finché non viene calcolato) e benchmark separati
     per creazione, update, clock, frame, memoria e render.
+
+## Novità 2.55.0 — i nuovi FX richiedono il pass
+
+- **Creazione da UI** (Fireworks, Shooting Stars, Hero Meteor, Directed Show)
+  imposta `fx_pass_required=True`: un render senza pass nasconde gli FX invece
+  di usare la main Emission contaminata. L'API Python diretta resta com'era per
+  compatibilità e test.
+- Il gate verifica il flag dell'operatore e il nodo `ALD | FX Strict Black`; lo
+  screenshot del pannello mostra la spunta attiva.
 
 ## Novità 2.54.0 — fit ORTHO
 

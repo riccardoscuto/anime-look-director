@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.55.0 - 2026-10-27
+New FX from the UI require the pass.
+
+### Changed
+- The FX creation operators (Create Fireworks, Shooting Stars, Hero Meteor,
+  Directed Show) set `fx_pass_required = True`: a render without a fresh pass
+  hides the FX instead of using the contaminated main Emission. The direct
+  Python API keeps the property unchanged for compatibility and tests.
+- The gate checks that the operator sets the strict flag and that the stack
+  uses `ALD | FX Strict Black`; the UI screenshot shows the checked toggle.
+
 ## 2.54.0 - 2026-10-27
 ORTHO show fit by the lateral layout.
 

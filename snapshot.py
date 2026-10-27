@@ -272,6 +272,23 @@ def _restore_view_layer(scene, states):
         view_layer.use_pass_combined = bool(state.get("use_pass_combined", True))
 
 
+def _forget_pass(scene, strict=None):
+    """Drop the pass state and the per-scene image after a restore/detach."""
+    settings = getattr(scene, "ald", None)
+    if settings is None:
+        return
+    settings.fx_pass_path = ""
+    settings.fx_pass_frames = (0, 0)
+    settings.fx_pass_signature = ""
+    if strict is not None:
+        settings.fx_pass_required = bool(strict)
+    for name in ("ALD | FX Pass Image",
+                 "ALD | FX Pass | " + scene.name):
+        image = bpy.data.images.get(name)
+        if image is not None and image.users == 0:
+            bpy.data.images.remove(image)
+
+
 def detach(scene):
     """Keep the current result but stop managing the scene.
 
@@ -291,6 +308,13 @@ def detach(scene):
             del scene[key]
     settings = getattr(scene, "ald", None)
     if settings is not None:
+        scene[MAINTENANCE_KEY] = True
+        try:
+            _forget_pass(scene, strict=True)
+            from . import compositor
+            compositor.build(scene)
+        finally:
+            scene[MAINTENANCE_KEY] = False
         settings.detached = True
     return True
 
@@ -371,6 +395,7 @@ def restore(scene):
                 del scene[key]
         if SNAPSHOT_KEY in scene:
             del scene[SNAPSHOT_KEY]
+        _forget_pass(scene)
         # The scene is no longer managed by the add-on: the UI must say so
         # instead of pretending the stack is still owned.
         scene[REMOVED_KEY] = True

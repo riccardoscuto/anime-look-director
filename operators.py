@@ -280,6 +280,7 @@ class ALD_OT_fx_fireworks(bpy.types.Operator):
         time = _scene_time(scene) + self.age
         count = fx.create_fireworks(scene, self.count, self.seed,
                                     self.distance, time, family=self.family)
+        scene.ald.fx_pass_required = True
         # The persistent events are the source of truth: they are written by
         # the creation and they rebuild the system after a reload.
         scene["ald_fx_config"] = {
@@ -311,6 +312,7 @@ class ALD_OT_fx_meteors(bpy.types.Operator):
         time = _scene_time(scene) + self.age
         count = fx.create_meteors(scene, self.count, self.seed, self.distance,
                                   time)
+        scene.ald.fx_pass_required = True
         scene["ald_fx_config"] = {
             "kind": "meteors", "count": self.count, "seed": self.seed,
             "distance": self.distance, "age": self.age,
@@ -491,6 +493,7 @@ class ALD_OT_fx_bolide(bpy.types.Operator):
         time = _scene_time(scene) + self.age
         count = fx.create_meteors(scene, self.count, self.seed, self.distance,
                                   time, kind="BOLIDE")
+        scene.ald.fx_pass_required = True
         scene["ald_fx_config"] = {
             "kind": "meteors", "count": self.count, "seed": self.seed,
             "distance": self.distance, "age": self.age, "preset": "BOLIDE",
@@ -685,6 +688,7 @@ class ALD_OT_fx_show(bpy.types.Operator):
         time = _scene_time(scene) + self.age
         count = fx.create_fireworks(scene, int(self.count), self.seed,
                                     self.distance, time)
+        scene.ald.fx_pass_required = True
         _show_in_viewport(context)
         self.report({"INFO"},
                     "Anime Look Director: directed show with %d bursts" % count)
