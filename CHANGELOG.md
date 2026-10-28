@@ -68,8 +68,37 @@ Phase 0: legacy ALD safety.
   0.380 s at 720p; Phase 1A 646 nodes / 1.596 s build / 0.370 s at 720p.
 - Interactive Preview smoke test in a Blender 5.1.2 GUI: 5/5 PASS
   (viewport, keyed camera, Properties, no camera, persistence).
-- Technical status: **FINAL TECHNICAL REVIEW: PASS**; merge authorization
-  pending. No merge or release.
+- Technical status: **FINAL TECHNICAL REVIEW: PASS**; PR #1 merged to
+  `master` at `63ffa29`. No release.
+
+### Phase 1B - Shooting Stars appearance candidate
+
+Appearance candidate authorized after the visual assessment; no geometry,
+operator or property changes.
+
+#### Changed
+- Head: radius `(0.8 + 0.8*glow) * thickness`, small core plus compact halo,
+  boost `0.8 + 0.6*glow`; no isolated luminous sphere.
+- Tail: terminal 18% smoothstep, brightness/width down to ~5% at the tip.
+- Temporal envelope: fade-in 0.5 -> 1 over two frames, fade-out 1 -> 0.3 over
+  the last three visible frames; SS-01 first/last frames remain visible.
+- World gradient marker 30 -> 31; marker-29 and marker-30 scenes rebuild
+  without losing events, properties or keyed camera animation.
+- Component connectivity test samples at 2x instead of 4x; requirements and
+  thresholds unchanged.
+
+#### Evidence
+- Phase 1A gate **37/37** on OpenGL and Vulkan; interactive Preview **5/5**;
+  `verify_all` PASS; audit **44/44**; Phase 6 **17/17**; build PASS.
+- SS-01 render: f9 0, f10 149, f33 829, f34 0; duration 2: 140 / 802.
+- Performance: 646 -> 718 nodes, build 1.606 -> 2.016 s once, 720p +0.9%,
+  1080p +0.4%.
+- `preset_dev/phase1b_shooting_stars/` candidate boards, video, metrics,
+  markers and performance.
+- Status: **VISUAL APPROVED** (2026-10-28); merge authorization pending; no
+  merge or release.
+
+
 
 ## 2.62.0 - 2026-10-27
 Phase 6: final World Sky release.

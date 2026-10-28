@@ -28,7 +28,8 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 3 clouds | `cloud_families/contact.png`, `metrics.json` | Cumulus / Stratocumulus / Cirrus, same day sun |
 | Phase 3 sunset | `cloud_sunset/contact.png`, `metrics.json` | GOLDEN_HOUR, side and backlit |
 | Shooting stars (2.60.1) | `shooting_star/contact.png`, `metrics.json` | persistent event, frames 1/8/16/25/30 |
-| Shooting stars Phase 1A (2.63) | `phase1a_shooting_stars/board.png`, `board_horizon.png`, `temporal.png`, `migration.png`, `backend.png`, `interactive.png`, `lifecycle.mp4`, `metrics.json`, `review.json` | **37/37 PASS** on Eevee OpenGL and Vulkan; interactive Preview **5/5 PASS**; temporal and four-event migration verified; **FINAL TECHNICAL REVIEW: PASS** (merge authorization pending) |
+| Shooting stars Phase 1A (2.63) | `phase1a_shooting_stars/board.png`, `board_horizon.png`, `temporal.png`, `migration.png`, `backend.png`, `interactive.png`, `lifecycle.mp4`, `metrics.json`, `review.json` | **37/37 PASS** on Eevee OpenGL and Vulkan; interactive Preview **5/5 PASS**; temporal and four-event migration verified; **FINAL TECHNICAL REVIEW: PASS**; merged to `master` at `63ffa29` |
+| Shooting stars Phase 1B (candidate) | `phase1b_shooting_stars/candidate_elevations.png`, `candidate_lifecycle.png`, `candidate_context.png`, `candidate_head_tip.png`, `candidate_lifecycle.mp4`, `candidate_metrics.json`, `markers.json`, `performance.json` | **37/37 PASS** on OpenGL and Vulkan; interactive **5/5**; markers 29/30 -> 31; **VISUAL APPROVED**; merge authorization pending |
 | Phase 6 matrix | `phase6/contact.png`, `phase6/metrics.json` | 22 cells: families x Sun, palettes, coverage, camera, wind, stars |
 | Phase 6 technical | `phase6/technical.json` | **17/17 PASS** |
 | Legacy migration (2.63 work) | `legacy/report.json`, `legacy/v256_report.json` | synthetic **36/36**; real v2.56.0 `.blend` **9/9** |

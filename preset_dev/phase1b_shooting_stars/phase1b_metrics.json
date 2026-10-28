@@ -1,0 +1,210 @@
+{
+  "current": {
+    "tag": "current",
+    "base": "phase-1a",
+    "resolution": [
+      1280,
+      720
+    ],
+    "lens": 32.0,
+    "camera": [
+      0.0,
+      -12.0,
+      3.0
+    ],
+    "view_transform": "AgX",
+    "look": "None",
+    "exposure": 0.0,
+    "gamma": 1.0,
+    "clouds": false,
+    "compositor": false,
+    "event": {
+      "azimuth": 120.0,
+      "elevation": 40.0,
+      "direction": 35.0,
+      "length": 18.0,
+      "start_frame": 10,
+      "duration": 24,
+      "trail": 0.55,
+      "thickness": 0.0018,
+      "brightness": 3.0,
+      "glow": 0.8,
+      "color": [
+        0.88,
+        0.94,
+        1.0
+      ]
+    },
+    "four": [
+      {
+        "azimuth": 105.0,
+        "elevation": 30.0,
+        "direction": -35.0,
+        "length": 12.0,
+        "color": [
+          0.88,
+          0.94,
+          1.0
+        ]
+      },
+      {
+        "azimuth": 114.0,
+        "elevation": 38.0,
+        "direction": 60.0,
+        "length": 14.0,
+        "color": [
+          1.0,
+          0.8,
+          0.6
+        ]
+      },
+      {
+        "azimuth": 126.0,
+        "elevation": 42.0,
+        "direction": 120.0,
+        "length": 14.0,
+        "color": [
+          0.7,
+          0.9,
+          1.0
+        ]
+      },
+      {
+        "azimuth": 135.0,
+        "elevation": 34.0,
+        "direction": -90.0,
+        "length": 12.0,
+        "color": [
+          1.0,
+          1.0,
+          0.9
+        ]
+      }
+    ],
+    "frames": {
+      "elevations": 18,
+      "four": 20,
+      "twilight": 18,
+      "lifecycle": [
+        10,
+        34
+      ]
+    }
+  },
+  "old_2601": {
+    "tag": "2601",
+    "base": "v2.60.1",
+    "resolution": [
+      1280,
+      720
+    ],
+    "lens": 32.0,
+    "camera": [
+      0.0,
+      -12.0,
+      3.0
+    ],
+    "view_transform": "AgX",
+    "look": "None",
+    "exposure": 0.0,
+    "gamma": 1.0,
+    "clouds": false,
+    "compositor": false,
+    "event": {
+      "azimuth": 120.0,
+      "elevation": 40.0,
+      "direction": 35.0,
+      "length": 18.0,
+      "start_frame": 10,
+      "duration": 24,
+      "trail": 0.55,
+      "thickness": 0.0018,
+      "brightness": 3.0,
+      "glow": 0.8,
+      "color": [
+        0.88,
+        0.94,
+        1.0
+      ]
+    },
+    "four": [
+      {
+        "azimuth": 105.0,
+        "elevation": 30.0,
+        "direction": -35.0,
+        "length": 12.0,
+        "color": [
+          0.88,
+          0.94,
+          1.0
+        ]
+      },
+      {
+        "azimuth": 114.0,
+        "elevation": 38.0,
+        "direction": 60.0,
+        "length": 14.0,
+        "color": [
+          1.0,
+          0.8,
+          0.6
+        ]
+      },
+      {
+        "azimuth": 126.0,
+        "elevation": 42.0,
+        "direction": 120.0,
+        "length": 14.0,
+        "color": [
+          0.7,
+          0.9,
+          1.0
+        ]
+      },
+      {
+        "azimuth": 135.0,
+        "elevation": 34.0,
+        "direction": -90.0,
+        "length": 12.0,
+        "color": [
+          1.0,
+          1.0,
+          0.9
+        ]
+      }
+    ],
+    "frames": {
+      "elevations": 18,
+      "four": 20,
+      "twilight": 18,
+      "lifecycle": [
+        10,
+        34
+      ]
+    }
+  },
+  "shader_facts": {
+    "head_radius_deg": 0.371,
+    "trail_full_width_deg": 0.206,
+    "head_to_trail_ratio": 3.6,
+    "head_to_trail_peak": 2.0,
+    "tail_tip_brightness": 35,
+    "tail_tip_width": 25
+  },
+  "video": {
+    "frames": [
+      10,
+      33
+    ],
+    "count": 24,
+    "fps": 24
+  },
+  "notes": {
+    "head_radius": "(2 + 2*glow) * thickness at glow=0.8, thickness=0.0018 rad",
+    "trail_width": "2 * thickness * taper at the head",
+    "tail_tip": "tail_fade=0.35, taper=0.25 at the tail gate",
+    "temporal": "value is multiplied by the binary alive gate; no fade in/out",
+    "old_2601": "thin line with a tiny/absent head; no readable glow"
+  },
+  "decision": "IMPROVEMENTS REQUIRED"
+}
