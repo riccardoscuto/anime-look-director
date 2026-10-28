@@ -92,8 +92,8 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   **FINAL TECHNICAL REVIEW: PASS**; PR #1 is **merged to master** at `63ffa29`
   (Phase 1A technically complete). Phase 1B has an authorized appearance
   candidate on `phase-1b-shooting-stars`: compact head, tapered tail and a
-  bounded temporal envelope; **TECHNICAL PASS - VISUAL REVIEW PENDING**, marker
-  31. No merge or 2.63 release.
+  bounded temporal envelope; **VISUAL APPROVED** on 2026-10-28; merge
+  authorization pending, marker 31. No merge or 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and

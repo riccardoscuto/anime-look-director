@@ -1,6 +1,6 @@
 # Phase 1B - Shooting Stars Visual Assessment
 
-- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING** (candidate implemented)
+- Status: **VISUAL APPROVED** (user, 2026-10-28); merge authorization pending
 - Historical assessment: **IMPROVEMENTS REQUIRED** (kept below)
 - Branch: `phase-1b-shooting-stars` (from `master` `63ffa29`, Phase 1A merged)
 - Code: appearance-only candidate in `palette.py`; geometry, properties and
@@ -232,7 +232,8 @@ is not a per-frame cost.
 
 ### Candidate limitations
 
-- Visual approval is still required; this is not a final aesthetic sign-off.
+- Visual approval recorded on 2026-10-28; the branch is still unmerged and
+  a separate merge authorization is required.
 - One palette pair and camera; clouds off. Twilight and 1 deg were checked,
   but a wider aesthetic pass remains future work.
 - The target panel is a schematic, not an external anime frame.

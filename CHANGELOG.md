@@ -95,7 +95,8 @@ operator or property changes.
   1080p +0.4%.
 - `preset_dev/phase1b_shooting_stars/` candidate boards, video, metrics,
   markers and performance.
-- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
+- Status: **VISUAL APPROVED** (2026-10-28); merge authorization pending; no
+  merge or release.
 
 
 
