@@ -1556,6 +1556,38 @@
           "p90": 0.7602
         },
         "threshold": 0.02
+      },
+      "high": {
+        "name": "A high",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4262,
+        "area_pixels": 392767,
+        "perimeter_pixels": 6538,
+        "perimeter_norm": 10.432,
+        "perimeter_per_resolution": 6.8104,
+        "components": 3,
+        "component_areas": [
+          0.4031,
+          0.0213,
+          0.0023
+        ],
+        "largest_component": 0.4031,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.327,
+        "image_gradient_mean": 0.00231,
+        "cloud_luma": {
+          "mean": 0.7009,
+          "std": 0.0623,
+          "p10": 0.6252,
+          "p50": 0.7244,
+          "p90": 0.7602
+        },
+        "threshold": 0.02
       }
     },
     "C": {
