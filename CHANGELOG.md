@@ -71,18 +71,32 @@ Phase 0: legacy ALD safety.
 - Technical status: **FINAL TECHNICAL REVIEW: PASS**; PR #1 merged to
   `master` at `63ffa29`. No release.
 
-### Phase 1B - Shooting Stars visual assessment
+### Phase 1B - Shooting Stars appearance candidate
 
-Visual assessment only; no code changes.
+Appearance candidate authorized after the visual assessment; no geometry,
+operator or property changes.
 
-- Compared `v2.60.1` and Phase 1A with the same camera, resolution, exposure
-  and color management, clouds off.
-- Current 1A head is an oversized isotropic glow; the tail has a blunt cap and
-  no temporal fade. Movement, continuity and elevation independence pass.
-- Suggested decision: **IMPROVEMENTS REQUIRED**; a circumscribed appearance
-  candidate is proposed in `preset_dev/phase1b_shooting_stars/README.md`.
-- Evidence: `preset_dev/phase1b_shooting_stars/` (boards, two 24-frame videos,
-  parameters and metrics).
+#### Changed
+- Head: radius `(0.8 + 0.8*glow) * thickness`, small core plus compact halo,
+  boost `0.8 + 0.6*glow`; no isolated luminous sphere.
+- Tail: terminal 18% smoothstep, brightness/width down to ~5% at the tip.
+- Temporal envelope: fade-in 0.5 -> 1 over two frames, fade-out 1 -> 0.3 over
+  the last three visible frames; SS-01 first/last frames remain visible.
+- World gradient marker 30 -> 31; marker-29 and marker-30 scenes rebuild
+  without losing events, properties or keyed camera animation.
+- Component connectivity test samples at 2x instead of 4x; requirements and
+  thresholds unchanged.
+
+#### Evidence
+- Phase 1A gate **37/37** on OpenGL and Vulkan; interactive Preview **5/5**;
+  `verify_all` PASS; audit **44/44**; Phase 6 **17/17**; build PASS.
+- SS-01 render: f9 0, f10 149, f33 829, f34 0; duration 2: 140 / 802.
+- Performance: 646 -> 718 nodes, build 1.606 -> 2.016 s once, 720p +0.9%,
+  1080p +0.4%.
+- `preset_dev/phase1b_shooting_stars/` candidate boards, video, metrics,
+  markers and performance.
+- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
+
 
 
 ## 2.62.0 - 2026-10-27

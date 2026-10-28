@@ -1,10 +1,10 @@
 # Phase 1B - Shooting Stars Visual Assessment
 
-- Status: **VISUAL REVIEW PENDING**
-- Suggested decision: **IMPROVEMENTS REQUIRED**
+- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING** (candidate implemented)
+- Historical assessment: **IMPROVEMENTS REQUIRED** (kept below)
 - Branch: `phase-1b-shooting-stars` (from `master` `63ffa29`, Phase 1A merged)
-- Code: **not modified**; shader, properties and operators are the Phase 1A
-  code already merged.
+- Code: appearance-only candidate in `palette.py`; geometry, properties and
+  operators are the Phase 1A code already merged.
 - Scope: appearance only. Geometry SS-01..SS-05, clouds, Sun, atmosphere,
   materials and compositor are untouched.
 
@@ -160,3 +160,81 @@ separate release authorization.
 
 **IMPROVEMENTS REQUIRED** - implement the circumscribed appearance candidate
 only after approval. No code was changed in this assessment.
+
+## Candidate implementation (authorized)
+
+Implemented after the assessment, appearance only; geometry SS-01..SS-05 and
+the World trajectory math are unchanged.
+
+### Changes
+
+- **Head:** `head_radius = (0.8 + 0.8*glow) * thickness` (0.149 deg at the
+  default glow/thickness instead of 0.371 deg); a small core
+  (`0.35 * head_radius` Gaussian) plus a compact halo; head boost
+  `0.8 + 0.6*glow` (1.28 instead of 1.8). Nominal diameter 0.297 deg vs trail
+  0.206 deg (1.44x); peak 3.84 vs 2.7 near the trail (1.42x).
+- **Tail:** terminal 18% smoothstep; `tail_fade` and `taper` fall from 1.0 at
+  the head to 5% / 6% at the tip. No hard cap; the arc length and trail
+  parameter are unchanged.
+- **Temporal envelope:** fade-in from 0.5 to 1.0 over the first 2 frames;
+  fade-out from 1.0 to 0.3 over the last 3 visible frames; `alive` remains the
+  SS-01 window. First and last visible frames stay non-zero.
+- **Marker 30 -> 31:** group topology changed; old marker-29 and marker-30
+  scenes rebuild automatically.
+- No new properties or panels; no changes to `Glow`, `Trail`, `Thickness` or
+  `Brightness` semantics.
+
+### Before/after evidence
+
+- `candidate_elevations.png` - 1A vs candidate, 1/5/40/85 deg.
+- `candidate_lifecycle.png` - frames 9/10/11/13/18/25/31/32/33/34.
+- `candidate_context.png` - night, twilight, four events.
+- `candidate_head_tip.png` - head crop 4x, tail-tip crop 4x, target, facts.
+- `candidate_lifecycle.mp4` - 24 frames 10..33 at 24 fps.
+- `candidate_metrics.json` - values, tests, markers, performance.
+- `candidate_interactive.png`, `candidate_interactive_preview.png`,
+  `candidate_interactive.json` - GUI Preview 5/5.
+- `markers.json` - marker 29/30 migration with a keyed camera.
+- `performance.json` - candidate vs master 1A.
+
+Original 1B boards (`board_*`, `lifecycle_*`, `phase1b_metrics.json`) are
+preserved unchanged.
+
+### Test results
+
+- Phase 1A gate: **37/37 PASS** on Eevee OpenGL and Vulkan.
+- Interactive Preview: **5/5 PASS** (viewport, keyed camera, Properties, no
+  camera, persistence at marker 31).
+- `verify_all.py`: **ALD ALL: PASS**; audit **44/44**; Phase 6 **17/17**;
+  build **PASS**.
+- SS-01 render check (start 10, duration 24): f9 = 0 px, f10 = 149 px,
+  f33 = 829 px, f34 = 0 px. Duration 2: f10 = 140 px, f11 = 802 px.
+- Four events: 2214 px, **4 components**; every head at its expected
+  position. The component connectivity uses 2x sampling instead of 4x because
+  the thinner trail broke into a fragment on the coarse grid; the 4-event
+  requirement and all thresholds are unchanged.
+- Marker 29 and 30 scenes: 4 events preserved, properties and keyed camera
+  animation equal before/after/reopen; marker becomes 31.
+- Linear brightness 5/40 deg: 1.503 / 1.521 (ratio 1.012).
+
+### Performance (Eevee Vulkan, medians of 3 runs)
+
+| Metric | master 1A | candidate |
+|---|---|---|
+| World nodes | 646 | 718 (+11.1%) |
+| First group build | 1.606 s | 2.016 s (+0.41 s, one-time) |
+| Apply palette | 1.4 ms | 1.2 ms |
+| Render 1280x720 | 0.3696 s | 0.3729 s (+0.9%) |
+| Render 1920x1080 | 0.7725 s | 0.7758 s (+0.4%) |
+
+The render delta is below 5%; the one-time build increase is documented and
+is not a per-frame cost.
+
+### Candidate limitations
+
+- Visual approval is still required; this is not a final aesthetic sign-off.
+- One palette pair and camera; clouds off. Twilight and 1 deg were checked,
+  but a wider aesthetic pass remains future work.
+- The target panel is a schematic, not an external anime frame.
+- No merge, release, tag or version change. SS-01..SS-05 and the great-circle
+  geometry are untouched.
