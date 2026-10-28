@@ -95,9 +95,28 @@ operator or property changes.
   1080p +0.4%.
 - `preset_dev/phase1b_shooting_stars/` candidate boards, video, metrics,
   markers and performance.
-- Status: **VISUAL APPROVED** (2026-10-28); merge authorization pending; no
-  merge or release.
+- Status: **VISUAL APPROVED** and merged to `master` at `fe685d5`
+  (PR #2); no release.
 
+
+
+### Phase 2 - Atmosphere, Horizon and Sun Disk (candidate)
+
+Cloudless World; no cloud generator, compositor or material changes.
+
+#### Changed
+- Sun Elevation range -5..85 -> -30..85, preserving the presets.
+- Sun disk radius 1.5 -> 1.0 deg, strength 6 -> 4; disk masked by the ground
+  gradient at the horizon so it is cut when Horizon Offset raises the horizon.
+- `apply_sun_angles` refreshes the World disk immediately.
+- World marker 31 -> 32.
+
+#### Evidence
+- `preset_dev/phase2_atmosphere/`: four conditions and second framing, Sun
+  sweep +8..-8, Horizon Offset, Softness/Accent, UI before/after.
+- 37/37 OpenGL/Vulkan, interactive 5/5, ALD ALL, audit 44/44, Phase 6 17/17,
+  build PASS; markers 29/30/31 -> 32.
+- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
 
 
 ## 2.62.0 - 2026-10-27

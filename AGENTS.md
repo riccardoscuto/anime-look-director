@@ -90,10 +90,11 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   `phase-1a-shooting-stars`: 37/37 technical checks and 5/5 interactive
   Preview checks, evidence in `preset_dev/phase1a_shooting_stars/`,
   **FINAL TECHNICAL REVIEW: PASS**; PR #1 is **merged to master** at `63ffa29`
-  (Phase 1A technically complete). Phase 1B has an authorized appearance
-  candidate on `phase-1b-shooting-stars`: compact head, tapered tail and a
-  bounded temporal envelope; **VISUAL APPROVED** on 2026-10-28; merge
-  authorization pending, marker 31. No merge or 2.63 release.
+  (Phase 1A technically complete). Phase 1B is merged at `fe685d5` (compact
+  head, tapered tail, temporal envelope, marker 31). Phase 2 is in progress
+  on `phase-2-atmosphere`: Sun Elevation -30..85, immediate World sync,
+  sun disk 1.0 deg / 4.0, ground-mask at the horizon, marker 32;
+  **TECHNICAL PASS - VISUAL REVIEW PENDING**. No merge or 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
