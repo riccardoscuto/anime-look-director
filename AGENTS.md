@@ -83,7 +83,14 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   Sky Edition.
 - 2.63 work: Phase 0 legacy safety is complete (44/44 audit, 36/36 synthetic
   and 9/9 on a real v2.56.0 file); Phase 1 Cumulus baseline is complete at
-  `preset_dev/phase1/` with the visual decision pending. No 2.63 release.
+  `preset_dev/phase1/` with the visual decision pending. The shooting-star
+  Phase 0 audit (branch `audit/shooting-stars`, not merged) found: the event
+  is invisible at Start Frame (first visible start+1, last start+duration-1,
+  duration-1 frames); near the horizon the event is much fainter at 5 deg and
+  distorted below ~2.9 deg; Add from a horizon camera places a 5 deg
+  near-invisible event; Preview overwrites the working camera. The 4-event
+  limit, playhead, persistence and FULL_COPY duplicate pass. **AUDIT REVIEW
+  PENDING**; no fixes. No 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and

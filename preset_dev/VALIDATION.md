@@ -33,6 +33,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Palettes | `palettes/sheet.png` | 12 presets, same camera and light |
 | UI | `preset_dev/ui/` | Quick Look, Advanced Sky, full Scene sections |
 | Package | `dist/anime_look_director-2.62.0.zip` | extension build PASS; 2.62.0 installed and enabled in an isolated config |
+| Shooting Stars Phase 0 audit (2.63 work) | `audit_shooting_stars/contact_lifecycle.png`, `audit_shooting_stars/contact_position.png`, `audit_shooting_stars/lifecycle.mp4` | **AUDIT REVIEW PENDING**; SS-01..05 reproducible, no add-on changes |
 
 ## Definition of done
 
