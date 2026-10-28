@@ -1383,13 +1383,25 @@ def _build_gradient_group(ng):
     links.new(strat_flatness.outputs[0], family_flatness.inputs[0])
     links.new(vertical_reduce.outputs[0], family_flatness.inputs[1])
 
+    # Phase 2E: restore the original Cloud Flatness projection for Cumulus.
+    # Other families keep the current family-specific value.
+    p_flatness = nodes.new("ShaderNodeMapRange")
+    p_flatness.location = (1180, -700)
+    p_flatness.clamp = True
+    p_flatness.inputs["From Min"].default_value = 0.0
+    p_flatness.inputs["From Max"].default_value = 1.0
+    links.new(group_in.outputs["Cloud Cumulus"], p_flatness.inputs["Value"])
+    links.new(family_flatness.outputs[0], p_flatness.inputs["To Min"])
+    links.new(group_in.outputs["Cloud Flatness"], p_flatness.inputs["To Max"])
+    flatness_out = p_flatness.outputs["Result"]
+
     # Cloud Flatness: 0 = billowy cumuli, 0.65 = current strata,
     # 1 = strongly flat horizontal bands. At 0.65 this is exactly 3.2.
     flat_z = nodes.new("ShaderNodeMath")
     flat_z.location = (1000, -360)
     flat_z.operation = "MULTIPLY"
     flat_z.inputs[1].default_value = 3.0
-    links.new(family_flatness.outputs[0], flat_z.inputs[0])
+    links.new(flatness_out, flat_z.inputs[0])
 
     flat_z_add = nodes.new("ShaderNodeMath")
     flat_z_add.location = (1180, -360)
@@ -1410,7 +1422,7 @@ def _build_gradient_group(ng):
     flat_inv.operation = "SUBTRACT"
     flat_inv.use_clamp = True
     flat_inv.inputs[0].default_value = 1.0
-    links.new(family_flatness.outputs[0], flat_inv.inputs[1])
+    links.new(flatness_out, flat_inv.inputs[1])
 
     # Optional contrails: straight gnomonic-plane filaments. Use X/Z and Y/Z
     # (not the curved shell projection) so a constant-u line stays straight.
@@ -1600,7 +1612,7 @@ def _build_gradient_group(ng):
     rho_here, env_here, warped_pos = _sample_cloud_density(
         nodes, links, family_view.outputs["Vector"], group_in,
         flat_scale, flat_inv, y_offset=0.0,
-        flatness_socket=family_flatness.outputs[0])
+        flatness_socket=flatness_out)
 
     # Displace the *view ray* by ~2 degrees on the sky dome, not the mapped
     # cloud point. Sun+zenith defines the per-cloud light direction.
@@ -1640,7 +1652,7 @@ def _build_gradient_group(ng):
     rho_sun, env_sun, _warped_sun = _sample_cloud_density(
         nodes, links, family_view_sun.outputs["Vector"], group_in,
         flat_scale, flat_inv, y_offset=-1200.0,
-        flatness_socket=family_flatness.outputs[0])
+        flatness_socket=flatness_out)
 
     delta = nodes.new("ShaderNodeMath")
     delta.location = (2440, -900)
@@ -1753,24 +1765,42 @@ def _build_gradient_group(ng):
     links.new(group_in.outputs["Cloud Amount"],
               coverage_center.inputs["Value"])
 
+    coverage_bias = nodes.new("ShaderNodeMapRange")
+    coverage_bias.location = (2620, -120)
+    coverage_bias.clamp = True
+    coverage_bias.inputs["From Min"].default_value = 0.0
+    coverage_bias.inputs["From Max"].default_value = 1.0
+    coverage_bias.inputs["To Min"].default_value = 0.0
+    coverage_bias.inputs["To Max"].default_value = -0.015
+    links.new(group_in.outputs["Cloud Cumulus"],
+              coverage_bias.inputs["Value"])
+
+    coverage_center_p = nodes.new("ShaderNodeMath")
+    coverage_center_p.location = (2800, -120)
+    coverage_center_p.operation = "ADD"
+    links.new(coverage_center.outputs["Result"],
+              coverage_center_p.inputs[0])
+    links.new(coverage_bias.outputs["Result"],
+              coverage_center_p.inputs[1])
+
     coverage_top = nodes.new("ShaderNodeMath")
     coverage_top.location = (2620, -220)
     coverage_top.operation = "ADD"
     coverage_top.inputs[1].default_value = 0.018
-    links.new(coverage_center.outputs["Result"], coverage_top.inputs[0])
+    links.new(coverage_center_p.outputs[0], coverage_top.inputs[0])
 
     fringe_top = nodes.new("ShaderNodeMath")
     fringe_top.location = (2620, -380)
     fringe_top.operation = "ADD"
     fringe_top.inputs[1].default_value = 0.022
-    links.new(coverage_center.outputs["Result"], fringe_top.inputs[0])
+    links.new(coverage_center_p.outputs[0], fringe_top.inputs[0])
 
     # Crisp anime silhouette + directional body / silver lining.
     coverage = nodes.new("ShaderNodeMapRange")
     coverage.location = (2800, -300)
     coverage.clamp = True
     _smooth(coverage)
-    links.new(coverage_center.outputs["Result"], coverage.inputs["From Min"])
+    links.new(coverage_center_p.outputs[0], coverage.inputs["From Min"])
     links.new(coverage_top.outputs[0], coverage.inputs["From Max"])
     links.new(rho_family.outputs[0], coverage.inputs["Value"])
 
@@ -1824,7 +1854,7 @@ def _build_gradient_group(ng):
     _smooth(fringe)
     fringe.inputs["To Min"].default_value = 1.0
     fringe.inputs["To Max"].default_value = 0.0
-    links.new(coverage_center.outputs["Result"], fringe.inputs["From Min"])
+    links.new(coverage_center_p.outputs[0], fringe.inputs["From Min"])
     links.new(fringe_top.outputs[0], fringe.inputs["From Max"])
     links.new(rho_family.outputs[0], fringe.inputs["Value"])
 

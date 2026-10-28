@@ -30,6 +30,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 6 technical | `phase6/technical.json` | **17/17 PASS** |
 | Legacy migration (2.63 work) | `legacy/report.json`, `legacy/v256_report.json` | synthetic **36/36**; real v2.56.0 `.blend` **9/9** |
 | Cumulus baseline (2.63 work) | `phase1/contact.png`, `phase1/contact_lighting.png`, `phase1/metrics.json` | v1.0.3 vs v2.62 native/calibrated; **TECHNICAL PASS / VISUAL REVIEW PENDING** |
+| Projection candidate P (2.63 work) | `phase2e/contact_table.png`, `phase2e/metrics.json` | **STOPPED - global curve works at seed 17, not across 20 seeds/views**; master keeps A |
 | Palettes | `palettes/sheet.png` | 12 presets, same camera and light |
 | UI | `preset_dev/ui/` | Quick Look, Advanced Sky, full Scene sections |
 | Package | `dist/anime_look_director-2.62.0.zip` | extension build PASS; 2.62.0 installed and enabled in an isolated config |

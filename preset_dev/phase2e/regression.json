@@ -1,0 +1,28 @@
+{
+  "stratocumulus": {
+    "identical": true,
+    "max_delta": 0
+  },
+  "cirrus": {
+    "identical": true,
+    "max_delta": 0
+  },
+  "cloud_amount_zero": {
+    "identical_to_off": true,
+    "max_delta": 0
+  },
+  "timing": {
+    "A": {
+      "apply_ms_median": 1.08,
+      "render_ms_median": 1137.4,
+      "first_render_ms": 2586.1,
+      "group_nodes": 540
+    },
+    "P": {
+      "apply_ms_median": 1.1,
+      "render_ms_median": 1151.6,
+      "first_render_ms": 2389.1,
+      "group_nodes": 543
+    }
+  }
+}
