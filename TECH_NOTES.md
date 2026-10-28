@@ -777,7 +777,8 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
 ### v2.8.0 notes (Geometry Nodes for the whole burst population)
 - x_nodes.py owns ALD | FX Burst GN; the same group evaluates the star
   heads, the trail grains, the inner pistil and the child sparks.
-- Per point attributes: irth, life, el, drag, pos0, adius,
+- Per point attributes: irth, life, el, drag, pos0, 
+adius,
   	au (age offset of the sample), jitter (constant scatter), use_decay
   (follow the head decay or keep the baked size).
 - Group inputs: Geometry, Gravity, Material, Trail, Age Offset,
@@ -1387,8 +1388,9 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   v1.0.3, and the largest component covers 0.403 of the frame versus 0.345.
   The current field produces one dominant bank; adding coverage enlarges it
   instead of creating new masses.
-- Edge density is 0.00302 (v1.0.3) versus 0.00231 (v2.62 calibrated), so the
-  current silhouette is 20-23% smoother. The top reads as a long ridge; the
+- Image-gradient mean is 0.00302 (v1.0.3) versus 0.00231 (v2.62
+  calibrated), so the current tonal border is 20-23% smoother. This is not
+  the cloud perimeter; Phase 2A measures the mask perimeter separately. The top reads as a long ridge; the
   old top has rounder, differently sized domes.
 - Cloud luma std is 0.0605 (v1.0.3) versus 0.0623 (v2.62 calibrated): the
   current clouds do **not** have less tonal range. Their median is lower

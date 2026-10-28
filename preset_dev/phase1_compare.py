@@ -112,7 +112,7 @@ def metrics(name, on_path, off_path, resolution):
             "p90": round(float(np.percentile(cloud_values, 90)), 4),
         },
         "sky_luma": round(float(sky_values.mean()), 4),
-        "edge_density": round(float(edge.mean()), 5),
+        "image_gradient_mean": round(float(edge.mean()), 5),
         "rim_to_interior": round(
             float(lum[rim].mean() / max(lum[interior].mean(), 1e-6)), 4),
         "components_over_0.2pct": len(cloud_components),

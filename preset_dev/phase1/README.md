@@ -47,7 +47,7 @@ preset's actual behaviour.
 | Cloud coverage | 0.420 | 0.364 | 0.426 |
 | Cloud components > 0.2% | 6 | 4 | 3 |
 | Largest component (share of frame) | 0.345 | 0.321 | 0.403 |
-| Edge density | 0.00302 | 0.00236 | 0.00231 |
+| Image gradient mean (not perimeter) | 0.00302 | 0.00236 | 0.00231 |
 | Cloud luma p50 | 0.757 | 0.724 | 0.724 |
 | Cloud luma p90 | 0.760 | 0.760 | 0.760 |
 | Cloud luma std | 0.0605 | 0.0616 | 0.0623 |
@@ -68,8 +68,9 @@ components 6 / 4 / 3, largest 0.344 / 0.320 / 0.403, edge density
 - v2.62 at matched coverage reads as **one dominant bank**: the largest
   component covers 40.3%; only three components are significant. The extra
   coverage mostly enlarges the same bank instead of creating new masses.
-- v2.62's border is smoother: edge density is about 20-23% lower at both
-  resolutions. The top is a long ridge with a few bumps; v1.0.3 has more
+- v2.62's border is smoother: the image-gradient mean (a tonal
+  gradient, **not** the cloud perimeter) is about 20-23% lower at both
+  resolutions. A true mask perimeter is measured in Phase 2A. The top is a long ridge with a few bumps; v1.0.3 has more
   rounded, differently sized domes and secondary lobes.
 - v1.0.3's bases are flat per mass and broken by sky openings. v2.62 has a
   clean flat base, but it is one continuous base under a single bank. That
@@ -133,8 +134,8 @@ components 6 / 4 / 3, largest 0.344 / 0.320 / 0.403, edge density
    separate masses. Raising the amount to 0.78 only enlarges the bank; it does
    not restore fragmentation.
 2. **Silhouette detail.** The current border/erosion detail is too soft or too
-   low-frequency to articulate the top into domes. The 20-23% lower edge
-   density is the measurable symptom.
+   low-frequency to articulate the top into domes. The 20-23% lower image-gradient mean is the measurable symptom;
+   Phase 2A measures the true mask perimeter.
 3. **Shading over a single mass.** The current solar/height shading is applied
    over a large connected density region, producing one broad mid/shadow slab.
    v1.0.3's shading follows smaller lobes, so its shadows are local. The tone

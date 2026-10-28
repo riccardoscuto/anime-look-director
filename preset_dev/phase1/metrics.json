@@ -15,7 +15,6 @@
           "p90": 0.7602
         },
         "sky_luma": 0.635,
-        "edge_density": 0.00302,
         "rim_to_interior": 0.8643,
         "components_over_0.2pct": 6,
         "component_areas": [
@@ -43,7 +42,8 @@
           0.0,
           0.0
         ],
-        "threshold": 0.02
+        "threshold": 0.02,
+        "image_gradient_mean": 0.00302
       },
       "v2.62_native": {
         "name": "v2.62_native",
@@ -57,7 +57,6 @@
           "p90": 0.7602
         },
         "sky_luma": 0.6277,
-        "edge_density": 0.00236,
         "rim_to_interior": 0.8833,
         "components_over_0.2pct": 4,
         "component_areas": [
@@ -83,7 +82,8 @@
           0.0,
           0.0
         ],
-        "threshold": 0.02
+        "threshold": 0.02,
+        "image_gradient_mean": 0.00236
       },
       "v2.62_calibrated": {
         "name": "v2.62_calibrated",
@@ -97,7 +97,6 @@
           "p90": 0.7602
         },
         "sky_luma": 0.6355,
-        "edge_density": 0.00231,
         "rim_to_interior": 0.878,
         "components_over_0.2pct": 3,
         "component_areas": [
@@ -122,7 +121,8 @@
           0.0,
           0.0
         ],
-        "threshold": 0.02
+        "threshold": 0.02,
+        "image_gradient_mean": 0.00231
       }
     },
     "1920x1080": {
@@ -138,7 +138,6 @@
           "p90": 0.7602
         },
         "sky_luma": 0.6349,
-        "edge_density": 0.00239,
         "rim_to_interior": 0.8496,
         "components_over_0.2pct": 6,
         "component_areas": [
@@ -166,7 +165,8 @@
           0.0,
           0.0
         ],
-        "threshold": 0.02
+        "threshold": 0.02,
+        "image_gradient_mean": 0.00239
       },
       "v2.62_native": {
         "name": "v2.62_native",
@@ -180,7 +180,6 @@
           "p90": 0.7602
         },
         "sky_luma": 0.6277,
-        "edge_density": 0.00195,
         "rim_to_interior": 0.8727,
         "components_over_0.2pct": 4,
         "component_areas": [
@@ -206,7 +205,8 @@
           0.0,
           0.0
         ],
-        "threshold": 0.02
+        "threshold": 0.02,
+        "image_gradient_mean": 0.00195
       },
       "v2.62_calibrated": {
         "name": "v2.62_calibrated",
@@ -220,7 +220,6 @@
           "p90": 0.7602
         },
         "sky_luma": 0.6355,
-        "edge_density": 0.00192,
         "rim_to_interior": 0.8669,
         "components_over_0.2pct": 3,
         "component_areas": [
@@ -245,7 +244,8 @@
           0.0,
           0.0
         ],
-        "threshold": 0.02
+        "threshold": 0.02,
+        "image_gradient_mean": 0.00192
       }
     }
   }
