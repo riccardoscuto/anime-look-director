@@ -98,9 +98,10 @@ colors and brightness. Old and new renders:
   2 detectable components (436 px) only because the old trail is much fainter,
   but all four old per-event renders are present (131/167/96/42 px);
 - start directions are identical (delta 0 deg). End directions change because
-  `Direction` is now a true local bearing: Legacy A 14.824 deg, B 18.753 deg,
-  C 11.315 deg, D 34.755 deg. This is the intentional SS-02 geometry change,
-  not a data loss;
+  the old tangent basis was not orthogonal and the old path was gnomonic; the
+  new path uses a true local bearing and the exact requested length. The delta
+  is Legacy A 14.824 deg, B 18.753 deg, C 11.315 deg, D 34.755 deg. This is the
+  intentional SS-02 geometry change, not a data loss;
 - **no automatic migration**: changing `Direction`/`Length` to reproduce the
   old distorted trajectory would preserve the defect and silently overwrite
   user values. Structural compatibility is complete; visual/trajectory
