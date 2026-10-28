@@ -135,7 +135,7 @@ def main():
 
     one({})
     aim(camera, 120.0, 40.0)
-    for frame in range(10, 35):
+    for frame in range(9, 35):
         render("life_f%02d" % frame, frame)
 
     events.clear()
@@ -158,7 +158,7 @@ def main():
     aim(camera, 120.0, 40.0)
     render("night_40", 18)
     params["frames"] = {"elevations": 18, "four": 20, "twilight": 18,
-                        "lifecycle": [10, 34]}
+                        "lifecycle": [9, 34]}
     with open(os.path.join(out, "%s_params.json" % tag), "w",
               encoding="utf-8") as handle:
         json.dump(params, handle, indent=2)
