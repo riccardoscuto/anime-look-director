@@ -1,0 +1,33 @@
+{
+  "count": 0,
+  "seeds": {
+    "3": {
+      "masses": 92,
+      "mean_radius_deg": 7.45,
+      "sum_fraction": 0.302,
+      "union_fraction": 0.2993,
+      "mean_area_fraction": 0.00328,
+      "sum_sr": 1.8977,
+      "union_sr": 1.8804
+    },
+    "17": {
+      "masses": 94,
+      "mean_radius_deg": 7.38,
+      "sum_fraction": 0.3242,
+      "union_fraction": 0.31,
+      "mean_area_fraction": 0.00345,
+      "sum_sr": 2.0373,
+      "union_sr": 1.9475
+    },
+    "42": {
+      "masses": 94,
+      "mean_radius_deg": 7.39,
+      "sum_fraction": 0.319,
+      "union_fraction": 0.3099,
+      "mean_area_fraction": 0.00339,
+      "sum_sr": 2.0046,
+      "union_sr": 1.947
+    }
+  },
+  "AA": 0.02
+}

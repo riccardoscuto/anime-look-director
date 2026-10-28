@@ -97,7 +97,14 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   (B/D largest 0.345 against A 0.321; panorama dominant D 0.096 against 0.053).
   The hierarchy at the original radii is the best fixed-selection geometry but
   saturates its union at 0.42; a footprint-aware distribution is required and
-  not implemented. **VISUAL REVIEW PENDING.** No 2.63 release.
+  not implemented. A footprint candidate (branch `experiment/cloud-footprint`,
+  not merged) separates fixed silhouettes from activation: the current 92-94
+  fixed silhouettes total 0.302-0.324, so repositioning alone cannot reach 0.42.
+  Candidate F uses 181 masses at the same radii with an occupancy-aware
+  placement: availability 0.573, 0.422 honoured at the 0.42 request, 7.33 frame
+  components vs A 6.33 and mean dominant 0.099 vs 0.139; its frame coverage at
+  0.42 is 0.264 vs A 0.336 and the panorama dominant is 0.137 vs 0.053.
+  **VISUAL REVIEW PENDING.** No 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
