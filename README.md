@@ -20,6 +20,9 @@ gone. The full previous version is preserved at the tag
   coverage, scale, vertical, flatness, breakup, detail, seed, sun lighting,
   wind, contrails, rim boost and custom colors.
 - Stars, density, Milky Way.
+- Four controlled shooting stars in the World (no objects or particles):
+  start, duration, position, direction, angular length, trail, thickness,
+  brightness, glow and color.
 - Optional Shadow Tint / Cel / Rim and material presets.
 - Optional general compositor: halation, painterly, light wrap, dispersion,
   sun beams, ink, aerial haze.
@@ -48,6 +51,23 @@ The add-on is also usable from the source directory as a legacy add-on.
    required.
 4. Adjust Sun, clouds and stars in **Atmosphere & Sun** and **World Clouds**.
 5. Enable the compositor only if you want the optional art filters.
+
+## Shooting stars
+
+- **Start Frame** is the first visible frame. **Duration** is the exact number
+  of visible frames: start 10 with duration 24 is visible at frames 10..33 and
+  absent at 9 and 34. The minimum duration is 2.
+- **Direction** is a bearing in the local sky: 0 is horizontal, +90 is up.
+  **Angular Length** is the length of the great-circle path in degrees.
+- **Add Shooting Star** places the event in the current camera direction and
+  warns when the camera looks at the ground, there is no camera, or clouds may
+  hide it. It never uses a high minimum elevation to avoid geometry problems.
+- **Preview** moves the timeline into the event and frames it in the 3D
+  viewport when one is available. The camera, its keyframes and its animation
+  are not changed.
+- Four events maximum; Add and Duplicate both report the limit.
+- Events saved before 2.63 gain the start frame and lose the last frame of
+  their old range because Start Frame now means the first visible frame.
 
 ## Version 2.62.0 scope
 

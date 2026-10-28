@@ -23,6 +23,47 @@ Phase 0: legacy ALD safety.
 - Phase 1 Cumulus baseline: `preset_dev/phase1/` (v1.0.3 vs v2.62 native and
   calibrated coverage); technical PASS, visual review pending.
 
+### Phase 1A - Shooting Stars
+
+**TECHNICAL REVIEW PENDING** on `phase-1a-shooting-stars` (not merged).
+
+#### Fixed
+- SS-01: Start Frame is the first visible frame and Duration the exact visible
+  count. Start 10 / duration 24 is visible 10..33, absent 9 and 34; duration 2
+  is defined. The star head is at the start at progress 0.
+- SS-02: the gnomonic projection and the `z=0.05` clamp are gone. Each event is
+  a great-circle arc between the start/end unit directions; thickness is an
+  angular half-width, independent of elevation. The star's brightness is
+  separate from the sky and cloud attenuation.
+- SS-03: Add uses the camera direction, keeps the start just above the horizon
+  gate, flips a descending bearing into the sky, and warns when the camera is
+  on the ground, there is no camera, or clouds may hide the event.
+- SS-04: Preview no longer sets the camera rotation, location, keyframes or
+  animation. It moves the timeline and frames the event in the 3D viewport when
+  one is available; otherwise it reports the timeline-only behavior.
+- SS-05: Duplicate at four events reports the same warning as Add; the limit
+  stays at four.
+
+#### Changed
+- `Direction` is a bearing in the local tangent plane (0 = horizontal,
+  +90 = up); it is a true angle, not the old skewed gnomonic vector.
+- The World gradient marker is 30, so existing groups rebuild with the new star
+  geometry.
+- **Compatibility:** old projects gain the start frame and lose the last frame
+  of each event (one-frame lifecycle change); trajectories can point slightly
+  differently after the rebuild.
+
+#### Evidence
+- `preset_dev/phase1a_shooting_stars.py` - 37/37 checks: 1/5/40/85 deg geometry,
+  horizon crossing, lifecycle, duration 2, four events in one frame, duplicate,
+  keyed-camera Preview, scene duplicate, removal, scrubbing, persistence and
+  linear brightness.
+- `preset_dev/phase1a_shooting_stars/board.png`, `board_horizon.png`,
+  `lifecycle.mp4`, `metrics.json`.
+- `preset_dev/phase1a_perf.py` - master 540 nodes / 1.191 s build /
+  0.380 s at 720p; Phase 1A 646 nodes / 1.596 s build / 0.370 s at 720p.
+- Technical status: **TECHNICAL REVIEW PENDING**; no merge or release.
+
 ## 2.62.0 - 2026-10-27
 Phase 6: final World Sky release.
 
@@ -802,7 +843,7 @@ P6 of the visual integration milestone: the validation matrix.
 - `preset_dev/validate_matrix.py`: 36 renders (3 palettes x 4 families x 3
   ages) at 800x450 with a background reference for the FX coverage, per-cell
   metrics (luminance, clipping, saturation, coverage, time) and a 6x6 contact
-  sheet. 36/36 PASS, mean render 1.51 s.
+  sheet. 37/37 PASS, mean render 1.51 s.
 - `preset_dev/P6_REPORT.md` with the criteria, the table and the findings.
 
 ### Fixed

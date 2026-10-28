@@ -1,0 +1,440 @@
+{
+  "checks": {
+    "add.horizon": {
+      "pass": true,
+      "detail": "el 1.00 dir 35.0 974 px"
+    },
+    "geometry.width_constant": {
+      "pass": true,
+      "detail": "p95 width deg [0.088, 0.093, 0.104, 0.104]"
+    },
+    "geometry.visible_1": {
+      "pass": true,
+      "detail": "1821 px, max 0.537"
+    },
+    "geometry.length_1": {
+      "pass": true,
+      "detail": "along 8.08..18.89"
+    },
+    "geometry.head_1": {
+      "pass": true,
+      "detail": "head [134.96, 11.2] expected [134.95, 11.18] error 0.0"
+    },
+    "geometry.visible_5": {
+      "pass": true,
+      "detail": "1877 px, max 0.576"
+    },
+    "geometry.length_5": {
+      "pass": true,
+      "detail": "along 8.08..18.91"
+    },
+    "geometry.head_5": {
+      "pass": true,
+      "detail": "head [135.22, 15.05] expected [135.2, 15.04] error 0.02"
+    },
+    "geometry.visible_40": {
+      "pass": true,
+      "detail": "2224 px, max 0.914"
+    },
+    "geometry.length_40": {
+      "pass": true,
+      "detail": "along 8.04..19.01"
+    },
+    "geometry.head_40": {
+      "pass": true,
+      "detail": "head [142.46, 48.36] expected [142.38, 48.34] error 0.05"
+    },
+    "geometry.visible_85": {
+      "pass": true,
+      "detail": "2244 px, max 0.890"
+    },
+    "geometry.length_85": {
+      "pass": true,
+      "detail": "along 8.04..19.01"
+    },
+    "geometry.head_85": {
+      "pass": true,
+      "detail": "head [-129.63, 74.29] expected [-129.69, 74.34] error 0.05"
+    },
+    "horizon.visible": {
+      "pass": true,
+      "detail": "188 px, max 0.369"
+    },
+    "horizon.continuous": {
+      "pass": true,
+      "detail": "width p95 0.069"
+    },
+    "horizon.head_below": {
+      "pass": true,
+      "detail": "along max 8.63"
+    },
+    "lifecycle.before": {
+      "pass": true,
+      "detail": "0 px at 9"
+    },
+    "lifecycle.start_visible": {
+      "pass": true,
+      "detail": "1277 px at 10"
+    },
+    "lifecycle.last_visible": {
+      "pass": true,
+      "detail": "2224 px at 33"
+    },
+    "lifecycle.after": {
+      "pass": true,
+      "detail": "0 px at 34, 0 px at 35"
+    },
+    "lifecycle.head_at_start": {
+      "pass": true,
+      "detail": "head error 0.05"
+    },
+    "duration2": {
+      "pass": true,
+      "detail": "{\"9\": 0, \"10\": 1277, \"11\": 2224, \"12\": 0}"
+    },
+    "scrubbing": {
+      "pass": true,
+      "detail": "frame 33 identical after seeking away and back"
+    },
+    "duplicate.limit": {
+      "pass": true,
+      "detail": "['CANCELLED']"
+    },
+    "four.visible": {
+      "pass": true,
+      "detail": "6776 px, components [112, 107, 105, 101]"
+    },
+    "four.event_1": {
+      "pass": true,
+      "detail": "head at 452, 189"
+    },
+    "four.event_2": {
+      "pass": true,
+      "detail": "head at 610, 499"
+    },
+    "four.event_3": {
+      "pass": true,
+      "detail": "head at 664, 580"
+    },
+    "four.event_4": {
+      "pass": true,
+      "detail": "head at 906, 238"
+    },
+    "remove.independent": {
+      "pass": true,
+      "detail": "components [112, 105, 101]"
+    },
+    "duplicate.copy": {
+      "pass": true,
+      "detail": "start 20, source 8"
+    },
+    "preview.non_destructive": {
+      "pass": true,
+      "detail": "frame 18, camera unchanged True"
+    },
+    "anchor.camera_rotation": {
+      "pass": true,
+      "detail": "world error 0.01 deg"
+    },
+    "persistence": {
+      "pass": true,
+      "detail": "render identical, 4 events"
+    },
+    "scene.duplicate": {
+      "pass": true,
+      "detail": "world independent, originals unchanged"
+    },
+    "brightness.linear": {
+      "pass": true,
+      "detail": "EXR peak 5/40: {'5.0': 7.569, '40.0': 7.576} (ratio 1.001)"
+    }
+  },
+  "renders": {
+    "add_horizon": {
+      "on": "add_horizon_on.png",
+      "off": "add_horizon_off.png"
+    },
+    "elev_1": {
+      "on": "elev_1_on.png",
+      "off": "elev_1_off.png"
+    },
+    "elev_5": {
+      "on": "elev_5_on.png",
+      "off": "elev_5_off.png"
+    },
+    "elev_40": {
+      "on": "elev_40_on.png",
+      "off": "elev_40_off.png"
+    },
+    "elev_85": {
+      "on": "elev_85_on.png",
+      "off": "elev_85_off.png"
+    },
+    "horizon_cross": {
+      "on": "horizon_cross_on.png",
+      "off": "horizon_cross_off.png"
+    },
+    "four": {
+      "on": "four_on.png",
+      "off": "four_off.png"
+    },
+    "three": {
+      "on": "three_on.png",
+      "off": "three_off.png"
+    },
+    "anchor_a": {
+      "on": "anchor_a_on.png",
+      "off": "anchor_a_off.png"
+    },
+    "anchor_b": {
+      "on": "anchor_b_on.png",
+      "off": "anchor_b_off.png"
+    },
+    "linear_5": {
+      "on": "linear_5_on.exr",
+      "off": "linear_5_off.exr"
+    },
+    "linear_40": {
+      "on": "linear_40_on.exr",
+      "off": "linear_40_off.exr"
+    }
+  },
+  "metrics": {
+    "geometry": {
+      "1.0": {
+        "pixels": 1821,
+        "max": 0.537,
+        "bbox": [
+          772,
+          452,
+          961,
+          590
+        ],
+        "back": {
+          "along_min": 8.08,
+          "along_max": 18.89,
+          "width_p50": 0.044,
+          "width_p95": 0.088
+        },
+        "head": {
+          "angles": [
+            134.96,
+            11.2
+          ],
+          "expected": [
+            134.95,
+            11.18
+          ],
+          "error": 0.0
+        }
+      },
+      "5.0": {
+        "pixels": 1877,
+        "max": 0.576,
+        "bbox": [
+          772,
+          452,
+          962,
+          591
+        ],
+        "back": {
+          "along_min": 8.08,
+          "along_max": 18.91,
+          "width_p50": 0.048,
+          "width_p95": 0.093
+        },
+        "head": {
+          "angles": [
+            135.22,
+            15.05
+          ],
+          "expected": [
+            135.2,
+            15.04
+          ],
+          "error": 0.02
+        }
+      },
+      "40.0": {
+        "pixels": 2224,
+        "max": 0.914,
+        "bbox": [
+          771,
+          452,
+          964,
+          593
+        ],
+        "back": {
+          "along_min": 8.04,
+          "along_max": 19.01,
+          "width_p50": 0.052,
+          "width_p95": 0.104
+        },
+        "head": {
+          "angles": [
+            142.46,
+            48.36
+          ],
+          "expected": [
+            142.38,
+            48.34
+          ],
+          "error": 0.05
+        }
+      },
+      "85.0": {
+        "pixels": 2244,
+        "max": 0.89,
+        "bbox": [
+          771,
+          452,
+          964,
+          593
+        ],
+        "back": {
+          "along_min": 8.04,
+          "along_max": 19.01,
+          "width_p50": 0.052,
+          "width_p95": 0.104
+        },
+        "head": {
+          "angles": [
+            -129.63,
+            74.29
+          ],
+          "expected": [
+            -129.69,
+            74.34
+          ],
+          "error": 0.05
+        }
+      }
+    },
+    "horizon_cross": {
+      "pixels": 188,
+      "max": 0.369,
+      "bbox": [
+        740,
+        301,
+        802,
+        323
+      ]
+    },
+    "lifecycle": {
+      "9": {
+        "pixels": 0,
+        "max": 0.0,
+        "bbox": null
+      },
+      "10": {
+        "pixels": 1277,
+        "max": 0.894,
+        "bbox": [
+          620,
+          340,
+          659,
+          379
+        ]
+      },
+      "11": {
+        "pixels": 1268,
+        "max": 0.914,
+        "bbox": [
+          633,
+          349,
+          672,
+          388
+        ]
+      },
+      "18": {
+        "pixels": 1693,
+        "max": 0.914,
+        "bbox": [
+          639,
+          359,
+          762,
+          451
+        ]
+      },
+      "32": {
+        "pixels": 2220,
+        "max": 0.918,
+        "bbox": [
+          758,
+          443,
+          950,
+          583
+        ]
+      },
+      "33": {
+        "pixels": 2224,
+        "max": 0.914,
+        "bbox": [
+          771,
+          452,
+          964,
+          593
+        ]
+      },
+      "34": {
+        "pixels": 0,
+        "max": 0.0,
+        "bbox": null
+      },
+      "35": {
+        "pixels": 0,
+        "max": 0.0,
+        "bbox": null
+      }
+    },
+    "duration2": {
+      "9": 0,
+      "10": 1277,
+      "11": 2224,
+      "12": 0
+    },
+    "four_events": {
+      "pixels": 6776,
+      "components": 4,
+      "sizes": [
+        112,
+        107,
+        105,
+        101
+      ]
+    },
+    "linear_brightness": {
+      "5.0": 7.569,
+      "40.0": 7.576
+    }
+  },
+  "video": [
+    "video_f10.png",
+    "video_f11.png",
+    "video_f12.png",
+    "video_f13.png",
+    "video_f14.png",
+    "video_f15.png",
+    "video_f16.png",
+    "video_f17.png",
+    "video_f18.png",
+    "video_f19.png",
+    "video_f20.png",
+    "video_f21.png",
+    "video_f22.png",
+    "video_f23.png",
+    "video_f24.png",
+    "video_f25.png",
+    "video_f26.png",
+    "video_f27.png",
+    "video_f28.png",
+    "video_f29.png",
+    "video_f30.png",
+    "video_f31.png",
+    "video_f32.png",
+    "video_f33.png",
+    "video_f34.png"
+  ],
+  "status": "PASS",
+  "failures": []
+}

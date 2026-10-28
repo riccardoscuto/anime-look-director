@@ -342,7 +342,7 @@ class ALD_OT_repair_ownership(bpy.types.Operator):
 class ALD_OT_shooting_star_add(bpy.types.Operator):
     bl_idname = "ald.shooting_star_add"
     bl_label = "Add Shooting Star"
-    bl_description = "Add a controlled 2D shooting star (maximum 4)"
+    bl_description = "Add a controlled 2D shooting star at the camera view (maximum 4)"
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
@@ -353,17 +353,35 @@ class ALD_OT_shooting_star_add(bpy.types.Operator):
             return {"CANCELLED"}
         event = settings.shooting_star_events.add()
         event.name = "Shooting Star %d" % len(settings.shooting_star_events)
+        notes = []
         camera = context.scene.camera
         if camera is not None:
             forward = camera.matrix_world.to_quaternion() @ Vector(
                 (0.0, 0.0, -1.0))
             event.azimuth = math.degrees(math.atan2(forward.x, forward.y))
-            event.elevation = max(5.0, min(80.0, math.degrees(math.asin(
+            # The horizon gate fades the star below ~0.6 degrees; keep the
+            # start in the sky instead of clamping it high above the horizon.
+            event.elevation = max(1.0, min(89.0, math.degrees(math.asin(
                 max(-1.0, min(1.0, forward.z))))))
-        event.start_frame = (context.scene.frame_current
-                             - max(1, event.duration // 3))
+            if forward.z < 0.0:
+                notes.append("the camera is aimed at the ground; the star "
+                             "may be outside the sky")
+            end_elevation = event.elevation + math.sin(
+                math.radians(event.direction)) * event.length * math.cos(
+                    math.radians(event.elevation))
+            if end_elevation < 1.0:
+                event.direction = max(abs(event.direction), 15.0)
+        else:
+            notes.append("no active camera; the star keeps the default "
+                         "direction")
+        event.start_frame = context.scene.frame_current
         settings.shooting_star_selected = len(settings.shooting_star_events) - 1
+        if settings.clouds and settings.cloud_amount > 0.0:
+            notes.append("active clouds may hide the star")
         look.apply_world(context.scene)
+        if notes:
+            self.report({"WARNING"},
+                        "Anime Look Director: " + "; ".join(notes))
         return {"FINISHED"}
 
 
@@ -378,6 +396,9 @@ class ALD_OT_shooting_star_duplicate(bpy.types.Operator):
         events = settings.shooting_star_events
         index = settings.shooting_star_selected
         if index < 0 or index >= len(events) or len(events) >= 4:
+            if len(events) >= 4:
+                self.report({"WARNING"},
+                            "Anime Look Director: at most 4 shooting stars")
             return {"CANCELLED"}
         source = events[index]
         event = events.add()
@@ -395,8 +416,8 @@ class ALD_OT_shooting_star_duplicate(bpy.types.Operator):
 class ALD_OT_shooting_star_preview(bpy.types.Operator):
     bl_idname = "ald.shooting_star_preview"
     bl_label = "Preview Shooting Star"
-    bl_description = ("Move the timeline into the event and aim the camera at "
-                      "its start")
+    bl_description = ("Move the timeline into the event and frame it in the "
+                      "3D viewport without changing the camera")
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
@@ -408,17 +429,29 @@ class ALD_OT_shooting_star_preview(bpy.types.Operator):
         event = events[index]
         context.scene.frame_set(int(event.start_frame
                                     + max(1, event.duration // 3)))
-        camera = context.scene.camera
-        if camera is not None:
-            azimuth = math.radians(event.azimuth)
-            elevation = math.radians(event.elevation)
-            direction = Vector((
-                math.cos(elevation) * math.sin(azimuth),
-                math.cos(elevation) * math.cos(azimuth),
-                math.sin(elevation)))
-            target = camera.location + direction * 100.0
-            camera.rotation_euler = (
-                target - camera.location).to_track_quat("-Z", "Y").to_euler()
+        azimuth = math.radians(event.azimuth)
+        elevation = math.radians(event.elevation)
+        direction = Vector((
+            math.cos(elevation) * math.sin(azimuth),
+            math.cos(elevation) * math.cos(azimuth),
+            math.sin(elevation)))
+        area = context.area
+        if area is not None and area.type == "VIEW_3D":
+            region = area.spaces.active.region_3d
+            if region is not None and region.view_perspective != "CAMERA":
+                region.view_rotation = direction.to_track_quat("-Z", "Y")
+                self.report({"INFO"},
+                            "Anime Look Director: framed in the 3D viewport; "
+                            "the camera is unchanged")
+            else:
+                self.report({"INFO"},
+                            "Anime Look Director: timeline moved; the camera "
+                            "view or no 3D viewport is active; the camera is "
+                            "unchanged")
+        else:
+            self.report({"INFO"},
+                        "Anime Look Director: timeline moved; no 3D viewport "
+                        "to frame; the camera is unchanged")
         look.apply_world(context.scene)
         return {"FINISHED"}
 

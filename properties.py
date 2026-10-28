@@ -229,8 +229,11 @@ class ALD_ShootingStar(bpy.types.PropertyGroup):
     name: StringProperty(name="Name", default="Shooting Star")
     enabled: BoolProperty(name="Enabled", default=True, update=_on_star)
     start_frame: IntProperty(name="Start Frame", default=1, min=-100000,
-                             max=100000, update=_on_star)
+                             max=100000,
+                             description="First visible frame",
+                             update=_on_star)
     duration: IntProperty(name="Duration", default=24, min=2, max=240,
+                          description="Exact number of visible frames",
                           update=_on_star)
     azimuth: FloatProperty(name="Azimuth", default=120.0, min=-180.0,
                            max=180.0, description="Degrees around the sky",
@@ -239,7 +242,9 @@ class ALD_ShootingStar(bpy.types.PropertyGroup):
                              max=89.0, description="Degrees above the horizon",
                              update=_on_star)
     direction: FloatProperty(name="Direction", default=-35.0, min=-180.0,
-                             max=180.0, description="Trajectory angle in degrees",
+                             max=180.0,
+                             description="Trajectory bearing in the local sky: "
+                                         "0 = horizontal, 90 = up",
                              update=_on_star)
     length: FloatProperty(name="Angular Length", default=18.0, min=1.0,
                           max=90.0, description="Trajectory length in degrees",
@@ -247,7 +252,10 @@ class ALD_ShootingStar(bpy.types.PropertyGroup):
     trail: FloatProperty(name="Trail", default=0.55, min=0.0, max=0.95,
                          update=_on_star)
     thickness: FloatProperty(name="Thickness", default=0.0018, min=0.0005,
-                             max=0.05, update=_on_star)
+                             max=0.05,
+                             description="Angular thickness in radians, "
+                                         "constant with elevation",
+                             update=_on_star)
     brightness: FloatProperty(name="Brightness", default=3.0, min=0.0,
                               max=30.0, update=_on_star)
     glow: FloatProperty(name="Glow", default=0.8, min=0.0, max=3.0,

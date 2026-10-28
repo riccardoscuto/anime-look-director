@@ -78,12 +78,18 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   copies the current colors into the custom fields without changing the preset.
 - The first Phase 3 gate (Cumulus in daylight) is approved at 2.59.1; the
   sunset gate is approved at 2.59.1. The shooting-star gate is approved at
-  2.60.1. Phase 5 (presets and compact UI) and Phase 6 (release matrix,
-  technical gate, package) are complete at 2.62.0; `master` carries the World
-  Sky Edition.
+  2.60.1; its 2.63 Phase 1A reliability work is technical-only and has no
+  aesthetic approval. Phase 5 (presets and compact UI) and Phase 6 (release
+  matrix, technical gate, package) are complete at 2.62.0; `master` carries the
+  World Sky Edition.
 - 2.63 work: Phase 0 legacy safety is complete (44/44 audit, 36/36 synthetic
   and 9/9 on a real v2.56.0 file); Phase 1 Cumulus baseline is complete at
-  `preset_dev/phase1/` with the visual decision pending. No 2.63 release.
+  `preset_dev/phase1/` with the visual decision pending. The shooting-star
+  Phase 0 audit is at `preset_dev/audit_shooting_stars/` (branch
+  `audit/shooting-stars`, `85c8170`). Phase 1A is complete on
+  `phase-1a-shooting-stars`: 37/37 technical checks, evidence in
+  `preset_dev/phase1a_shooting_stars/`, **TECHNICAL REVIEW PENDING**. No merge,
+  release or Phase 1B. No 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
@@ -96,9 +102,15 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   the color is cool white by default, matching the starfield.
 - Shooting stars are persistent `ALD_ShootingStar` events: start frame,
   duration, azimuth/elevation, direction, angular length, trail, thickness,
-  brightness, glow and color. The World shader evaluates four fixed slots in
-  gnomonic sky coordinates with a frame driver; no object is created. The
-  event list is capped at 4 and survives save/reload.
+  brightness, glow and color. Start Frame is the first visible frame and
+  Duration the exact count (progress uses `duration - 1`; a 2-frame event is
+  valid). The World shader evaluates four fixed slots as great-circle arcs
+  between the start/end unit directions (azimuth/elevation in degrees) with a
+  frame driver; thickness is an angular half-width, independent of elevation,
+  with no gnomonic `z` clamp. `Direction` is a local bearing (0 horizontal,
+  +90 up). Add uses the camera direction with a 1-degree horizon floor and
+  flips a descending bearing; Preview never writes the camera. The event list is
+  capped at 4 and survives save/reload.
 - The sky accent is a broad band (`From Max 0.20`), not a narrow stripe.
   Keep the dusk/night transition smooth; the Phase 2 before/after is in
   `preset_dev/sky/contact.png`.
