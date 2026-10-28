@@ -87,8 +87,9 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   `preset_dev/phase1/` with the visual decision pending. The shooting-star
   Phase 0 audit is at `preset_dev/audit_shooting_stars/` (branch
   `audit/shooting-stars`, `85c8170`). Phase 1A is complete on
-  `phase-1a-shooting-stars`: 37/37 technical checks, evidence in
-  `preset_dev/phase1a_shooting_stars/`, **TECHNICAL REVIEW PENDING**. No merge,
+  `phase-1a-shooting-stars`: 37/37 technical checks and 5/5 interactive
+  Preview checks, evidence in `preset_dev/phase1a_shooting_stars/`,
+  **FINAL TECHNICAL REVIEW: PASS**; merge authorization pending. No merge,
   release or Phase 1B. No 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers

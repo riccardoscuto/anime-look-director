@@ -1,6 +1,7 @@
 # Shooting Stars - Phase 1A technical gate
 
-- Status: **TECHNICAL REVIEW PENDING**
+- Status: **FINAL TECHNICAL REVIEW: PASS**
+- Merge authorization: **pending** (no merge performed)
 - Branch: `phase-1a-shooting-stars` (base `master` at `f1e5f97`, v2.62.0)
 - Review date: 2026-10-28
 - Authorization: Phase 1A only. No merge, no release, no Phase 1B.
@@ -133,6 +134,23 @@ Conclusion: the crash was environmental/transient, not caused by the Phase 1A
 code; both backends are supported and produce matching geometry, positions and
 brightness. No pixel-identity requirement is implied.
 
+## Interactive Preview smoke test (Blender 5.1.2 GUI)
+
+Run in a separate graphical Blender process with factory startup and the
+current add-on; the user's open file is not touched. The test uses a real 3D
+viewport, a real Properties area and the operator's context overrides:
+
+| Check | Result |
+|---|---|
+| Preview from the 3D viewport | frame 18; view direction error **0.010 deg**; camera unchanged |
+| Preview with a keyed camera | frame 18; evaluated matrices at frames 1/20/60 unchanged |
+| Preview from Properties | frame 18; viewport unchanged; camera unchanged |
+| Preview with no active camera | frame 18; no camera created or transformed |
+| Save/reopen after Preview | 1 event, marker 30 -> 30, camera unchanged |
+
+**5/5 PASS**. Evidence: `interactive.png`, `interactive_preview.png`,
+`interactive.json`. The harness is `preset_dev/phase1a_interactive.py`.
+
 ## Regression and performance
 
 - Phase 1A gate: **37/37 PASS** on OpenGL and Vulkan.
@@ -165,7 +183,10 @@ steady-state apply is unchanged and the render time is within noise.
   per-event pixels, endpoint deltas and persistence.
 - `backend.png` / `backend.json` - OpenGL vs Vulkan at 1/5/40/85 and the
   environment data.
-- `review.json` - combined temporal, migration and backend review.
+- `interactive.png` / `interactive_preview.png` / `interactive.json` - the GUI
+  Preview smoke test: viewport framing, keyed camera, Properties, no camera and
+  persistence.
+- `review.json` - combined temporal, migration, backend and interactive review.
 - `lifecycle.mp4` - 25 frames (10..34), 960x540, 24 fps.
 - `metrics.json` - 37 checks plus a `review` block with the three sections.
 - `metrics_opengl.json` - the same 37 checks from the OpenGL gate.
@@ -197,12 +218,12 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
   elevation but can point differently (11..35 deg endpoint change in the
   four-event fixture). No automatic migration is applied; this is a
   compatibility note, not full visual compatibility.
-- The viewport framing in Preview cannot be exercised headlessly; the camera
-  non-destructiveness and the keyed-camera case are tested. Without a 3D
-  viewport or in camera view the operator only moves the timeline and reports
-  it.
+- Preview was exercised in a real GUI: 3D viewport framing, Properties
+  fallback, no active camera and a keyed camera. The automated headless gate
+  additionally proves the camera and keyframes are untouched.
 - One palette (`NEON_NIGHT`), one camera position and clouds off for geometry.
   Four events are verified in one frame; a cloud-on aesthetic pass is Phase 2.
 - No aesthetic verdict: the head is still the 2.60 style glow, pending 1B.
 - OpenGL is verified now; the earlier failure is documented as an environment
   event. No outstanding backend risk is known.
+- **FINAL TECHNICAL REVIEW: PASS**; merge authorization is still pending.

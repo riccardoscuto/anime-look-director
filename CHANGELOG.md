@@ -25,7 +25,7 @@ Phase 0: legacy ALD safety.
 
 ### Phase 1A - Shooting Stars
 
-**TECHNICAL REVIEW PENDING** on `phase-1a-shooting-stars` (not merged).
+**FINAL TECHNICAL REVIEW: PASS** on `phase-1a-shooting-stars` (merge authorization pending; not merged).
 
 #### Fixed
 - SS-01: Start Frame is the first visible frame and Duration the exact visible
@@ -60,13 +60,16 @@ Phase 0: legacy ALD safety.
   keyed-camera Preview, scene duplicate, removal, scrubbing, persistence and
   linear brightness.
 - `preset_dev/phase1a_shooting_stars/board.png`, `board_horizon.png`,
-  `temporal.png`, `migration.png`, `backend.png`, `lifecycle.mp4`,
-  `metrics.json`, `review.json`.
+  `temporal.png`, `migration.png`, `backend.png`, `interactive.png`,
+  `lifecycle.mp4`, `metrics.json`, `review.json`.
 - Technical gate on both Eevee OpenGL and Vulkan: **37/37 PASS**; the earlier
   OpenGL context crash also hit a no-add-on scene and was environmental.
 - `preset_dev/phase1a_perf.py` - master 540 nodes / 1.191 s build /
   0.380 s at 720p; Phase 1A 646 nodes / 1.596 s build / 0.370 s at 720p.
-- Technical status: **TECHNICAL REVIEW PENDING**; no merge or release.
+- Interactive Preview smoke test in a Blender 5.1.2 GUI: 5/5 PASS
+  (viewport, keyed camera, Properties, no camera, persistence).
+- Technical status: **FINAL TECHNICAL REVIEW: PASS**; merge authorization
+  pending. No merge or release.
 
 ## 2.62.0 - 2026-10-27
 Phase 6: final World Sky release.
