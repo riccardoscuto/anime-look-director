@@ -83,7 +83,12 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   Sky Edition.
 - 2.63 work: Phase 0 legacy safety is complete (44/44 audit, 36/36 synthetic
   and 9/9 on a real v2.56.0 file); Phase 1 Cumulus baseline is complete at
-  `preset_dev/phase1/` with the visual decision pending. No 2.63 release.
+  `preset_dev/phase1/` with the visual decision pending. An independent 2D
+  distribution prototype (`preset_dev/cloud_distribution/`, branch
+  `experiment/cloud-distribution-2d`, not merged) packs a float equirectangular
+  mass mask into the .blend: global coverage exact within one mass, max union
+  ~0.495, 5-8 components at comparable coverage. **VISUAL REVIEW PENDING.**
+  No 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
@@ -162,6 +167,8 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 
 ## Rules
 - Do not introduce FX, Spatial Clouds, smoke or EXR-pass code again.
+- The 2D cloud-distribution mask is research only until the user approves it;
+  do not wire it into the production World or presets.
 - Do not make the compositor mandatory: applying a palette must work without
   `Build Stack`.
 - Never silently modify a user World, HDRI, Sun or material. Use snapshot.
