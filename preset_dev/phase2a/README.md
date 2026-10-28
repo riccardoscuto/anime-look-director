@@ -73,10 +73,13 @@ Matched coverage (B amount adjusted per seed):
 | 17 | 0.78 | 0.425 / 4 / 0.330 |
 | 31 | 0.85 | 0.394 / 1 / 0.394 |
 
-The improvement is specific to seed 17. At seed 07 B is a larger bank than A;
-at seed 31 it collapses to one connected mass. Calibrating coverage per seed
-does not recover the fragmentation. This is a **seed-dependent result**, so B
-cannot be accepted as a robust replacement for A.
+The improvement is specific to seed 17. At seed 07 B is a larger bank than A
+(its main component is 0.480 of the frame, **98.8% of B's total 0.486
+coverage**); at seed 31 it collapses to one connected mass, even after
+coverage recalibration. The seed-31 failure is structural, not just a
+threshold shift. Calibrating coverage per seed does not recover the
+fragmentation. This is a **seed-dependent result**, so B cannot be accepted as
+a robust replacement for A.
 
 ## Cloud Amount progression
 
@@ -87,8 +90,8 @@ cannot be accepted as a robust replacement for A.
 | 0.78 | 0.426 | 0.425 |
 
 The coverage bias preserves the medium/high curve within 0.001; the low end is
-0.019 higher. The control remains monotonic and predictable, but B's seed
-sensitivity is the larger problem.
+**0.019 higher** in B, so the control is close but not perfectly invariant.
+The control remains monotonic; B's seed sensitivity is the larger problem.
 
 ## Alternate view
 
@@ -146,9 +149,30 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 python preset_dev\phase2a_compare.py
 ```
 
+## Future C gate (not authorized)
+
+Candidate C should target a **hierarchical/multiscale mass distribution**, not
+just a wider noise amplitude. Before any merge, the acceptance test is at least
+**20 seeds** at the calibrated coverage, comparing:
+
+- coverage;
+- number and size distribution of components;
+- largest component share;
+- true mask perimeter / sqrt(area);
+- worst-case seeds, not only the median.
+
+A candidate that only improves one seed, or that loses the Cloud Amount curve,
+is rejected regardless of its best image. C and the later phases are **not
+authorized** at this point.
+
 ## Decision
 
-**Candidate B: REJECTED.** It is not proposed for merge. Phase 2B/3 are not
-started. A different morphology candidate (C) would need explicit
-authorization; the evidence indicates that a mass-frequency change alone is
-not enough to make the distribution stable across seeds.
+**Candidate B: REJECTED.** The user confirmed the rejection: the seed-17
+improvement does not generalize, seed 07 merges into a single mass (98.8% of
+coverage), and seed 31 is structurally one component. The low-coverage Cloud
+Amount value is +0.019 versus A, so the control is close but not perfectly
+invariant.
+
+B is preserved only on branch `phase-2a-candidate-b`. `master` remains on
+candidate A (`f1e5f97`). Phase 2B, Phase 3 and candidate C are not started and
+are not authorized.
