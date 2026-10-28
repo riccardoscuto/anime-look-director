@@ -1,0 +1,38 @@
+[
+  {
+    "label": "marker29_anim",
+    "marker_before": 29,
+    "marker_after": 32,
+    "marker_reopened": 32,
+    "events_before": 4,
+    "events_after": 4,
+    "events_reopened": 4,
+    "properties_preserved": true,
+    "animation_preserved": true,
+    "camera_keyed": true
+  },
+  {
+    "label": "marker30_anim",
+    "marker_before": 30,
+    "marker_after": 32,
+    "marker_reopened": 32,
+    "events_before": 4,
+    "events_after": 4,
+    "events_reopened": 4,
+    "properties_preserved": true,
+    "animation_preserved": true,
+    "camera_keyed": true
+  },
+  {
+    "label": "marker31_anim",
+    "marker_before": 31,
+    "marker_after": 32,
+    "marker_reopened": 32,
+    "events_before": 4,
+    "events_after": 4,
+    "events_reopened": 4,
+    "properties_preserved": true,
+    "animation_preserved": true,
+    "camera_keyed": true
+  }
+]
