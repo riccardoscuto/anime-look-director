@@ -388,13 +388,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 31):
+                           or ng.get("ald_build") != 32):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 31
+        ng["ald_build"] = 32
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -410,7 +410,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 31
+        ng["ald_build"] = 32
     return ng
 
 
@@ -1259,11 +1259,16 @@ def _build_gradient_group(ng):
     links.new(disk.outputs["Result"], disk_scale.inputs[0])
     links.new(group_in.outputs["Sun Strength"], disk_scale.inputs[1])
 
+    disk_masked = nodes.new("ShaderNodeMath")
+    disk_masked.location = (1240, 320)
+    disk_masked.operation = "MULTIPLY"
+    links.new(disk_scale.outputs[0], disk_masked.inputs[0])
+    links.new(ground_blend.outputs["Result"], disk_masked.inputs[1])
     disk_color = nodes.new("ShaderNodeVectorMath")
-    disk_color.location = (1060, 360)
+    disk_color.location = (1420, 360)
     disk_color.operation = "SCALE"
     links.new(group_in.outputs["Sun Color"], disk_color.inputs["Vector"])
-    links.new(disk_scale.outputs[0], disk_color.inputs["Scale"])
+    links.new(disk_masked.outputs[0], disk_color.inputs["Scale"])
 
     sun_add = nodes.new("ShaderNodeMix")
     sun_add.location = (1240, 220)
@@ -2755,8 +2760,8 @@ def apply_preset_style(scene, p):
         settings.contrails = p.get("contrails", 0.0)
         settings.world_gradient = p.get("world_gradient", True)
         settings.sun_disk = p.get("sun_disk", True)
-        settings.sun_disk_size = p.get("sun_disk_size", 1.5)
-        settings.sun_disk_strength = p.get("sun_disk_strength", 6.0)
+        settings.sun_disk_size = p.get("sun_disk_size", 1.0)
+        settings.sun_disk_strength = p.get("sun_disk_strength", 4.0)
         settings.clouds = p.get("clouds", True)
         settings.cloud_wind = p.get("cloud_wind", 0.0)
         settings.cloud_type = p.get("cloud_type", "CUMULUS")
@@ -2844,6 +2849,7 @@ def apply_sun_angles(scene, elevation, azimuth):
     sun.rotation_euler = rotation_from_angles(elevation, azimuth)
     from . import cameras
     cameras.update_transforms(scene, force=True)
+    update_sun_controls(scene)
 
 
 def _scene_seconds(scene):
@@ -2982,13 +2988,13 @@ def _apply_gradient(scene, settings, nt, background, p):
     if direction is not None:
         node.inputs["Sun Direction"].default_value = direction
     sun_disk = getattr(settings, "sun_disk", True) if settings else True
-    sun_strength = (getattr(settings, "sun_disk_strength", 6.0)
-                    if settings else 6.0)
+    sun_strength = (getattr(settings, "sun_disk_strength", 4.0)
+                    if settings else 4.0)
     disk_gate, glow_gate = _sun_fade(direction)
     node.inputs["Sun Strength"].default_value = (
         sun_strength * disk_gate if sun_disk and direction is not None else 0.0)
-    radius = max(0.1, getattr(settings, "sun_disk_size", 1.5)
-                 if settings else 1.5)
+    radius = max(0.1, getattr(settings, "sun_disk_size", 1.0)
+                 if settings else 1.0)
     softness = max(0.2, radius * 0.25)
     node.inputs["Sun Inner"].default_value = math.cos(math.radians(radius))
     node.inputs["Sun Outer"].default_value = math.cos(

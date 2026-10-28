@@ -391,11 +391,11 @@ class ALD_Settings(bpy.types.PropertyGroup):
         update=_on_world,
     )
     sun_disk_size: FloatProperty(
-        name="Sun Size", default=1.5, min=0.1, max=10.0,
+        name="Sun Size", default=1.0, min=0.1, max=10.0,
         description="Angular radius of the sun disk in degrees",
         update=_on_world)
     sun_disk_strength: FloatProperty(
-        name="Sun Strength", default=6.0, min=0.0, max=50.0,
+        name="Sun Strength", default=4.0, min=0.0, max=50.0,
         description="Brightness of the sun disk",
         update=_on_world)
     sun_glow_enabled: BoolProperty(
@@ -419,7 +419,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Optional turquoise/coral band between horizon and mid sky",
         update=_on_world)
     sun_elevation: FloatProperty(
-        name="Sun Elevation", default=35.0, min=-5.0, max=85.0,
+        name="Sun Elevation", default=35.0, min=-30.0, max=85.0,
         description="Sun height above the horizon in degrees",
         update=_on_sun_angles)
     sun_azimuth: FloatProperty(
