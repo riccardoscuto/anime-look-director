@@ -1,0 +1,339 @@
+{
+  "configs": {
+    "A": {
+      "anatomy": "baseline",
+      "radii": "base"
+    },
+    "B": {
+      "anatomy": "hierarchical",
+      "radii": "base"
+    },
+    "C": {
+      "anatomy": "baseline",
+      "radii": "hier"
+    },
+    "D": {
+      "anatomy": "hierarchical",
+      "radii": "hier"
+    }
+  },
+  "amount": 0.42,
+  "size": [
+    2048,
+    1024
+  ],
+  "records": [
+    {
+      "config": "A",
+      "seed": 3,
+      "anatomy": "baseline",
+      "radii": "base",
+      "threshold": 0.4709,
+      "fixed_threshold": 0.4201,
+      "standard": {
+        "active_masses": 92,
+        "overlapping_pairs": 40,
+        "overlap_area": 0.0133,
+        "pairwise_overlap": 0.0135,
+        "global_coverage": 0.42,
+        "panorama_components": 48,
+        "panorama_dominant": 0.0597
+      },
+      "fixed": {
+        "active_masses": 92,
+        "overlapping_pairs": 41,
+        "overlap_area": 0.0145,
+        "pairwise_overlap": 0.0149,
+        "global_coverage": 0.4283,
+        "panorama_components": 46,
+        "panorama_dominant": 0.0725
+      }
+    },
+    {
+      "config": "B",
+      "seed": 3,
+      "anatomy": "hierarchical",
+      "radii": "base",
+      "threshold": 0.0301,
+      "fixed_threshold": 0.4201,
+      "standard": {
+        "active_masses": 92,
+        "overlapping_pairs": 48,
+        "overlap_area": 0.013,
+        "pairwise_overlap": 0.014,
+        "global_coverage": 0.42,
+        "panorama_components": 42,
+        "panorama_dominant": 0.0332
+      },
+      "fixed": {
+        "active_masses": 92,
+        "overlapping_pairs": 30,
+        "overlap_area": 0.0062,
+        "pairwise_overlap": 0.0064,
+        "global_coverage": 0.356,
+        "panorama_components": 59,
+        "panorama_dominant": 0.0226
+      }
+    },
+    {
+      "config": "C",
+      "seed": 3,
+      "anatomy": "baseline",
+      "radii": "hier",
+      "threshold": 0.6255,
+      "fixed_threshold": 0.4201,
+      "standard": {
+        "active_masses": 80,
+        "overlapping_pairs": 42,
+        "overlap_area": 0.0177,
+        "pairwise_overlap": 0.0177,
+        "global_coverage": 0.4169,
+        "panorama_components": 36,
+        "panorama_dominant": 0.0837
+      },
+      "fixed": {
+        "active_masses": 92,
+        "overlapping_pairs": 63,
+        "overlap_area": 0.0307,
+        "pairwise_overlap": 0.0316,
+        "global_coverage": 0.4997,
+        "panorama_components": 28,
+        "panorama_dominant": 0.1601
+      }
+    },
+    {
+      "config": "D",
+      "seed": 3,
+      "anatomy": "hierarchical",
+      "radii": "hier",
+      "threshold": 0.4201,
+      "fixed_threshold": 0.4201,
+      "standard": {
+        "active_masses": 92,
+        "overlapping_pairs": 48,
+        "overlap_area": 0.0135,
+        "pairwise_overlap": 0.0145,
+        "global_coverage": 0.42,
+        "panorama_components": 39,
+        "panorama_dominant": 0.0515
+      },
+      "fixed": {
+        "active_masses": 92,
+        "overlapping_pairs": 48,
+        "overlap_area": 0.0135,
+        "pairwise_overlap": 0.0145,
+        "global_coverage": 0.42,
+        "panorama_components": 39,
+        "panorama_dominant": 0.0515
+      }
+    },
+    {
+      "config": "A",
+      "seed": 17,
+      "anatomy": "baseline",
+      "radii": "base",
+      "threshold": 0.4723,
+      "fixed_threshold": 0.4209,
+      "standard": {
+        "active_masses": 94,
+        "overlapping_pairs": 47,
+        "overlap_area": 0.0329,
+        "pairwise_overlap": 0.0334,
+        "global_coverage": 0.42,
+        "panorama_components": 46,
+        "panorama_dominant": 0.0587
+      },
+      "fixed": {
+        "active_masses": 94,
+        "overlapping_pairs": 48,
+        "overlap_area": 0.0347,
+        "pairwise_overlap": 0.0353,
+        "global_coverage": 0.428,
+        "panorama_components": 45,
+        "panorama_dominant": 0.0596
+      }
+    },
+    {
+      "config": "B",
+      "seed": 17,
+      "anatomy": "hierarchical",
+      "radii": "base",
+      "threshold": 0.0613,
+      "fixed_threshold": 0.4209,
+      "standard": {
+        "active_masses": 94,
+        "overlapping_pairs": 53,
+        "overlap_area": 0.0334,
+        "pairwise_overlap": 0.0337,
+        "global_coverage": 0.42,
+        "panorama_components": 41,
+        "panorama_dominant": 0.0573
+      },
+      "fixed": {
+        "active_masses": 94,
+        "overlapping_pairs": 38,
+        "overlap_area": 0.0225,
+        "pairwise_overlap": 0.0225,
+        "global_coverage": 0.3628,
+        "panorama_components": 52,
+        "panorama_dominant": 0.0298
+      }
+    },
+    {
+      "config": "C",
+      "seed": 17,
+      "anatomy": "baseline",
+      "radii": "hier",
+      "threshold": 0.5897,
+      "fixed_threshold": 0.4209,
+      "standard": {
+        "active_masses": 82,
+        "overlapping_pairs": 50,
+        "overlap_area": 0.0383,
+        "pairwise_overlap": 0.0393,
+        "global_coverage": 0.4161,
+        "panorama_components": 34,
+        "panorama_dominant": 0.0644
+      },
+      "fixed": {
+        "active_masses": 94,
+        "overlapping_pairs": 67,
+        "overlap_area": 0.0547,
+        "pairwise_overlap": 0.0568,
+        "global_coverage": 0.4911,
+        "panorama_components": 32,
+        "panorama_dominant": 0.0866
+      }
+    },
+    {
+      "config": "D",
+      "seed": 17,
+      "anatomy": "hierarchical",
+      "radii": "hier",
+      "threshold": 0.4209,
+      "fixed_threshold": 0.4209,
+      "standard": {
+        "active_masses": 94,
+        "overlapping_pairs": 54,
+        "overlap_area": 0.0347,
+        "pairwise_overlap": 0.035,
+        "global_coverage": 0.42,
+        "panorama_components": 37,
+        "panorama_dominant": 0.1212
+      },
+      "fixed": {
+        "active_masses": 94,
+        "overlapping_pairs": 54,
+        "overlap_area": 0.0347,
+        "pairwise_overlap": 0.035,
+        "global_coverage": 0.42,
+        "panorama_components": 37,
+        "panorama_dominant": 0.1212
+      }
+    },
+    {
+      "config": "A",
+      "seed": 42,
+      "anatomy": "baseline",
+      "radii": "base",
+      "threshold": 0.4539,
+      "fixed_threshold": 0.4061,
+      "standard": {
+        "active_masses": 94,
+        "overlapping_pairs": 41,
+        "overlap_area": 0.0294,
+        "pairwise_overlap": 0.0294,
+        "global_coverage": 0.42,
+        "panorama_components": 54,
+        "panorama_dominant": 0.0415
+      },
+      "fixed": {
+        "active_masses": 94,
+        "overlapping_pairs": 41,
+        "overlap_area": 0.0311,
+        "pairwise_overlap": 0.0311,
+        "global_coverage": 0.4279,
+        "panorama_components": 53,
+        "panorama_dominant": 0.0421
+      }
+    },
+    {
+      "config": "B",
+      "seed": 42,
+      "anatomy": "hierarchical",
+      "radii": "base",
+      "threshold": 0.0778,
+      "fixed_threshold": 0.4061,
+      "standard": {
+        "active_masses": 94,
+        "overlapping_pairs": 47,
+        "overlap_area": 0.0253,
+        "pairwise_overlap": 0.0254,
+        "global_coverage": 0.42,
+        "panorama_components": 48,
+        "panorama_dominant": 0.0911
+      },
+      "fixed": {
+        "active_masses": 94,
+        "overlapping_pairs": 40,
+        "overlap_area": 0.0155,
+        "pairwise_overlap": 0.0155,
+        "global_coverage": 0.365,
+        "panorama_components": 51,
+        "panorama_dominant": 0.0789
+      }
+    },
+    {
+      "config": "C",
+      "seed": 42,
+      "anatomy": "baseline",
+      "radii": "hier",
+      "threshold": 0.5855,
+      "fixed_threshold": 0.4061,
+      "standard": {
+        "active_masses": 85,
+        "overlapping_pairs": 42,
+        "overlap_area": 0.0363,
+        "pairwise_overlap": 0.0364,
+        "global_coverage": 0.416,
+        "panorama_components": 46,
+        "panorama_dominant": 0.0912
+      },
+      "fixed": {
+        "active_masses": 94,
+        "overlapping_pairs": 54,
+        "overlap_area": 0.0483,
+        "pairwise_overlap": 0.0488,
+        "global_coverage": 0.4892,
+        "panorama_components": 37,
+        "panorama_dominant": 0.1741
+      }
+    },
+    {
+      "config": "D",
+      "seed": 42,
+      "anatomy": "hierarchical",
+      "radii": "hier",
+      "threshold": 0.4061,
+      "fixed_threshold": 0.4061,
+      "standard": {
+        "active_masses": 94,
+        "overlapping_pairs": 47,
+        "overlap_area": 0.0258,
+        "pairwise_overlap": 0.026,
+        "global_coverage": 0.42,
+        "panorama_components": 42,
+        "panorama_dominant": 0.1164
+      },
+      "fixed": {
+        "active_masses": 94,
+        "overlapping_pairs": 47,
+        "overlap_area": 0.0258,
+        "pairwise_overlap": 0.026,
+        "global_coverage": 0.42,
+        "panorama_components": 42,
+        "panorama_dominant": 0.1164
+      }
+    }
+  ]
+}

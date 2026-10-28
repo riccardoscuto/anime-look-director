@@ -48,7 +48,7 @@ def parse_args():
               "width": "2048", "height": "1024",
               "amounts": "0.18,0.30,0.42", "views": "main,right",
               "variant": "baseline", "union": str(TARGET_FOOTPRINT),
-              "save": ""}
+              "radii_from": "", "save": ""}
     for index, item in enumerate(argv):
         if item.startswith("--") and index + 1 < len(argv):
             values[item[2:].replace("-", "_")] = argv[index + 1]
@@ -330,7 +330,7 @@ def rasterize(specs, scale, dirs, warp_x, warp_y):
 
 
 def generate_field(width, height, seed, variant="baseline",
-                   union_target=None):
+                   union_target=None, radii_from=""):
     rng = np.random.default_rng(seed)
     dirs, lat = directions(width, height)
     sky = dirs[:, :, 2] >= 0.0
@@ -359,24 +359,38 @@ def generate_field(width, height, seed, variant="baseline",
     weights = np.where(sky, np.cos(lat)[:, None], 0.0).astype(np.float32)
     weight_sum = max(float(weights[sky].sum()), 1e-6)
 
-    # Scale the masses until the union of their footprints is the intended
-    # maximum coverage, so the threshold curve does not depend on the draw.
-    scale = 1.0
-    field = np.zeros((height, width), dtype=np.float32)
-    for attempt in range(3):
-        field = rasterize(specs, scale, dirs, warp_x, warp_y)
+    if radii_from:
+        # Diagnostic override: reuse the final radii of another run (same
+        # centres, strengths and mass order) instead of re-fitting the union.
+        source_path = os.path.join(radii_from, "proto_s%02d.json" % seed)
+        with open(source_path, encoding="utf-8") as handle:
+            source = json.load(handle)["masses_detail"]
+        if len(source) != len(specs):
+            raise RuntimeError("radii source has %d masses, expected %d"
+                               % (len(source), len(specs)))
+        for spec, item in zip(specs, source):
+            spec["radius"] = math.radians(item["radius"])
+        field = rasterize(specs, 1.0, dirs, warp_x, warp_y)
         field[~sky] = 0.0
-        union = float(weights[sky & (field > 0.0)].sum() / weight_sum)
-        if abs(union - union_target) <= 0.02:
-            break
-        adjust = math.sqrt(union_target / max(union, 1e-4))
-        tallest = max(spec["radius"] for spec in specs) * scale
-        adjust = min(adjust, math.radians(MAX_RADIUS) / max(tallest, 1e-6))
-        if abs(adjust - 1.0) < 0.01 or attempt == 2:
-            break
-        scale *= adjust
-    for spec in specs:
-        spec["radius"] *= scale
+    else:
+        # Scale the masses until the union of their footprints is the intended
+        # maximum coverage, so the threshold curve does not depend on the draw.
+        scale = 1.0
+        field = np.zeros((height, width), dtype=np.float32)
+        for attempt in range(3):
+            field = rasterize(specs, scale, dirs, warp_x, warp_y)
+            field[~sky] = 0.0
+            union = float(weights[sky & (field > 0.0)].sum() / weight_sum)
+            if abs(union - union_target) <= 0.02:
+                break
+            adjust = math.sqrt(union_target / max(union, 1e-4))
+            tallest = max(spec["radius"] for spec in specs) * scale
+            adjust = min(adjust, math.radians(MAX_RADIUS) / max(tallest, 1e-6))
+            if abs(adjust - 1.0) < 0.01 or attempt == 2:
+                break
+            scale *= adjust
+        for spec in specs:
+            spec["radius"] *= scale
     flat = field[sky]
     wflat = weights[sky]
     order = np.argsort(flat)[::-1]
@@ -397,7 +411,7 @@ def generate_field(width, height, seed, variant="baseline",
     return {
         "field": field, "masses": specs, "weights": weights, "sky": sky,
         "lat": lat, "threshold": threshold, "coverage": coverage,
-        "union": coverage(0.0),
+        "union": coverage(0.0), "warp_x": warp_x, "warp_y": warp_y,
     }
 
 
@@ -552,7 +566,8 @@ def main():
     os.makedirs(out, exist_ok=True)
     start = time.perf_counter()
     data = generate_field(args["width"], args["height"], args["seed"],
-                          args["variant"], args["union"])
+                          args["variant"], args["union"],
+                          args["radii_from"])
     generation = time.perf_counter() - start
     field = data["field"]
     masses = data["masses"]
@@ -567,6 +582,7 @@ def main():
     report = {
         "seed": args["seed"], "size": [args["width"], args["height"]],
         "variant": args["variant"], "union_target": args["union"],
+        "radii_from": args["radii_from"],
         "masses": len(masses),
         "masses_detail": [{"u": round(m["u"], 4),
                            "lat": round(math.degrees(m["lat"]), 2),

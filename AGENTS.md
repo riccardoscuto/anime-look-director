@@ -90,8 +90,14 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   ~0.495, 5-8 components at comparable coverage. A cloud-anatomy pass (branch
   `experiment/cloud-anatomy`, not merged) adds a dominant tower, a secondary
   development and a soft base: isolated silhouettes are clearly better, but at
-  0.42 the panorama merges more (4.5 vs 6.3 components, largest 0.333).
-  **VISUAL REVIEW PENDING.** No 2.63 release.
+  0.42 the panorama merges more (4.5 vs 6.3 components, largest 0.333). An
+  overlap diagnosis (branch `experiment/cloud-overlap`, not merged) separates
+  the causes: the +9% radius fit drives the overlap area/pairs (C: +66% area
+  against A), while the hierarchical towers create the connected banks at 0.42
+  (B/D largest 0.345 against A 0.321; panorama dominant D 0.096 against 0.053).
+  The hierarchy at the original radii is the best fixed-selection geometry but
+  saturates its union at 0.42; a footprint-aware distribution is required and
+  not implemented. **VISUAL REVIEW PENDING.** No 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
