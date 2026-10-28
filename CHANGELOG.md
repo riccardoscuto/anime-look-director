@@ -68,8 +68,22 @@ Phase 0: legacy ALD safety.
   0.380 s at 720p; Phase 1A 646 nodes / 1.596 s build / 0.370 s at 720p.
 - Interactive Preview smoke test in a Blender 5.1.2 GUI: 5/5 PASS
   (viewport, keyed camera, Properties, no camera, persistence).
-- Technical status: **FINAL TECHNICAL REVIEW: PASS**; merge authorization
-  pending. No merge or release.
+- Technical status: **FINAL TECHNICAL REVIEW: PASS**; PR #1 merged to
+  `master` at `63ffa29`. No release.
+
+### Phase 1B - Shooting Stars visual assessment
+
+Visual assessment only; no code changes.
+
+- Compared `v2.60.1` and Phase 1A with the same camera, resolution, exposure
+  and color management, clouds off.
+- Current 1A head is an oversized isotropic glow; the tail has a blunt cap and
+  no temporal fade. Movement, continuity and elevation independence pass.
+- Suggested decision: **IMPROVEMENTS REQUIRED**; a circumscribed appearance
+  candidate is proposed in `preset_dev/phase1b_shooting_stars/README.md`.
+- Evidence: `preset_dev/phase1b_shooting_stars/` (boards, two 24-frame videos,
+  parameters and metrics).
+
 
 ## 2.62.0 - 2026-10-27
 Phase 6: final World Sky release.

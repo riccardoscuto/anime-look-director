@@ -89,8 +89,10 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   `audit/shooting-stars`, `85c8170`). Phase 1A is complete on
   `phase-1a-shooting-stars`: 37/37 technical checks and 5/5 interactive
   Preview checks, evidence in `preset_dev/phase1a_shooting_stars/`,
-  **FINAL TECHNICAL REVIEW: PASS**; merge authorization pending. No merge,
-  release or Phase 1B. No 2.63 release.
+  **FINAL TECHNICAL REVIEW: PASS**; PR #1 is **merged to master** at `63ffa29`
+  (Phase 1A technically complete). Phase 1B is a visual assessment only on
+  `phase-1b-shooting-stars`, no code changes; it recommends
+  **IMPROVEMENTS REQUIRED** pending approval. No 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
