@@ -224,7 +224,7 @@ def screen_point(scene, camera, direction):
     return coord.x * W, coord.y * H
 
 
-def components(mask, scale=4, minimum=4):
+def components(mask, scale=2, minimum=8):
     small = mask[::scale, ::scale]
     seen = np.zeros(small.shape, dtype=bool)
     sizes = []

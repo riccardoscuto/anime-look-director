@@ -388,13 +388,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 30):
+                           or ng.get("ald_build") != 31):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 30
+        ng["ald_build"] = 31
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -410,7 +410,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 30
+        ng["ald_build"] = 31
     return ng
 
 
@@ -737,6 +737,32 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
                           time.outputs[0], alive_high)
         alive = math(4760, base - 360, "MULTIPLY", alive_low, alive_high)
 
+        life_end = math(4400, base - 520, "ADD", start_frame, duration)
+        life_in_end = math(4400, base - 600, "ADD", start_frame, 2.0)
+        life_in = nodes.new("ShaderNodeMapRange")
+        life_in.location = (4580, base - 600)
+        life_in.clamp = True
+        _smooth(life_in)
+        links.new(start_frame, life_in.inputs["From Min"])
+        links.new(life_in_end, life_in.inputs["From Max"])
+        life_in.inputs["To Min"].default_value = 0.5
+        life_in.inputs["To Max"].default_value = 1.0
+        links.new(time.outputs[0], life_in.inputs["Value"])
+        life_out_start = math(4580, base - 520, "SUBTRACT", life_end, 3.0)
+        life_out_end = math(4760, base - 520, "SUBTRACT", life_end, 1.0)
+        life_out = nodes.new("ShaderNodeMapRange")
+        life_out.location = (4940, base - 560)
+        life_out.clamp = True
+        _smooth(life_out)
+        links.new(life_out_start, life_out.inputs["From Min"])
+        links.new(life_out_end, life_out.inputs["From Max"])
+        life_out.inputs["To Min"].default_value = 1.0
+        life_out.inputs["To Max"].default_value = 0.3
+        links.new(time.outputs[0], life_out.inputs["Value"])
+        life_fade = math(5120, base - 560, "MULTIPLY",
+                         life_in.outputs["Result"],
+                         life_out.outputs["Result"])
+
         head_angle = math(4940, base, "MULTIPLY", progress, theta)
         tail_angle = math(4940, base - 120, "SUBTRACT", progress, trail)
         tail_angle = math(5120, base - 120, "MULTIPLY", tail_angle, theta)
@@ -751,12 +777,23 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         before_head = math(5660, base - 200, "LESS_THAN", phi, before_head)
         along = math(5840, base - 160, "MULTIPLY", after_tail, before_head)
 
-        taper = math(5840, base, "MULTIPLY", fade, 0.75)
-        taper = math(6020, base, "ADD", taper, 0.25)
-        local_width = math(6200, base, "MULTIPLY", thickness, taper)
+        tip = nodes.new("ShaderNodeMapRange")
+        tip.location = (5840, base + 220)
+        tip.clamp = True
+        _smooth(tip)
+        tip.inputs["From Min"].default_value = 0.0
+        tip.inputs["From Max"].default_value = 0.18
+        tip.inputs["To Min"].default_value = 0.0
+        tip.inputs["To Max"].default_value = 1.0
+        links.new(fade, tip.inputs["Value"])
+        tail_curve = math(6020, base + 180, "MULTIPLY", fade,
+                          tip.outputs["Result"])
+        taper = math(6200, base, "MULTIPLY", tail_curve, 0.94)
+        taper = math(6380, base, "ADD", taper, 0.06)
+        local_width = math(6560, base, "MULTIPLY", thickness, taper)
         abs_plane = math(6020, base - 120, "ABSOLUTE", plane)
         width = nodes.new("ShaderNodeMapRange")
-        width.location = (6380, base - 60)
+        width.location = (6720, base - 60)
         width.clamp = True
         _smooth(width)
         width.inputs["From Min"].default_value = 0.0
@@ -764,11 +801,11 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         width.inputs["To Min"].default_value = 1.0
         width.inputs["To Max"].default_value = 0.0
         links.new(abs_plane, width.inputs["Value"])
-        tail_fade = math(6380, base + 100, "MULTIPLY", fade, 0.55)
-        tail_fade = math(6560, base + 100, "ADD", tail_fade, 0.35)
-        body = math(6740, base + 40, "MULTIPLY",
+        tail_fade = math(6720, base + 100, "MULTIPLY", tail_curve, 0.95)
+        tail_fade = math(6900, base + 100, "ADD", tail_fade, 0.05)
+        body = math(7080, base + 40, "MULTIPLY",
                     width.outputs["Result"], tail_fade)
-        body = math(6920, base + 40, "MULTIPLY", body, along)
+        body = math(7260, base + 40, "MULTIPLY", body, along)
 
         cos_head = math(5840, base - 300, "COSINE", head_angle)
         sin_head = math(6020, base - 300, "SINE", head_angle)
@@ -779,35 +816,46 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         head_dist = math(6740, base - 320, "SUBTRACT", 1.0, head_dot)
         head_dist = math(6920, base - 320, "MULTIPLY", head_dist, 2.0)
         head_dist = math(7100, base - 320, "MAXIMUM", head_dist, 0.0)
-        head_radius = math(6380, base - 440, "MULTIPLY", glow, 2.0)
-        head_radius = math(6560, base - 440, "ADD", head_radius, 2.0)
+        head_radius = math(6380, base - 440, "MULTIPLY", glow, 0.8)
+        head_radius = math(6560, base - 440, "ADD", head_radius, 0.8)
         head_radius = math(6740, base - 440, "MULTIPLY",
                            head_radius, thickness)
         head_radius2 = math(6920, base - 440, "MULTIPLY",
                             head_radius, head_radius)
-        head_ratio = math(7280, base - 380, "DIVIDE",
+        core_radius2 = math(6920, base - 500, "MULTIPLY",
+                            head_radius2, 0.1225)
+        halo_ratio = math(7280, base - 380, "DIVIDE",
                           head_dist, head_radius2)
-        head_neg = math(7460, base - 380, "MULTIPLY", head_ratio, -1.0)
-        head_glow = math(7640, base - 380, "EXPONENT", head_neg)
-        head_boost = math(6740, base - 200, "ADD", glow, 1.0)
-        head_value = math(7820, base - 300, "MULTIPLY",
+        halo_neg = math(7460, base - 380, "MULTIPLY", halo_ratio, -1.0)
+        halo = math(7640, base - 380, "EXPONENT", halo_neg)
+        core_ratio = math(7280, base - 500, "DIVIDE",
+                          head_dist, core_radius2)
+        core_neg = math(7460, base - 500, "MULTIPLY", core_ratio, -1.0)
+        core = math(7640, base - 500, "EXPONENT", core_neg)
+        core_w = math(7820, base - 500, "MULTIPLY", core, 0.65)
+        halo_w = math(7820, base - 380, "MULTIPLY", halo, 0.35)
+        head_glow = math(8000, base - 440, "ADD", core_w, halo_w)
+        head_boost = math(6740, base - 200, "MULTIPLY", glow, 0.6)
+        head_boost = math(6920, base - 200, "ADD", head_boost, 0.8)
+        head_value = math(8180, base - 440, "MULTIPLY",
                           head_glow, head_boost)
 
         value = math(8000, base + 20, "ADD", body, head_value)
         value = math(8180, base + 20, "MULTIPLY", value, brightness)
         value = math(8360, base + 20, "MULTIPLY", value, enabled)
         value = math(8360, base - 80, "MULTIPLY", value, alive)
-        value = math(8540, base + 20, "MULTIPLY", value, cloud_visibility)
-        value = math(8540, base - 80, "MULTIPLY",
+        value = math(8540, base - 200, "MULTIPLY", value, life_fade)
+        value = math(8720, base + 20, "MULTIPLY", value, cloud_visibility)
+        value = math(8720, base - 80, "MULTIPLY",
                      value, horizon.outputs["Result"])
 
         tint = nodes.new("ShaderNodeVectorMath")
-        tint.location = (8720, base)
+        tint.location = (8900, base)
         tint.operation = "SCALE"
         links.new(color, tint.inputs["Vector"])
         links.new(value, tint.inputs["Scale"])
         add = nodes.new("ShaderNodeMix")
-        add.location = (8900, base + 100)
+        add.location = (9080, base + 100)
         add.data_type = "RGBA"
         add.blend_type = "ADD"
         a_sock, b_sock, result_sock = _rgba_sockets(add)
