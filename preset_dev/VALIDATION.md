@@ -34,6 +34,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Cloud anatomy (2.63 work) | `cloud_anatomy/contact_anatomy.png`, `cloud_anatomy/contact_distribution.png` | hierarchical Cumulus at 0.42; **VISUAL REVIEW PENDING**; merging regression documented (4.5 vs 6.3 components) |
 | Cloud overlap diagnosis (2.63 work) | `cloud_overlap/contact_overlap.png`, `cloud_overlap/contact_overlap_panorama.png`, `cloud_overlap/metrics.json` | A/B/C/D, fixed vs standard selection; **VISUAL REVIEW PENDING**; radius fit -> overlap quantity, towers -> banks |
 | Cloud footprint (2.63 work) | `cloud_footprint/contact_footprint_look.png`, `cloud_footprint/contact_footprint_panorama.png`, `cloud_footprint/metrics.json` | fixed silhouettes + activation; feasibility 0.302-0.324; F 181 masses, availability 0.573; **VISUAL REVIEW PENDING** |
+| Cloud footprint visual gate (2.63 work) | `cloud_footprint_gate/contact_gate_az090.png`, `cloud_footprint_gate/contact_gate_detail.png` | elevations 0/30/60/85, 3 seeds, 2 azimuths; **STOPPED**: upper-sky banks 0.48-0.55, tower repetition |
 | Palettes | `palettes/sheet.png` | 12 presets, same camera and light |
 | UI | `preset_dev/ui/` | Quick Look, Advanced Sky, full Scene sections |
 | Package | `dist/anime_look_director-2.62.0.zip` | extension build PASS; 2.62.0 installed and enabled in an isolated config |

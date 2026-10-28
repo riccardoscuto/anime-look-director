@@ -103,8 +103,12 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   Candidate F uses 181 masses at the same radii with an occupancy-aware
   placement: availability 0.573, 0.422 honoured at the 0.42 request, 7.33 frame
   components vs A 6.33 and mean dominant 0.099 vs 0.139; its frame coverage at
-  0.42 is 0.264 vs A 0.336 and the panorama dominant is 0.137 vs 0.053.
-  **VISUAL REVIEW PENDING.** No 2.63 release.
+  0.42 is 0.264 vs A 0.336 and the panorama dominant is 0.137 vs 0.053. The
+  final visual gate (branch `experiment/cloud-footprint-gate`, not merged)
+  failed: at 60-85 degrees the upper sky is 0.48-0.55 covered and dominated by
+  connected banks with tower repetition. F is **STOPPED**, not reusable as the
+  distribution system; no further radii/count/soft/Cloud Amount iteration.
+  No 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
