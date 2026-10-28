@@ -1,0 +1,106 @@
+{
+  "events_preserved": true,
+  "event_count": 4,
+  "marker_before": 29,
+  "marker_after": 30,
+  "node_tree": true,
+  "wide_old": {
+    "pixels": 436,
+    "max": 0.871,
+    "components": 2,
+    "sizes": [
+      6,
+      5
+    ]
+  },
+  "wide_new": {
+    "pixels": 3526,
+    "max": 0.945,
+    "components": 4,
+    "sizes": [
+      87,
+      53,
+      50,
+      17
+    ]
+  },
+  "persistence": {
+    "events": 4,
+    "identical": true
+  },
+  "events": [
+    {
+      "name": "Legacy A",
+      "start_frame": 10,
+      "duration": 24,
+      "direction": -35.0,
+      "old_end": [
+        119.2689,
+        37.2374
+      ],
+      "new_end": [
+        126.0354,
+        23.5978
+      ],
+      "start_delta": 0.0,
+      "end_delta": 14.824,
+      "old_pixels": 131,
+      "new_pixels": 764
+    },
+    {
+      "name": "Legacy B",
+      "start_frame": 15,
+      "duration": 30,
+      "direction": 60.0,
+      "old_end": [
+        143.8285,
+        48.6456
+      ],
+      "new_end": [
+        153.3273,
+        66.7508
+      ],
+      "start_delta": 0.0,
+      "end_delta": 18.753,
+      "old_pixels": 167,
+      "new_pixels": 1450
+    },
+    {
+      "name": "Legacy C",
+      "start_frame": 20,
+      "duration": 12,
+      "direction": 120.0,
+      "old_end": [
+        101.5975,
+        27.5294
+      ],
+      "new_end": [
+        90.4782,
+        33.5788
+      ],
+      "start_delta": 0.0,
+      "end_delta": 11.315,
+      "old_pixels": 96,
+      "new_pixels": 487
+    },
+    {
+      "name": "Legacy D",
+      "start_frame": 25,
+      "duration": 18,
+      "direction": -90.0,
+      "old_end": [
+        156.1043,
+        73.9088
+      ],
+      "new_end": [
+        140.0,
+        40.0
+      ],
+      "start_delta": 0.0,
+      "end_delta": 34.755,
+      "old_pixels": 42,
+      "new_pixels": 825
+    }
+  ],
+  "conclusion": "all four events and their properties survive; the World group rebuilds from marker 29 to 30; the end direction changes are the intentional SS-02 bearing change, the starts are preserved."
+}
