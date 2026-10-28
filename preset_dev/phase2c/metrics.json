@@ -1,0 +1,1736 @@
+{
+  "v1.0.3": {
+    "name": "v1.0.3",
+    "resolution": [
+      1280,
+      720
+    ],
+    "coverage": 0.4195,
+    "area_pixels": 386568,
+    "perimeter_pixels": 8948,
+    "perimeter_norm": 14.392,
+    "perimeter_per_resolution": 9.3208,
+    "components": 6,
+    "component_areas": [
+      0.3451,
+      0.0511,
+      0.0142,
+      0.0052,
+      0.003,
+      0.0023
+    ],
+    "largest_component": 0.3451,
+    "vertical_top": 0.0,
+    "vertical_bottom": 0.6444444444444445,
+    "vertical_span": 0.6444444444444445,
+    "vertical_centroid": 0.32,
+    "image_gradient_mean": 0.00302,
+    "cloud_luma": {
+      "mean": 0.715,
+      "std": 0.0605,
+      "p10": 0.6273,
+      "p50": 0.7566,
+      "p90": 0.7602
+    },
+    "threshold": 0.02
+  },
+  "A": {
+    "seeds": [
+      {
+        "name": "A s00",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.292,
+        "area_pixels": 269141,
+        "perimeter_pixels": 4844,
+        "perimeter_norm": 9.337,
+        "perimeter_per_resolution": 5.0458,
+        "components": 2,
+        "component_areas": [
+          0.2165,
+          0.0754
+        ],
+        "largest_component": 0.2165,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6944444444444444,
+        "vertical_span": 0.6944444444444444,
+        "vertical_centroid": 0.371,
+        "image_gradient_mean": 0.00188,
+        "cloud_luma": {
+          "mean": 0.7185,
+          "std": 0.0503,
+          "p10": 0.6273,
+          "p50": 0.7434,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 0
+      },
+      {
+        "name": "A s01",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.308,
+        "area_pixels": 283849,
+        "perimeter_pixels": 4936,
+        "perimeter_norm": 9.265,
+        "perimeter_per_resolution": 5.1417,
+        "components": 2,
+        "component_areas": [
+          0.2338,
+          0.0743
+        ],
+        "largest_component": 0.2338,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.368,
+        "image_gradient_mean": 0.0019,
+        "cloud_luma": {
+          "mean": 0.719,
+          "std": 0.0511,
+          "p10": 0.6273,
+          "p50": 0.7443,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 1
+      },
+      {
+        "name": "A s02",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3265,
+        "area_pixels": 300874,
+        "perimeter_pixels": 5291,
+        "perimeter_norm": 9.646,
+        "perimeter_per_resolution": 5.5115,
+        "components": 3,
+        "component_areas": [
+          0.2507,
+          0.0732,
+          0.0024
+        ],
+        "largest_component": 0.2507,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.367,
+        "image_gradient_mean": 0.00192,
+        "cloud_luma": {
+          "mean": 0.7186,
+          "std": 0.0526,
+          "p10": 0.6273,
+          "p50": 0.7479,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 2
+      },
+      {
+        "name": "A s03",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3483,
+        "area_pixels": 321018,
+        "perimeter_pixels": 5703,
+        "perimeter_norm": 10.066,
+        "perimeter_per_resolution": 5.9406,
+        "components": 2,
+        "component_areas": [
+          0.2755,
+          0.072
+        ],
+        "largest_component": 0.2755,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.37,
+        "image_gradient_mean": 0.00196,
+        "cloud_luma": {
+          "mean": 0.7172,
+          "std": 0.0536,
+          "p10": 0.6273,
+          "p50": 0.7479,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 3
+      },
+      {
+        "name": "A s04",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3668,
+        "area_pixels": 338006,
+        "perimeter_pixels": 6001,
+        "perimeter_norm": 10.322,
+        "perimeter_per_resolution": 6.251,
+        "components": 2,
+        "component_areas": [
+          0.2956,
+          0.0691
+        ],
+        "largest_component": 0.2956,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.371,
+        "image_gradient_mean": 0.00205,
+        "cloud_luma": {
+          "mean": 0.7151,
+          "std": 0.0549,
+          "p10": 0.6273,
+          "p50": 0.7443,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 4
+      },
+      {
+        "name": "A s05",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3802,
+        "area_pixels": 350370,
+        "perimeter_pixels": 6585,
+        "perimeter_norm": 11.125,
+        "perimeter_per_resolution": 6.8594,
+        "components": 2,
+        "component_areas": [
+          0.3132,
+          0.0652
+        ],
+        "largest_component": 0.3132,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6944444444444444,
+        "vertical_span": 0.6944444444444444,
+        "vertical_centroid": 0.372,
+        "image_gradient_mean": 0.00214,
+        "cloud_luma": {
+          "mean": 0.7128,
+          "std": 0.0565,
+          "p10": 0.6273,
+          "p50": 0.7443,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 5
+      },
+      {
+        "name": "A s06",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3922,
+        "area_pixels": 361413,
+        "perimeter_pixels": 6636,
+        "perimeter_norm": 11.038,
+        "perimeter_per_resolution": 6.9125,
+        "components": 2,
+        "component_areas": [
+          0.3312,
+          0.0603
+        ],
+        "largest_component": 0.3312,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6930555555555555,
+        "vertical_span": 0.6930555555555555,
+        "vertical_centroid": 0.369,
+        "image_gradient_mean": 0.00215,
+        "cloud_luma": {
+          "mean": 0.7114,
+          "std": 0.0574,
+          "p10": 0.6273,
+          "p50": 0.7434,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 6
+      },
+      {
+        "name": "A s07",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4013,
+        "area_pixels": 369881,
+        "perimeter_pixels": 6527,
+        "perimeter_norm": 10.732,
+        "perimeter_per_resolution": 6.799,
+        "components": 2,
+        "component_areas": [
+          0.3492,
+          0.0527
+        ],
+        "largest_component": 0.3492,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6930555555555555,
+        "vertical_span": 0.6930555555555555,
+        "vertical_centroid": 0.364,
+        "image_gradient_mean": 0.00215,
+        "cloud_luma": {
+          "mean": 0.7103,
+          "std": 0.0583,
+          "p10": 0.6273,
+          "p50": 0.7443,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 7
+      },
+      {
+        "name": "A s08",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4026,
+        "area_pixels": 371058,
+        "perimeter_pixels": 6454,
+        "perimeter_norm": 10.595,
+        "perimeter_per_resolution": 6.7229,
+        "components": 2,
+        "component_areas": [
+          0.362,
+          0.0417
+        ],
+        "largest_component": 0.362,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6916666666666667,
+        "vertical_span": 0.6916666666666667,
+        "vertical_centroid": 0.358,
+        "image_gradient_mean": 0.00215,
+        "cloud_luma": {
+          "mean": 0.7098,
+          "std": 0.0589,
+          "p10": 0.6273,
+          "p50": 0.7443,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 8
+      },
+      {
+        "name": "A s09",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3971,
+        "area_pixels": 365971,
+        "perimeter_pixels": 6652,
+        "perimeter_norm": 10.996,
+        "perimeter_per_resolution": 6.9292,
+        "components": 2,
+        "component_areas": [
+          0.3673,
+          0.0309
+        ],
+        "largest_component": 0.3673,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6930555555555555,
+        "vertical_span": 0.6930555555555555,
+        "vertical_centroid": 0.353,
+        "image_gradient_mean": 0.00218,
+        "cloud_luma": {
+          "mean": 0.7088,
+          "std": 0.0601,
+          "p10": 0.6273,
+          "p50": 0.7443,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 9
+      },
+      {
+        "name": "A s10",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3904,
+        "area_pixels": 359760,
+        "perimeter_pixels": 6515,
+        "perimeter_norm": 10.862,
+        "perimeter_per_resolution": 6.7865,
+        "components": 3,
+        "component_areas": [
+          0.3718,
+          0.017,
+          0.0023
+        ],
+        "largest_component": 0.3718,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6944444444444444,
+        "vertical_span": 0.6944444444444444,
+        "vertical_centroid": 0.349,
+        "image_gradient_mean": 0.00215,
+        "cloud_luma": {
+          "mean": 0.7081,
+          "std": 0.0606,
+          "p10": 0.6273,
+          "p50": 0.7446,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 10
+      },
+      {
+        "name": "A s11",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3869,
+        "area_pixels": 356530,
+        "perimeter_pixels": 6075,
+        "perimeter_norm": 10.174,
+        "perimeter_per_resolution": 6.3281,
+        "components": 3,
+        "component_areas": [
+          0.3766,
+          0.008,
+          0.002
+        ],
+        "largest_component": 0.3766,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.343,
+        "image_gradient_mean": 0.00212,
+        "cloud_luma": {
+          "mean": 0.7079,
+          "std": 0.0611,
+          "p10": 0.6273,
+          "p50": 0.7479,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 11
+      },
+      {
+        "name": "A s12",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3894,
+        "area_pixels": 358915,
+        "perimeter_pixels": 5892,
+        "perimeter_norm": 9.835,
+        "perimeter_per_resolution": 6.1375,
+        "components": 3,
+        "component_areas": [
+          0.3823,
+          0.0048,
+          0.0024
+        ],
+        "largest_component": 0.3823,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.338,
+        "image_gradient_mean": 0.00214,
+        "cloud_luma": {
+          "mean": 0.7074,
+          "std": 0.0618,
+          "p10": 0.6273,
+          "p50": 0.7479,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 12
+      },
+      {
+        "name": "A s13",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3954,
+        "area_pixels": 364368,
+        "perimeter_pixels": 6135,
+        "perimeter_norm": 10.164,
+        "perimeter_per_resolution": 6.3906,
+        "components": 2,
+        "component_areas": [
+          0.3879,
+          0.005
+        ],
+        "largest_component": 0.3879,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.334,
+        "image_gradient_mean": 0.00225,
+        "cloud_luma": {
+          "mean": 0.7055,
+          "std": 0.063,
+          "p10": 0.6266,
+          "p50": 0.7446,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 13
+      },
+      {
+        "name": "A s14",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4014,
+        "area_pixels": 369944,
+        "perimeter_pixels": 6324,
+        "perimeter_norm": 10.397,
+        "perimeter_per_resolution": 6.5875,
+        "components": 2,
+        "component_areas": [
+          0.3914,
+          0.0084
+        ],
+        "largest_component": 0.3914,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.332,
+        "image_gradient_mean": 0.00226,
+        "cloud_luma": {
+          "mean": 0.7061,
+          "std": 0.0626,
+          "p10": 0.6268,
+          "p50": 0.7471,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 14
+      },
+      {
+        "name": "A s15",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4108,
+        "area_pixels": 378618,
+        "perimeter_pixels": 6863,
+        "perimeter_norm": 11.154,
+        "perimeter_per_resolution": 7.149,
+        "components": 3,
+        "component_areas": [
+          0.3981,
+          0.0115,
+          0.002
+        ],
+        "largest_component": 0.3981,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.33,
+        "image_gradient_mean": 0.00228,
+        "cloud_luma": {
+          "mean": 0.7053,
+          "std": 0.0634,
+          "p10": 0.6268,
+          "p50": 0.7443,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 15
+      },
+      {
+        "name": "A s16",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4171,
+        "area_pixels": 384356,
+        "perimeter_pixels": 6491,
+        "perimeter_norm": 10.47,
+        "perimeter_per_resolution": 6.7615,
+        "components": 2,
+        "component_areas": [
+          0.4026,
+          0.0136
+        ],
+        "largest_component": 0.4026,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.329,
+        "image_gradient_mean": 0.00226,
+        "cloud_luma": {
+          "mean": 0.7042,
+          "std": 0.0627,
+          "p10": 0.6268,
+          "p50": 0.7398,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 16
+      },
+      {
+        "name": "A s17",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4262,
+        "area_pixels": 392767,
+        "perimeter_pixels": 6538,
+        "perimeter_norm": 10.432,
+        "perimeter_per_resolution": 6.8104,
+        "components": 3,
+        "component_areas": [
+          0.4031,
+          0.0213,
+          0.0023
+        ],
+        "largest_component": 0.4031,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.327,
+        "image_gradient_mean": 0.00231,
+        "cloud_luma": {
+          "mean": 0.7009,
+          "std": 0.0623,
+          "p10": 0.6252,
+          "p50": 0.7244,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 17
+      },
+      {
+        "name": "A s18",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4331,
+        "area_pixels": 399189,
+        "perimeter_pixels": 6765,
+        "perimeter_norm": 10.707,
+        "perimeter_per_resolution": 7.0469,
+        "components": 1,
+        "component_areas": [
+          0.4334
+        ],
+        "largest_component": 0.4334,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6986111111111111,
+        "vertical_span": 0.6986111111111111,
+        "vertical_centroid": 0.325,
+        "image_gradient_mean": 0.00235,
+        "cloud_luma": {
+          "mean": 0.6973,
+          "std": 0.0622,
+          "p10": 0.6245,
+          "p50": 0.7149,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 18
+      },
+      {
+        "name": "A s19",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4385,
+        "area_pixels": 404151,
+        "perimeter_pixels": 6808,
+        "perimeter_norm": 10.709,
+        "perimeter_per_resolution": 7.0917,
+        "components": 1,
+        "component_areas": [
+          0.4392
+        ],
+        "largest_component": 0.4392,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.322,
+        "image_gradient_mean": 0.00236,
+        "cloud_luma": {
+          "mean": 0.6957,
+          "std": 0.062,
+          "p10": 0.6245,
+          "p50": 0.711,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 19
+      }
+    ],
+    "summary": {
+      "coverage_mean": 0.3852,
+      "coverage_min": 0.292,
+      "coverage_max": 0.4385,
+      "coverage_std": 0.0384,
+      "largest_mean": 0.3491,
+      "largest_max": 0.4392,
+      "components_mean": 2.2,
+      "components_min": 1,
+      "components_max": 3,
+      "perimeter_mean": 10.401,
+      "perimeter_min": 9.265,
+      "worst_largest": [
+        {
+          "seed": 19,
+          "coverage": 0.4385,
+          "components": 1,
+          "largest": 0.4392,
+          "perimeter": 10.709
+        },
+        {
+          "seed": 18,
+          "coverage": 0.4331,
+          "components": 1,
+          "largest": 0.4334,
+          "perimeter": 10.707
+        },
+        {
+          "seed": 17,
+          "coverage": 0.4262,
+          "components": 3,
+          "largest": 0.4031,
+          "perimeter": 10.432
+        },
+        {
+          "seed": 16,
+          "coverage": 0.4171,
+          "components": 2,
+          "largest": 0.4026,
+          "perimeter": 10.47
+        }
+      ],
+      "worst_coverage": [
+        {
+          "seed": 0,
+          "coverage": 0.292,
+          "components": 2,
+          "largest": 0.2165
+        },
+        {
+          "seed": 1,
+          "coverage": 0.308,
+          "components": 2,
+          "largest": 0.2338
+        },
+        {
+          "seed": 2,
+          "coverage": 0.3265,
+          "components": 3,
+          "largest": 0.2507
+        },
+        {
+          "seed": 3,
+          "coverage": 0.3483,
+          "components": 2,
+          "largest": 0.2755
+        }
+      ]
+    },
+    "timing": {
+      "first_render_ms": 1113.1,
+      "render_ms_median": 1108.1,
+      "group_nodes": 540,
+      "world_nodes": 3
+    }
+  },
+  "C": {
+    "seeds": [
+      {
+        "name": "C s00",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3718,
+        "area_pixels": 342611,
+        "perimeter_pixels": 6450,
+        "perimeter_norm": 11.019,
+        "perimeter_per_resolution": 6.7188,
+        "components": 2,
+        "component_areas": [
+          0.3625,
+          0.0101
+        ],
+        "largest_component": 0.3625,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.327,
+        "image_gradient_mean": 0.00228,
+        "cloud_luma": {
+          "mean": 0.7208,
+          "std": 0.0528,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 0
+      },
+      {
+        "name": "C s01",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3668,
+        "area_pixels": 338025,
+        "perimeter_pixels": 6343,
+        "perimeter_norm": 10.91,
+        "perimeter_per_resolution": 6.6073,
+        "components": 2,
+        "component_areas": [
+          0.3584,
+          0.0095
+        ],
+        "largest_component": 0.3584,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.327,
+        "image_gradient_mean": 0.00226,
+        "cloud_luma": {
+          "mean": 0.7221,
+          "std": 0.0528,
+          "p10": 0.6273,
+          "p50": 0.7527,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 1
+      },
+      {
+        "name": "C s02",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3665,
+        "area_pixels": 337780,
+        "perimeter_pixels": 6538,
+        "perimeter_norm": 11.249,
+        "perimeter_per_resolution": 6.8104,
+        "components": 3,
+        "component_areas": [
+          0.3558,
+          0.0089,
+          0.0028
+        ],
+        "largest_component": 0.3558,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.328,
+        "image_gradient_mean": 0.00225,
+        "cloud_luma": {
+          "mean": 0.7224,
+          "std": 0.0531,
+          "p10": 0.6273,
+          "p50": 0.7555,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 2
+      },
+      {
+        "name": "C s03",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3693,
+        "area_pixels": 340368,
+        "perimeter_pixels": 6922,
+        "perimeter_norm": 11.865,
+        "perimeter_per_resolution": 7.2104,
+        "components": 3,
+        "component_areas": [
+          0.355,
+          0.0078,
+          0.0076
+        ],
+        "largest_component": 0.355,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.334,
+        "image_gradient_mean": 0.00226,
+        "cloud_luma": {
+          "mean": 0.7223,
+          "std": 0.0528,
+          "p10": 0.6273,
+          "p50": 0.7555,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 3
+      },
+      {
+        "name": "C s04",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3747,
+        "area_pixels": 345368,
+        "perimeter_pixels": 7202,
+        "perimeter_norm": 12.255,
+        "perimeter_per_resolution": 7.5021,
+        "components": 3,
+        "component_areas": [
+          0.3576,
+          0.0119,
+          0.0065
+        ],
+        "largest_component": 0.3576,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.341,
+        "image_gradient_mean": 0.00224,
+        "cloud_luma": {
+          "mean": 0.7221,
+          "std": 0.0526,
+          "p10": 0.6273,
+          "p50": 0.7527,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 4
+      },
+      {
+        "name": "C s05",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3834,
+        "area_pixels": 353376,
+        "perimeter_pixels": 7468,
+        "perimeter_norm": 12.563,
+        "perimeter_per_resolution": 7.7792,
+        "components": 3,
+        "component_areas": [
+          0.3627,
+          0.0165,
+          0.005
+        ],
+        "largest_component": 0.3627,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.347,
+        "image_gradient_mean": 0.00226,
+        "cloud_luma": {
+          "mean": 0.7218,
+          "std": 0.0525,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 5
+      },
+      {
+        "name": "C s06",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.3927,
+        "area_pixels": 361916,
+        "perimeter_pixels": 7350,
+        "perimeter_norm": 12.218,
+        "perimeter_per_resolution": 7.6562,
+        "components": 3,
+        "component_areas": [
+          0.369,
+          0.021,
+          0.0036
+        ],
+        "largest_component": 0.369,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.351,
+        "image_gradient_mean": 0.00223,
+        "cloud_luma": {
+          "mean": 0.7215,
+          "std": 0.0526,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 6
+      },
+      {
+        "name": "C s07",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4003,
+        "area_pixels": 368937,
+        "perimeter_pixels": 6754,
+        "perimeter_norm": 11.119,
+        "perimeter_per_resolution": 7.0354,
+        "components": 2,
+        "component_areas": [
+          0.3742,
+          0.0246
+        ],
+        "largest_component": 0.3742,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.351,
+        "image_gradient_mean": 0.00215,
+        "cloud_luma": {
+          "mean": 0.7215,
+          "std": 0.0525,
+          "p10": 0.6273,
+          "p50": 0.7521,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 7
+      },
+      {
+        "name": "C s08",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4064,
+        "area_pixels": 374549,
+        "perimeter_pixels": 6942,
+        "perimeter_norm": 11.343,
+        "perimeter_per_resolution": 7.2313,
+        "components": 2,
+        "component_areas": [
+          0.3754,
+          0.0293
+        ],
+        "largest_component": 0.3754,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.351,
+        "image_gradient_mean": 0.00215,
+        "cloud_luma": {
+          "mean": 0.7205,
+          "std": 0.0527,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 8
+      },
+      {
+        "name": "C s09",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4091,
+        "area_pixels": 376987,
+        "perimeter_pixels": 6705,
+        "perimeter_norm": 10.92,
+        "perimeter_per_resolution": 6.9844,
+        "components": 2,
+        "component_areas": [
+          0.3751,
+          0.0331
+        ],
+        "largest_component": 0.3751,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.348,
+        "image_gradient_mean": 0.00212,
+        "cloud_luma": {
+          "mean": 0.7196,
+          "std": 0.0531,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 9
+      },
+      {
+        "name": "C s10",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4096,
+        "area_pixels": 377458,
+        "perimeter_pixels": 6960,
+        "perimeter_norm": 11.329,
+        "perimeter_per_resolution": 7.25,
+        "components": 2,
+        "component_areas": [
+          0.3723,
+          0.037
+        ],
+        "largest_component": 0.3723,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6958333333333333,
+        "vertical_span": 0.6958333333333333,
+        "vertical_centroid": 0.345,
+        "image_gradient_mean": 0.00215,
+        "cloud_luma": {
+          "mean": 0.7178,
+          "std": 0.0544,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 10
+      },
+      {
+        "name": "C s11",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4107,
+        "area_pixels": 378497,
+        "perimeter_pixels": 6979,
+        "perimeter_norm": 11.344,
+        "perimeter_per_resolution": 7.2698,
+        "components": 3,
+        "component_areas": [
+          0.3714,
+          0.0312,
+          0.0079
+        ],
+        "largest_component": 0.3714,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.34,
+        "image_gradient_mean": 0.00219,
+        "cloud_luma": {
+          "mean": 0.7165,
+          "std": 0.0551,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 11
+      },
+      {
+        "name": "C s12",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4208,
+        "area_pixels": 387815,
+        "perimeter_pixels": 7075,
+        "perimeter_norm": 11.361,
+        "perimeter_per_resolution": 7.3698,
+        "components": 3,
+        "component_areas": [
+          0.3538,
+          0.0607,
+          0.0066
+        ],
+        "largest_component": 0.3538,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.336,
+        "image_gradient_mean": 0.00227,
+        "cloud_luma": {
+          "mean": 0.7158,
+          "std": 0.0555,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 12
+      },
+      {
+        "name": "C s13",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4298,
+        "area_pixels": 396081,
+        "perimeter_pixels": 6817,
+        "perimeter_norm": 10.832,
+        "perimeter_per_resolution": 7.101,
+        "components": 3,
+        "component_areas": [
+          0.3581,
+          0.0653,
+          0.0074
+        ],
+        "largest_component": 0.3581,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.333,
+        "image_gradient_mean": 0.00226,
+        "cloud_luma": {
+          "mean": 0.7156,
+          "std": 0.0556,
+          "p10": 0.6273,
+          "p50": 0.7521,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 13
+      },
+      {
+        "name": "C s14",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4317,
+        "area_pixels": 397826,
+        "perimeter_pixels": 6758,
+        "perimeter_norm": 10.714,
+        "perimeter_per_resolution": 7.0396,
+        "components": 3,
+        "component_areas": [
+          0.3586,
+          0.067,
+          0.0069
+        ],
+        "largest_component": 0.3586,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.33,
+        "image_gradient_mean": 0.00223,
+        "cloud_luma": {
+          "mean": 0.7148,
+          "std": 0.0561,
+          "p10": 0.6273,
+          "p50": 0.7521,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 14
+      },
+      {
+        "name": "C s15",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4311,
+        "area_pixels": 397258,
+        "perimeter_pixels": 6619,
+        "perimeter_norm": 10.502,
+        "perimeter_per_resolution": 6.8948,
+        "components": 3,
+        "component_areas": [
+          0.3571,
+          0.0673,
+          0.007
+        ],
+        "largest_component": 0.3571,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.329,
+        "image_gradient_mean": 0.0022,
+        "cloud_luma": {
+          "mean": 0.7131,
+          "std": 0.0574,
+          "p10": 0.6273,
+          "p50": 0.7527,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 15
+      },
+      {
+        "name": "C s16",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4302,
+        "area_pixels": 396465,
+        "perimeter_pixels": 6517,
+        "perimeter_norm": 10.35,
+        "perimeter_per_resolution": 6.7885,
+        "components": 3,
+        "component_areas": [
+          0.3528,
+          0.0696,
+          0.0075
+        ],
+        "largest_component": 0.3528,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.332,
+        "image_gradient_mean": 0.00214,
+        "cloud_luma": {
+          "mean": 0.7109,
+          "std": 0.0584,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 16
+      },
+      {
+        "name": "C s17",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4315,
+        "area_pixels": 397697,
+        "perimeter_pixels": 6237,
+        "perimeter_norm": 9.89,
+        "perimeter_per_resolution": 6.4969,
+        "components": 3,
+        "component_areas": [
+          0.3482,
+          0.0757,
+          0.0088
+        ],
+        "largest_component": 0.3482,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.332,
+        "image_gradient_mean": 0.00204,
+        "cloud_luma": {
+          "mean": 0.7082,
+          "std": 0.0593,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 17
+      },
+      {
+        "name": "C s18",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4294,
+        "area_pixels": 395757,
+        "perimeter_pixels": 6185,
+        "perimeter_norm": 9.832,
+        "perimeter_per_resolution": 6.4427,
+        "components": 2,
+        "component_areas": [
+          0.3377,
+          0.093
+        ],
+        "largest_component": 0.3377,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6986111111111111,
+        "vertical_span": 0.6986111111111111,
+        "vertical_centroid": 0.331,
+        "image_gradient_mean": 0.00201,
+        "cloud_luma": {
+          "mean": 0.7053,
+          "std": 0.0602,
+          "p10": 0.6273,
+          "p50": 0.7482,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 18
+      },
+      {
+        "name": "C s19",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4282,
+        "area_pixels": 394621,
+        "perimeter_pixels": 6137,
+        "perimeter_norm": 9.769,
+        "perimeter_per_resolution": 6.3927,
+        "components": 2,
+        "component_areas": [
+          0.3257,
+          0.1035
+        ],
+        "largest_component": 0.3257,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6986111111111111,
+        "vertical_span": 0.6986111111111111,
+        "vertical_centroid": 0.33,
+        "image_gradient_mean": 0.00197,
+        "cloud_luma": {
+          "mean": 0.7027,
+          "std": 0.0609,
+          "p10": 0.6273,
+          "p50": 0.7406,
+          "p90": 0.7602
+        },
+        "threshold": 0.02,
+        "seed": 19
+      }
+    ],
+    "summary": {
+      "coverage_mean": 0.4047,
+      "coverage_min": 0.3665,
+      "coverage_max": 0.4317,
+      "coverage_std": 0.0242,
+      "largest_mean": 0.3591,
+      "largest_max": 0.3754,
+      "components_mean": 2.6,
+      "components_min": 2,
+      "components_max": 3,
+      "perimeter_mean": 11.069,
+      "perimeter_min": 9.769,
+      "worst_largest": [
+        {
+          "seed": 8,
+          "coverage": 0.4064,
+          "components": 2,
+          "largest": 0.3754,
+          "perimeter": 11.343
+        },
+        {
+          "seed": 9,
+          "coverage": 0.4091,
+          "components": 2,
+          "largest": 0.3751,
+          "perimeter": 10.92
+        },
+        {
+          "seed": 7,
+          "coverage": 0.4003,
+          "components": 2,
+          "largest": 0.3742,
+          "perimeter": 11.119
+        },
+        {
+          "seed": 10,
+          "coverage": 0.4096,
+          "components": 2,
+          "largest": 0.3723,
+          "perimeter": 11.329
+        }
+      ],
+      "worst_coverage": [
+        {
+          "seed": 2,
+          "coverage": 0.3665,
+          "components": 3,
+          "largest": 0.3558
+        },
+        {
+          "seed": 1,
+          "coverage": 0.3668,
+          "components": 2,
+          "largest": 0.3584
+        },
+        {
+          "seed": 3,
+          "coverage": 0.3693,
+          "components": 3,
+          "largest": 0.355
+        },
+        {
+          "seed": 0,
+          "coverage": 0.3718,
+          "components": 2,
+          "largest": 0.3625
+        }
+      ]
+    },
+    "timing": {
+      "first_render_ms": 1313.3,
+      "render_ms_median": 1330.0,
+      "group_nodes": 557,
+      "world_nodes": 3
+    }
+  },
+  "coverage": {
+    "A": {
+      "low": {
+        "name": "A low",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.2789,
+        "area_pixels": 257051,
+        "perimeter_pixels": 6925,
+        "perimeter_norm": 13.659,
+        "perimeter_per_resolution": 7.2135,
+        "components": 5,
+        "component_areas": [
+          0.1829,
+          0.0466,
+          0.0285,
+          0.0136,
+          0.0074
+        ],
+        "largest_component": 0.1829,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6805555555555556,
+        "vertical_span": 0.6805555555555556,
+        "vertical_centroid": 0.316,
+        "image_gradient_mean": 0.00235,
+        "cloud_luma": {
+          "mean": 0.696,
+          "std": 0.0636,
+          "p10": 0.6245,
+          "p50": 0.7144,
+          "p90": 0.7602
+        },
+        "threshold": 0.02
+      },
+      "medium": {
+        "name": "A medium",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.364,
+        "area_pixels": 335492,
+        "perimeter_pixels": 6748,
+        "perimeter_norm": 11.65,
+        "perimeter_per_resolution": 7.0292,
+        "components": 4,
+        "component_areas": [
+          0.321,
+          0.0252,
+          0.016,
+          0.0029
+        ],
+        "largest_component": 0.321,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6916666666666667,
+        "vertical_span": 0.6916666666666667,
+        "vertical_centroid": 0.323,
+        "image_gradient_mean": 0.00236,
+        "cloud_luma": {
+          "mean": 0.7005,
+          "std": 0.0616,
+          "p10": 0.626,
+          "p50": 0.7236,
+          "p90": 0.7602
+        },
+        "threshold": 0.02
+      }
+    },
+    "C": {
+      "low": {
+        "name": "C low",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4158,
+        "area_pixels": 383187,
+        "perimeter_pixels": 6225,
+        "perimeter_norm": 10.056,
+        "perimeter_per_resolution": 6.4844,
+        "components": 3,
+        "component_areas": [
+          0.3382,
+          0.0701,
+          0.0084
+        ],
+        "largest_component": 0.3382,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.331,
+        "image_gradient_mean": 0.00207,
+        "cloud_luma": {
+          "mean": 0.7084,
+          "std": 0.0593,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02
+      },
+      "medium": {
+        "name": "C medium",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4244,
+        "area_pixels": 391141,
+        "perimeter_pixels": 6267,
+        "perimeter_norm": 10.021,
+        "perimeter_per_resolution": 6.5281,
+        "components": 3,
+        "component_areas": [
+          0.3437,
+          0.0733,
+          0.0086
+        ],
+        "largest_component": 0.3437,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6972222222222222,
+        "vertical_span": 0.6972222222222222,
+        "vertical_centroid": 0.332,
+        "image_gradient_mean": 0.00205,
+        "cloud_luma": {
+          "mean": 0.7083,
+          "std": 0.0593,
+          "p10": 0.6273,
+          "p50": 0.7518,
+          "p90": 0.7602
+        },
+        "threshold": 0.02
+      },
+      "high": {
+        "name": "C high",
+        "resolution": [
+          1280,
+          720
+        ],
+        "coverage": 0.4244,
+        "area_pixels": 391104,
+        "perimeter_pixels": 6928,
+        "perimeter_norm": 11.078,
+        "perimeter_per_resolution": 7.2167,
+        "components": 2,
+        "component_areas": [
+          0.331,
+          0.0944
+        ],
+        "largest_component": 0.331,
+        "vertical_top": 0.0,
+        "vertical_bottom": 0.6986111111111111,
+        "vertical_span": 0.6986111111111111,
+        "vertical_centroid": 0.288,
+        "image_gradient_mean": 0.00243,
+        "cloud_luma": {
+          "mean": 0.7061,
+          "std": 0.0592,
+          "p10": 0.6273,
+          "p50": 0.7406,
+          "p90": 0.7602
+        },
+        "threshold": 0.02
+      }
+    }
+  },
+  "alt": {
+    "A": {
+      "name": "A alt",
+      "resolution": [
+        1280,
+        720
+      ],
+      "coverage": 0.1235,
+      "area_pixels": 113782,
+      "perimeter_pixels": 4126,
+      "perimeter_norm": 12.232,
+      "perimeter_per_resolution": 4.2979,
+      "components": 3,
+      "component_areas": [
+        0.0869,
+        0.0285,
+        0.0075
+      ],
+      "largest_component": 0.0869,
+      "vertical_top": 0.0,
+      "vertical_bottom": 0.39166666666666666,
+      "vertical_span": 0.39166666666666666,
+      "vertical_centroid": 0.177,
+      "image_gradient_mean": 0.00194,
+      "cloud_luma": {
+        "mean": 0.6658,
+        "std": 0.0572,
+        "p10": 0.6237,
+        "p50": 0.6276,
+        "p90": 0.7594
+      },
+      "threshold": 0.02
+    },
+    "C": {
+      "name": "C alt",
+      "resolution": [
+        1280,
+        720
+      ],
+      "coverage": 0.2963,
+      "area_pixels": 273035,
+      "perimeter_pixels": 4922,
+      "perimeter_norm": 9.42,
+      "perimeter_per_resolution": 5.1271,
+      "components": 1,
+      "component_areas": [
+        0.2966
+      ],
+      "largest_component": 0.2966,
+      "vertical_top": 0.0,
+      "vertical_bottom": 0.4847222222222222,
+      "vertical_span": 0.4847222222222222,
+      "vertical_centroid": 0.24,
+      "image_gradient_mean": 0.00194,
+      "cloud_luma": {
+        "mean": 0.6666,
+        "std": 0.0522,
+        "p10": 0.6245,
+        "p50": 0.6363,
+        "p90": 0.7594
+      },
+      "threshold": 0.02
+    }
+  },
+  "regression": {
+    "STRATOCUMULUS": {
+      "identical": true,
+      "max_delta": 0
+    },
+    "CIRRUS": {
+      "identical": true,
+      "max_delta": 0
+    }
+  },
+  "threshold": 0.02,
+  "target_coverage": 0.42,
+  "tolerance": 0.02
+}

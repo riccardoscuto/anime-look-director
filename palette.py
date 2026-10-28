@@ -415,7 +415,8 @@ def _gradient_group():
 
 
 def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
-                          flat_inv, y_offset=0.0, flatness_socket=None):
+                          flat_inv, y_offset=0.0, flatness_socket=None,
+                          hierarchical=False):
     """Sample Perlin-Worley cloud density and its low-frequency envelope."""
     def node(idname, x, y):
         item = nodes.new(idname)
@@ -593,7 +594,108 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     links.new(warped_pos.outputs["Vector"], envelope_noise.inputs["Vector"])
     links.new(macro_scale.outputs[0], envelope_noise.inputs["Scale"])
 
-    return (rho.outputs[0], envelope_noise.outputs["Fac"],
+    rho_out = rho.outputs[0]
+    if hierarchical:
+        # Candidate C: a low-frequency region gate (large openings) times a
+        # higher-frequency cell field (several masses) plus the existing
+        # billow/puff lobes. The one-hot Cumulus mix leaves the other families
+        # and the lighting envelope on the A path.
+        region_scale = node("ShaderNodeMath", 620, -1500)
+        region_scale.operation = "MULTIPLY"
+        region_scale.inputs[1].default_value = 0.95
+        links.new(group_in.outputs["Cloud Scale"], region_scale.inputs[0])
+
+        region_noise = node("ShaderNodeTexNoise", 800, -1500)
+        region_noise.inputs["Detail"].default_value = 2.0
+        region_noise.inputs["Roughness"].default_value = 0.50
+        region_noise.inputs["Distortion"].default_value = 0.10
+        links.new(warped_pos.outputs["Vector"], region_noise.inputs["Vector"])
+        links.new(region_scale.outputs[0], region_noise.inputs["Scale"])
+
+        region_gate = node("ShaderNodeMapRange", 980, -1500)
+        region_gate.clamp = True
+        _smooth(region_gate)
+        region_gate.inputs["From Min"].default_value = 0.35
+        region_gate.inputs["From Max"].default_value = 0.60
+        region_gate.inputs["To Min"].default_value = 0.0
+        region_gate.inputs["To Max"].default_value = 1.0
+        links.new(region_noise.outputs["Fac"], region_gate.inputs["Value"])
+
+        cell_scale = node("ShaderNodeMath", 620, -1700)
+        cell_scale.operation = "MULTIPLY"
+        cell_scale.inputs[1].default_value = 1.55
+        links.new(group_in.outputs["Cloud Scale"], cell_scale.inputs[0])
+
+        cell_noise = node("ShaderNodeTexNoise", 800, -1700)
+        cell_noise.inputs["Detail"].default_value = 6.0
+        cell_noise.inputs["Roughness"].default_value = 0.58
+        cell_noise.inputs["Distortion"].default_value = 0.18
+        links.new(warped_pos.outputs["Vector"], cell_noise.inputs["Vector"])
+        links.new(cell_scale.outputs[0], cell_noise.inputs["Scale"])
+
+        cell_env = node("ShaderNodeMapRange", 980, -1700)
+        cell_env.clamp = True
+        _smooth(cell_env)
+        cell_env.inputs["From Min"].default_value = 0.22
+        cell_env.inputs["From Max"].default_value = 0.55
+        cell_env.inputs["To Min"].default_value = 0.0
+        cell_env.inputs["To Max"].default_value = 1.0
+        links.new(cell_noise.outputs["Fac"], cell_env.inputs["Value"])
+
+        cell_weight = node("ShaderNodeMath", 1160, -1700)
+        cell_weight.operation = "MULTIPLY"
+        cell_weight.inputs[1].default_value = 1.32
+        links.new(cell_noise.outputs["Fac"], cell_weight.inputs[0])
+
+        cell_lobes = node("ShaderNodeMath", 1160, -1560)
+        cell_lobes.operation = "MULTIPLY"
+        cell_lobes.use_clamp = True
+        links.new(detail_lobes.outputs[0], cell_lobes.inputs[0])
+        links.new(cell_env.outputs["Result"], cell_lobes.inputs[1])
+
+        rho_c_body = node("ShaderNodeMath", 1340, -1620)
+        rho_c_body.operation = "ADD"
+        rho_c_body.use_clamp = True
+        links.new(cell_weight.outputs[0], rho_c_body.inputs[0])
+        links.new(cell_lobes.outputs[0], rho_c_body.inputs[1])
+
+        rho_c_base = node("ShaderNodeMath", 1340, -1740)
+        rho_c_base.operation = "ADD"
+        rho_c_base.use_clamp = True
+        links.new(rho_c_body.outputs[0], rho_c_base.inputs[0])
+        rho_c_base.inputs[1].default_value = 0.13
+
+        rho_c = node("ShaderNodeMath", 1520, -1620)
+        rho_c.operation = "MULTIPLY"
+        rho_c.use_clamp = True
+        links.new(rho_c_base.outputs[0], rho_c.inputs[0])
+        links.new(region_gate.outputs["Result"], rho_c.inputs[1])
+
+        cum_weight = group_in.outputs["Cloud Cumulus"]
+        a_weight = node("ShaderNodeMath", 1700, -1500)
+        a_weight.operation = "SUBTRACT"
+        a_weight.use_clamp = True
+        a_weight.inputs[0].default_value = 1.0
+        links.new(cum_weight, a_weight.inputs[1])
+
+        rho_a = node("ShaderNodeMath", 1880, -1620)
+        rho_a.operation = "MULTIPLY"
+        links.new(rho.outputs[0], rho_a.inputs[0])
+        links.new(a_weight.outputs[0], rho_a.inputs[1])
+
+        rho_cw = node("ShaderNodeMath", 1880, -1760)
+        rho_cw.operation = "MULTIPLY"
+        links.new(rho_c.outputs[0], rho_cw.inputs[0])
+        links.new(cum_weight, rho_cw.inputs[1])
+
+        rho_mix = node("ShaderNodeMath", 2060, -1620)
+        rho_mix.operation = "ADD"
+        rho_mix.use_clamp = True
+        links.new(rho_a.outputs[0], rho_mix.inputs[0])
+        links.new(rho_cw.outputs[0], rho_mix.inputs[1])
+        rho_out = rho_mix.outputs[0]
+
+    return (rho_out, envelope_noise.outputs["Fac"],
             warped_pos.outputs["Vector"])
 
 
@@ -1600,7 +1702,7 @@ def _build_gradient_group(ng):
     rho_here, env_here, warped_pos = _sample_cloud_density(
         nodes, links, family_view.outputs["Vector"], group_in,
         flat_scale, flat_inv, y_offset=0.0,
-        flatness_socket=family_flatness.outputs[0])
+        flatness_socket=family_flatness.outputs[0], hierarchical=True)
 
     # Displace the *view ray* by ~2 degrees on the sky dome, not the mapped
     # cloud point. Sun+zenith defines the per-cloud light direction.
@@ -1753,24 +1855,45 @@ def _build_gradient_group(ng):
     links.new(group_in.outputs["Cloud Amount"],
               coverage_center.inputs["Value"])
 
+    # Candidate C: calibrate the hierarchical Cumulus field to the A coverage
+    # curve. The one-hot gate leaves Stratocumulus and Cirrus unchanged.
+    coverage_bias = nodes.new("ShaderNodeMapRange")
+    coverage_bias.location = (2620, -120)
+    coverage_bias.clamp = True
+    _smooth(coverage_bias)
+    coverage_bias.inputs["From Min"].default_value = 0.0
+    coverage_bias.inputs["From Max"].default_value = 1.0
+    coverage_bias.inputs["To Min"].default_value = 0.0
+    coverage_bias.inputs["To Max"].default_value = -0.070
+    links.new(group_in.outputs["Cloud Cumulus"],
+              coverage_bias.inputs["Value"])
+
+    coverage_center_c = nodes.new("ShaderNodeMath")
+    coverage_center_c.location = (2800, -120)
+    coverage_center_c.operation = "ADD"
+    links.new(coverage_center.outputs["Result"],
+              coverage_center_c.inputs[0])
+    links.new(coverage_bias.outputs["Result"],
+              coverage_center_c.inputs[1])
+
     coverage_top = nodes.new("ShaderNodeMath")
     coverage_top.location = (2620, -220)
     coverage_top.operation = "ADD"
     coverage_top.inputs[1].default_value = 0.018
-    links.new(coverage_center.outputs["Result"], coverage_top.inputs[0])
+    links.new(coverage_center_c.outputs[0], coverage_top.inputs[0])
 
     fringe_top = nodes.new("ShaderNodeMath")
     fringe_top.location = (2620, -380)
     fringe_top.operation = "ADD"
     fringe_top.inputs[1].default_value = 0.022
-    links.new(coverage_center.outputs["Result"], fringe_top.inputs[0])
+    links.new(coverage_center_c.outputs[0], fringe_top.inputs[0])
 
     # Crisp anime silhouette + directional body / silver lining.
     coverage = nodes.new("ShaderNodeMapRange")
     coverage.location = (2800, -300)
     coverage.clamp = True
     _smooth(coverage)
-    links.new(coverage_center.outputs["Result"], coverage.inputs["From Min"])
+    links.new(coverage_center_c.outputs[0], coverage.inputs["From Min"])
     links.new(coverage_top.outputs[0], coverage.inputs["From Max"])
     links.new(rho_family.outputs[0], coverage.inputs["Value"])
 
@@ -1824,7 +1947,7 @@ def _build_gradient_group(ng):
     _smooth(fringe)
     fringe.inputs["To Min"].default_value = 1.0
     fringe.inputs["To Max"].default_value = 0.0
-    links.new(coverage_center.outputs["Result"], fringe.inputs["From Min"])
+    links.new(coverage_center_c.outputs[0], fringe.inputs["From Min"])
     links.new(fringe_top.outputs[0], fringe.inputs["From Max"])
     links.new(rho_family.outputs[0], fringe.inputs["Value"])
 
