@@ -1,0 +1,89 @@
+{
+  "cases": {
+    "main": {
+      "start": 10,
+      "duration": 24,
+      "old": {
+        "visible_samples": [
+          11,
+          32,
+          33
+        ],
+        "first": 11,
+        "last": 33,
+        "count": 23
+      },
+      "new": {
+        "visible_samples": [
+          10,
+          11,
+          32,
+          33
+        ],
+        "first": 10,
+        "last": 33,
+        "count": 24
+      },
+      "added": [
+        10
+      ],
+      "removed": []
+    },
+    "short": {
+      "start": 10,
+      "duration": 2,
+      "old": {
+        "visible_samples": [
+          11
+        ],
+        "first": 11,
+        "last": 11,
+        "count": 1
+      },
+      "new": {
+        "visible_samples": [
+          10,
+          11
+        ],
+        "first": 10,
+        "last": 11,
+        "count": 2
+      },
+      "added": [
+        10
+      ],
+      "removed": []
+    },
+    "timeline_start": {
+      "start": 1,
+      "duration": 24,
+      "old": {
+        "visible_samples": [
+          2,
+          23,
+          24
+        ],
+        "first": 2,
+        "last": 24,
+        "count": 23
+      },
+      "new": {
+        "visible_samples": [
+          1,
+          2,
+          23,
+          24
+        ],
+        "first": 1,
+        "last": 24,
+        "count": 24
+      },
+      "added": [
+        1
+      ],
+      "removed": []
+    }
+  },
+  "rule": "old: first visible = start + 1; new: first visible = start; last visible = start + duration - 1 on both",
+  "conclusion": "the new lifecycle adds the start frame and keeps the last frame; the visible count grows from duration - 1 to duration. No frame is removed."
+}

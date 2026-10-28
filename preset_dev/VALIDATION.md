@@ -10,7 +10,9 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 & $blender -b --factory-startup --python-exit-code 1 --python preset_dev\verify_all.py
 & $blender -b --factory-startup --python-exit-code 1 --python preset_dev\phase6_matrix.py
 & $blender -b --factory-startup --python-exit-code 1 --python preset_dev\phase6_technical.py
-& $blender -b --factory-startup --python preset_dev\build_release.py
+& $blender -b --factory-startup --python-exit-code 1 --python preset_dev\build_release.py
+& $blender -b --factory-startup --gpu-backend vulkan --python-exit-code 1 `
+  --python preset_dev\phase1a_shooting_stars.py -- --out <dir>
 ```
 
 ## Latest results
@@ -25,7 +27,8 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 2 sky | `sky/contact.png`, `sky/metrics.json` | noon / sunset / dusk / night, clouds off |
 | Phase 3 clouds | `cloud_families/contact.png`, `metrics.json` | Cumulus / Stratocumulus / Cirrus, same day sun |
 | Phase 3 sunset | `cloud_sunset/contact.png`, `metrics.json` | GOLDEN_HOUR, side and backlit |
-| Shooting stars | `shooting_star/contact.png`, `metrics.json` | persistent event, frames 1/8/16/25/30 |
+| Shooting stars (2.60.1) | `shooting_star/contact.png`, `metrics.json` | persistent event, frames 1/8/16/25/30 |
+| Shooting stars Phase 1A (2.63) | `phase1a_shooting_stars/board.png`, `board_horizon.png`, `temporal.png`, `migration.png`, `backend.png`, `interactive.png`, `lifecycle.mp4`, `metrics.json`, `review.json` | **37/37 PASS** on Eevee OpenGL and Vulkan; interactive Preview **5/5 PASS**; temporal and four-event migration verified; **FINAL TECHNICAL REVIEW: PASS** (merge authorization pending) |
 | Phase 6 matrix | `phase6/contact.png`, `phase6/metrics.json` | 22 cells: families x Sun, palettes, coverage, camera, wind, stars |
 | Phase 6 technical | `phase6/technical.json` | **17/17 PASS** |
 | Legacy migration (2.63 work) | `legacy/report.json`, `legacy/v256_report.json` | synthetic **36/36**; real v2.56.0 `.blend` **9/9** |
