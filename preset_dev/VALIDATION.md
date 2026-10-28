@@ -31,6 +31,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Legacy migration (2.63 work) | `legacy/report.json`, `legacy/v256_report.json` | synthetic **36/36**; real v2.56.0 `.blend` **9/9** |
 | Cumulus baseline (2.63 work) | `phase1/contact.png`, `phase1/contact_lighting.png`, `phase1/metrics.json` | v1.0.3 vs v2.62 native/calibrated; **TECHNICAL PASS / VISUAL REVIEW PENDING** |
 | 2D cloud distribution prototype (2.63 work) | `cloud_distribution/contact_main.png`, `cloud_distribution/metrics.json` | v1.0.3/A/prototype at comparable coverage; **TECHNICAL PASS / VISUAL REVIEW PENDING**; max global 0.495 |
+| Cloud anatomy (2.63 work) | `cloud_anatomy/contact_anatomy.png`, `cloud_anatomy/contact_distribution.png` | hierarchical Cumulus at 0.42; **VISUAL REVIEW PENDING**; merging regression documented (4.5 vs 6.3 components) |
 | Palettes | `palettes/sheet.png` | 12 presets, same camera and light |
 | UI | `preset_dev/ui/` | Quick Look, Advanced Sky, full Scene sections |
 | Package | `dist/anime_look_director-2.62.0.zip` | extension build PASS; 2.62.0 installed and enabled in an isolated config |

@@ -1,0 +1,207 @@
+{
+  "records": [
+    {
+      "width": 1.965,
+      "height": 1.393,
+      "area": 2.196,
+      "perimeter_norm": 3.73,
+      "peaks": 0,
+      "peak_height": [],
+      "symmetry_iou": 0.801,
+      "asymmetry": 0.199,
+      "base_std": 0.0089,
+      "base_range": 0.0425,
+      "summit_offset": -0.282,
+      "variant": "baseline",
+      "specimen": 0,
+      "height_param": 1.05,
+      "width_param": 0.86,
+      "primitives": 7
+    },
+    {
+      "width": 2.02,
+      "height": 1.345,
+      "area": 2.315,
+      "perimeter_norm": 3.732,
+      "peaks": 0,
+      "peak_height": [],
+      "symmetry_iou": 0.906,
+      "asymmetry": 0.094,
+      "base_std": 0.0151,
+      "base_range": 0.0475,
+      "summit_offset": 0.224,
+      "variant": "baseline",
+      "specimen": 1,
+      "height_param": 1.25,
+      "width_param": 0.92,
+      "primitives": 7
+    },
+    {
+      "width": 1.927,
+      "height": 1.415,
+      "area": 2.135,
+      "perimeter_norm": 3.639,
+      "peaks": 0,
+      "peak_height": [],
+      "symmetry_iou": 0.805,
+      "asymmetry": 0.195,
+      "base_std": 0.0097,
+      "base_range": 0.035,
+      "summit_offset": -0.126,
+      "variant": "baseline",
+      "specimen": 2,
+      "height_param": 1.15,
+      "width_param": 0.8,
+      "primitives": 8
+    },
+    {
+      "width": 1.873,
+      "height": 1.425,
+      "area": 1.729,
+      "perimeter_norm": 3.962,
+      "peaks": 2,
+      "peak_height": [
+        0.705,
+        0.378
+      ],
+      "symmetry_iou": 0.782,
+      "asymmetry": 0.218,
+      "base_std": 0.0226,
+      "base_range": 0.07,
+      "summit_offset": -0.1,
+      "variant": "hierarchical",
+      "specimen": 0,
+      "height_param": 1.05,
+      "width_param": 0.86,
+      "primitives": 15
+    },
+    {
+      "width": 1.943,
+      "height": 1.61,
+      "area": 1.909,
+      "perimeter_norm": 4.08,
+      "peaks": 1,
+      "peak_height": [
+        1.118
+      ],
+      "symmetry_iou": 0.828,
+      "asymmetry": 0.172,
+      "base_std": 0.0224,
+      "base_range": 0.0775,
+      "summit_offset": 0.005,
+      "variant": "hierarchical",
+      "specimen": 1,
+      "height_param": 1.25,
+      "width_param": 0.92,
+      "primitives": 15
+    },
+    {
+      "width": 1.86,
+      "height": 1.522,
+      "area": 1.758,
+      "perimeter_norm": 4.007,
+      "peaks": 1,
+      "peak_height": [
+        0.948
+      ],
+      "symmetry_iou": 0.777,
+      "asymmetry": 0.223,
+      "base_std": 0.0185,
+      "base_range": 0.055,
+      "summit_offset": -0.041,
+      "variant": "hierarchical",
+      "specimen": 2,
+      "height_param": 1.15,
+      "width_param": 0.8,
+      "primitives": 15
+    },
+    {
+      "width": 1.742,
+      "height": 1.407,
+      "area": 1.593,
+      "perimeter_norm": 4.031,
+      "peaks": 1,
+      "peak_height": [
+        0.725
+      ],
+      "symmetry_iou": 0.644,
+      "asymmetry": 0.356,
+      "base_std": 0.0175,
+      "base_range": 0.0525,
+      "summit_offset": -0.386,
+      "variant": "asymmetric",
+      "specimen": 0,
+      "height_param": 1.05,
+      "width_param": 0.86,
+      "primitives": 14
+    },
+    {
+      "width": 1.86,
+      "height": 1.578,
+      "area": 1.835,
+      "perimeter_norm": 3.966,
+      "peaks": 1,
+      "peak_height": [
+        0.512
+      ],
+      "symmetry_iou": 0.704,
+      "asymmetry": 0.296,
+      "base_std": 0.0247,
+      "base_range": 0.075,
+      "summit_offset": -0.246,
+      "variant": "asymmetric",
+      "specimen": 1,
+      "height_param": 1.25,
+      "width_param": 0.92,
+      "primitives": 14
+    },
+    {
+      "width": 1.693,
+      "height": 1.502,
+      "area": 1.642,
+      "perimeter_norm": 3.986,
+      "peaks": 0,
+      "peak_height": [],
+      "symmetry_iou": 0.634,
+      "asymmetry": 0.366,
+      "base_std": 0.0184,
+      "base_range": 0.05,
+      "summit_offset": -0.286,
+      "variant": "asymmetric",
+      "specimen": 2,
+      "height_param": 1.15,
+      "width_param": 0.8,
+      "primitives": 14
+    }
+  ],
+  "summary": {
+    "baseline": {
+      "height": 1.384,
+      "width": 1.971,
+      "area": 2.215,
+      "peaks": 0.0,
+      "asymmetry": 0.163,
+      "base_std": 0.0112,
+      "perimeter_norm": 3.7
+    },
+    "hierarchical": {
+      "height": 1.519,
+      "width": 1.892,
+      "area": 1.799,
+      "peaks": 1.33,
+      "asymmetry": 0.204,
+      "base_std": 0.0212,
+      "perimeter_norm": 4.016
+    },
+    "asymmetric": {
+      "height": 1.496,
+      "width": 1.765,
+      "area": 1.69,
+      "peaks": 0.67,
+      "asymmetry": 0.339,
+      "base_std": 0.0202,
+      "perimeter_norm": 3.994
+    }
+  },
+  "scale_units_per_px": 0.0025
+}

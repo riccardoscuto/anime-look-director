@@ -47,6 +47,7 @@ def parse_args():
     values = {"out": "preset_dev/cloud_distribution", "seed": "11",
               "width": "2048", "height": "1024",
               "amounts": "0.18,0.30,0.42", "views": "main,right",
+              "variant": "baseline", "union": str(TARGET_FOOTPRINT),
               "save": ""}
     for index, item in enumerate(argv):
         if item.startswith("--") and index + 1 < len(argv):
@@ -55,6 +56,7 @@ def parse_args():
     values["width"] = int(values["width"])
     values["height"] = int(values["height"])
     values["amounts"] = [float(x) for x in values["amounts"].split(",") if x]
+    values["union"] = float(values["union"])
     values["views"] = [x for x in values["views"].split(",") if x]
     return values
 
@@ -100,7 +102,136 @@ def fbm(width, height, rng, base=(8, 4), octaves=3):
     return total / norm
 
 
-def make_masses(rng):
+def ellipse_distance(x, y, cx, cy, rx, ry, angle=0.0):
+    dx = x - cx
+    dy = y - cy
+    if angle:
+        ca = math.cos(angle)
+        sa = math.sin(angle)
+        dx, dy = dx * ca + dy * sa, -dx * sa + dy * ca
+    return (np.sqrt((dx / rx) ** 2 + (dy / ry) ** 2) - 1.0) * min(rx, ry)
+
+
+def soft_maximum(a, b, k):
+    if k <= 0.0:
+        return np.maximum(a, b)
+    h = np.clip(0.5 + 0.5 * (a - b) / k, 0.0, 1.0)
+    return b * (1.0 - h) + a * h + k * h * (1.0 - h)
+
+
+def mass_distance(x, y, spec):
+    """Signed distance to body, lobes and base of one mass."""
+    distance = ellipse_distance(x, y, **spec["body"])
+    for lobe in spec["lobes"]:
+        distance = np.minimum(distance, ellipse_distance(x, y, **lobe))
+    base = spec["base"]
+    y_base = base["y"] + base["wave"] * np.sin(
+        2.0 * math.pi * (x * base["freq"] + base["phase"]))
+    return soft_maximum(distance, y_base - y, base["soft"])
+
+
+def baseline_lobes(rng, tall):
+    lobes = []
+    count = int(rng.integers(5, 8))
+    for lobe_index in range(count):
+        lobes.append({
+            "cx": float(-0.62 + 1.24 * (lobe_index + 0.5) / count
+                        + rng.uniform(-0.06, 0.06)),
+            "cy": float((0.30 + rng.uniform(0.0, 0.25)) * tall),
+            "rx": float(rng.uniform(0.30, 0.45)),
+            "ry": float(rng.uniform(0.30, 0.48)),
+            "angle": 0.0,
+        })
+    return lobes
+
+
+def variant_anatomy(rng, tall, width, variant):
+    """Body, lobes and base for the hierarchical morphology variants.
+
+    Towers are stacks of overlapping lobes with protruding caps, not single
+    tall ellipses, so their flanks stay scalloped and never read as capsules.
+    """
+    base = {"y": -0.22, "wave": 0.018, "freq": 0.9,
+            "phase": float(rng.uniform(0.0, 1.0)), "soft": 0.05}
+    lobes = []
+    if variant == "hierarchical":
+        body = {"cx": -0.06, "cy": 0.06, "rx": width * 0.94,
+                "ry": 0.46 * tall}
+        tx = float(rng.uniform(-0.36, -0.14))
+        for offset, cy, rx, ry in ((0.00, 0.20, 0.38, 0.34),
+                                   (0.03, 0.38, 0.32, 0.30),
+                                   (-0.02, 0.56, 0.27, 0.27),
+                                   (0.01, 0.72, 0.23, 0.24)):
+            lobes.append({"cx": tx + offset + float(rng.uniform(-0.02, 0.02)),
+                          "cy": float(cy * tall), "rx": rx, "ry": ry,
+                          "angle": float(rng.uniform(-0.08, 0.08))})
+        lobes.append({"cx": tx + 0.10, "cy": float(0.88 * tall),
+                      "rx": float(rng.uniform(0.12, 0.16)),
+                      "ry": float(rng.uniform(0.12, 0.15)), "angle": 0.0})
+        lobes.append({"cx": tx - 0.13, "cy": float(0.80 * tall),
+                      "rx": float(rng.uniform(0.10, 0.13)),
+                      "ry": float(rng.uniform(0.09, 0.12)), "angle": 0.0})
+        tx2 = float(rng.uniform(0.28, 0.42))
+        for cy, rx, ry in ((0.30, 0.24, 0.24), (0.44, 0.20, 0.20)):
+            lobes.append({"cx": tx2 + float(rng.uniform(-0.02, 0.02)),
+                          "cy": float(cy * tall), "rx": rx, "ry": ry,
+                          "angle": float(rng.uniform(-0.10, 0.10))})
+        lobes.append({"cx": tx2 + 0.04, "cy": float(0.60 * tall),
+                      "rx": float(rng.uniform(0.10, 0.13)),
+                      "ry": float(rng.uniform(0.08, 0.11)), "angle": 0.0})
+        for cx, cy, rx, ry in ((-0.60, 0.14, 0.22, 0.18),
+                               (0.62, 0.10, 0.24, 0.16)):
+            lobes.append({"cx": float(cx + rng.uniform(-0.03, 0.03)),
+                          "cy": float((cy + rng.uniform(-0.02, 0.04)) * tall),
+                          "rx": float(rx + rng.uniform(-0.02, 0.02)),
+                          "ry": float(ry + rng.uniform(-0.02, 0.02)),
+                          "angle": 0.0})
+        for cx, cy in ((0.46, 0.26), (-0.40, 0.22), (0.14, 0.56)):
+            lobes.append({"cx": float(cx + rng.uniform(-0.04, 0.04)),
+                          "cy": float((cy + rng.uniform(-0.03, 0.03)) * tall),
+                          "rx": float(rng.uniform(0.08, 0.12)),
+                          "ry": float(rng.uniform(0.07, 0.10)), "angle": 0.0})
+    else:
+        base["wave"] = 0.025
+        base["freq"] = 1.1
+        body = {"cx": 0.06, "cy": 0.08, "rx": width * 0.92,
+                "ry": 0.44 * tall}
+        tx = float(rng.uniform(-0.44, -0.22))
+        for offset, cy, rx, ry in ((0.00, 0.20, 0.34, 0.32),
+                                   (-0.03, 0.40, 0.30, 0.29),
+                                   (-0.07, 0.58, 0.26, 0.26),
+                                   (-0.10, 0.74, 0.22, 0.23)):
+            lobes.append({"cx": tx + offset + float(rng.uniform(-0.02, 0.02)),
+                          "cy": float(cy * tall), "rx": rx, "ry": ry,
+                          "angle": float(rng.uniform(-0.10, 0.10))})
+        lobes.append({"cx": tx - 0.17, "cy": float(0.88 * tall),
+                      "rx": float(rng.uniform(0.12, 0.15)),
+                      "ry": float(rng.uniform(0.11, 0.14)), "angle": 0.0})
+        lobes.append({"cx": tx + 0.00, "cy": float(0.82 * tall),
+                      "rx": float(rng.uniform(0.10, 0.12)),
+                      "ry": float(rng.uniform(0.09, 0.11)), "angle": 0.0})
+        tx2 = float(rng.uniform(0.30, 0.44))
+        for cy, rx, ry in ((0.30, 0.20, 0.21), (0.42, 0.17, 0.18)):
+            lobes.append({"cx": tx2 + float(rng.uniform(-0.02, 0.02)),
+                          "cy": float(cy * tall), "rx": rx, "ry": ry,
+                          "angle": float(rng.uniform(-0.10, 0.10))})
+        for cy, rx, ry in ((0.10, 0.16, 0.13), (0.24, 0.13, 0.11)):
+            lobes.append({"cx": float(rng.uniform(-0.58, -0.44)),
+                          "cy": float((cy + rng.uniform(-0.02, 0.03)) * tall),
+                          "rx": rx, "ry": ry, "angle": 0.0})
+        lobes.append({"cx": float(rng.uniform(0.56, 0.66)),
+                      "cy": float(rng.uniform(0.06, 0.14) * tall),
+                      "rx": float(rng.uniform(0.20, 0.24)),
+                      "ry": float(rng.uniform(0.14, 0.18)), "angle": 0.0})
+        for cx, cy in ((0.46, 0.28), (-0.32, 0.38)):
+            lobes.append({"cx": float(cx + rng.uniform(-0.03, 0.03)),
+                          "cy": float((cy + rng.uniform(-0.03, 0.03)) * tall),
+                          "rx": float(rng.uniform(0.08, 0.11)),
+                          "ry": float(rng.uniform(0.07, 0.09)), "angle": 0.0})
+    return body, lobes, base
+
+
+def make_masses(rng, variant="baseline", anatomy_rng=None):
     specs = []
     spacing = math.sqrt(2.0 * math.pi / COUNT)
     for index in range(COUNT):
@@ -124,25 +255,26 @@ def make_masses(rng):
         lon_c = math.atan2(float(direction[1]), float(direction[0])) % (
             2.0 * math.pi)
         tall = rng.uniform(0.85, 1.45)
-        spec = {
+        radius = math.radians(rng.uniform(*RADIUS))
+        strength = float(rng.uniform(0.55, 1.0))
+        aspect = float(rng.uniform(0.66, 0.95))
+        width = float(rng.uniform(0.80, 0.98))
+        if variant == "baseline":
+            body = {"cx": 0.0, "cy": 0.0, "rx": width, "ry": 0.38 * tall}
+            lobes = baseline_lobes(rng, tall)
+            base = {"y": -0.22, "wave": 0.0, "freq": 0.9,
+                    "phase": 0.0, "soft": 0.0}
+        else:
+            # Consume the baseline draw so the layout sequence is identical.
+            baseline_lobes(rng, tall)
+            body, lobes, base = variant_anatomy(
+                anatomy_rng, tall, width, variant)
+        specs.append({
             "u": lon_c / (2.0 * math.pi), "lat": float(lat_c),
-            "radius": math.radians(rng.uniform(*RADIUS)),
-            "strength": float(rng.uniform(0.55, 1.0)),
-            "aspect": float(rng.uniform(0.66, 0.95)),
-            "width": float(rng.uniform(0.80, 0.98)),
-            "height": float(tall),
-            "lobes": [],
-        }
-        count = int(rng.integers(5, 8))
-        for lobe_index in range(count):
-            spec["lobes"].append({
-                "cx": float(-0.62 + 1.24 * (lobe_index + 0.5) / count
-                            + rng.uniform(-0.06, 0.06)),
-                "cy": float((0.30 + rng.uniform(0.0, 0.25)) * tall),
-                "rx": float(rng.uniform(0.30, 0.45)),
-                "ry": float(rng.uniform(0.30, 0.48)),
-            })
-        specs.append(spec)
+            "radius": radius, "strength": strength, "aspect": aspect,
+            "width": width, "height": tall, "body": body, "lobes": lobes,
+            "base": base, "variant": variant,
+        })
     return specs
 
 
@@ -185,24 +317,10 @@ def rasterize(specs, scale, dirs, warp_x, warp_y):
         dot = sub @ center
         safe = np.maximum(dot, 0.20)
         tangent = safe * math.tan(radius)
-        x = (sub @ east) / tangent + warp_x[row0:row1][:, cols] * WARP
+        x = (sub @ east) / tangent + warp_x[row0:row1][:, cols]
         y = (sub @ up) / (tangent * spec["aspect"]) \
-            + warp_y[row0:row1][:, cols] * WARP
-        tall = spec["height"]
-        body = 0.38 * tall
-        # Signed distance to the union of the body, the lobes and the flat
-        # base. A coverage threshold offsets this outline uniformly, so the
-        # lobes survive at every Cloud Amount.
-        distance = (np.sqrt((x / spec["width"]) ** 2
-                            + (y / body) ** 2) - 1.0) \
-            * min(spec["width"], body)
-        for lobe in spec["lobes"]:
-            distance = np.minimum(
-                distance,
-                (np.sqrt(((x - lobe["cx"]) / lobe["rx"]) ** 2
-                         + ((y - lobe["cy"]) / lobe["ry"]) ** 2) - 1.0)
-                * min(lobe["rx"], lobe["ry"]))
-        distance = np.maximum(distance, -0.22 - y)
+            + warp_y[row0:row1][:, cols]
+        distance = mass_distance(x, y, spec)
         shape = np.clip(1.0 - np.maximum(distance, 0.0) / EDGE,
                         0.0, 1.0) * spec["strength"]
         shape *= dot > 0.20
@@ -211,13 +329,33 @@ def rasterize(specs, scale, dirs, warp_x, warp_y):
     return field
 
 
-def generate_field(width, height, seed):
+def generate_field(width, height, seed, variant="baseline",
+                   union_target=None):
     rng = np.random.default_rng(seed)
     dirs, lat = directions(width, height)
     sky = dirs[:, :, 2] >= 0.0
+    # Always consume the baseline warp draws so the mass layout is identical
+    # across variants at the same seed.
     warp_x = (fbm(width, height, rng, base=(48, 24), octaves=3) - 0.5) * 2.0
     warp_y = (fbm(width, height, rng, base=(48, 24), octaves=3) - 0.5) * 2.0
-    specs = make_masses(rng)
+    if variant == "baseline":
+        warp_x *= WARP
+        warp_y *= WARP
+    else:
+        wrng = np.random.default_rng(seed + 104729)
+        warp_x = np.zeros((height, width), dtype=np.float32)
+        warp_y = np.zeros((height, width), dtype=np.float32)
+        for base, amplitude, octaves in (((32, 16), 0.070, 2),
+                                         ((96, 48), 0.035, 2),
+                                         ((192, 96), 0.018, 1)):
+            warp_x += ((fbm(width, height, wrng, base=base,
+                            octaves=octaves) - 0.5) * 2.0) * amplitude
+            warp_y += ((fbm(width, height, wrng, base=base,
+                            octaves=octaves) - 0.5) * 2.0) * amplitude
+    if union_target is None:
+        union_target = TARGET_FOOTPRINT
+    anatomy_rng = np.random.default_rng(seed + 7919)
+    specs = make_masses(rng, variant, anatomy_rng)
     weights = np.where(sky, np.cos(lat)[:, None], 0.0).astype(np.float32)
     weight_sum = max(float(weights[sky].sum()), 1e-6)
 
@@ -229,9 +367,9 @@ def generate_field(width, height, seed):
         field = rasterize(specs, scale, dirs, warp_x, warp_y)
         field[~sky] = 0.0
         union = float(weights[sky & (field > 0.0)].sum() / weight_sum)
-        if abs(union - TARGET_FOOTPRINT) <= 0.02:
+        if abs(union - union_target) <= 0.02:
             break
-        adjust = math.sqrt(TARGET_FOOTPRINT / max(union, 1e-4))
+        adjust = math.sqrt(union_target / max(union, 1e-4))
         tallest = max(spec["radius"] for spec in specs) * scale
         adjust = min(adjust, math.radians(MAX_RADIUS) / max(tallest, 1e-6))
         if abs(adjust - 1.0) < 0.01 or attempt == 2:
@@ -413,7 +551,8 @@ def main():
     out = os.path.abspath(args["out"])
     os.makedirs(out, exist_ok=True)
     start = time.perf_counter()
-    data = generate_field(args["width"], args["height"], args["seed"])
+    data = generate_field(args["width"], args["height"], args["seed"],
+                          args["variant"], args["union"])
     generation = time.perf_counter() - start
     field = data["field"]
     masses = data["masses"]
@@ -427,6 +566,7 @@ def main():
     threshold = setup_world(scene, image, palette)
     report = {
         "seed": args["seed"], "size": [args["width"], args["height"]],
+        "variant": args["variant"], "union_target": args["union"],
         "masses": len(masses),
         "masses_detail": [{"u": round(m["u"], 4),
                            "lat": round(math.degrees(m["lat"]), 2),
@@ -472,7 +612,8 @@ def main():
               encoding="utf-8") as f:
         json.dump(report, f, indent=2)
     print("PROTO", args["seed"], "gen %.1fms" % (generation * 1000),
-          "size", args["width"], args["height"], "masses", len(masses),
+          "variant", args["variant"], "size", args["width"], args["height"],
+          "masses", len(masses),
           "union %.3f" % data["union"], "packed", bool(image.packed_file))
     return 0
 

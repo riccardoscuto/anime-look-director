@@ -1,0 +1,309 @@
+{
+  "amount": 0.42,
+  "global_coverage": {
+    "baseline_3": 0.42,
+    "baseline_17": 0.42,
+    "baseline_42": 0.42,
+    "hierarchical_3": 0.42,
+    "hierarchical_17": 0.42,
+    "hierarchical_42": 0.42
+  },
+  "generation_ms": {
+    "baseline": [
+      936.1,
+      1002.0,
+      1063.3
+    ],
+    "hierarchical": [
+      1706.0,
+      1721.1,
+      1772.3
+    ]
+  },
+  "records": {
+    "baseline": [
+      {
+        "name": "baseline_s03_main",
+        "coverage": 0.3156,
+        "components": 6,
+        "component_areas": [
+          0.1565,
+          0.0875,
+          0.0267,
+          0.0187,
+          0.0154,
+          0.012
+        ],
+        "largest_component": 0.1565,
+        "perimeter_norm": 9.663,
+        "vertical_span": 0.7319444444444444,
+        "threshold": 0.02,
+        "variant": "baseline",
+        "seed": 3,
+        "view": "main"
+      },
+      {
+        "name": "baseline_s03_right",
+        "coverage": 0.3479,
+        "components": 8,
+        "component_areas": [
+          0.0737,
+          0.0643,
+          0.0547,
+          0.0436,
+          0.0386,
+          0.0365,
+          0.0332,
+          0.005
+        ],
+        "largest_component": 0.0737,
+        "perimeter_norm": 11.846,
+        "vertical_span": 0.8263888888888888,
+        "threshold": 0.02,
+        "variant": "baseline",
+        "seed": 3,
+        "view": "right"
+      },
+      {
+        "name": "baseline_s17_main",
+        "coverage": 0.2765,
+        "components": 6,
+        "component_areas": [
+          0.0989,
+          0.0599,
+          0.0466,
+          0.0349,
+          0.0284,
+          0.0094
+        ],
+        "largest_component": 0.0989,
+        "perimeter_norm": 10.997,
+        "vertical_span": 0.7277777777777777,
+        "threshold": 0.02,
+        "variant": "baseline",
+        "seed": 17,
+        "view": "main"
+      },
+      {
+        "name": "baseline_s17_right",
+        "coverage": 0.3715,
+        "components": 6,
+        "component_areas": [
+          0.1256,
+          0.1026,
+          0.0553,
+          0.0449,
+          0.0306,
+          0.0142
+        ],
+        "largest_component": 0.1256,
+        "perimeter_norm": 12.588,
+        "vertical_span": 0.8138888888888889,
+        "threshold": 0.02,
+        "variant": "baseline",
+        "seed": 17,
+        "view": "right"
+      },
+      {
+        "name": "baseline_s42_main",
+        "coverage": 0.3357,
+        "components": 7,
+        "component_areas": [
+          0.1656,
+          0.0546,
+          0.0394,
+          0.0364,
+          0.022,
+          0.0155,
+          0.0037
+        ],
+        "largest_component": 0.1656,
+        "perimeter_norm": 10.343,
+        "vertical_span": 0.7527777777777778,
+        "threshold": 0.02,
+        "variant": "baseline",
+        "seed": 42,
+        "view": "main"
+      },
+      {
+        "name": "baseline_s42_right",
+        "coverage": 0.368,
+        "components": 5,
+        "component_areas": [
+          0.2129,
+          0.0995,
+          0.0312,
+          0.019,
+          0.0065
+        ],
+        "largest_component": 0.2129,
+        "perimeter_norm": 10.924,
+        "vertical_span": 0.8263888888888888,
+        "threshold": 0.02,
+        "variant": "baseline",
+        "seed": 42,
+        "view": "right"
+      }
+    ],
+    "hierarchical": [
+      {
+        "name": "hierarchical_s03_main",
+        "coverage": 0.317,
+        "components": 4,
+        "component_areas": [
+          0.1726,
+          0.1022,
+          0.0294,
+          0.0137
+        ],
+        "largest_component": 0.1726,
+        "perimeter_norm": 10.087,
+        "vertical_span": 0.7416666666666667,
+        "threshold": 0.02,
+        "variant": "hierarchical",
+        "seed": 3,
+        "view": "main"
+      },
+      {
+        "name": "hierarchical_s03_right",
+        "coverage": 0.3372,
+        "components": 6,
+        "component_areas": [
+          0.1696,
+          0.0523,
+          0.0414,
+          0.0365,
+          0.0327,
+          0.0061
+        ],
+        "largest_component": 0.1696,
+        "perimeter_norm": 12.284,
+        "vertical_span": 0.8333333333333334,
+        "threshold": 0.02,
+        "variant": "hierarchical",
+        "seed": 3,
+        "view": "right"
+      },
+      {
+        "name": "hierarchical_s17_main",
+        "coverage": 0.2698,
+        "components": 5,
+        "component_areas": [
+          0.0886,
+          0.0791,
+          0.0607,
+          0.0332,
+          0.0092
+        ],
+        "largest_component": 0.0886,
+        "perimeter_norm": 11.941,
+        "vertical_span": 0.7291666666666666,
+        "threshold": 0.02,
+        "variant": "hierarchical",
+        "seed": 17,
+        "view": "main"
+      },
+      {
+        "name": "hierarchical_s17_right",
+        "coverage": 0.3713,
+        "components": 4,
+        "component_areas": [
+          0.1223,
+          0.117,
+          0.0879,
+          0.0454
+        ],
+        "largest_component": 0.1223,
+        "perimeter_norm": 12.796,
+        "vertical_span": 0.8166666666666667,
+        "threshold": 0.02,
+        "variant": "hierarchical",
+        "seed": 17,
+        "view": "right"
+      },
+      {
+        "name": "hierarchical_s42_main",
+        "coverage": 0.345,
+        "components": 5,
+        "component_areas": [
+          0.2152,
+          0.0555,
+          0.0376,
+          0.0261,
+          0.0118
+        ],
+        "largest_component": 0.2152,
+        "perimeter_norm": 10.971,
+        "vertical_span": 0.7569444444444444,
+        "threshold": 0.02,
+        "variant": "hierarchical",
+        "seed": 42,
+        "view": "main"
+      },
+      {
+        "name": "hierarchical_s42_right",
+        "coverage": 0.368,
+        "components": 3,
+        "component_areas": [
+          0.3332,
+          0.0313,
+          0.0051
+        ],
+        "largest_component": 0.3332,
+        "perimeter_norm": 11.695,
+        "vertical_span": 0.8208333333333333,
+        "threshold": 0.02,
+        "variant": "hierarchical",
+        "seed": 42,
+        "view": "right"
+      }
+    ]
+  },
+  "summary": {
+    "baseline": {
+      "cells": 6,
+      "coverage_mean": 0.3359,
+      "coverage_min": 0.2765,
+      "coverage_max": 0.3715,
+      "components_mean": 6.33,
+      "components_min": 5,
+      "components_max": 8,
+      "largest_mean": 0.1389,
+      "largest_max": 0.2129,
+      "largest_over_030": 0,
+      "perimeter_mean": 11.06
+    },
+    "hierarchical": {
+      "cells": 6,
+      "coverage_mean": 0.3347,
+      "coverage_min": 0.2698,
+      "coverage_max": 0.3713,
+      "components_mean": 4.5,
+      "components_min": 3,
+      "components_max": 6,
+      "largest_mean": 0.1836,
+      "largest_max": 0.3332,
+      "largest_over_030": 1,
+      "perimeter_mean": 11.629
+    },
+    "v1.0.3": {
+      "name": "v1.0.3",
+      "coverage": 0.4195,
+      "components": 6,
+      "component_areas": [
+        0.3451,
+        0.0511,
+        0.0142,
+        0.0052,
+        0.003,
+        0.0023
+      ],
+      "largest_component": 0.3451,
+      "perimeter_norm": 14.392,
+      "vertical_span": 0.6444444444444445,
+      "threshold": 0.02
+    }
+  },
+  "threshold": 0.02,
+  "seed_note": "The hierarchical variant reuses the same mass positions, strengths and Cloud Amount logic as the baseline."
+}
