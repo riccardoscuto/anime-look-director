@@ -1,0 +1,32 @@
+{
+  "tag": "v1.0.3",
+  "module": "v103",
+  "module_version": [
+    1,
+    0,
+    3
+  ],
+  "palette": "SUMMER_NOON",
+  "clouds": false,
+  "cloud_amount": 0.699999988079071,
+  "resolution": [
+    1280,
+    720
+  ],
+  "samples": 32,
+  "camera": {
+    "location": [
+      0.0,
+      -12.0,
+      3.0
+    ],
+    "rotation": [
+      1.75,
+      0.0,
+      0.45
+    ],
+    "lens": 32.0
+  },
+  "world": "ALD | Atmosphere",
+  "file": "summer_noon_v1.0.3_off_native_1280x720.png"
+}

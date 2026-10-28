@@ -1373,3 +1373,32 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   scene-local. Data blocks are removed only when their user count reaches zero.
 - Evidence: 36 synthetic checks and 9 checks on a `.blend` created by the
   v2.56.0 add-on (`preset_dev/legacy/v256_fixture.blend`).
+
+
+### v2.63 Phase 1 notes (Cumulus baseline)
+- The baseline compares v1.0.3, v2.62.0 native and v2.62.0 with
+  `cloud_amount = 0.78` (apparent coverage calibration) at 1280x720 and
+  1920x1080. Cloud masks are the difference from a clouds-off reference, not
+  a sky-colour heuristic.
+- At 1280 the coverage is 0.420 (v1.0.3), 0.364 (v2.62 native) and 0.426
+  (calibrated). The calibrated setting matches apparent coverage; the native
+  preset has about 13% less cloud.
+- At matched coverage v2.62 has 3 significant cloud components versus 6 in
+  v1.0.3, and the largest component covers 0.403 of the frame versus 0.345.
+  The current field produces one dominant bank; adding coverage enlarges it
+  instead of creating new masses.
+- Edge density is 0.00302 (v1.0.3) versus 0.00231 (v2.62 calibrated), so the
+  current silhouette is 20-23% smoother. The top reads as a long ridge; the
+  old top has rounder, differently sized domes.
+- Cloud luma std is 0.0605 (v1.0.3) versus 0.0623 (v2.62 calibrated): the
+  current clouds do **not** have less tonal range. Their median is lower
+  (0.724 versus 0.757) because a broad continuous mid/shadow slab occupies
+  the underside. The issue is the spatial distribution of the shadow, not a
+  contrast deficit.
+- Rim/interior luma is similar (0.864 versus 0.878). The current rim is
+  broader/softer, not weaker.
+- Sky luma at calibrated coverage is 0.635 (v1.0.3) and 0.636 (v2.62); the
+  four-zone gradient and Sun are not the problem.
+- Phase 2 should recover macro fragmentation, rounded tops and lobe-scale
+  shadows while keeping the clean flat base, sky and technical base. No
+  generator change was made in Phase 1.

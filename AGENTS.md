@@ -51,7 +51,8 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 - `operators.py`, `properties.py`, `panels.py` — UI and actions.
 - `preset_dev/verify.py` — World gate; `world_fixture.py` lifecycle;
   `audit_world.py` source audit; `legacy_fixture.py` and
-  `legacy_v256_check.py` legacy safety.
+  `legacy_v256_check.py` legacy safety; `phase1_render.py` and
+  `phase1_compare.py` Cumulus baseline.
 
 ## World invariants
 - The three cloud families are one-hot group inputs `Cloud Cumulus`,
@@ -80,6 +81,9 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   2.60.1. Phase 5 (presets and compact UI) and Phase 6 (release matrix,
   technical gate, package) are complete at 2.62.0; `master` carries the World
   Sky Edition.
+- 2.63 work: Phase 0 legacy safety is complete (44/44 audit, 36/36 synthetic
+  and 9/9 on a real v2.56.0 file); Phase 1 Cumulus baseline is complete at
+  `preset_dev/phase1/` with the visual decision pending. No 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and

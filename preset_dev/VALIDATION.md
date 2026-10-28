@@ -29,6 +29,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 6 matrix | `phase6/contact.png`, `phase6/metrics.json` | 22 cells: families x Sun, palettes, coverage, camera, wind, stars |
 | Phase 6 technical | `phase6/technical.json` | **17/17 PASS** |
 | Legacy migration (2.63 work) | `legacy/report.json`, `legacy/v256_report.json` | synthetic **36/36**; real v2.56.0 `.blend` **9/9** |
+| Cumulus baseline (2.63 work) | `phase1/contact.png`, `phase1/contact_lighting.png`, `phase1/metrics.json` | v1.0.3 vs v2.62 native/calibrated; **TECHNICAL PASS / VISUAL REVIEW PENDING** |
 | Palettes | `palettes/sheet.png` | 12 presets, same camera and light |
 | UI | `preset_dev/ui/` | Quick Look, Advanced Sky, full Scene sections |
 | Package | `dist/anime_look_director-2.62.0.zip` | extension build PASS; 2.62.0 installed and enabled in an isolated config |
@@ -56,9 +57,11 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 
 ## Pending 2.63 work
 
-Phase 0 (legacy safety) is complete in the working tree; this is not a release.
-The version stays 2.62.0 until the Cumulus gates and the final candidate are
-approved. See `preset_dev/legacy/README.md`.
+Phase 0 (legacy safety) and Phase 1 (Cumulus baseline) are complete in the
+working tree; this is not a release. The Phase 1 comparison is technically
+complete but its visual decision is pending. The version stays 2.62.0 until
+the Cumulus gates and the final candidate are approved. See
+`preset_dev/legacy/README.md` and `preset_dev/phase1/README.md`.
 
 ## Open aesthetic point
 

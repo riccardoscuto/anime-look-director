@@ -1,0 +1,32 @@
+{
+  "tag": "v2.62.0",
+  "module": "anime_look_director",
+  "module_version": [
+    2,
+    62,
+    0
+  ],
+  "palette": "SUMMER_NOON",
+  "clouds": true,
+  "cloud_amount": 0.9,
+  "resolution": [
+    1280,
+    720
+  ],
+  "samples": 32,
+  "camera": {
+    "location": [
+      0.0,
+      -12.0,
+      3.0
+    ],
+    "rotation": [
+      1.75,
+      0.0,
+      0.45
+    ],
+    "lens": 32.0
+  },
+  "world": "ALD | Atmosphere",
+  "file": "summer_noon_v2.62.0_on_amount_090_1280x720.png"
+}
