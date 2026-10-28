@@ -168,6 +168,7 @@ steady-state apply is unchanged and the render time is within noise.
 - `review.json` - combined temporal, migration and backend review.
 - `lifecycle.mp4` - 25 frames (10..34), 960x540, 24 fps.
 - `metrics.json` - 37 checks plus a `review` block with the three sections.
+- `metrics_opengl.json` - the same 37 checks from the OpenGL gate.
 
 Commands:
 
