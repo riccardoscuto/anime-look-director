@@ -83,7 +83,9 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   Sky Edition.
 - 2.63 work: Phase 0 legacy safety is complete (44/44 audit, 36/36 synthetic
   and 9/9 on a real v2.56.0 file); Phase 1 Cumulus baseline is complete at
-  `preset_dev/phase1/` with the visual decision pending. No 2.63 release.
+  `preset_dev/phase1/` with the visual decision pending. Phase 2D diagnosis
+  (branch `phase-2d-diagnosis`) recommends recovering P (projection/Cloud
+  Flatness), not R (density sum); no merge, no 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and

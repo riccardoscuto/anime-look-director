@@ -7,6 +7,9 @@ from bpy.app.handlers import persistent
 from mathutils import Vector
 
 GRADIENT_GROUP = "ALD | World Gradient"
+
+# Phase 2D diagnostic only: A, P (projection), R (density), PR (both).
+CLOUD_DIAG = "A"
 AUTO_SUN_TAG = "ald_auto_sun"
 SUN_OWNER_TAG = "ald_sun_owner"
 
@@ -415,7 +418,8 @@ def _gradient_group():
 
 
 def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
-                          flat_inv, y_offset=0.0, flatness_socket=None):
+                          flat_inv, y_offset=0.0, flatness_socket=None,
+                          restore_density=False):
     """Sample Perlin-Worley cloud density and its low-frequency envelope."""
     def node(idname, x, y):
         item = nodes.new(idname)
@@ -584,6 +588,57 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     links.new(macro_weight.outputs[0], rho.inputs[0])
     links.new(gated_lobes.outputs[0], rho.inputs[1])
 
+    rho_out = rho.outputs[0]
+    if restore_density:
+        # Phase 2D R: the v1.0.3 density sum, without the macro-envelope
+        # attenuation of the lobes. One-hot Cumulus keeps the other families
+        # on the current path.
+        puff_r = node("ShaderNodeMath", 1340, 900)
+        puff_r.operation = "MULTIPLY"
+        puff_r.inputs[1].default_value = 0.12
+        links.new(puff_range.outputs["Result"], puff_r.inputs[0])
+
+        lobes_r = node("ShaderNodeMath", 1520, 900)
+        lobes_r.operation = "ADD"
+        lobes_r.use_clamp = True
+        links.new(billow_weight.outputs[0], lobes_r.inputs[0])
+        links.new(puff_r.outputs[0], lobes_r.inputs[1])
+
+        macro_r = node("ShaderNodeMath", 1520, 760)
+        macro_r.operation = "MULTIPLY"
+        macro_r.inputs[1].default_value = 0.66
+        links.new(macro_noise.outputs["Fac"], macro_r.inputs[0])
+
+        rho_r = node("ShaderNodeMath", 1700, 820)
+        rho_r.operation = "ADD"
+        rho_r.use_clamp = True
+        links.new(macro_r.outputs[0], rho_r.inputs[0])
+        links.new(lobes_r.outputs[0], rho_r.inputs[1])
+
+        cum = group_in.outputs["Cloud Cumulus"]
+        inv_cum = node("ShaderNodeMath", 1880, 760)
+        inv_cum.operation = "SUBTRACT"
+        inv_cum.use_clamp = True
+        inv_cum.inputs[0].default_value = 1.0
+        links.new(cum, inv_cum.inputs[1])
+
+        rho_a = node("ShaderNodeMath", 1880, 900)
+        rho_a.operation = "MULTIPLY"
+        links.new(rho.outputs[0], rho_a.inputs[0])
+        links.new(inv_cum.outputs[0], rho_a.inputs[1])
+
+        rho_rw = node("ShaderNodeMath", 1880, 1020)
+        rho_rw.operation = "MULTIPLY"
+        links.new(rho_r.outputs[0], rho_rw.inputs[0])
+        links.new(cum, rho_rw.inputs[1])
+
+        rho_mix = node("ShaderNodeMath", 2060, 900)
+        rho_mix.operation = "ADD"
+        rho_mix.use_clamp = True
+        links.new(rho_a.outputs[0], rho_mix.inputs[0])
+        links.new(rho_rw.outputs[0], rho_mix.inputs[1])
+        rho_out = rho_mix.outputs[0]
+
     # Low-frequency envelope for the solar derivative. The silhouette above
     # stays pixel-identical to v1.0.2; this noise only drives body shading.
     envelope_noise = node("ShaderNodeTexNoise", 980, 1000)
@@ -593,7 +648,7 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     links.new(warped_pos.outputs["Vector"], envelope_noise.inputs["Vector"])
     links.new(macro_scale.outputs[0], envelope_noise.inputs["Scale"])
 
-    return (rho.outputs[0], envelope_noise.outputs["Fac"],
+    return (rho_out, envelope_noise.outputs["Fac"],
             warped_pos.outputs["Vector"])
 
 
@@ -1383,13 +1438,30 @@ def _build_gradient_group(ng):
     links.new(strat_flatness.outputs[0], family_flatness.inputs[0])
     links.new(vertical_reduce.outputs[0], family_flatness.inputs[1])
 
+    # Phase 2D P: restore the original Cloud Flatness blend for Cumulus,
+    # while other families keep the current family_flatness value.
+    if CLOUD_DIAG in ("P", "PR"):
+        p_flatness = nodes.new("ShaderNodeMapRange")
+        p_flatness.location = (1180, -700)
+        p_flatness.clamp = True
+        p_flatness.inputs["From Min"].default_value = 0.0
+        p_flatness.inputs["From Max"].default_value = 1.0
+        links.new(group_in.outputs["Cloud Cumulus"],
+                  p_flatness.inputs["Value"])
+        links.new(family_flatness.outputs[0], p_flatness.inputs["To Min"])
+        links.new(group_in.outputs["Cloud Flatness"],
+                  p_flatness.inputs["To Max"])
+        flatness_out = p_flatness.outputs["Result"]
+    else:
+        flatness_out = family_flatness.outputs[0]
+
     # Cloud Flatness: 0 = billowy cumuli, 0.65 = current strata,
     # 1 = strongly flat horizontal bands. At 0.65 this is exactly 3.2.
     flat_z = nodes.new("ShaderNodeMath")
     flat_z.location = (1000, -360)
     flat_z.operation = "MULTIPLY"
     flat_z.inputs[1].default_value = 3.0
-    links.new(family_flatness.outputs[0], flat_z.inputs[0])
+    links.new(flatness_out, flat_z.inputs[0])
 
     flat_z_add = nodes.new("ShaderNodeMath")
     flat_z_add.location = (1180, -360)
@@ -1410,7 +1482,7 @@ def _build_gradient_group(ng):
     flat_inv.operation = "SUBTRACT"
     flat_inv.use_clamp = True
     flat_inv.inputs[0].default_value = 1.0
-    links.new(family_flatness.outputs[0], flat_inv.inputs[1])
+    links.new(flatness_out, flat_inv.inputs[1])
 
     # Optional contrails: straight gnomonic-plane filaments. Use X/Z and Y/Z
     # (not the curved shell projection) so a constant-u line stays straight.
@@ -1600,7 +1672,8 @@ def _build_gradient_group(ng):
     rho_here, env_here, warped_pos = _sample_cloud_density(
         nodes, links, family_view.outputs["Vector"], group_in,
         flat_scale, flat_inv, y_offset=0.0,
-        flatness_socket=family_flatness.outputs[0])
+        flatness_socket=flatness_out,
+        restore_density=CLOUD_DIAG in ("R", "PR"))
 
     # Displace the *view ray* by ~2 degrees on the sky dome, not the mapped
     # cloud point. Sun+zenith defines the per-cloud light direction.
@@ -1640,7 +1713,7 @@ def _build_gradient_group(ng):
     rho_sun, env_sun, _warped_sun = _sample_cloud_density(
         nodes, links, family_view_sun.outputs["Vector"], group_in,
         flat_scale, flat_inv, y_offset=-1200.0,
-        flatness_socket=family_flatness.outputs[0])
+        flatness_socket=flatness_out)
 
     delta = nodes.new("ShaderNodeMath")
     delta.location = (2440, -900)
