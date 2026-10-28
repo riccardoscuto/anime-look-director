@@ -1,0 +1,36 @@
+{
+  "checks": {
+    "preview_3d": {
+      "pass": true,
+      "detail": "frame 18, view error 0.010 deg, camera unchanged"
+    },
+    "preview_keyed": {
+      "pass": true,
+      "detail": "frame 18, keyed camera unchanged"
+    },
+    "preview_other_editor": {
+      "pass": true,
+      "detail": "editor PROPERTIES, frame 18, viewport unchanged, camera unchanged"
+    },
+    "preview_no_camera": {
+      "pass": true,
+      "detail": "frame 18, no camera created or transformed"
+    },
+    "persistence": {
+      "pass": true,
+      "detail": "1 event(s), marker 30->30, camera True"
+    }
+  },
+  "screenshots": [
+    "viewport_before.png",
+    "viewport_after.png",
+    "viewport_before.png",
+    "preview_keyed.png",
+    "preview_other_editor.png",
+    "preview_no_camera.png"
+  ],
+  "blender": "5.1.2",
+  "hash": "ec6e62d40fa9",
+  "verdict": "PASS",
+  "failures": []
+}

@@ -62,7 +62,7 @@ def sheet(rows, path, size, title, label_size=12):
 def parse_args():
     argv = sys.argv
     argv = argv[argv.index("--") + 1:] if "--" in argv else []
-    values = {"out": ""}
+    values = {"out": "", "interactive": ""}
     for index, item in enumerate(argv):
         if item.startswith("--") and index + 1 < len(argv):
             values[item[2:].replace("-", "_")] = argv[index + 1]
@@ -291,15 +291,19 @@ def main():
               encoding="utf-8") as handle:
         json.dump(b, handle, indent=2)
 
+    interactive = None
+    if args.get("interactive"):
+        interactive = load(args["interactive"])
+    review = {"temporal": t, "migration": m, "backend": b,
+              "interactive": interactive}
     metrics_path = os.path.abspath(args["metrics"])
     metrics = load(metrics_path)
-    metrics["review"] = {"temporal": t, "migration": m, "backend": b}
+    metrics["review"] = review
     with open(metrics_path, "w", encoding="utf-8") as handle:
         json.dump(metrics, handle, indent=2)
     with open(os.path.join(out, "review.json"), "w",
               encoding="utf-8") as handle:
-        json.dump({"temporal": t, "migration": m, "backend": b}, handle,
-                  indent=2)
+        json.dump(review, handle, indent=2)
     print("REVIEW ok", len(metrics["checks"]), metrics["status"])
     return 0
 
