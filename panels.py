@@ -289,12 +289,23 @@ def draw_compositor(layout, context):
 
 
 def draw_legacy(layout, context):
+    from . import legacy
+    scene = context.scene
     box = layout.box()
     box.label(text="Legacy ALD Data", icon="INFO")
     box.label(text="Old FX/cloud/smoke objects are never cleaned automatically")
+    found = len(legacy.legacy_collections(scene))
+    if found:
+        box.label(text="%d tagged collection(s) in this scene" % found,
+                  icon="INFO")
+    if legacy.has_state(scene):
+        box.label(text="Disabled: visibility saved for restore",
+                  icon="CHECKMARK")
     row = box.row(align=True)
-    row.operator("ald.legacy_disable", icon="HIDE_ON")
-    row.operator("ald.legacy_remove", icon="TRASH")
+    row.operator("ald.legacy_disable", text="Disable", icon="HIDE_ON")
+    row.operator("ald.legacy_restore", text="Restore", icon="HIDE_OFF")
+    box.operator("ald.legacy_remove", text="Remove Permanently...",
+                 icon="TRASH")
     box.operator("ald.repair_ownership", icon="FILE_REFRESH")
 
 

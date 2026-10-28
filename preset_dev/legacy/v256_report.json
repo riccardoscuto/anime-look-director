@@ -1,0 +1,52 @@
+{
+  "file": "preset_dev\\legacy\\v256_fixture.blend",
+  "checks": [
+    {
+      "name": "the v2.56.0 file exposes the three tagged collections",
+      "passed": true,
+      "detail": "['ALD | FX', 'ALD | Smoke', 'ALD | Spatial Clouds']"
+    },
+    {
+      "name": "the user collection is not legacy",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "the plan includes the v2.56.0 collections",
+      "passed": true,
+      "detail": "['ALD | FX', 'ALD | Smoke', 'ALD | Spatial Clouds']"
+    },
+    {
+      "name": "the v2.56.0 fixture contains the anchor and ground",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Disable hides the three collections",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Restore shows the three collections again",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove deletes the three collections",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove keeps the user collection and its object",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove deletes the non-collection anchor and ground",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "passed": 9,
+  "total": 9
+}

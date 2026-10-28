@@ -46,9 +46,12 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 - `identity.py` — persistent scene UUID (`ald_fx_id`, kept for compatibility).
 - `ownership.py` — duplicate-scene repair: new identity and own World.
 - `snapshot.py` — reversible removal of the ALD look.
+- `legacy.py` - tag-based discovery and scene-local Disable/Restore/Remove for
+  pre-2.57 FX, Spatial Clouds and smoke data.
 - `operators.py`, `properties.py`, `panels.py` — UI and actions.
 - `preset_dev/verify.py` — World gate; `world_fixture.py` lifecycle;
-  `audit_world.py` source audit.
+  `audit_world.py` source audit; `legacy_fixture.py` and
+  `legacy_v256_check.py` legacy safety.
 
 ## World invariants
 - The three cloud families are one-hot group inputs `Cloud Cumulus`,
@@ -125,12 +128,19 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   `snapshot.restore` restores the World (including the HDRI background link),
   the Sun, materials, render passes and the compositor. A shared World or Sun
   is left alone and the limit is reported.
-- Old `.blend` files are **never cleaned automatically**. The Legacy ALD Data
-  panel offers:
-  - **Disable** — hide old `ald_fx`, `ald_clouds`, `ald_smoke` collections
-    (reversible);
-  - **Remove** — delete those collections and their objects (explicit, not
-    reversible from the panel).
+- Old `.blend` files are **never cleaned automatically**. Legacy discovery is
+  tag-based, never name-based: `ald_fx_collection`/`ald_fx_owner`,
+  `ald_clouds`, `ald_smoke`, `ald_fx`, `ald_fx_anchor`, `ald_fx_ground`.
+  The Legacy ALD Data panel offers:
+  - **Disable** - exclude tagged collections in every view layer of the
+    active scene only and store the previous visibility;
+  - **Restore** - return the saved per-view-layer visibility;
+  - **Remove Permanently** - list the planned collections/objects in a
+    confirmation dialog, remove them only when scene-local and safe, and skip
+    shared collections/objects or user children. Standalone tagged anchor and
+    ground helpers are included in Remove.
+  A user collection with an ALD-like name is never touched; a shared
+  collection is never deleted.
 - Old FX/cloud properties are no longer registered: they are ignored,
   have no UI or handlers, and disappear when the file is saved. See
   `MIGRATION_2_57.md`.
@@ -139,7 +149,8 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 - Scene properties parent: palette, Apply, material presets, stack actions.
 - `World & Shadows`: World, Sun, clouds, stars, custom colors, Shadow/Cel/Rim.
 - `Compositor Stack`: optional toggles and camera override.
-- `Legacy ALD Data`: explicit disable/remove of old collections.
+- `Legacy ALD Data`: explicit Disable/Restore and a confirmed Remove
+  of old collections and standalone FX helpers.
 - The View3D sidebar uses the same drawing functions as the Scene properties:
   `draw_world`, `draw_compositor`, `draw_shadows`.
 - Panel icons must come from the real Blender 5.1 enum; `CLOUD` does not exist,

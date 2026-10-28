@@ -251,18 +251,26 @@ def check_no_fx(scene):
 
 
 def check_legacy(scene):
+    from anime_look_director import legacy
     collection = bpy.data.collections.new("ALD Legacy Gate")
-    collection["ald_fx"] = True
+    collection["ald_fx_collection"] = True
+    collection["ald_fx_owner"] = "gate"
     scene.collection.children.link(collection)
     mesh = bpy.data.meshes.new("ALD Legacy Gate Mesh")
     mesh.from_pydata([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [], [(0, 1, 2)])
     mesh.update()
+    mesh["ald_fx"] = True
     obj = bpy.data.objects.new("ALD Legacy Gate Object", mesh)
+    obj["ald_fx"] = True
     collection.objects.link(obj)
+    layer = legacy._layer_collection(scene.view_layers[0], collection)
     bpy.ops.ald.legacy_disable()
-    check(collection.hide_render and collection.hide_viewport,
+    check(layer is not None and layer.exclude,
           "legacy disable did not hide the collection")
-    bpy.ops.ald.legacy_remove()
+    bpy.ops.ald.legacy_restore()
+    check(layer is not None and not layer.exclude,
+          "legacy restore did not return the collection")
+    bpy.ops.ald.legacy_remove(confirm=True)
     check(bpy.data.collections.get("ALD Legacy Gate") is None,
           "legacy remove did not delete the collection")
     check(bpy.data.objects.get("ALD Legacy Gate Object") is None,

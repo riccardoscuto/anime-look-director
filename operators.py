@@ -5,7 +5,7 @@ import math
 import bpy
 from mathutils import Vector
 
-from . import compositor, look, materials, palette, shots
+from . import compositor, legacy, look, materials, palette, shots
 
 
 def _sync_shadow(scene):
@@ -443,48 +443,100 @@ class ALD_OT_shooting_star_remove(bpy.types.Operator):
 
 class ALD_OT_legacy_disable(bpy.types.Operator):
     bl_idname = "ald.legacy_disable"
-    bl_label = "Disable Legacy ALD Objects"
-    bl_description = ("Hide the old ALD FX/cloud/smoke collections without "
-                      "deleting them (reversible)")
+    bl_label = "Disable Legacy ALD Collections"
+    bl_description = ("Hide the tagged ALD FX/cloud/smoke collections in this "
+                      "scene without deleting them (reversible)")
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        count = 0
-        for collection in _legacy_collections():
-            collection.hide_render = True
-            collection.hide_viewport = True
-            count += 1
+        scene = context.scene
+        found, changed = legacy.disable(scene)
         self.report({"INFO"},
-                    "Anime Look Director: %d legacy collection(s) hidden"
-                    % count)
+                    "Anime Look Director: %d legacy collection(s) found, "
+                    "%d view layer(s) hidden" % (found, changed))
+        return {"FINISHED"}
+
+
+class ALD_OT_legacy_restore(bpy.types.Operator):
+    bl_idname = "ald.legacy_restore"
+    bl_label = "Restore Legacy ALD Visibility"
+    bl_description = ("Restore the visibility saved by Disable in this scene")
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene is not None and legacy.has_state(context.scene)
+
+    def execute(self, context):
+        count = legacy.restore(context.scene)
+        if not count:
+            self.report({"INFO"}, "Anime Look Director: nothing to restore")
+            return {"CANCELLED"}
+        self.report({"INFO"},
+                    "Anime Look Director: %d view layer(s) restored" % count)
         return {"FINISHED"}
 
 
 class ALD_OT_legacy_remove(bpy.types.Operator):
     bl_idname = "ald.legacy_remove"
     bl_label = "Remove Legacy ALD Objects"
-    bl_description = ("Delete the old ALD FX, Spatial Clouds and smoke objects "
-                      "and collections. This cannot be undone from the panel")
+    bl_description = ("Delete the tagged ALD FX, Spatial Clouds and smoke "
+                      "objects and collections. This cannot be undone from "
+                      "the panel")
     bl_options = {"REGISTER", "UNDO"}
 
+    confirm: bpy.props.BoolProperty(
+        name="Remove permanently",
+        description="Delete the listed legacy collections and objects",
+        default=False)
+
+    def invoke(self, context, event):
+        chosen = legacy.plan(context.scene)
+        if not chosen["collections"] and not chosen["objects"]:
+            self.report({"WARNING"},
+                        "Anime Look Director: no removable legacy data")
+            return {"CANCELLED"}
+        return context.window_manager.invoke_props_dialog(self, width=460)
+
+    def draw(self, context):
+        chosen = legacy.plan(context.scene)
+        layout = self.layout
+        layout.label(text="Collections: %d   Objects: %d"
+                    % (len(chosen["collections"]), len(chosen["objects"])),
+                    icon="INFO")
+        for name in chosen["collections"][:6]:
+            layout.label(text="  " + name)
+        if len(chosen["collections"]) > 6:
+            layout.label(text="  ... and %d more"
+                         % (len(chosen["collections"]) - 6))
+        for name in chosen["objects"][:6]:
+            layout.label(text="  " + name)
+        if len(chosen["objects"]) > 6:
+            layout.label(text="  ... and %d more"
+                         % (len(chosen["objects"]) - 6))
+        if chosen["skipped"]:
+            layout.separator()
+            layout.label(text="Skipped (kept):", icon="INFO")
+            for name, reason in chosen["skipped"][:4]:
+                layout.label(text="  %s - %s" % (name, reason))
+        layout.prop(self, "confirm")
+
     def execute(self, context):
-        count = 0
-        for collection in list(_legacy_collections()):
-            for obj in list(collection.objects):
-                bpy.data.objects.remove(obj, do_unlink=True)
-            bpy.data.collections.remove(collection)
-            count += 1
+        if not self.confirm:
+            self.report({"INFO"},
+                        "Anime Look Director: removal not confirmed")
+            return {"CANCELLED"}
+        scene = context.scene
+        chosen = legacy.plan(scene)
+        objects, collections = legacy.remove(scene, chosen)
+        if not objects and not collections:
+            self.report({"WARNING"},
+                        "Anime Look Director: no removable legacy data")
+            return {"CANCELLED"}
         self.report({"INFO"},
-                    "Anime Look Director: %d legacy collection(s) removed"
-                    % count)
+                    "Anime Look Director: %d object(s), %d collection(s) "
+                    "removed" % (objects, collections))
         return {"FINISHED"}
-
-
-def _legacy_collections():
-    tags = ("ald_fx", "ald_clouds", "ald_smoke")
-    for collection in bpy.data.collections:
-        if any(collection.get(tag) for tag in tags):
-            yield collection
 
 
 _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
@@ -496,7 +548,7 @@ _classes = (ALD_OT_build, ALD_OT_remove, ALD_OT_apply_palette,
             ALD_OT_stage_backlight, ALD_OT_viewport_compositor,
             ALD_OT_remove_from_scene, ALD_OT_detach,
             ALD_OT_repair_ownership, ALD_OT_legacy_disable,
-            ALD_OT_legacy_remove)
+            ALD_OT_legacy_restore, ALD_OT_legacy_remove)
 
 
 def register():

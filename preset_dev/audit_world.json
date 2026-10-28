@@ -1,6 +1,6 @@
 {
-  "passed": 40,
-  "total": 40,
+  "passed": 44,
+  "total": 44,
   "results": [
     {
       "category": "Reduction",
@@ -235,6 +235,30 @@
       "label": "The Phase 6 technical gate passes",
       "passed": true,
       "detail": "17/17"
+    },
+    {
+      "category": "Legacy",
+      "label": "Discovery uses historical tags, never names",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Legacy",
+      "label": "Disable is per-view-layer and reversible",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Legacy",
+      "label": "Remove confirms and skips shared data",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Evidence",
+      "label": "The legacy fixtures pass",
+      "passed": true,
+      "detail": "36/36; v2.56 9/9"
     },
     {
       "category": "Evidence",

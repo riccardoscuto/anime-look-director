@@ -1,0 +1,186 @@
+{
+  "checks": [
+    {
+      "name": "clean file finds no legacy data",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clean file disable is a no-op",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clean file has no saved state",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "similar user name is untouched",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "v2.56 tags find three collections",
+      "passed": true,
+      "detail": "['ALD | FX', 'ALD | Spatial Clouds', 'ALD | Smoke']"
+    },
+    {
+      "name": "v2.56 tags find three objects",
+      "passed": true,
+      "detail": "['FX Mesh', 'Cloud Mesh', 'Smoke Mesh']"
+    },
+    {
+      "name": "Disable excludes every tagged collection",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Disable saves a scene state",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Restore returns the previous visibility",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Restore clears the saved state",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove deletes tagged collections and objects",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove leaves no tagged mesh",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove clears the disable state",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "independent scenes: only the active scene is disabled",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "independent scenes: state stays in the active scene",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "independent scenes: restore leaves the other scene visible",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "independent scenes: Remove only touches the active scene",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "shared collection is disabled only in the active scene",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "shared collection is reported as skipped",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove refuses a shared collection",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "shared collection restores without touching the other scene",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nested legacy collections are found",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nested legacy collections are disabled",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nested legacy collections are removed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "a user child blocks the parent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove keeps a parent with user children",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "similar user names are not legacy data",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove ignores similar user names",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "owner-only v2.5 collection is detected",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "owner-only v2.5 collection is removed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "an object linked to a user collection blocks removal",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove keeps the shared object and both collections",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "standalone FX anchor and ground are planned",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Remove deletes standalone FX helpers only",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Disable covers every view layer",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Restore covers every view layer",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "passed": 36,
+  "total": 36
+}

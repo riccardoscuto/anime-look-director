@@ -1350,3 +1350,26 @@ Python 3.13.9, NumPy 2.3.4, no SciPy/OpenCV inside Blender.
   gives a new id and a copied World; the original sky is unchanged.
 - Cost on this machine: apply ~1.3 ms, 320x180 EEVEE render ~172 ms. No FX
   objects or legacy collections are created.
+
+
+### v2.63 Phase 0 notes (legacy ALD safety)
+- Historical tag inventory: FX used `ald_fx_collection` plus `ald_fx_owner`;
+  the first FX version (v2.5.0) used only the owner. Spatial Clouds used
+  `ald_clouds` and Smoke `ald_smoke`; objects/meshes carry the same family tag.
+  Anchor (`ald_fx_anchor`) and ground (`ald_fx_ground`) are standalone FX
+  helpers, not collections.
+- Discovery walks the active scene hierarchy and uses tags only. A collection
+  called `ALD | FX` without a tag is user data.
+- Disable changes `LayerCollection.exclude` for every view layer of the active
+  scene. Collection-level `hide_viewport`/`hide_render` are global and are not
+  touched, so a collection shared with another scene stays visible there.
+  The previous `exclude`/`hide_viewport` values are stored as JSON in the scene
+  and restored by `ald.legacy_restore`.
+- Remove is conservative and bottom-up: shared collections, objects linked to
+  another scene, objects linked to a user collection, and parents with
+  non-legacy children are skipped. The operator shows the plan and requires a
+  `Remove permanently` checkbox; `execute` without `confirm=True` cancels.
+- Remove also handles standalone tagged anchor/ground objects when they are
+  scene-local. Data blocks are removed only when their user count reaches zero.
+- Evidence: 36 synthetic checks and 9 checks on a `.blend` created by the
+  v2.56.0 add-on (`preset_dev/legacy/v256_fixture.blend`).

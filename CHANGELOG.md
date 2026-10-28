@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased - 2.63 work
+Phase 0: legacy ALD safety.
+
+### Fixed
+- Legacy discovery uses the historical tags (`ald_fx_collection`,
+  `ald_fx_owner`, `ald_clouds`, `ald_smoke`, `ald_fx`, `ald_fx_anchor`,
+  `ald_fx_ground`) instead of names.
+- Disable is scene-local and per view layer, stores the previous visibility,
+  and has a separate Restore. It no longer changes global collection flags.
+- Remove lists the planned collections/objects, requires explicit confirmation,
+  removes nested collections leaf-first, and skips collections/objects shared
+  with another scene or linked to user data.
+- Standalone tagged FX anchor and ground objects are included in Remove when
+  scene-local.
+- The main gate now exercises the new Disable/Restore/Remove path.
+
+### Evidence
+- `preset_dev/legacy_fixture.py` - 36/36 PASS.
+- `preset_dev/legacy_v256_check.py` - 9/9 PASS on a real v2.56.0 `.blend`.
+- `preset_dev/legacy/README.md`.
+
 ## 2.62.0 - 2026-10-27
 Phase 6: final World Sky release.
 

@@ -55,6 +55,24 @@ def phase6_gate():
     return passed == total and total >= 17, "%s/%s" % (passed, total)
 
 
+def _legacy_report(name, minimum):
+    path = os.path.join(ROOT, "preset_dev/legacy", name)
+    if not os.path.exists(path):
+        return False, "missing " + name
+    with io.open(path, "r", encoding="utf-8") as f:
+        report = json.load(f)
+    passed = report.get("passed", 0)
+    total = report.get("total", 0)
+    return passed == total and total >= minimum, "%s/%s" % (passed, total)
+
+
+def legacy_fixtures():
+    synthetic = _legacy_report("report.json", 36)
+    native = _legacy_report("v256_report.json", 9)
+    return synthetic[0] and native[0], "%s; v2.56 %s" % (
+        synthetic[1], native[1])
+
+
 CHECKS = [
     ("Reduction", "The version is the World Sky Edition",
      lambda: has("__init__.py", '"version": (2, 62, 0)')
@@ -185,6 +203,20 @@ CHECKS = [
      and phase6_matrix()),
     ("Release", "The Phase 6 technical gate passes",
      phase6_gate),
+    ("Legacy", "Discovery uses historical tags, never names",
+     lambda: has("legacy.py", "ald_fx_collection", "ald_fx_owner",
+                 "ald_clouds", "ald_smoke", "ald_fx_anchor",
+                 "ald_fx_ground", "def is_legacy_collection")),
+    ("Legacy", "Disable is per-view-layer and reversible",
+     lambda: has("legacy.py", "layer.exclude", "STATE_KEY", "def restore")
+     and has("operators.py", "ald.legacy_restore")[0]),
+    ("Legacy", "Remove confirms and skips shared data",
+     lambda: has("operators.py", "confirm", "invoke_props_dialog",
+                 "ald.legacy_remove")
+     and has("legacy.py", "def _shared_with_other_scene",
+             "skipped")[0]),
+    ("Evidence", "The legacy fixtures pass",
+     legacy_fixtures),
     ("Evidence", "The World gate and lifecycle fixture are runnable",
      lambda: exists("preset_dev/verify.py",
                     "preset_dev/world_fixture.py")[0]),

@@ -21,6 +21,8 @@ STEPS = (
     ("fixture [lifecycle]", "world_fixture.py"),
     ("audit [reduction/world]", "audit_world.py"),
     ("phase6 [technical]", "phase6_technical.py"),
+    ("legacy [migration]", "legacy_fixture.py"),
+    ("legacy-v256 [migration]", "legacy_v256_check.py"),
 )
 
 
