@@ -500,10 +500,19 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     links.new(mapping.outputs["Vector"], warped_pos.inputs[0])
     links.new(warp_vec.outputs["Vector"], warped_pos.inputs[1])
 
+    macro_gain = node("ShaderNodeMapRange", 440, 300)
+    macro_gain.clamp = True
+    _smooth(macro_gain)
+    macro_gain.inputs["From Min"].default_value = 0.0
+    macro_gain.inputs["From Max"].default_value = 1.0
+    macro_gain.inputs["To Min"].default_value = 0.55
+    macro_gain.inputs["To Max"].default_value = 0.72
+    links.new(group_in.outputs["Cloud Cumulus"], macro_gain.inputs["Value"])
+
     macro_scale = node("ShaderNodeMath", 620, 420)
     macro_scale.operation = "MULTIPLY"
-    macro_scale.inputs[1].default_value = 0.55
     links.new(group_in.outputs["Cloud Scale"], macro_scale.inputs[0])
+    links.new(macro_gain.outputs["Result"], macro_scale.inputs[1])
 
     macro_noise = node("ShaderNodeTexNoise", 800, 420)
     macro_noise.inputs["Detail"].default_value = 5.5
@@ -521,10 +530,20 @@ def _sample_cloud_density(nodes, links, ray_socket, group_in, flat_scale,
     macro_env.inputs["To Max"].default_value = 1.0
     links.new(macro_noise.outputs["Fac"], macro_env.inputs["Value"])
 
+    macro_weight_gain = node("ShaderNodeMapRange", 800, 300)
+    macro_weight_gain.clamp = True
+    _smooth(macro_weight_gain)
+    macro_weight_gain.inputs["From Min"].default_value = 0.0
+    macro_weight_gain.inputs["From Max"].default_value = 1.0
+    macro_weight_gain.inputs["To Min"].default_value = 0.62
+    macro_weight_gain.inputs["To Max"].default_value = 0.64
+    links.new(group_in.outputs["Cloud Cumulus"],
+              macro_weight_gain.inputs["Value"])
+
     macro_weight = node("ShaderNodeMath", 980, 420)
     macro_weight.operation = "MULTIPLY"
-    macro_weight.inputs[1].default_value = 0.62
     links.new(macro_noise.outputs["Fac"], macro_weight.inputs[0])
+    links.new(macro_weight_gain.outputs["Result"], macro_weight.inputs[1])
 
     billow_scale = node("ShaderNodeMath", 620, 600)
     billow_scale.operation = "MULTIPLY"
@@ -1753,24 +1772,46 @@ def _build_gradient_group(ng):
     links.new(group_in.outputs["Cloud Amount"],
               coverage_center.inputs["Value"])
 
+    # The Cumulus macro field is denser after the frequency change; this
+    # one-hot bias keeps the Cloud Amount -> coverage curve close to A while
+    # leaving Stratocumulus and Cirrus untouched.
+    coverage_bias = nodes.new("ShaderNodeMapRange")
+    coverage_bias.location = (2620, -120)
+    coverage_bias.clamp = True
+    _smooth(coverage_bias)
+    coverage_bias.inputs["From Min"].default_value = 0.0
+    coverage_bias.inputs["From Max"].default_value = 1.0
+    coverage_bias.inputs["To Min"].default_value = 0.0
+    coverage_bias.inputs["To Max"].default_value = -0.033
+    links.new(group_in.outputs["Cloud Cumulus"],
+              coverage_bias.inputs["Value"])
+
+    coverage_center_b = nodes.new("ShaderNodeMath")
+    coverage_center_b.location = (2800, -120)
+    coverage_center_b.operation = "ADD"
+    links.new(coverage_center.outputs["Result"],
+              coverage_center_b.inputs[0])
+    links.new(coverage_bias.outputs["Result"],
+              coverage_center_b.inputs[1])
+
     coverage_top = nodes.new("ShaderNodeMath")
     coverage_top.location = (2620, -220)
     coverage_top.operation = "ADD"
     coverage_top.inputs[1].default_value = 0.018
-    links.new(coverage_center.outputs["Result"], coverage_top.inputs[0])
+    links.new(coverage_center_b.outputs[0], coverage_top.inputs[0])
 
     fringe_top = nodes.new("ShaderNodeMath")
     fringe_top.location = (2620, -380)
     fringe_top.operation = "ADD"
     fringe_top.inputs[1].default_value = 0.022
-    links.new(coverage_center.outputs["Result"], fringe_top.inputs[0])
+    links.new(coverage_center_b.outputs[0], fringe_top.inputs[0])
 
     # Crisp anime silhouette + directional body / silver lining.
     coverage = nodes.new("ShaderNodeMapRange")
     coverage.location = (2800, -300)
     coverage.clamp = True
     _smooth(coverage)
-    links.new(coverage_center.outputs["Result"], coverage.inputs["From Min"])
+    links.new(coverage_center_b.outputs[0], coverage.inputs["From Min"])
     links.new(coverage_top.outputs[0], coverage.inputs["From Max"])
     links.new(rho_family.outputs[0], coverage.inputs["Value"])
 
@@ -1824,7 +1865,7 @@ def _build_gradient_group(ng):
     _smooth(fringe)
     fringe.inputs["To Min"].default_value = 1.0
     fringe.inputs["To Max"].default_value = 0.0
-    links.new(coverage_center.outputs["Result"], fringe.inputs["From Min"])
+    links.new(coverage_center_b.outputs[0], fringe.inputs["From Min"])
     links.new(fringe_top.outputs[0], fringe.inputs["From Max"])
     links.new(rho_family.outputs[0], fringe.inputs["Value"])
 

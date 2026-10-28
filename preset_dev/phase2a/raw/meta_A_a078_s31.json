@@ -1,0 +1,33 @@
+{
+  "candidate": "A",
+  "module": "ald_a",
+  "module_version": [
+    2,
+    62,
+    0
+  ],
+  "view": "main",
+  "camera": {
+    "location": [
+      0.0,
+      -12.0,
+      3.0
+    ],
+    "rotation": [
+      1.75,
+      0.0,
+      0.45
+    ],
+    "lens": 32.0
+  },
+  "palette": "SUMMER_NOON",
+  "clouds": true,
+  "cloud_type": "CUMULUS",
+  "cloud_amount": 0.78,
+  "cloud_seed": 31,
+  "apply_ms": 0.98,
+  "render_ms": 2255.6,
+  "world_nodes": 3,
+  "group_nodes": 540,
+  "file": "A_main_a078_s31_1280x720.png"
+}

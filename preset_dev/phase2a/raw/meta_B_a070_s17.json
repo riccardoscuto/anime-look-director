@@ -1,0 +1,33 @@
+{
+  "candidate": "B",
+  "module": "anime_look_director",
+  "module_version": [
+    2,
+    62,
+    0
+  ],
+  "view": "main",
+  "camera": {
+    "location": [
+      0.0,
+      -12.0,
+      3.0
+    ],
+    "rotation": [
+      1.75,
+      0.0,
+      0.45
+    ],
+    "lens": 32.0
+  },
+  "palette": "SUMMER_NOON",
+  "clouds": true,
+  "cloud_type": "CUMULUS",
+  "cloud_amount": 0.7,
+  "cloud_seed": 17,
+  "apply_ms": 1.03,
+  "render_ms": 2308.0,
+  "world_nodes": 3,
+  "group_nodes": 546,
+  "file": "B_main_a070_s17_1280x720.png"
+}
