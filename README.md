@@ -66,8 +66,10 @@ The add-on is also usable from the source directory as a legacy add-on.
   viewport when one is available. The camera, its keyframes and its animation
   are not changed.
 - Four events maximum; Add and Duplicate both report the limit.
-- Events saved before 2.63 gain the start frame and lose the last frame of
-  their old range because Start Frame now means the first visible frame.
+- Events saved before 2.63 gain the start frame; the last visible frame is
+  unchanged: start 10 / duration 24 was visible 11..33 and becomes 10..33.
+  The count grows from duration - 1 to duration. `Direction` is now a true
+  local bearing, so review old trajectories after opening.
 
 ## Version 2.62.0 scope
 

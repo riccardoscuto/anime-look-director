@@ -49,9 +49,10 @@ Phase 0: legacy ALD safety.
   +90 = up); it is a true angle, not the old skewed gnomonic vector.
 - The World gradient marker is 30, so existing groups rebuild with the new star
   geometry.
-- **Compatibility:** old projects gain the start frame and lose the last frame
-  of each event (one-frame lifecycle change); trajectories can point slightly
-  differently after the rebuild.
+- **Compatibility:** old projects gain the start frame; the last visible frame
+  is unchanged (start + duration - 1), so the count grows by one. Trajectories
+  can point differently because `Direction` is now a true local bearing; this
+  is a compatibility note, not full visual compatibility.
 
 #### Evidence
 - `preset_dev/phase1a_shooting_stars.py` - 37/37 checks: 1/5/40/85 deg geometry,
@@ -59,7 +60,10 @@ Phase 0: legacy ALD safety.
   keyed-camera Preview, scene duplicate, removal, scrubbing, persistence and
   linear brightness.
 - `preset_dev/phase1a_shooting_stars/board.png`, `board_horizon.png`,
-  `lifecycle.mp4`, `metrics.json`.
+  `temporal.png`, `migration.png`, `backend.png`, `lifecycle.mp4`,
+  `metrics.json`, `review.json`.
+- Technical gate on both Eevee OpenGL and Vulkan: **37/37 PASS**; the earlier
+  OpenGL context crash also hit a no-add-on scene and was environmental.
 - `preset_dev/phase1a_perf.py` - master 540 nodes / 1.191 s build /
   0.380 s at 720p; Phase 1A 646 nodes / 1.596 s build / 0.370 s at 720p.
 - Technical status: **TECHNICAL REVIEW PENDING**; no merge or release.

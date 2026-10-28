@@ -104,7 +104,9 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   duration, azimuth/elevation, direction, angular length, trail, thickness,
   brightness, glow and color. Start Frame is the first visible frame and
   Duration the exact count (progress uses `duration - 1`; a 2-frame event is
-  valid). The World shader evaluates four fixed slots as great-circle arcs
+  valid). Existing events start one frame earlier after the marker-30 rebuild;
+  their last visible frame is unchanged. The World shader evaluates four fixed
+  slots as great-circle arcs
   between the start/end unit directions (azimuth/elevation in degrees) with a
   frame driver; thickness is an angular half-width, independent of elevation,
   with no gnomonic `z` clamp. `Direction` is a local bearing (0 horizontal,
