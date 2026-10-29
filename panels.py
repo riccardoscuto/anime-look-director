@@ -17,29 +17,6 @@ def _version_label(layout):
         layout.label(text="v%d.%d.%d" % tuple(version), icon="INFO")
 
 
-def draw_quick_look(layout, context):
-    scene = context.scene
-    s = scene.ald
-    box = layout.box()
-    box.label(text="Quick Look", icon="WORLD")
-    box.label(text="Atmosphere Preset")
-    box.prop(s, "palette", text="")
-    row = box.row(align=True)
-    row.operator("ald.apply_palette", icon="FILE_REFRESH")
-    row.operator("ald.reset_look", text="Reset", icon="LOOP_BACK")
-    box.prop(s, "sun_elevation")
-    box.prop(s, "clouds", text="Clouds", toggle=True)
-    if s.clouds:
-        col = box.column(align=True)
-        row = col.row(align=True)
-        row.label(text="Cloud Type")
-        row.prop(s, "cloud_type", text="")
-        col.prop(s, "cloud_amount")
-        col.prop(s, "cloud_wind")
-    box.prop(s, "stars", toggle=True)
-    box.label(text="Full controls: Scene Properties", icon="INFO")
-
-
 def draw_palette(layout, context):
     scene = context.scene
     s = scene.ald
@@ -99,7 +76,9 @@ def draw_clouds(layout, context):
         return
     box.label(text="Distribution")
     col = box.column(align=True)
-    col.prop(s, "cloud_type")
+    row = col.row(align=True)
+    row.label(text="Cloud Type")
+    row.prop(s, "cloud_type", text="")
     col.prop(s, "cloud_amount")
     col.prop(s, "cloud_scale")
     col.prop(s, "cloud_seed")
@@ -179,6 +158,8 @@ def draw_custom_colors(layout, context):
     box.label(text="Palette Customization", icon="COLOR")
     box.prop(s, "custom_colors", toggle=True)
     box.operator("ald.save_custom_palette", icon="FILE_TICK")
+    box.label(text="Stored in this .blend")
+    box.label(text="The preset is unchanged", icon="INFO")
     if s.custom_colors:
         col = box.column(align=True)
         col.prop(s, "custom_sky")
@@ -189,7 +170,6 @@ def draw_custom_colors(layout, context):
         col.prop(s, "custom_cloud_shadow")
         col.prop(s, "custom_cloud_mid")
         col.prop(s, "custom_cloud_light")
-        box.label(text="Saved in this .blend; preset unchanged", icon="INFO")
 
 
 def draw_material_presets(layout, context):
@@ -267,15 +247,14 @@ def draw_compositor(layout, context):
     s = scene.ald
     box = layout.box()
     box.label(text="Compositor", icon="NODETREE")
-    box.label(text="Optional post-production; the World renders without it",
-              icon="INFO")
+    box.label(text="Optional post-production", icon="INFO")
+    box.label(text="The World renders without it")
     stack = compositor.scene_stack(scene)
     assigned = scene.compositing_node_group
     if stack is None:
         if assigned is not None:
-            box.label(text="A non-ALD compositor group is assigned",
-                      icon="ERROR")
-            box.label(text="ALD does not modify or remove it", icon="INFO")
+            box.label(text="Non-ALD compositor group", icon="ERROR")
+            box.label(text="ALD leaves it untouched", icon="INFO")
         else:
             box.label(text="Inactive: no ALD stack", icon="INFO")
             box.operator("ald.build", text="Enable Compositor", icon="PLAY")
@@ -297,7 +276,7 @@ def draw_compositor(layout, context):
                   icon="RESTRICT_VIEW_OFF")
         if shading != "RENDERED":
             box.label(text="Rendered shading is required", icon="INFO")
-    box.label(text="Set in Viewport Shading > Compositor", icon="INFO")
+    box.label(text="Viewport Shading > Compositor", icon="INFO")
 
     light = box.column(align=True)
     light.label(text="Light Effects")
@@ -346,7 +325,7 @@ def draw_legacy(layout, context):
     scene = context.scene
     box = layout.box()
     box.label(text="Legacy ALD Data", icon="INFO")
-    box.label(text="Old FX/cloud/smoke objects are never cleaned automatically")
+    box.label(text="No automatic legacy cleanup")
     found = len(legacy.legacy_collections(scene))
     if found:
         box.label(text="%d tagged collection(s) in this scene" % found,
@@ -361,6 +340,7 @@ def draw_legacy(layout, context):
     box.label(text="Destructive")
     box.operator("ald.legacy_remove", text="Remove Permanently...",
                  icon="TRASH")
+    box.label(text="Maintenance")
     box.operator("ald.repair_ownership", icon="FILE_REFRESH")
 
 
@@ -375,7 +355,7 @@ def draw_ownership_warning(layout, context):
 def draw_scene_actions(layout, context):
     box = layout.box()
     box.label(text="Scene Actions", icon="SCENE_DATA")
-    box.label(text="Destructive: restore or detach ALD", icon="ERROR")
+    box.label(text="Destructive actions", icon="ERROR")
     box.operator("ald.remove_from_scene", icon="TRASH")
     box.operator("ald.detach", icon="UNLINKED")
 
@@ -518,7 +498,7 @@ class ALD_PT_advanced(bpy.types.Panel):
 
 
 # ---------------------------------------------------------------------------
-# View3D sidebar: compact Quick Look only
+# View3D sidebar: the same sections as Scene Properties
 # ---------------------------------------------------------------------------
 
 class ALD_PT_view3d(bpy.types.Panel):
@@ -530,13 +510,123 @@ class ALD_PT_view3d(bpy.types.Panel):
 
     def draw(self, context):
         _version_label(self.layout)
-        draw_quick_look(self.layout, context)
+        draw_ownership_warning(self.layout, context)
+        draw_palette(self.layout, context)
+
+
+class ALD_PT_view3d_atmosphere(bpy.types.Panel):
+    bl_label = "Atmosphere & Sun"
+    bl_idname = "ALD_PT_view3d_atmosphere"
+    bl_parent_id = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+    bl_order = -50
+
+    def draw(self, context):
+        draw_atmosphere(self.layout, context)
+
+
+class ALD_PT_view3d_clouds(bpy.types.Panel):
+    bl_label = "World Clouds"
+    bl_idname = "ALD_PT_view3d_clouds"
+    bl_parent_id = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+    bl_order = -45
+
+    def draw(self, context):
+        draw_clouds(self.layout, context)
+
+
+class ALD_PT_view3d_stars(bpy.types.Panel):
+    bl_label = "Stars & Milky Way"
+    bl_idname = "ALD_PT_view3d_stars"
+    bl_parent_id = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+    bl_order = -40
+
+    def draw(self, context):
+        draw_stars(self.layout, context)
+
+
+class ALD_PT_view3d_shooting_stars(bpy.types.Panel):
+    bl_label = "Shooting Stars"
+    bl_idname = "ALD_PT_view3d_shooting_stars"
+    bl_parent_id = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+    bl_order = -35
+
+    def draw(self, context):
+        draw_shooting_stars(self.layout, context)
+
+
+class ALD_PT_view3d_custom(bpy.types.Panel):
+    bl_label = "Palette Customization"
+    bl_idname = "ALD_PT_view3d_custom"
+    bl_parent_id = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+    bl_order = -30
+
+    def draw(self, context):
+        draw_custom_colors(self.layout, context)
+
+
+class ALD_PT_view3d_materials(bpy.types.Panel):
+    bl_label = "Materials & Shadows"
+    bl_idname = "ALD_PT_view3d_materials"
+    bl_parent_id = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+    bl_order = -25
+
+    def draw(self, context):
+        draw_material_presets(self.layout, context)
+        draw_shadows(self.layout, context)
+
+
+class ALD_PT_view3d_compositor(bpy.types.Panel):
+    bl_label = "Compositor"
+    bl_idname = "ALD_PT_view3d_compositor"
+    bl_parent_id = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+    bl_order = -20
+
+    def draw(self, context):
+        draw_compositor(self.layout, context)
+
+
+class ALD_PT_view3d_advanced(bpy.types.Panel):
+    bl_label = "Advanced Settings"
+    bl_idname = "ALD_PT_view3d_advanced"
+    bl_parent_id = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+    bl_order = 10
+
+    def draw(self, context):
+        draw_legacy(self.layout, context)
+        draw_scene_actions(self.layout, context)
 
 
 _classes = (ALD_UL_shooting_stars, ALD_PT_scene, ALD_PT_atmosphere, ALD_PT_clouds,
             ALD_PT_stars, ALD_PT_shooting_stars, ALD_PT_custom,
             ALD_PT_materials, ALD_PT_compositor, ALD_PT_advanced,
-            ALD_PT_view3d)
+            ALD_PT_view3d, ALD_PT_view3d_atmosphere, ALD_PT_view3d_clouds,
+            ALD_PT_view3d_stars, ALD_PT_view3d_shooting_stars,
+            ALD_PT_view3d_custom, ALD_PT_view3d_materials,
+            ALD_PT_view3d_compositor, ALD_PT_view3d_advanced)
 
 
 def register():
