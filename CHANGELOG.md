@@ -118,6 +118,38 @@ Cloudless World; no cloud generator, compositor or material changes.
   build PASS; markers 29/30/31 -> 32.
 - Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
 
+### Phase 3 - UI cleanup
+
+UI-only; no World, Shooting Star, material or shader change.
+
+#### Changed
+- View3D sidebar reduced to Quick Look: preset, Apply/Reset, Sun elevation,
+  clouds/type/amount/wind, stars. The Advanced Sky and Compositor copies are
+  removed.
+- Scene Properties reordered: Atmosphere & Sun, grouped World Clouds, Stars &
+  Milky Way, autonomous Shooting Stars, Palette Customization, Materials &
+  Shadows, Compositor, Advanced Settings.
+- Sun Beams removed from Atmosphere; it exists only in the Compositor effects.
+- Shooting Stars uses the `ALD_UL_shooting_stars` list with Timing, Trajectory
+  and Appearance groups; operators and shader unchanged.
+- Compositor states are explicit through `compositor.scene_stack`: inactive,
+  configured/render-disabled, active in render, plus a read-only viewport
+  preview. A user compositor group is never treated as ALD. Applying a palette
+  never enables the compositor.
+- `ald.viewport_compositor` is limited to the current 3D view and is not called
+  by the UI.
+
+#### Evidence
+- `preset_dev/phase3_ui/`: before/after sidebar, Scene Properties, Shooting
+  Stars, compositor inactive/disabled/active/effects, legacy project and
+  narrow layout screenshots; `phase3_ui.json` (54 checks), invariance JSON and
+  comparison render, regression logs.
+- Pixel-identical render (`maxdiff 0`); World 719 / Compositor 31 nodes; marker
+  32 on both.
+- ALD ALL PASS; audit 44/44; Phase 6 technical 17/17; Phase 1A 37/37; Phase 1B
+  markers 29/30 -> 32; Phase 2 audit PASS; build PASS.
+- Status: **TECHNICAL PASS - UI REVIEW PENDING**; no merge or release.
+
 
 ## 2.62.0 - 2026-10-27
 Phase 6: final World Sky release.

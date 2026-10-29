@@ -106,7 +106,7 @@
     },
     {
       "category": "UI",
-      "label": "The sidebar is compact: Quick Look + Advanced Sky",
+      "label": "The sidebar is compact: Quick Look only",
       "passed": true,
       "detail": ""
     },

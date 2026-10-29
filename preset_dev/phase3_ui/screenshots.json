@@ -1,0 +1,99 @@
+{
+  "base": {
+    "variant": "base",
+    "state": "inactive",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      0,
+      20,
+      30,
+      38,
+      46,
+      54,
+      62
+    ],
+    "stack": false,
+    "use_compositing": false
+  },
+  "current_inactive": {
+    "variant": "current",
+    "state": "inactive",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      0,
+      20,
+      26,
+      30,
+      34,
+      38,
+      42,
+      46,
+      50,
+      58,
+      62,
+      66
+    ],
+    "stack": false,
+    "use_compositing": false
+  },
+  "current_active": {
+    "variant": "current",
+    "state": "active",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      50,
+      54,
+      58,
+      62,
+      66,
+      70
+    ],
+    "stack": true,
+    "use_compositing": true
+  },
+  "current_disabled": {
+    "variant": "current",
+    "state": "disabled",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      50,
+      54,
+      58,
+      62,
+      66,
+      70
+    ],
+    "stack": true,
+    "use_compositing": false
+  },
+  "current_narrow": {
+    "variant": "current_narrow",
+    "state": "inactive",
+    "width": 1200,
+    "height": 900,
+    "steps": [
+      0
+    ],
+    "stack": false,
+    "use_compositing": false
+  },
+  "legacy": {
+    "variant": "legacy",
+    "state": "legacy",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      20,
+      30,
+      38,
+      46,
+      54
+    ],
+    "stack": false,
+    "use_compositing": false
+  }
+}

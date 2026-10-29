@@ -25,6 +25,14 @@ Phase 6 release evidence and technical gate:
 ```
 Expected: `P6 SHEET`, `ALD PHASE6 TECHNICAL 17/17 PASS`.
 
+Phase 3 UI gate (on `phase-3-ui-cleanup`):
+```powershell
+& $blender -b --factory-startup --gpu-backend vulkan --python-exit-code 1 `
+  --python preset_dev\phase3_ui.py
+```
+Expected: `PHASE3 UI {"status": "PASS", "failures": []}`. The render
+invariance check is `preset_dev\phase3_invariance.py`.
+
 World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 ```powershell
 & $blender -b --factory-startup --python preset_dev\world_baseline.py -- `
@@ -65,14 +73,17 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 - Cumulus lighting adds a height tone (lower cloud darker) and a stronger
   solar body range (-0.030..0.004); the default Sun Lighting is 1.2.
 - The Scene properties are the complete surface: Atmosphere & Sun, World
-  Clouds, Stars & Milky Way + Shooting Stars, Palette Customization,
+  Clouds, Stars & Milky Way, Shooting Stars, Palette Customization,
   Materials & Shadows, Compositor, Advanced Settings. The View3D sidebar is
-  Quick Look (preset, Apply/Reset, Sun elevation, cloud type/coverage/wind,
-  stars) plus one collapsed Advanced Sky panel; no compositor or material
-  controls in the quick area.
-- The compositor is inactive by default. Its panel shows Enable Compositor
-  when no stack is assigned and the full controls only when active; the viewport
-  state is reported as ALWAYS / CAMERA / DISABLED.
+  Quick Look only (preset, Apply/Reset, Sun elevation, clouds, cloud
+  type/amount/wind, stars); no Advanced Sky duplication, compositor or
+  material controls in the sidebar.
+- The compositor is inactive by default. Its panel distinguishes inactive,
+  configured/render-disabled and active-in-render, reports the viewport
+  preview state, never mistakes a user group for an ALD stack
+  (`compositor.scene_stack`) and only enables on the explicit
+  Enable Compositor action. The full controls are shown only for an ALD
+  stack; the viewport operator is limited to the current 3D view.
 - Seven original presets plus Soft Dawn, Blue Hour, Cloudy Afternoon, Stormy
   Sunset and Moonlit Night. All use the same World generator. Save as Custom
   copies the current colors into the custom fields without changing the preset.
@@ -94,15 +105,21 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   head, tapered tail, temporal envelope, marker 31). Phase 2 is in progress
   on `phase-2-atmosphere`: Sun Elevation -30..85, immediate World sync,
   sun disk 1.0 deg / 4.0, ground-mask at the horizon, marker 32;
-  **TECHNICAL PASS - VISUAL REVIEW PENDING**. No merge or 2.63 release.
+  **TECHNICAL PASS - VISUAL REVIEW PENDING**. Phase 3 UI cleanup is on
+  `phase-3-ui-cleanup` from `d8a94d8`: compact sidebar, autonomous Shooting
+  Stars, compositor states and grouped effects; 54 UI checks, pixel-identical
+  render, World 719 / Compositor 31 nodes, marker 32; evidence in
+  `preset_dev/phase3_ui/`, **TECHNICAL PASS - UI REVIEW PENDING**. No merge or
+  2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
   cost. Stratocumulus and Cirrus are documented but have no individual
   aesthetic sign-off; Cumulus is the approved family.
 - A field edit calls `_on_star` and refreshes the World immediately; Add
-  places the event in the current camera view and 1/3 into its life, and the
-  Preview operator moves the timeline and aims the camera at the start.
+  places the event in the current camera direction at the current frame, and
+  Preview moves the timeline to 1/3 of the event and frames it in the 3D view
+  without changing the camera.
 - The star head is a short bright band, the tail is a thin tapered line and
   the color is cool white by default, matching the starfield.
 - Shooting stars are persistent `ALD_ShootingStar` events: start frame,
@@ -170,19 +187,27 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 
 ## UI
 - Scene properties parent: palette, Apply, material presets, stack actions.
-- `World & Shadows`: World, Sun, clouds, stars, custom colors, Shadow/Cel/Rim.
-- `Compositor Stack`: optional toggles and camera override.
-- `Legacy ALD Data`: explicit Disable/Restore and a confirmed Remove
-  of old collections and standalone FX helpers.
-- The View3D sidebar uses the same drawing functions as the Scene properties:
-  `draw_world`, `draw_compositor`, `draw_shadows`.
+- `Atmosphere & Sun`, `World Clouds` (Distribution / Shape / Lighting /
+  Animation), `Stars & Milky Way`, `Shooting Stars` (Timing / Trajectory /
+  Appearance), `Palette Customization`, `Materials & Shadows`, `Compositor`
+  (Light Effects / Stylization / Atmospheric Post Effects), `Advanced
+  Settings` (reversible versus destructive actions).
+- The compositor panel is state-driven: inactive with only Enable Compositor,
+  configured/render-disabled with the Use in Render toggle, active with the
+  effects, and a read-only viewport preview line. Sun Beams lives only here.
+- `ALD_UL_shooting_stars` is the event list; the four-event cap and operators
+  are unchanged.
+- The View3D sidebar uses `draw_quick_look` only. Full controls are not
+  duplicated there.
 - Panel icons must come from the real Blender 5.1 enum; `CLOUD` does not exist,
   `WORLD` does.
 
 ## Rules
 - Do not introduce FX, Spatial Clouds, smoke or EXR-pass code again.
 - Do not make the compositor mandatory: applying a palette must work without
-  `Build Stack`.
+  `Build Stack`. Never auto-enable it.
+- Identify an ALD stack only through `compositor.scene_stack`; a user
+  compositor group is never modified, removed or presented as ALD.
 - Never silently modify a user World, HDRI, Sun or material. Use snapshot.
 - Palette changes and shots go through `look.apply`/`look.apply_world`.
 - Float slider updates use `compositor.update_params`; rebuild only for
