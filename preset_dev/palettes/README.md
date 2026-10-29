@@ -1,3 +1,6 @@
+> **Superseded by `preset_dev/preset_identity/README.md`.** The identity
+> revision is **IN REVIEW - not approved**; this board is the first review.
+
 # 12 presets - 2.63.0 review
 
 Status: **IN REVIEW - pending user sign-off.** No preset values were changed in

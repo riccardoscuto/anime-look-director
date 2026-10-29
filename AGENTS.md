@@ -118,7 +118,8 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   37/37 Phase 1A, 44/44 audit, 17/17 Phase 6, Phase 1B markers 29/30 -> 35
   with events and animation preserved, Phase 2 audit, matrix 22 cells, ALD ALL
   and build PASS. Visual status: **APPROVED for 2.63.0**. The 12-preset review
-  is in progress; see `preset_dev/palettes/README.md`.
+  is on `feature/preset-identity`; status **IN REVIEW - not approved**;
+  see `preset_dev/preset_identity/README.md`. 2.63.0 is not published/tagged.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
