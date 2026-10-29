@@ -1,0 +1,221 @@
+{
+  "resolution": [
+    640,
+    360
+  ],
+  "cells": [
+    {
+      "file": "family_cumulus_front.png",
+      "label": "cumulus / front",
+      "mean_luminance": 0.71552,
+      "max_luminance": 0.9333,
+      "family": "cumulus",
+      "sun": "front",
+      "palette": "SUMMER_NOON"
+    },
+    {
+      "file": "family_cumulus_side.png",
+      "label": "cumulus / side",
+      "mean_luminance": 0.62609,
+      "max_luminance": 0.7765,
+      "family": "cumulus",
+      "sun": "side",
+      "palette": "SUMMER_NOON"
+    },
+    {
+      "file": "family_cumulus_back.png",
+      "label": "cumulus / back",
+      "mean_luminance": 0.62594,
+      "max_luminance": 0.7765,
+      "family": "cumulus",
+      "sun": "back",
+      "palette": "SUMMER_NOON"
+    },
+    {
+      "file": "family_stratocumulus_front.png",
+      "label": "stratocumulus / front",
+      "mean_luminance": 0.7176,
+      "max_luminance": 0.9333,
+      "family": "stratocumulus",
+      "sun": "front",
+      "palette": "SUMMER_NOON"
+    },
+    {
+      "file": "family_stratocumulus_side.png",
+      "label": "stratocumulus / side",
+      "mean_luminance": 0.64704,
+      "max_luminance": 0.7765,
+      "family": "stratocumulus",
+      "sun": "side",
+      "palette": "SUMMER_NOON"
+    },
+    {
+      "file": "family_stratocumulus_back.png",
+      "label": "stratocumulus / back",
+      "mean_luminance": 0.64688,
+      "max_luminance": 0.7765,
+      "family": "stratocumulus",
+      "sun": "back",
+      "palette": "SUMMER_NOON"
+    },
+    {
+      "file": "family_cirrus_front.png",
+      "label": "cirrus / front",
+      "mean_luminance": 0.709,
+      "max_luminance": 0.9333,
+      "family": "cirrus",
+      "sun": "front",
+      "palette": "SUMMER_NOON"
+    },
+    {
+      "file": "family_cirrus_side.png",
+      "label": "cirrus / side",
+      "mean_luminance": 0.61828,
+      "max_luminance": 0.7765,
+      "family": "cirrus",
+      "sun": "side",
+      "palette": "SUMMER_NOON"
+    },
+    {
+      "file": "family_cirrus_back.png",
+      "label": "cirrus / back",
+      "mean_luminance": 0.61819,
+      "max_luminance": 0.7765,
+      "family": "cirrus",
+      "sun": "back",
+      "palette": "SUMMER_NOON"
+    },
+    {
+      "file": "palette_day.png",
+      "label": "palette / day",
+      "mean_luminance": 0.62609,
+      "max_luminance": 0.7765,
+      "palette": "SUMMER_NOON",
+      "family": "cumulus",
+      "sun": "side"
+    },
+    {
+      "file": "palette_sunset.png",
+      "label": "palette / sunset",
+      "mean_luminance": 0.49879,
+      "max_luminance": 0.8353,
+      "palette": "GOLDEN_HOUR",
+      "family": "cumulus",
+      "sun": "side"
+    },
+    {
+      "file": "palette_night.png",
+      "label": "palette / night",
+      "mean_luminance": 0.42214,
+      "max_luminance": 0.902,
+      "palette": "NEON_NIGHT",
+      "family": "cumulus",
+      "sun": "side"
+    },
+    {
+      "file": "coverage_000.png",
+      "label": "coverage 0.00",
+      "mean_luminance": 0.6108,
+      "max_luminance": 0.7765,
+      "coverage": 0.0
+    },
+    {
+      "file": "coverage_025.png",
+      "label": "coverage 0.25",
+      "mean_luminance": 0.61365,
+      "max_luminance": 0.7765,
+      "coverage": 0.25
+    },
+    {
+      "file": "coverage_050.png",
+      "label": "coverage 0.50",
+      "mean_luminance": 0.62583,
+      "max_luminance": 0.7765,
+      "coverage": 0.5
+    },
+    {
+      "file": "coverage_100.png",
+      "label": "coverage 1.00",
+      "mean_luminance": 0.6711,
+      "max_luminance": 0.7765,
+      "coverage": 1.0
+    },
+    {
+      "file": "camera_horizon.png",
+      "label": "camera_horizon",
+      "mean_luminance": 0.60971,
+      "max_luminance": 0.7765,
+      "camera": [
+        1.55,
+        0.0,
+        0.45
+      ]
+    },
+    {
+      "file": "camera_elevated.png",
+      "label": "camera_elevated",
+      "mean_luminance": 0.6631,
+      "max_luminance": 0.7765,
+      "camera": [
+        1.95,
+        0.0,
+        0.45
+      ]
+    },
+    {
+      "file": "wind_01.png",
+      "label": "wind frame 1",
+      "mean_luminance": 0.62589,
+      "max_luminance": 0.7765,
+      "frame": 1
+    },
+    {
+      "file": "wind_12.png",
+      "label": "wind frame 12",
+      "mean_luminance": 0.6264,
+      "max_luminance": 0.7765,
+      "frame": 12
+    },
+    {
+      "file": "stars_08.png",
+      "label": "shooting stars frame 8",
+      "mean_luminance": 0.43163,
+      "max_luminance": 0.9098,
+      "frame": 8,
+      "events": 2
+    },
+    {
+      "file": "stars_16.png",
+      "label": "shooting stars frame 16",
+      "mean_luminance": 0.43175,
+      "max_luminance": 0.9137,
+      "frame": 16,
+      "events": 2
+    }
+  ],
+  "sheet": "contact.png",
+  "order": [
+    "family_cumulus_front.png",
+    "family_cumulus_side.png",
+    "family_cumulus_back.png",
+    "family_stratocumulus_front.png",
+    "family_stratocumulus_side.png",
+    "family_stratocumulus_back.png",
+    "family_cirrus_front.png",
+    "family_cirrus_side.png",
+    "family_cirrus_back.png",
+    "palette_day.png",
+    "palette_sunset.png",
+    "palette_night.png",
+    "coverage_000.png",
+    "coverage_025.png",
+    "coverage_050.png",
+    "coverage_100.png",
+    "camera_horizon.png",
+    "camera_elevated.png",
+    "wind_01.png",
+    "wind_12.png",
+    "stars_08.png",
+    "stars_16.png"
+  ]
+}

@@ -36,7 +36,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 3 invariance | `phase3_ui/phase3_invariance.json`, `invariance_compare.png` | **pixel-identical, maxdiff 0**; World 719 / Compositor 31 nodes; marker 32 |
 | Phase 3 regressions | `phase3_ui/logs/` | ALD ALL PASS; audit 44/44; Phase 6 17/17; Phase 1A 37/37; Phase 1B markers 29/30 -> 32; Phase 2 audit PASS; build PASS |
 | Phase 4 star look | `star_thickness/`, `star_curvature/`, `cloud_sun_scatter/` | thickness cap 0.01 rad + head cap; per-event curvature; sun-facing scatter; **visual review pending** |
-| Phase 4 checks | `star_curvature/phase1a_metrics.json`, logs | 68/68 UI; 37/37 Phase 1A; 44/44 audit; 17/17 Phase 6; ALD ALL; build PASS |
+| Phase 4 checks | `star_curvature/phase1a_metrics.json`, `phase1b_markers.json`, `phase6/`, logs | 68/68 UI; 37/37 Phase 1A; 44/44 audit; 17/17 Phase 6; Phase 1B 29/30 -> 35; Phase 2 audit; matrix 22 cells; ALD ALL; build PASS |
 | Phase 6 matrix | `phase6/contact.png`, `phase6/metrics.json` | 22 cells: families x Sun, palettes, coverage, camera, wind, stars |
 | Phase 6 technical | `phase6/technical.json` | **17/17 PASS** |
 | Legacy migration (2.63 work) | `legacy/report.json`, `legacy/v256_report.json` | synthetic **36/36**; real v2.56.0 `.blend` **9/9** |

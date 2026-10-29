@@ -173,8 +173,9 @@ changes; no merge or release.
   metrics.
 - `preset_dev/star_curvature/`: 0/0.5/1.0/-1.0 curves; Phase 1A 37/37.
 - `preset_dev/cloud_sun_scatter/`: 0/0.5/1.0; pixel difference and compare.
-- 68/68 UI, 44/44 audit, Phase 6 17/17, Phase 1A 37/37, ALD ALL PASS,
-  build PASS.
+- 68/68 UI, 44/44 audit, Phase 6 17/17, Phase 1A 37/37, Phase 1B markers
+  29/30 -> 35 with events/animation preserved, Phase 2 audit PASS, Phase 6
+  matrix 22 cells, ALD ALL PASS, build PASS.
 - Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
 
 

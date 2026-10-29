@@ -25,6 +25,14 @@ volumetric light-transport system.
   change.
 - `scatter.json`: requested/property values.
 
+## Full feature-branch regression
+
+- Phase 1B markers 29/30 -> **35**; events/properties/animation preserved.
+- Phase 2 audit PASS (cloudless; marker 35).
+- Phase 6 matrix **22 cells** regenerated; Sun Scatter 0 in the matrix.
+- Phase 1A 37/37; UI 68/68; audit 44/44; Phase 6 technical 17/17;
+  ALD ALL PASS; build PASS.
+
 Render fixture: EEVEE, 960x540, GOLDEN_HOUR, CUMULUS, cloud amount 0.78,
 sun elevation 12°, camera aimed at the sun.
 

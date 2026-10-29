@@ -117,8 +117,10 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   bow and default 0 (marker 34), and `Cloud Sun Scatter` default 0 that boosts
   the sun-facing silver lining (marker 35). Evidence:
   `preset_dev/star_thickness/`, `preset_dev/star_curvature/`,
-  `preset_dev/cloud_sun_scatter/`. **TECHNICAL PASS - VISUAL REVIEW PENDING**;
-  no merge or release.
+  `preset_dev/cloud_sun_scatter/`. 68 UI, 37/37 Phase 1A, 44/44 audit,
+  17/17 Phase 6, Phase 1B markers 29/30 -> 35 with events and animation
+  preserved, Phase 2 audit, matrix 22 cells, ALD ALL and build PASS.
+  **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and

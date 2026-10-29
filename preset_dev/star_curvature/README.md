@@ -32,6 +32,15 @@ Adds an optional per-event bend to the shooting-star path. The default is
 - `phase1a_metrics.json` / `phase1a.log`: Phase 1A gate on this branch;
   **37/37 PASS** with curvature defaults at 0.
 
+## Full feature-branch regression
+
+- Phase 1B markers: real marker-29/30 scenes reopen, rebuild to marker **35**,
+  4 events and animation preserved (`phase1b_markers.json`, `phase1b.log`).
+- Phase 2 audit: PASS with marker 35; cloudless Sun/horizon values sync.
+- Phase 6 matrix: **22 cells** regenerated with the new shaders at default
+  values (`phase6/contact.png`, `phase6/metrics.json`, `phase6/matrix.log`).
+- UI: 68/68; audit 44/44; Phase 6 technical 17/17; ALD ALL PASS; build PASS.
+
 Render fixture: EEVEE, 960x540, NEON_NIGHT, clouds off, one event at
 azimuth/elevation 120/40, length 30 deg, trail 0.85, frame 20.
 
