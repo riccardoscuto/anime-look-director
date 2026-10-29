@@ -262,22 +262,26 @@ class ALD_OT_stage_backlight(bpy.types.Operator):
 class ALD_OT_viewport_compositor(bpy.types.Operator):
     bl_idname = "ald.viewport_compositor"
     bl_label = "Enable Viewport Compositor"
-    bl_description = "Set every 3D Viewport shading to always show the compositor result"
+    bl_description = ("Set the current 3D viewport shading to always show the "
+                      "compositor result")
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        count = 0
-        for window in context.window_manager.windows:
-            for area in window.screen.areas:
-                if area.type != "VIEW_3D":
-                    continue
-                for space in area.spaces:
-                    if (space.type == "VIEW_3D"
-                            and hasattr(space.shading, "use_compositor")):
-                        space.shading.use_compositor = "ALWAYS"
-                        count += 1
+        area = context.area
+        if area is None or area.type != "VIEW_3D":
+            self.report({"WARNING"},
+                        "Anime Look Director: run this from a 3D viewport")
+            return {"CANCELLED"}
+        space = area.spaces.active
+        if not hasattr(space.shading, "use_compositor"):
+            self.report({"WARNING"},
+                        "Anime Look Director: this viewport has no compositor "
+                        "preview setting")
+            return {"CANCELLED"}
+        space.shading.use_compositor = "ALWAYS"
         self.report({"INFO"},
-                    "Viewport compositor enabled on %d view(s)" % count)
+                    "Anime Look Director: compositor preview enabled in this "
+                    "viewport")
         return {"FINISHED"}
 
 
