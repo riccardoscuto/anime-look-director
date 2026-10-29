@@ -7,7 +7,7 @@ Blender add-on focused on **procedural anime skies** in the World shader. The
 - Blender **5.1.2** on Windows (compositor node-group API).
 - Python 3.13 / NumPy inside Blender. No external dependencies.
 - GPL-3.0-or-later. Version in `bl_info` and `blender_manifest.toml` must match
-  (currently **2.62.0**).
+  (currently **2.63.0**).
 
 ## Verify
 ```powershell
@@ -92,8 +92,8 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   sunset gate is approved at 2.59.1. The shooting-star gate is approved at
   2.60.1; its 2.63 Phase 1A reliability work is technical-only and has no
   aesthetic approval. Phase 5 (presets and compact UI) and Phase 6 (release
-  matrix, technical gate, package) are complete at 2.62.0; `master` carries the
-  World Sky Edition.
+  matrix, technical gate, package) are complete at 2.62.0; 2.63.0 is the
+  current release candidate on `master`.
 - 2.63 work: Phase 0 legacy safety is complete (44/44 audit, 36/36 synthetic
   and 9/9 on a real v2.56.0 file); Phase 1 Cumulus baseline is complete at
   `preset_dev/phase1/` with the visual decision pending. The shooting-star
@@ -103,24 +103,22 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   Preview checks, evidence in `preset_dev/phase1a_shooting_stars/`,
   **FINAL TECHNICAL REVIEW: PASS**; PR #1 is **merged to master** at `63ffa29`
   (Phase 1A technically complete). Phase 1B is merged at `fe685d5` (compact
-  head, tapered tail, temporal envelope, marker 31). Phase 2 is in progress
-  on `phase-2-atmosphere`: Sun Elevation -30..85, immediate World sync,
-  sun disk 1.0 deg / 4.0, ground-mask at the horizon, marker 32;
-  **TECHNICAL PASS - VISUAL REVIEW PENDING**. Phase 3 UI cleanup is on
-  `phase-3-ui-cleanup` from `d8a94d8`: full sidebar mirror of Scene Properties,
-  autonomous Shooting Stars, compositor states and grouped effects; 68 UI
-  checks, pixel-identical render, World 719 / Compositor 31 nodes, marker 32;
-  evidence in `preset_dev/phase3_ui/`, **TECHNICAL PASS - UI REVIEW PENDING**.
-  No merge or 2.63 release. Phase 4 star/cloud look is on
-  `feature/star-cloud-look` from `4db6718`: thickness max 0.01 rad with a
-  0.012 rad head cap (marker 33), optional per-event `Curvature` with a sine
-  bow and default 0 (marker 34), and `Cloud Sun Scatter` default 0 that boosts
-  the sun-facing silver lining (marker 35). Evidence:
-  `preset_dev/star_thickness/`, `preset_dev/star_curvature/`,
-  `preset_dev/cloud_sun_scatter/`. 68 UI, 37/37 Phase 1A, 44/44 audit,
-  17/17 Phase 6, Phase 1B markers 29/30 -> 35 with events and animation
-  preserved, Phase 2 audit, matrix 22 cells, ALD ALL and build PASS.
-  **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
+  head, tapered tail, temporal envelope, marker 31). Phase 2 is complete and
+  merged in 2.63.0: Sun Elevation -30..85, immediate World sync, sun disk
+  1.0 deg / 4.0, ground-mask at the horizon, marker 32. Phase 3 UI cleanup is
+  merged in 2.63.0: full sidebar mirror of Scene Properties, autonomous
+  Shooting Stars, compositor states and grouped effects; 68 UI checks,
+  pixel-identical render, World 719 / Compositor 31 nodes, marker 32; evidence
+  in `preset_dev/phase3_ui/`. Phase 4 star/cloud look is merged in 2.63.0:
+  thickness max 0.01 rad with a 0.012 rad head cap (marker 33), optional
+  per-event `Curvature` with a sine bow and default 0 (marker 34), and
+  `Cloud Sun Scatter` default 0 that boosts the sun-facing silver lining
+  (marker 35). Evidence: `preset_dev/star_thickness/`,
+  `preset_dev/star_curvature/`, `preset_dev/cloud_sun_scatter/`. 68 UI,
+  37/37 Phase 1A, 44/44 audit, 17/17 Phase 6, Phase 1B markers 29/30 -> 35
+  with events and animation preserved, Phase 2 audit, matrix 22 cells, ALD ALL
+  and build PASS. Visual status: **APPROVED for 2.63.0**. The 12-preset review
+  is in progress; see `preset_dev/palettes/README.md`.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and

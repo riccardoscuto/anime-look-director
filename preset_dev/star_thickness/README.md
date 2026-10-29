@@ -1,5 +1,7 @@
 # Star thickness cap (Phase 4)
 
+Merged in the 2.63.0 release candidate; visual status approved.
+
 The `Thickness` slider is an angular radius in radians. The old maximum
 `0.05 rad` (about 2.86 deg) produced a huge tapered wedge, with the head glow
 reaching about 4.7 deg. This fix caps the useful range and decouples the head

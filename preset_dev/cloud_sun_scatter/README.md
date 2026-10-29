@@ -1,5 +1,7 @@
 # Cloud Sun Scatter (Phase 4)
 
+Merged in the 2.63.0 release candidate; visual status approved.
+
 Adds a **Sun Scatter** control under World Clouds > Lighting. It boosts the
 sun-facing silver lining of the clouds; it is procedural World shading, not a
 volumetric light-transport system.

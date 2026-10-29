@@ -3,7 +3,7 @@
 Branch: `phase-3-ui-cleanup`, based on `d8a94d8` (Phase 2 atmosphere candidate).
 Blender 5.1.2. Version stays 2.62.0. No merge, tag or release.
 
-**Status: TECHNICAL PASS - UI REVIEW PENDING.**
+**Status: VISUAL APPROVED - merged in 2.63.0.**
 
 ## Scope
 

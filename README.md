@@ -15,17 +15,23 @@ gone. The full previous version is preserved at the tag
   compositor.
 - Four-zone sky: Ground, Horizon, Mid Sky, Zenith, with horizon offset and
   softness.
-- Sun disk, Sun Glow, Sun Beams, elevation/azimuth and backlight staging.
+- Sun disk, Sun Glow, elevation/azimuth and backlight staging.
+  Sun Beams lives in the optional compositor.
 - World clouds: three families (Cumulus, Stratocumulus, Cirrus),
   coverage, scale, vertical, flatness, breakup, detail, seed, sun lighting,
   wind, contrails, rim boost and custom colors.
 - Stars, density, Milky Way.
 - Four controlled shooting stars in the World (no objects or particles):
-  start, duration, position, direction, angular length, trail, thickness,
-  brightness, glow and color.
+  start, duration, position, direction, angular length, curvature, trail,
+  thickness, brightness, glow and color. Thickness is capped at 0.01 rad and
+  curvature is an optional per-event sine bow.
 - Optional Shadow Tint / Cel / Rim and material presets.
 - Optional general compositor: halation, painterly, light wrap, dispersion,
   sun beams, ink, aerial haze.
+- Cloud Sun Scatter: an optional sun-facing silver-lining accent under World
+  Clouds > Lighting.
+- View3D sidebar mirrors the full Scene Properties sections; compositor
+  inactive / configured / active states are explicit.
 - Camera overrides and timeline palette markers.
 - Reversible removal and explicit handling of legacy ALD data.
 
@@ -38,7 +44,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 & $blender -b --factory-startup --python preset_dev\build_release.py
 ```
 
-Install `dist/anime_look_director-2.62.0.zip` in Blender 5.1.2:
+Install `dist/anime_look_director-2.63.0.zip` in Blender 5.1.2:
 `Edit > Preferences > Extensions > Install from Disk`.
 
 The add-on is also usable from the source directory as a legacy add-on.
@@ -69,9 +75,10 @@ The add-on is also usable from the source directory as a legacy add-on.
 - Events saved before 2.63 gain the start frame; the last visible frame is
   unchanged: start 10 / duration 24 was visible 11..33 and becomes 10..33.
   The count grows from duration - 1 to duration. `Direction` is now a true
-  local bearing, so review old trajectories after opening.
+  local bearing, so review old trajectories after opening. `Curvature`
+  defaults to 0 (straight great-circle arc); thickness is capped at 0.01 rad.
 
-## Version 2.62.0 scope
+## Version 2.63.0 scope
 
 - World-only operational path.
 - No FX objects, collections, Geometry Nodes, smoke volumes or EXR pass.

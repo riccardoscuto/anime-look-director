@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased - 2.63 work
+## 2.63.0 - 2026-10-29
+World Sky Edition release candidate: legacy safety, atmosphere/Sun, full
+View3D mirror, shooting-star look and cloud Sun Scatter. The 12-preset review
+is in progress.
+
 Phase 0: legacy ALD safety.
 
 ### Fixed
@@ -116,7 +120,7 @@ Cloudless World; no cloud generator, compositor or material changes.
   sweep +8..-8, Horizon Offset, Softness/Accent, UI before/after.
 - 37/37 OpenGL/Vulkan, interactive 5/5, ALD ALL, audit 44/44, Phase 6 17/17,
   build PASS; markers 29/30/31 -> 32.
-- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
+- Status: **VISUAL APPROVED - merged in 2.63.0**.
 
 ### Phase 3 - UI cleanup
 
@@ -149,7 +153,7 @@ UI-only; no World, Shooting Star, material or shader change.
   32 on both.
 - ALD ALL PASS; audit 44/44; Phase 6 technical 17/17; Phase 1A 37/37; Phase 1B
   markers 29/30 -> 32; Phase 2 audit PASS; build PASS.
-- Status: **TECHNICAL PASS - UI REVIEW PENDING**; no merge or release.
+- Status: **VISUAL APPROVED - merged in 2.63.0**.
 
 ### Phase 4 - star look and cloud sun scatter (feature branch)
 
@@ -176,7 +180,8 @@ changes; no merge or release.
 - 68/68 UI, 44/44 audit, Phase 6 17/17, Phase 1A 37/37, Phase 1B markers
   29/30 -> 35 with events/animation preserved, Phase 2 audit PASS, Phase 6
   matrix 22 cells, ALD ALL PASS, build PASS.
-- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
+- Status: **VISUAL APPROVED - merged in 2.63.0**. The 12-preset review
+  is in progress.
 
 
 ## 2.62.0 - 2026-10-27

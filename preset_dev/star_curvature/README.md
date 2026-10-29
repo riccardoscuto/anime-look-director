@@ -1,5 +1,7 @@
 # Shooting star curvature (Phase 4)
 
+Merged in the 2.63.0 release candidate; visual status approved.
+
 Adds an optional per-event bend to the shooting-star path. The default is
 `0.0`, so existing events and the original render are unchanged.
 
