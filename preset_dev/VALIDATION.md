@@ -43,7 +43,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Legacy migration (2.63 work) | `legacy/report.json`, `legacy/v256_report.json` | synthetic **36/36**; real v2.56.0 `.blend` **9/9** |
 | Cumulus baseline (2.63 work) | `phase1/contact.png`, `phase1/contact_lighting.png`, `phase1/metrics.json` | v1.0.3 vs v2.62 native/calibrated; **TECHNICAL PASS / VISUAL REVIEW PENDING** |
 | Palettes | `palettes/sheet.png`, `palettes/review.png`, `palettes/review.json` | first 12-preset review; superseded by the identity review |
-| Preset identity | `preset_identity/gradient_board.png`, `sun_board.png`, `cloud_board.png`, metrics | 12 presets; gradient, native Sun and full-cloud boards; **IN REVIEW - not approved** |
+| Preset identity | `preset_identity/gradient_board.jpg`, `sun_board.jpg`, `cloud_board.jpg`, tuning boards, metrics | 12 presets; gradient, native Sun and full-cloud boards; **IN REVIEW - not approved** |
 | UI | `preset_dev/phase3_ui/` | full Scene Properties mirror in the sidebar, autonomous Shooting Stars, compositor states; **VISUAL APPROVED - 2.63.0** |
 | Package | `dist/anime_look_director-2.63.0.zip` | extension build PASS; installed and enabled in an isolated config |
 

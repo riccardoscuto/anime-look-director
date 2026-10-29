@@ -181,8 +181,8 @@ def main():
         for obj in scene.objects:
             if obj.type == "MESH":
                 obj.hide_render = True
-        camera = make_camera(scene, lens=16.0, location=(0.0, -10.0, 2.0))
-        camera_aim(camera, 120.0, 45.0)
+        camera = make_camera(scene, lens=12.0, location=(0.0, -10.0, 2.0))
+        camera_aim(camera, 120.0, 25.0)
     if mode == "sun":
         camera = make_camera(scene)
     for key in lookdev.PALETTES:

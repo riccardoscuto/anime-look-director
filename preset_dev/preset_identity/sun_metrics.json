@@ -7,9 +7,9 @@
       "saturation": 0.186
     },
     "AFTER_SCHOOL": {
-      "luma": 0.6102,
-      "contrast": 0.0951,
-      "saturation": 0.0926
+      "luma": 0.6045,
+      "contrast": 0.1006,
+      "saturation": 0.0939
     },
     "SUMMER_NOON": {
       "luma": 0.6652,
@@ -27,14 +27,14 @@
       "saturation": 0.2428
     },
     "SAKURA_SPRING": {
-      "luma": 0.6777,
+      "luma": 0.6758,
       "contrast": 0.0549,
-      "saturation": 0.1242
+      "saturation": 0.1234
     },
     "TWILIGHT_DUSK": {
-      "luma": 0.273,
-      "contrast": 0.1295,
-      "saturation": 0.2101
+      "luma": 0.2695,
+      "contrast": 0.1294,
+      "saturation": 0.2113
     },
     "SOFT_DAWN": {
       "luma": 0.5772,
