@@ -151,52 +151,52 @@
   },
   "renders": {
     "add_horizon": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\add_horizon_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\add_horizon_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\add_horizon_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\add_horizon_off.png"
     },
     "elev_1": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\elev_1_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\elev_1_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_1_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_1_off.png"
     },
     "elev_5": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\elev_5_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\elev_5_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_5_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_5_off.png"
     },
     "elev_40": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\elev_40_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\elev_40_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_40_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_40_off.png"
     },
     "elev_85": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\elev_85_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\elev_85_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_85_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_85_off.png"
     },
     "horizon_cross": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\horizon_cross_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\horizon_cross_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\horizon_cross_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\horizon_cross_off.png"
     },
     "four": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\four_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\four_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\four_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\four_off.png"
     },
     "three": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\three_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\three_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\three_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\three_off.png"
     },
     "anchor_a": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\anchor_a_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\anchor_a_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\anchor_a_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\anchor_a_off.png"
     },
     "anchor_b": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\anchor_b_on.png",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\anchor_b_off.png"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\anchor_b_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\anchor_b_off.png"
     },
     "linear_5": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\linear_5_on.exr",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\linear_5_off.exr"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\linear_5_on.exr",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\linear_5_off.exr"
     },
     "linear_40": {
-      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\linear_40_on.exr",
-      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\linear_40_off.exr"
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\linear_40_on.exr",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\linear_40_off.exr"
     }
   },
   "metrics": {
@@ -409,31 +409,31 @@
     }
   },
   "video": [
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f10.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f11.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f12.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f13.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f14.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f15.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f16.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f17.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f18.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f19.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f20.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f21.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f22.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f23.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f24.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f25.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f26.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f27.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f28.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f29.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f30.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f31.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f32.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f33.png",
-    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a\\video_f34.png"
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f10.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f11.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f12.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f13.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f14.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f15.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f16.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f17.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f18.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f19.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f20.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f21.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f22.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f23.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f24.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f25.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f26.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f27.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f28.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f29.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f30.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f31.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f32.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f33.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f34.png"
   ],
   "status": "PASS",
   "failures": []

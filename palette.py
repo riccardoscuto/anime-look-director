@@ -388,13 +388,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 34):
+                           or ng.get("ald_build") != 35):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 34
+        ng["ald_build"] = 35
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -410,7 +410,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 34
+        ng["ald_build"] = 35
     return ng
 
 
@@ -984,7 +984,8 @@ def _build_gradient_group(ng):
                           ("Cloud Vertical", 0.55),
                           ("Cloud Breakup", 0.35),
                           ("Cloud Detail", 0.60),
-                          ("Cloud Sun Lighting", 1.0)):
+                          ("Cloud Sun Lighting", 1.0),
+                          ("Cloud Sun Scatter", 0.0)):
         socket = ng.interface.new_socket(name=name, in_out="INPUT",
                                          socket_type="NodeSocketFloat")
         socket.min_value = 0.0
@@ -2022,6 +2023,46 @@ def _build_gradient_group(ng):
     links.new(rim_masked.outputs[0], rim_boosted.inputs[0])
     links.new(group_in.outputs["Cloud Rim Boost"], rim_boosted.inputs[1])
 
+    # Sun Scatter boosts the silver lining on the side facing the sun. It
+    # changes only the rim mix, not the cloud body or the clear sky.
+    scatter_positive = nodes.new("ShaderNodeMath")
+    scatter_positive.location = (3400, -1040)
+    scatter_positive.operation = "MAXIMUM"
+    scatter_positive.inputs[1].default_value = 0.0
+    links.new(dot.outputs["Value"], scatter_positive.inputs[0])
+
+    scatter_phase = nodes.new("ShaderNodeMath")
+    scatter_phase.location = (3580, -1040)
+    scatter_phase.operation = "POWER"
+    scatter_phase.inputs[1].default_value = 4.0
+    links.new(scatter_positive.outputs[0], scatter_phase.inputs[0])
+
+    scatter_amount = nodes.new("ShaderNodeMath")
+    scatter_amount.location = (3760, -1040)
+    scatter_amount.operation = "MULTIPLY"
+    links.new(scatter_phase.outputs[0], scatter_amount.inputs[0])
+    links.new(group_in.outputs["Cloud Sun Scatter"],
+              scatter_amount.inputs[1])
+
+    scatter_boost = nodes.new("ShaderNodeMath")
+    scatter_boost.location = (3940, -1040)
+    scatter_boost.operation = "MULTIPLY"
+    links.new(scatter_amount.outputs[0], scatter_boost.inputs[0])
+    scatter_boost.inputs[1].default_value = 0.8
+
+    scatter_one = nodes.new("ShaderNodeMath")
+    scatter_one.location = (4120, -1040)
+    scatter_one.operation = "ADD"
+    links.new(scatter_boost.outputs[0], scatter_one.inputs[0])
+    scatter_one.inputs[1].default_value = 1.0
+
+    rim_scatter = nodes.new("ShaderNodeMath")
+    rim_scatter.location = (4300, -1040)
+    rim_scatter.operation = "MULTIPLY"
+    rim_scatter.use_clamp = True
+    links.new(rim_boosted.outputs[0], rim_scatter.inputs[0])
+    links.new(scatter_one.outputs[0], rim_scatter.inputs[1])
+
     mix_body = nodes.new("ShaderNodeMix")
     mix_body.location = (2800, -720)
     mix_body.data_type = "RGBA"
@@ -2038,7 +2079,7 @@ def _build_gradient_group(ng):
     a_sock, b_sock, result_sock = _rgba_sockets(mix_light)
     links.new(mix_body.outputs["Result"], a_sock)
     links.new(group_in.outputs["Cloud Light"], b_sock)
-    links.new(rim_boosted.outputs[0], mix_light.inputs["Factor"])
+    links.new(rim_scatter.outputs[0], mix_light.inputs["Factor"])
 
     horizon = nodes.new("ShaderNodeMapRange")
     horizon.location = (1440, 700)
@@ -3062,6 +3103,8 @@ def _apply_gradient(scene, settings, nt, background, p):
         getattr(settings, "cloud_detail", 0.60) if settings else 0.60)
     node.inputs["Cloud Sun Lighting"].default_value = (
         getattr(settings, "cloud_sun_lighting", 1.2) if settings else 1.2)
+    node.inputs["Cloud Sun Scatter"].default_value = (
+        getattr(settings, "cloud_sun_scatter", 0.0) if settings else 0.0)
     node.inputs["Contrails"].default_value = (
         getattr(settings, "contrails", 0.0) if settings else 0.0)
     node.inputs["Cloud Delta Gain"].default_value = (

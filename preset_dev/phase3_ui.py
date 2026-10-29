@@ -49,12 +49,14 @@ def main():
     scene.ald.clouds = True
     scene.ald.cloud_type = "CIRRUS"
     scene.ald.cloud_amount = 0.7
+    scene.ald.cloud_sun_scatter = 0.6
     scene.ald.stars = False
     check("scenario_b.values",
           abs(scene.ald.sun_elevation + 4.0) < 1e-4
           and abs(scene.ald.horizon_offset - 0.2) < 1e-5
           and scene.ald.cloud_type == "CIRRUS"
           and abs(scene.ald.cloud_amount - 0.7) < 1e-5
+          and abs(scene.ald.cloud_sun_scatter - 0.6) < 1e-5
           and not scene.ald.stars)
 
     scene_panels = ("ALD_PT_scene", "ALD_PT_atmosphere", "ALD_PT_clouds",
@@ -100,7 +102,8 @@ def main():
     check("compositor.beams", "god_rays" in compositor_draw)
     check("clouds.groups",
           all(word in clouds for word in
-              ("Distribution", "Shape", "Lighting", "Animation")))
+              ("Distribution", "Shape", "Lighting", "Animation",
+               "cloud_sun_scatter")))
     check("shooting.groups",
           all(word in shooting for word in
               ("Timing", "Trajectory", "Appearance")))

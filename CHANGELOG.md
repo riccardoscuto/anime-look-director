@@ -151,6 +151,32 @@ UI-only; no World, Shooting Star, material or shader change.
   markers 29/30 -> 32; Phase 2 audit PASS; build PASS.
 - Status: **TECHNICAL PASS - UI REVIEW PENDING**; no merge or release.
 
+### Phase 4 - star look and cloud sun scatter (feature branch)
+
+Feature branch `feature/star-cloud-look`, based on `4db6718`. Look and shader
+changes; no merge or release.
+
+#### Changed
+- Shooting star `Thickness` maximum `0.05` -> `0.01 rad`; the shader clamps
+  old events and caps the head radius at `0.012 rad`. The default `0.0018`
+  is unchanged. Marker 33.
+- New per-event `Curvature` (default `0.0`, range -1..1): a signed sine bow
+  along the path normal, zero at the endpoints. Marker 34.
+- New `Cloud Sun Scatter` (default `0.0`, range 0..1) under World Clouds >
+  Lighting: a sun-facing silver-lining boost, not volumetric shadowing.
+  Marker 35.
+- Shooting Stars Trajectory shows `Curvature`; World Clouds Lighting shows
+  `Sun Scatter`; Thickness slider max is 0.01.
+
+#### Evidence
+- `preset_dev/star_thickness/`: before/after 0.05, 0.01, default; compare and
+  metrics.
+- `preset_dev/star_curvature/`: 0/0.5/1.0/-1.0 curves; Phase 1A 37/37.
+- `preset_dev/cloud_sun_scatter/`: 0/0.5/1.0; pixel difference and compare.
+- 68/68 UI, 44/44 audit, Phase 6 17/17, Phase 1A 37/37, ALD ALL PASS,
+  build PASS.
+- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
+
 
 ## 2.62.0 - 2026-10-27
 Phase 6: final World Sky release.

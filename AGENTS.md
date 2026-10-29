@@ -111,7 +111,14 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   autonomous Shooting Stars, compositor states and grouped effects; 68 UI
   checks, pixel-identical render, World 719 / Compositor 31 nodes, marker 32;
   evidence in `preset_dev/phase3_ui/`, **TECHNICAL PASS - UI REVIEW PENDING**.
-  No merge or 2.63 release.
+  No merge or 2.63 release. Phase 4 star/cloud look is on
+  `feature/star-cloud-look` from `4db6718`: thickness max 0.01 rad with a
+  0.012 rad head cap (marker 33), optional per-event `Curvature` with a sine
+  bow and default 0 (marker 34), and `Cloud Sun Scatter` default 0 that boosts
+  the sun-facing silver lining (marker 35). Evidence:
+  `preset_dev/star_thickness/`, `preset_dev/star_curvature/`,
+  `preset_dev/cloud_sun_scatter/`. **TECHNICAL PASS - VISUAL REVIEW PENDING**;
+  no merge or release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
@@ -124,27 +131,29 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 - The star head is a short bright band, the tail is a thin tapered line and
   the color is cool white by default, matching the starfield.
 - Shooting stars are persistent `ALD_ShootingStar` events: start frame,
-  duration, azimuth/elevation, direction, angular length, trail, thickness,
-  brightness, glow and color. Start Frame is the first visible frame and
-  Duration the exact count (progress uses `duration - 1`; a 2-frame event is
-  valid). Existing events start one frame earlier after the marker-30 rebuild;
-  their last visible frame is unchanged. The World shader evaluates four fixed
-  slots as great-circle arcs
-  between the start/end unit directions (azimuth/elevation in degrees) with a
-  frame driver; thickness is an angular half-width, independent of elevation,
-  with no gnomonic `z` clamp. `Direction` is a local bearing (0 horizontal,
-  +90 up). Add uses the camera direction with a 1-degree horizon floor and
-  flips a descending bearing; Preview never writes the camera. The event list is
-  capped at 4 and survives save/reload.
+  duration, azimuth/elevation, direction, angular length, `Curvature`, trail,
+  thickness, brightness, glow and color. Start Frame is the first visible frame
+  and Duration the exact count (progress uses `duration - 1`; a 2-frame event
+  is valid). Existing events start one frame earlier after the marker-30
+  rebuild; their last visible frame is unchanged. The World shader evaluates
+  four fixed slots as great-circle arcs between the start/end unit directions
+  (azimuth/elevation in degrees) with a frame driver. `Curvature` is a signed
+  sine bow along the path normal; 0 keeps the great-circle arc. Thickness is an
+  angular half-width, independent of elevation, with no gnomonic `z` clamp;
+  the UI max is 0.01 rad and the head radius is capped at 0.012 rad. `Direction`
+  is a local bearing (0 horizontal, +90 up). Add uses the camera direction with
+  a 1-degree horizon floor and flips a descending bearing; Preview never writes
+  the camera. The event list is capped at 4 and survives save/reload.
 - The sky accent is a broad band (`From Max 0.20`), not a narrow stripe.
   Keep the dusk/night transition smooth; the Phase 2 before/after is in
   `preset_dev/sky/contact.png`.
 - `_sun_fade` hides the Sun disk below the horizon and fades the glow by
   about -7 degrees; `update_sun_controls` uses the same gates.
-- The World is a node group (`ALD | World Gradient`, marker 29) with
-  `Ground`, `Horizon`, `Mid Sky`, `Zenith` plus Sun, clouds, stars, Milky Way,
-  contrails and sky accent. Palette colors are wired through group sockets,
-  never baked into ColorRamp stops.
+- The World is a node group (`ALD | World Gradient`; marker 32 on Phase 3,
+  marker 35 on the Phase 4 feature branch) with `Ground`, `Horizon`, `Mid Sky`,
+  `Zenith` plus Sun, clouds, stars, Milky Way, contrails and sky accent.
+  Palette colors are wired through group sockets, never baked into ColorRamp
+  stops.
 - Visible sky vs ambient: `Light Path → Is Camera Ray` mixes the gradient with
   the full gradient for camera rays. Background Strength is 1.0 when the
   gradient is active.
@@ -193,6 +202,9 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   Appearance), `Palette Customization`, `Materials & Shadows`, `Compositor`
   (Light Effects / Stylization / Atmospheric Post Effects), `Advanced
   Settings` (reversible versus destructive actions).
+- Shooting Stars Trajectory includes `Curvature`; Appearance `Thickness` is
+  capped at 0.01 rad. World Clouds Lighting includes `Sun Scatter` (default
+  0.0), a sun-facing silver-lining boost; it is not volumetric shadowing.
 - The compositor panel is state-driven: inactive with only Enable Compositor,
   configured/render-disabled with the Use in Render toggle, active with the
   effects, and a read-only viewport preview line. Sun Beams lives only here.

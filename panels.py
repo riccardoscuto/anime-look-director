@@ -91,6 +91,7 @@ def draw_clouds(layout, context):
     box.label(text="Lighting")
     col = box.column(align=True)
     col.prop(s, "cloud_sun_lighting")
+    col.prop(s, "cloud_sun_scatter")
     col.prop(s, "cloud_delta_gain")
     col.prop(s, "cloud_rim_boost")
     box.label(text="Animation")
