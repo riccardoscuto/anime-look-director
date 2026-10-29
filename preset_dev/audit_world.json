@@ -106,13 +106,13 @@
     },
     {
       "category": "UI",
-      "label": "The sidebar is compact: Quick Look + Advanced Sky",
+      "label": "The sidebar mirrors the Scene Properties sections",
       "passed": true,
       "detail": ""
     },
     {
       "category": "UI",
-      "label": "The quick panel exposes the low-frequency controls",
+      "label": "The full panels expose the World controls",
       "passed": true,
       "detail": ""
     },

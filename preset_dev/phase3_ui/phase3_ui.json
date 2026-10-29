@@ -1,0 +1,276 @@
+{
+  "scenario_a.applied": {
+    "pass": true,
+    "detail": "{'FINISHED'}"
+  },
+  "scenario_a.no_stack": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_a.no_group": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_a.preset": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_b.values": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_scene": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_atmosphere": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_clouds": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_shooting_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_custom": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_materials": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_compositor": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_advanced": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_atmosphere": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_clouds": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_shooting_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_custom": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_materials": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_compositor": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_advanced": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d": {
+    "pass": true,
+    "detail": ""
+  },
+  "shooting.parent": {
+    "pass": true,
+    "detail": ""
+  },
+  "stars.parent": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.parent": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.category": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.root": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_atmosphere": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_clouds": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_shooting_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_custom": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_materials": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_compositor": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_advanced": {
+    "pass": true,
+    "detail": ""
+  },
+  "atmosphere.no_beams": {
+    "pass": true,
+    "detail": ""
+  },
+  "compositor.beams": {
+    "pass": true,
+    "detail": ""
+  },
+  "clouds.groups": {
+    "pass": true,
+    "detail": ""
+  },
+  "shooting.groups": {
+    "pass": true,
+    "detail": ""
+  },
+  "compositor.states": {
+    "pass": true,
+    "detail": ""
+  },
+  "compositor.foreign_warning": {
+    "pass": true,
+    "detail": ""
+  },
+  "viewport_op.current_area": {
+    "pass": true,
+    "detail": ""
+  },
+  "shooting_event_controls": {
+    "pass": true,
+    "detail": ""
+  },
+  "state.inactive": {
+    "pass": true,
+    "detail": ""
+  },
+  "state.foreign.none": {
+    "pass": true,
+    "detail": ""
+  },
+  "state.foreign.untouched": {
+    "pass": true,
+    "detail": ""
+  },
+  "state.active.stack": {
+    "pass": true,
+    "detail": ""
+  },
+  "state.active.render": {
+    "pass": true,
+    "detail": ""
+  },
+  "state.disabled.stack": {
+    "pass": true,
+    "detail": ""
+  },
+  "state.disabled.render": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.add": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.add_state": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.add_sky": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.duplicate": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.duplicate_values": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.preview": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.preview_frame": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.remove": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.limit": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.fifth_cancelled": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_c.duplicate_cancelled": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_f.loaded": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_f.events": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_f.values": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_f.palette": {
+    "pass": true,
+    "detail": ""
+  },
+  "scenario_f.marker": {
+    "pass": true,
+    "detail": "29"
+  },
+  "scenario_f.no_compositor": {
+    "pass": true,
+    "detail": ""
+  },
+  "failures": [],
+  "status": "PASS"
+}

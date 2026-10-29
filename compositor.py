@@ -43,6 +43,17 @@ def _is_stack(ng):
                  or ng.name.startswith(GROUP_NAME + " | ")))
 
 
+def scene_stack(scene):
+    """The ALD stack assigned to this scene, never a user compositor tree."""
+    ng = scene.compositing_node_group
+    if ng is None or not _is_stack(ng):
+        return None
+    tag = ng.get(SCENE_TAG)
+    if tag is not None and tag != scene.name:
+        return None
+    return ng
+
+
 def _group_for_scene(scene, create=True):
     """One stack per scene; the first scene keeps the plain group name."""
     for ng in bpy.data.node_groups:

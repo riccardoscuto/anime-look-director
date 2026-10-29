@@ -1,0 +1,318 @@
+{
+  "tag": "current",
+  "conditions": {
+    "noon": {
+      "palette": "SUMMER_NOON",
+      "sun_elevation": 35.0,
+      "sun_azimuth": 25.0,
+      "stars": false,
+      "mean": 0.66309,
+      "max": 0.9255,
+      "brightest_px": [
+        636,
+        340
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 20.4,
+      "second": {
+        "mean": 0.69741,
+        "max": 0.9255,
+        "brightest_px": [
+          641,
+          328
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 32.0
+      }
+    },
+    "golden": {
+      "palette": "AFTER_SCHOOL",
+      "sun_elevation": 4.0,
+      "sun_azimuth": 25.0,
+      "stars": false,
+      "mean": 0.71925,
+      "max": 0.9529,
+      "brightest_px": [
+        643,
+        340
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 20.2,
+      "second": {
+        "mean": 0.75765,
+        "max": 0.9529,
+        "brightest_px": [
+          641,
+          328
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 32.0
+      }
+    },
+    "twilight": {
+      "palette": "TWILIGHT_DUSK",
+      "sun_elevation": -2.0,
+      "sun_azimuth": 25.0,
+      "stars": false,
+      "mean": 0.54135,
+      "max": 0.8627,
+      "brightest_px": [
+        639,
+        395
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 35.0,
+      "second": {
+        "mean": 0.57278,
+        "max": 0.8627,
+        "brightest_px": [
+          645,
+          415
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 55.2
+      }
+    },
+    "night": {
+      "palette": "NEON_NIGHT",
+      "sun_elevation": -18.0,
+      "sun_azimuth": 25.0,
+      "stars": true,
+      "mean": 0.30531,
+      "max": 0.9529,
+      "brightest_px": [
+        784,
+        526
+      ],
+      "expected_px": [
+        1718.5,
+        -844.7
+      ],
+      "distance_px": 1658.9,
+      "second": {
+        "mean": 0.276,
+        "max": 0.9647,
+        "brightest_px": [
+          866,
+          619
+        ],
+        "expected_px": [
+          2325.2,
+          -1522.3
+        ],
+        "distance_px": 2591.2
+      }
+    }
+  },
+  "sweep": [
+    {
+      "elevation": 8.0,
+      "mean": 0.72266,
+      "max": 0.949,
+      "brightest_px": [
+        643,
+        340
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 20.2
+    },
+    {
+      "elevation": 4.0,
+      "mean": 0.71925,
+      "max": 0.9529,
+      "brightest_px": [
+        643,
+        340
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 20.2
+    },
+    {
+      "elevation": 2.0,
+      "mean": 0.71034,
+      "max": 0.9529,
+      "brightest_px": [
+        635,
+        340
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 20.6
+    },
+    {
+      "elevation": 0.0,
+      "mean": 0.68675,
+      "max": 0.9176,
+      "brightest_px": [
+        639,
+        370
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 10.0
+    },
+    {
+      "elevation": -1.0,
+      "mean": 0.66194,
+      "max": 0.8549,
+      "brightest_px": [
+        659,
+        383
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 29.8
+    },
+    {
+      "elevation": -2.0,
+      "mean": 0.6295,
+      "max": 0.8431,
+      "brightest_px": [
+        589,
+        407
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 69.4
+    },
+    {
+      "elevation": -4.0,
+      "mean": 0.54946,
+      "max": 0.8196,
+      "brightest_px": [
+        483,
+        446
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 179.0
+    },
+    {
+      "elevation": -8.0,
+      "mean": 0.44977,
+      "max": 0.8039,
+      "brightest_px": [
+        427,
+        525
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 269.4
+    }
+  ],
+  "offsets": {
+    "-0.5": {
+      "mean": 0.72632,
+      "max": 0.949,
+      "brightest_px": [
+        631,
+        343
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 19.2
+    },
+    "0.0": {
+      "mean": 0.71957,
+      "max": 0.9529,
+      "brightest_px": [
+        643,
+        340
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 20.2
+    },
+    "0.5": {
+      "mean": 0.71026,
+      "max": 0.9333,
+      "brightest_px": [
+        636,
+        379
+      ],
+      "expected_px": [
+        640.0,
+        360.0
+      ],
+      "distance_px": 19.4
+    }
+  },
+  "ui": {
+    "requested": -18.0,
+    "property": -18.0,
+    "actual_elevation": -18.0,
+    "actual_azimuth": -48.84,
+    "world_elevation": -18.0,
+    "sync_requested": 10.0,
+    "sync_actual": 10.0,
+    "sync_world": 10.0
+  },
+  "softness": {
+    "0.15": {
+      "mean": 0.5158,
+      "max": 0.8039
+    },
+    "0.5": {
+      "mean": 0.53652,
+      "max": 0.8039
+    },
+    "0.9": {
+      "mean": 0.53954,
+      "max": 0.8039
+    }
+  },
+  "accent": {
+    "0.0": {
+      "mean": 0.43256,
+      "max": 0.9412
+    },
+    "0.3": {
+      "mean": 0.451,
+      "max": 0.9412
+    },
+    "0.6": {
+      "mean": 0.46397,
+      "max": 0.9412
+    }
+  }
+}

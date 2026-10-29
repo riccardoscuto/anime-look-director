@@ -1,0 +1,723 @@
+{
+  "method": "1280x720, Eevee 32 samples, AgX, exposure 0, clouds off, no compositor; before/after share camera and palettes.",
+  "before": {
+    "sun_size": 1.5,
+    "sun_strength": 6.0,
+    "ui": {
+      "requested": -18.0,
+      "property": -5.0,
+      "actual_elevation": -5.0,
+      "actual_azimuth": -48.84,
+      "world_elevation": -5.0,
+      "sync_requested": 10.0,
+      "sync_actual": 10.0,
+      "sync_world": 10.0
+    },
+    "conditions": {
+      "noon": {
+        "palette": "SUMMER_NOON",
+        "sun_elevation": 35.0,
+        "sun_azimuth": 25.0,
+        "stars": false,
+        "mean": 0.66363,
+        "max": 0.9529,
+        "brightest_px": [
+          643,
+          330
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 30.1,
+        "second": {
+          "mean": 0.69874,
+          "max": 0.9529,
+          "brightest_px": [
+            633,
+            313
+          ],
+          "expected_px": [
+            640.0,
+            360.0
+          ],
+          "distance_px": 47.5
+        }
+      },
+      "golden": {
+        "palette": "AFTER_SCHOOL",
+        "sun_elevation": 4.0,
+        "sun_azimuth": 25.0,
+        "stars": false,
+        "mean": 0.71961,
+        "max": 0.9725,
+        "brightest_px": [
+          648,
+          335
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 26.2,
+        "second": {
+          "mean": 0.75854,
+          "max": 0.9725,
+          "brightest_px": [
+            657,
+            318
+          ],
+          "expected_px": [
+            640.0,
+            360.0
+          ],
+          "distance_px": 45.3
+        }
+      },
+      "twilight": {
+        "palette": "TWILIGHT_DUSK",
+        "sun_elevation": -2.0,
+        "sun_azimuth": 25.0,
+        "stars": false,
+        "mean": 0.54135,
+        "max": 0.8627,
+        "brightest_px": [
+          639,
+          395
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 35.0,
+        "second": {
+          "mean": 0.57278,
+          "max": 0.8627,
+          "brightest_px": [
+            645,
+            415
+          ],
+          "expected_px": [
+            640.0,
+            360.0
+          ],
+          "distance_px": 55.2
+        }
+      },
+      "night": {
+        "palette": "NEON_NIGHT",
+        "sun_elevation": -18.0,
+        "sun_azimuth": 25.0,
+        "stars": true,
+        "mean": 0.30531,
+        "max": 0.9529,
+        "brightest_px": [
+          784,
+          526
+        ],
+        "expected_px": [
+          1718.5,
+          -844.7
+        ],
+        "distance_px": 1658.9,
+        "second": {
+          "mean": 0.276,
+          "max": 0.9647,
+          "brightest_px": [
+            866,
+            619
+          ],
+          "expected_px": [
+            2325.2,
+            -1522.3
+          ],
+          "distance_px": 2591.2
+        }
+      }
+    },
+    "sweep": [
+      {
+        "elevation": 8.0,
+        "mean": 0.72304,
+        "max": 0.9686,
+        "brightest_px": [
+          643,
+          330
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 30.1
+      },
+      {
+        "elevation": 4.0,
+        "mean": 0.71961,
+        "max": 0.9725,
+        "brightest_px": [
+          648,
+          335
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 26.2
+      },
+      {
+        "elevation": 2.0,
+        "mean": 0.71069,
+        "max": 0.9725,
+        "brightest_px": [
+          643,
+          330
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 30.1
+      },
+      {
+        "elevation": 0.0,
+        "mean": 0.68701,
+        "max": 0.9333,
+        "brightest_px": [
+          622,
+          370
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 20.6
+      },
+      {
+        "elevation": -1.0,
+        "mean": 0.66194,
+        "max": 0.8549,
+        "brightest_px": [
+          659,
+          383
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 29.8
+      },
+      {
+        "elevation": -2.0,
+        "mean": 0.6295,
+        "max": 0.8431,
+        "brightest_px": [
+          589,
+          407
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 69.4
+      },
+      {
+        "elevation": -4.0,
+        "mean": 0.54946,
+        "max": 0.8196,
+        "brightest_px": [
+          483,
+          446
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 179.0
+      },
+      {
+        "elevation": -8.0,
+        "mean": 0.44977,
+        "max": 0.8039,
+        "brightest_px": [
+          427,
+          525
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 269.4
+      }
+    ],
+    "offsets": {
+      "-0.5": {
+        "mean": 0.72672,
+        "max": 0.9686,
+        "brightest_px": [
+          648,
+          335
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 26.2
+      },
+      "0.0": {
+        "mean": 0.71994,
+        "max": 0.9725,
+        "brightest_px": [
+          648,
+          335
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 26.2
+      },
+      "0.5": {
+        "mean": 0.7108,
+        "max": 0.9686,
+        "brightest_px": [
+          625,
+          364
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 15.5
+      }
+    }
+  },
+  "after": {
+    "sun_size": 1.0,
+    "sun_strength": 4.0,
+    "ui": {
+      "requested": -18.0,
+      "property": -18.0,
+      "actual_elevation": -18.0,
+      "actual_azimuth": -48.84,
+      "world_elevation": -18.0,
+      "sync_requested": 10.0,
+      "sync_actual": 10.0,
+      "sync_world": 10.0
+    },
+    "conditions": {
+      "noon": {
+        "palette": "SUMMER_NOON",
+        "sun_elevation": 35.0,
+        "sun_azimuth": 25.0,
+        "stars": false,
+        "mean": 0.66309,
+        "max": 0.9255,
+        "brightest_px": [
+          636,
+          340
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 20.4,
+        "second": {
+          "mean": 0.69741,
+          "max": 0.9255,
+          "brightest_px": [
+            641,
+            328
+          ],
+          "expected_px": [
+            640.0,
+            360.0
+          ],
+          "distance_px": 32.0
+        }
+      },
+      "golden": {
+        "palette": "AFTER_SCHOOL",
+        "sun_elevation": 4.0,
+        "sun_azimuth": 25.0,
+        "stars": false,
+        "mean": 0.71925,
+        "max": 0.9529,
+        "brightest_px": [
+          643,
+          340
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 20.2,
+        "second": {
+          "mean": 0.75765,
+          "max": 0.9529,
+          "brightest_px": [
+            641,
+            328
+          ],
+          "expected_px": [
+            640.0,
+            360.0
+          ],
+          "distance_px": 32.0
+        }
+      },
+      "twilight": {
+        "palette": "TWILIGHT_DUSK",
+        "sun_elevation": -2.0,
+        "sun_azimuth": 25.0,
+        "stars": false,
+        "mean": 0.54135,
+        "max": 0.8627,
+        "brightest_px": [
+          639,
+          395
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 35.0,
+        "second": {
+          "mean": 0.57278,
+          "max": 0.8627,
+          "brightest_px": [
+            645,
+            415
+          ],
+          "expected_px": [
+            640.0,
+            360.0
+          ],
+          "distance_px": 55.2
+        }
+      },
+      "night": {
+        "palette": "NEON_NIGHT",
+        "sun_elevation": -18.0,
+        "sun_azimuth": 25.0,
+        "stars": true,
+        "mean": 0.30531,
+        "max": 0.9529,
+        "brightest_px": [
+          784,
+          526
+        ],
+        "expected_px": [
+          1718.5,
+          -844.7
+        ],
+        "distance_px": 1658.9,
+        "second": {
+          "mean": 0.276,
+          "max": 0.9647,
+          "brightest_px": [
+            866,
+            619
+          ],
+          "expected_px": [
+            2325.2,
+            -1522.3
+          ],
+          "distance_px": 2591.2
+        }
+      }
+    },
+    "sweep": [
+      {
+        "elevation": 8.0,
+        "mean": 0.72266,
+        "max": 0.949,
+        "brightest_px": [
+          643,
+          340
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 20.2
+      },
+      {
+        "elevation": 4.0,
+        "mean": 0.71925,
+        "max": 0.9529,
+        "brightest_px": [
+          643,
+          340
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 20.2
+      },
+      {
+        "elevation": 2.0,
+        "mean": 0.71034,
+        "max": 0.9529,
+        "brightest_px": [
+          635,
+          340
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 20.6
+      },
+      {
+        "elevation": 0.0,
+        "mean": 0.68675,
+        "max": 0.9176,
+        "brightest_px": [
+          639,
+          370
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 10.0
+      },
+      {
+        "elevation": -1.0,
+        "mean": 0.66194,
+        "max": 0.8549,
+        "brightest_px": [
+          659,
+          383
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 29.8
+      },
+      {
+        "elevation": -2.0,
+        "mean": 0.6295,
+        "max": 0.8431,
+        "brightest_px": [
+          589,
+          407
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 69.4
+      },
+      {
+        "elevation": -4.0,
+        "mean": 0.54946,
+        "max": 0.8196,
+        "brightest_px": [
+          483,
+          446
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 179.0
+      },
+      {
+        "elevation": -8.0,
+        "mean": 0.44977,
+        "max": 0.8039,
+        "brightest_px": [
+          427,
+          525
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 269.4
+      }
+    ],
+    "offsets": {
+      "-0.5": {
+        "mean": 0.72632,
+        "max": 0.949,
+        "brightest_px": [
+          631,
+          343
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 19.2
+      },
+      "0.0": {
+        "mean": 0.71957,
+        "max": 0.9529,
+        "brightest_px": [
+          643,
+          340
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 20.2
+      },
+      "0.5": {
+        "mean": 0.71026,
+        "max": 0.9333,
+        "brightest_px": [
+          636,
+          379
+        ],
+        "expected_px": [
+          640.0,
+          360.0
+        ],
+        "distance_px": 19.4
+      }
+    },
+    "softness": {
+      "0.15": {
+        "mean": 0.5158,
+        "max": 0.8039
+      },
+      "0.5": {
+        "mean": 0.53652,
+        "max": 0.8039
+      },
+      "0.9": {
+        "mean": 0.53954,
+        "max": 0.8039
+      }
+    },
+    "accent": {
+      "0.0": {
+        "mean": 0.43256,
+        "max": 0.9412
+      },
+      "0.3": {
+        "mean": 0.451,
+        "max": 0.9412
+      },
+      "0.6": {
+        "mean": 0.46397,
+        "max": 0.9412
+      }
+    }
+  },
+  "changes": [
+    "Sun Elevation min -5 -> -30 deg",
+    "World disk direction updated on the property change",
+    "Sun disk radius 1.5 -> 1.0 deg; strength 6 -> 4",
+    "Sun disk masked by the ground gradient at the horizon",
+    "World marker 31 -> 32"
+  ],
+  "decision": "TECHNICAL PASS - VISUAL REVIEW PENDING",
+  "markers": [
+    {
+      "label": "marker29_anim",
+      "marker_before": 29,
+      "marker_after": 32,
+      "marker_reopened": 32,
+      "events_before": 4,
+      "events_after": 4,
+      "events_reopened": 4,
+      "properties_preserved": true,
+      "animation_preserved": true,
+      "camera_keyed": true
+    },
+    {
+      "label": "marker30_anim",
+      "marker_before": 30,
+      "marker_after": 32,
+      "marker_reopened": 32,
+      "events_before": 4,
+      "events_after": 4,
+      "events_reopened": 4,
+      "properties_preserved": true,
+      "animation_preserved": true,
+      "camera_keyed": true
+    },
+    {
+      "label": "marker31_anim",
+      "marker_before": 31,
+      "marker_after": 32,
+      "marker_reopened": 32,
+      "events_before": 4,
+      "events_after": 4,
+      "events_reopened": 4,
+      "properties_preserved": true,
+      "animation_preserved": true,
+      "camera_keyed": true
+    }
+  ],
+  "gates": {
+    "phase1a_gate": "37/37 PASS on OpenGL and Vulkan",
+    "interactive_preview": "5/5 PASS",
+    "verify_all": "ALD ALL: PASS",
+    "audit_world": "44/44 OK",
+    "phase6_technical": "17/17 PASS",
+    "build": "ALD BUILD: PASS"
+  },
+  "stars": "NEON_NIGHT night: stars visible, no change; the Milky Way stays part of the night palette.",
+  "limits": [
+    "One camera pair and one palette pair for the gate; clouds off.",
+    "2A gradients are unchanged and pass; 2B sun disk size/strength is a visual choice pending approval.",
+    "The sun disk fade is smooth over the horizon but the gradient horizon is a soft band, not a hard ground plane.",
+    "No release, tag, version bump or merge."
+  ],
+  "tests": {
+    "phase1a_gate": {
+      "opengl": "PASS 37/37",
+      "vulkan": "PASS 37/37"
+    },
+    "interactive_preview": "5/5 PASS (marker 32)",
+    "verify_all": "ALD ALL: PASS",
+    "audit_world": "44/44 OK",
+    "phase6_technical": "17/17 PASS",
+    "build": "ALD BUILD: PASS",
+    "markers": [
+      {
+        "label": "marker29_anim",
+        "marker_before": 29,
+        "marker_after": 32,
+        "marker_reopened": 32,
+        "events_before": 4,
+        "events_after": 4,
+        "events_reopened": 4,
+        "properties_preserved": true,
+        "animation_preserved": true,
+        "camera_keyed": true
+      },
+      {
+        "label": "marker30_anim",
+        "marker_before": 30,
+        "marker_after": 32,
+        "marker_reopened": 32,
+        "events_before": 4,
+        "events_after": 4,
+        "events_reopened": 4,
+        "properties_preserved": true,
+        "animation_preserved": true,
+        "camera_keyed": true
+      },
+      {
+        "label": "marker31_anim",
+        "marker_before": 31,
+        "marker_after": 32,
+        "marker_reopened": 32,
+        "events_before": 4,
+        "events_after": 4,
+        "events_reopened": 4,
+        "properties_preserved": true,
+        "animation_preserved": true,
+        "camera_keyed": true
+      }
+    ]
+  }
+}

@@ -25,6 +25,14 @@ Phase 6 release evidence and technical gate:
 ```
 Expected: `P6 SHEET`, `ALD PHASE6 TECHNICAL 17/17 PASS`.
 
+Phase 3 UI gate (on `phase-3-ui-cleanup`):
+```powershell
+& $blender -b --factory-startup --gpu-backend vulkan --python-exit-code 1 `
+  --python preset_dev\phase3_ui.py
+```
+Expected: `PHASE3 UI {"status": "PASS", "failures": []}`. The render
+invariance check is `preset_dev\phase3_invariance.py`.
+
 World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 ```powershell
 & $blender -b --factory-startup --python preset_dev\world_baseline.py -- `
@@ -65,14 +73,18 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 - Cumulus lighting adds a height tone (lower cloud darker) and a stronger
   solar body range (-0.030..0.004); the default Sun Lighting is 1.2.
 - The Scene properties are the complete surface: Atmosphere & Sun, World
-  Clouds, Stars & Milky Way + Shooting Stars, Palette Customization,
-  Materials & Shadows, Compositor, Advanced Settings. The View3D sidebar is
-  Quick Look (preset, Apply/Reset, Sun elevation, cloud type/coverage/wind,
-  stars) plus one collapsed Advanced Sky panel; no compositor or material
-  controls in the quick area.
-- The compositor is inactive by default. Its panel shows Enable Compositor
-  when no stack is assigned and the full controls only when active; the viewport
-  state is reported as ALWAYS / CAMERA / DISABLED.
+  Clouds, Stars & Milky Way, Shooting Stars, Palette Customization,
+  Materials & Shadows, Compositor, Advanced Settings. The View3D sidebar
+  mirrors the same sections with the same drawing functions; the root panel
+  holds the palette and the eight sub-panels are Atmosphere & Sun, World
+  Clouds, Stars & Milky Way, Shooting Stars, Palette Customization, Materials
+  & Shadows, Compositor and Advanced Settings.
+- The compositor is inactive by default. Its panel distinguishes inactive,
+  configured/render-disabled and active-in-render, reports the viewport
+  preview state, never mistakes a user group for an ALD stack
+  (`compositor.scene_stack`) and only enables on the explicit
+  Enable Compositor action. The full controls are shown only for an ALD
+  stack; the viewport operator is limited to the current 3D view.
 - Seven original presets plus Soft Dawn, Blue Hour, Cloudy Afternoon, Stormy
   Sunset and Moonlit Night. All use the same World generator. Save as Custom
   copies the current colors into the custom fields without changing the preset.
@@ -90,42 +102,60 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   `phase-1a-shooting-stars`: 37/37 technical checks and 5/5 interactive
   Preview checks, evidence in `preset_dev/phase1a_shooting_stars/`,
   **FINAL TECHNICAL REVIEW: PASS**; PR #1 is **merged to master** at `63ffa29`
-  (Phase 1A technically complete). Phase 1B has an authorized appearance
-  candidate on `phase-1b-shooting-stars`: compact head, tapered tail and a
-  bounded temporal envelope; **VISUAL APPROVED** on 2026-10-28; merge
-  authorization pending, marker 31. No merge or 2.63 release.
+  (Phase 1A technically complete). Phase 1B is merged at `fe685d5` (compact
+  head, tapered tail, temporal envelope, marker 31). Phase 2 is in progress
+  on `phase-2-atmosphere`: Sun Elevation -30..85, immediate World sync,
+  sun disk 1.0 deg / 4.0, ground-mask at the horizon, marker 32;
+  **TECHNICAL PASS - VISUAL REVIEW PENDING**. Phase 3 UI cleanup is on
+  `phase-3-ui-cleanup` from `d8a94d8`: full sidebar mirror of Scene Properties,
+  autonomous Shooting Stars, compositor states and grouped effects; 68 UI
+  checks, pixel-identical render, World 719 / Compositor 31 nodes, marker 32;
+  evidence in `preset_dev/phase3_ui/`, **TECHNICAL PASS - UI REVIEW PENDING**.
+  No merge or 2.63 release. Phase 4 star/cloud look is on
+  `feature/star-cloud-look` from `4db6718`: thickness max 0.01 rad with a
+  0.012 rad head cap (marker 33), optional per-event `Curvature` with a sine
+  bow and default 0 (marker 34), and `Cloud Sun Scatter` default 0 that boosts
+  the sun-facing silver lining (marker 35). Evidence:
+  `preset_dev/star_thickness/`, `preset_dev/star_curvature/`,
+  `preset_dev/cloud_sun_scatter/`. 68 UI, 37/37 Phase 1A, 44/44 audit,
+  17/17 Phase 6, Phase 1B markers 29/30 -> 35 with events and animation
+  preserved, Phase 2 audit, matrix 22 cells, ALD ALL and build PASS.
+  **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
   cost. Stratocumulus and Cirrus are documented but have no individual
   aesthetic sign-off; Cumulus is the approved family.
 - A field edit calls `_on_star` and refreshes the World immediately; Add
-  places the event in the current camera view and 1/3 into its life, and the
-  Preview operator moves the timeline and aims the camera at the start.
+  places the event in the current camera direction at the current frame, and
+  Preview moves the timeline to 1/3 of the event and frames it in the 3D view
+  without changing the camera.
 - The star head is a short bright band, the tail is a thin tapered line and
   the color is cool white by default, matching the starfield.
 - Shooting stars are persistent `ALD_ShootingStar` events: start frame,
-  duration, azimuth/elevation, direction, angular length, trail, thickness,
-  brightness, glow and color. Start Frame is the first visible frame and
-  Duration the exact count (progress uses `duration - 1`; a 2-frame event is
-  valid). Existing events start one frame earlier after the marker-30 rebuild;
-  their last visible frame is unchanged. The World shader evaluates four fixed
-  slots as great-circle arcs
-  between the start/end unit directions (azimuth/elevation in degrees) with a
-  frame driver; thickness is an angular half-width, independent of elevation,
-  with no gnomonic `z` clamp. `Direction` is a local bearing (0 horizontal,
-  +90 up). Add uses the camera direction with a 1-degree horizon floor and
-  flips a descending bearing; Preview never writes the camera. The event list is
-  capped at 4 and survives save/reload.
+  duration, azimuth/elevation, direction, angular length, `Curvature`, trail,
+  thickness, brightness, glow and color. Start Frame is the first visible frame
+  and Duration the exact count (progress uses `duration - 1`; a 2-frame event
+  is valid). Existing events start one frame earlier after the marker-30
+  rebuild; their last visible frame is unchanged. The World shader evaluates
+  four fixed slots as great-circle arcs between the start/end unit directions
+  (azimuth/elevation in degrees) with a frame driver. `Curvature` is a signed
+  sine bow along the path normal; 0 keeps the great-circle arc. Thickness is an
+  angular half-width, independent of elevation, with no gnomonic `z` clamp;
+  the UI max is 0.01 rad and the head radius is capped at 0.012 rad. `Direction`
+  is a local bearing (0 horizontal, +90 up). Add uses the camera direction with
+  a 1-degree horizon floor and flips a descending bearing; Preview never writes
+  the camera. The event list is capped at 4 and survives save/reload.
 - The sky accent is a broad band (`From Max 0.20`), not a narrow stripe.
   Keep the dusk/night transition smooth; the Phase 2 before/after is in
   `preset_dev/sky/contact.png`.
 - `_sun_fade` hides the Sun disk below the horizon and fades the glow by
   about -7 degrees; `update_sun_controls` uses the same gates.
-- The World is a node group (`ALD | World Gradient`, marker 29) with
-  `Ground`, `Horizon`, `Mid Sky`, `Zenith` plus Sun, clouds, stars, Milky Way,
-  contrails and sky accent. Palette colors are wired through group sockets,
-  never baked into ColorRamp stops.
+- The World is a node group (`ALD | World Gradient`; marker 32 on Phase 3,
+  marker 35 on the Phase 4 feature branch) with `Ground`, `Horizon`, `Mid Sky`,
+  `Zenith` plus Sun, clouds, stars, Milky Way, contrails and sky accent.
+  Palette colors are wired through group sockets, never baked into ColorRamp
+  stops.
 - Visible sky vs ambient: `Light Path → Is Camera Ray` mixes the gradient with
   the full gradient for camera rays. Background Strength is 1.0 when the
   gradient is active.
@@ -169,19 +199,30 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
 
 ## UI
 - Scene properties parent: palette, Apply, material presets, stack actions.
-- `World & Shadows`: World, Sun, clouds, stars, custom colors, Shadow/Cel/Rim.
-- `Compositor Stack`: optional toggles and camera override.
-- `Legacy ALD Data`: explicit Disable/Restore and a confirmed Remove
-  of old collections and standalone FX helpers.
-- The View3D sidebar uses the same drawing functions as the Scene properties:
-  `draw_world`, `draw_compositor`, `draw_shadows`.
+- `Atmosphere & Sun`, `World Clouds` (Distribution / Shape / Lighting /
+  Animation), `Stars & Milky Way`, `Shooting Stars` (Timing / Trajectory /
+  Appearance), `Palette Customization`, `Materials & Shadows`, `Compositor`
+  (Light Effects / Stylization / Atmospheric Post Effects), `Advanced
+  Settings` (reversible versus destructive actions).
+- Shooting Stars Trajectory includes `Curvature`; Appearance `Thickness` is
+  capped at 0.01 rad. World Clouds Lighting includes `Sun Scatter` (default
+  0.0), a sun-facing silver-lining boost; it is not volumetric shadowing.
+- The compositor panel is state-driven: inactive with only Enable Compositor,
+  configured/render-disabled with the Use in Render toggle, active with the
+  effects, and a read-only viewport preview line. Sun Beams lives only here.
+- `ALD_UL_shooting_stars` is the event list; the four-event cap and operators
+  are unchanged.
+- The View3D sidebar mirrors the Scene Properties sections with the same
+  drawing functions and open sub-panels; the root palette is shared.
 - Panel icons must come from the real Blender 5.1 enum; `CLOUD` does not exist,
   `WORLD` does.
 
 ## Rules
 - Do not introduce FX, Spatial Clouds, smoke or EXR-pass code again.
 - Do not make the compositor mandatory: applying a palette must work without
-  `Build Stack`.
+  `Build Stack`. Never auto-enable it.
+- Identify an ALD stack only through `compositor.scene_stack`; a user
+  compositor group is never modified, removed or presented as ALD.
 - Never silently modify a user World, HDRI, Sun or material. Use snapshot.
 - Palette changes and shots go through `look.apply`/`look.apply_world`.
 - Float slider updates use `compositor.update_params`; rebuild only for

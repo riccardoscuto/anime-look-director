@@ -1,0 +1,20 @@
+{
+  "engine": "eevee",
+  "values": {
+    "0.0": {
+      "requested": 0.0,
+      "property": 0.0,
+      "path": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_scatter\\scatter_0_0.png"
+    },
+    "0.5": {
+      "requested": 0.5,
+      "property": 0.5,
+      "path": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_scatter\\scatter_0_5.png"
+    },
+    "1.0": {
+      "requested": 1.0,
+      "property": 1.0,
+      "path": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_scatter\\scatter_1_0.png"
+    }
+  }
+}

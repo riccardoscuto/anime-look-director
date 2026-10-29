@@ -1,0 +1,22 @@
+{
+  "pixel_equal": true,
+  "maxdiff": 0,
+  "current": {
+    "tag": "current",
+    "image": "invariance_current.png",
+    "world_nodes": 719,
+    "compositor_nodes": 31,
+    "world_marker": 32,
+    "compositor_stack": true,
+    "use_compositing": true
+  },
+  "base": {
+    "tag": "base",
+    "image": "invariance_base.png",
+    "world_nodes": 719,
+    "compositor_nodes": 31,
+    "world_marker": 32,
+    "compositor_stack": true,
+    "use_compositing": true
+  }
+}

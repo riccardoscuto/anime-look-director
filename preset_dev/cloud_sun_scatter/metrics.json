@@ -1,0 +1,12 @@
+{
+  "feature": "Cloud Sun Scatter",
+  "default": 0.0,
+  "sun_elevation": 12.0,
+  "cloud_type": "CUMULUS",
+  "cloud_amount": 0.78,
+  "pixel_diff_0_vs_1": {
+    "pixels_over_1": 4140,
+    "mean_abs": 0.021298225308641974,
+    "max": 7
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "base": {
+    "variant": "base",
+    "state": "inactive",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      0,
+      20,
+      30,
+      38,
+      46,
+      54,
+      62
+    ],
+    "stack": false,
+    "use_compositing": false
+  },
+  "current_inactive": {
+    "variant": "current",
+    "state": "inactive",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      0,
+      20,
+      38,
+      46,
+      62
+    ],
+    "stack": false,
+    "use_compositing": false
+  },
+  "current_active": {
+    "variant": "current",
+    "state": "active",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      62,
+      70
+    ],
+    "stack": true,
+    "use_compositing": true
+  },
+  "current_disabled": {
+    "variant": "current",
+    "state": "disabled",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      62
+    ],
+    "stack": true,
+    "use_compositing": false
+  },
+  "current_narrow": {
+    "variant": "current_narrow",
+    "state": "inactive",
+    "width": 1200,
+    "height": 900,
+    "steps": [
+      0
+    ],
+    "stack": false,
+    "use_compositing": false
+  },
+  "legacy": {
+    "variant": "legacy",
+    "state": "legacy",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      30
+    ],
+    "stack": false,
+    "use_compositing": false
+  },
+  "empty": {
+    "variant": "empty",
+    "state": "empty",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      0,
+      62
+    ],
+    "stack": false,
+    "use_compositing": false
+  },
+  "stars": {
+    "add_count": 1,
+    "duplicate_count": 2,
+    "preview_frame": 21,
+    "remove_count": 1,
+    "events": 1,
+    "names": [
+      "Shooting Star 1"
+    ],
+    "frame": 21,
+    "selected": 0
+  }
+}

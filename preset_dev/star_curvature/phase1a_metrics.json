@@ -1,0 +1,440 @@
+{
+  "checks": {
+    "add.horizon": {
+      "pass": true,
+      "detail": "el 1.00 dir 35.0 110 px"
+    },
+    "geometry.width_constant": {
+      "pass": true,
+      "detail": "p95 width deg [0.076, 0.08, 0.09, 0.091]"
+    },
+    "geometry.visible_1": {
+      "pass": true,
+      "detail": "642 px, max 0.404"
+    },
+    "geometry.length_1": {
+      "pass": true,
+      "detail": "along 9.11..18.25"
+    },
+    "geometry.head_1": {
+      "pass": true,
+      "detail": "head [134.8, 11.08] expected [134.95, 11.18] error 0.18"
+    },
+    "geometry.visible_5": {
+      "pass": true,
+      "detail": "672 px, max 0.447"
+    },
+    "geometry.length_5": {
+      "pass": true,
+      "detail": "along 9.11..18.26"
+    },
+    "geometry.head_5": {
+      "pass": true,
+      "detail": "head [135.04, 14.95] expected [135.2, 15.04] error 0.17"
+    },
+    "geometry.visible_40": {
+      "pass": true,
+      "detail": "829 px, max 0.773"
+    },
+    "geometry.length_40": {
+      "pass": true,
+      "detail": "along 8.15..18.33"
+    },
+    "geometry.head_40": {
+      "pass": true,
+      "detail": "head [142.19, 48.29] expected [142.38, 48.34] error 0.14"
+    },
+    "geometry.visible_85": {
+      "pass": true,
+      "detail": "832 px, max 0.749"
+    },
+    "geometry.length_85": {
+      "pass": true,
+      "detail": "along 8.15..18.31"
+    },
+    "geometry.head_85": {
+      "pass": true,
+      "detail": "head [-129.84, 74.48] expected [-129.69, 74.34] error 0.14"
+    },
+    "horizon.visible": {
+      "pass": true,
+      "detail": "88 px, max 0.149"
+    },
+    "horizon.continuous": {
+      "pass": true,
+      "detail": "width p95 0.047"
+    },
+    "horizon.head_below": {
+      "pass": true,
+      "detail": "along max 8.43"
+    },
+    "lifecycle.before": {
+      "pass": true,
+      "detail": "0 px at 9"
+    },
+    "lifecycle.start_visible": {
+      "pass": true,
+      "detail": "149 px at 10"
+    },
+    "lifecycle.last_visible": {
+      "pass": true,
+      "detail": "829 px at 33"
+    },
+    "lifecycle.after": {
+      "pass": true,
+      "detail": "0 px at 34, 0 px at 35"
+    },
+    "lifecycle.head_at_start": {
+      "pass": true,
+      "detail": "head error 0.00"
+    },
+    "duration2": {
+      "pass": true,
+      "detail": "{\"9\": 0, \"10\": 140, \"11\": 802, \"12\": 0}"
+    },
+    "scrubbing": {
+      "pass": true,
+      "detail": "frame 33 identical after seeking away and back"
+    },
+    "duplicate.limit": {
+      "pass": true,
+      "detail": "['CANCELLED']"
+    },
+    "four.visible": {
+      "pass": true,
+      "detail": "2215 px, components [149, 143, 135, 134]"
+    },
+    "four.event_1": {
+      "pass": true,
+      "detail": "head at 452, 189"
+    },
+    "four.event_2": {
+      "pass": true,
+      "detail": "head at 610, 499"
+    },
+    "four.event_3": {
+      "pass": true,
+      "detail": "head at 664, 580"
+    },
+    "four.event_4": {
+      "pass": true,
+      "detail": "head at 906, 238"
+    },
+    "remove.independent": {
+      "pass": true,
+      "detail": "components [149, 135, 134]"
+    },
+    "duplicate.copy": {
+      "pass": true,
+      "detail": "start 20, source 8"
+    },
+    "preview.non_destructive": {
+      "pass": true,
+      "detail": "frame 18, camera unchanged True"
+    },
+    "anchor.camera_rotation": {
+      "pass": true,
+      "detail": "world error 0.00 deg"
+    },
+    "persistence": {
+      "pass": true,
+      "detail": "render identical, 4 events"
+    },
+    "scene.duplicate": {
+      "pass": true,
+      "detail": "world independent, originals unchanged"
+    },
+    "brightness.linear": {
+      "pass": true,
+      "detail": "EXR peak 5/40: {'5.0': 1.608, '40.0': 1.521} (ratio 1.057)"
+    }
+  },
+  "renders": {
+    "add_horizon": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\add_horizon_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\add_horizon_off.png"
+    },
+    "elev_1": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_1_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_1_off.png"
+    },
+    "elev_5": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_5_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_5_off.png"
+    },
+    "elev_40": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_40_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_40_off.png"
+    },
+    "elev_85": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_85_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\elev_85_off.png"
+    },
+    "horizon_cross": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\horizon_cross_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\horizon_cross_off.png"
+    },
+    "four": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\four_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\four_off.png"
+    },
+    "three": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\three_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\three_off.png"
+    },
+    "anchor_a": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\anchor_a_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\anchor_a_off.png"
+    },
+    "anchor_b": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\anchor_b_on.png",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\anchor_b_off.png"
+    },
+    "linear_5": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\linear_5_on.exr",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\linear_5_off.exr"
+    },
+    "linear_40": {
+      "on": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\linear_40_on.exr",
+      "off": "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\linear_40_off.exr"
+    }
+  },
+  "metrics": {
+    "geometry": {
+      "1.0": {
+        "pixels": 642,
+        "max": 0.404,
+        "bbox": [
+          789,
+          464,
+          948,
+          577
+        ],
+        "back": {
+          "along_min": 9.11,
+          "along_max": 18.25,
+          "width_p50": 0.034,
+          "width_p95": 0.076
+        },
+        "head": {
+          "angles": [
+            134.8,
+            11.08
+          ],
+          "expected": [
+            134.95,
+            11.18
+          ],
+          "error": 0.18
+        }
+      },
+      "5.0": {
+        "pixels": 672,
+        "max": 0.447,
+        "bbox": [
+          789,
+          464,
+          948,
+          577
+        ],
+        "back": {
+          "along_min": 9.11,
+          "along_max": 18.26,
+          "width_p50": 0.036,
+          "width_p95": 0.08
+        },
+        "head": {
+          "angles": [
+            135.04,
+            14.95
+          ],
+          "expected": [
+            135.2,
+            15.04
+          ],
+          "error": 0.17
+        }
+      },
+      "40.0": {
+        "pixels": 829,
+        "max": 0.773,
+        "bbox": [
+          773,
+          453,
+          949,
+          578
+        ],
+        "back": {
+          "along_min": 8.15,
+          "along_max": 18.33,
+          "width_p50": 0.044,
+          "width_p95": 0.09
+        },
+        "head": {
+          "angles": [
+            142.19,
+            48.29
+          ],
+          "expected": [
+            142.38,
+            48.34
+          ],
+          "error": 0.14
+        }
+      },
+      "85.0": {
+        "pixels": 832,
+        "max": 0.749,
+        "bbox": [
+          773,
+          453,
+          949,
+          578
+        ],
+        "back": {
+          "along_min": 8.15,
+          "along_max": 18.31,
+          "width_p50": 0.044,
+          "width_p95": 0.091
+        },
+        "head": {
+          "angles": [
+            -129.84,
+            74.48
+          ],
+          "expected": [
+            -129.69,
+            74.34
+          ],
+          "error": 0.14
+        }
+      }
+    },
+    "horizon_cross": {
+      "pixels": 88,
+      "max": 0.149,
+      "bbox": [
+        753,
+        302,
+        798,
+        318
+      ]
+    },
+    "lifecycle": {
+      "9": {
+        "pixels": 0,
+        "max": 0.0,
+        "bbox": null
+      },
+      "10": {
+        "pixels": 149,
+        "max": 0.753,
+        "bbox": [
+          633,
+          353,
+          646,
+          366
+        ]
+      },
+      "11": {
+        "pixels": 184,
+        "max": 0.867,
+        "bbox": [
+          640,
+          360,
+          659,
+          375
+        ]
+      },
+      "18": {
+        "pixels": 605,
+        "max": 0.886,
+        "bbox": [
+          640,
+          359,
+          749,
+          438
+        ]
+      },
+      "32": {
+        "pixels": 895,
+        "max": 0.847,
+        "bbox": [
+          759,
+          443,
+          935,
+          569
+        ]
+      },
+      "33": {
+        "pixels": 829,
+        "max": 0.773,
+        "bbox": [
+          773,
+          453,
+          949,
+          578
+        ]
+      },
+      "34": {
+        "pixels": 0,
+        "max": 0.0,
+        "bbox": null
+      },
+      "35": {
+        "pixels": 0,
+        "max": 0.0,
+        "bbox": null
+      }
+    },
+    "duration2": {
+      "9": 0,
+      "10": 140,
+      "11": 802,
+      "12": 0
+    },
+    "four_events": {
+      "pixels": 2215,
+      "components": 4,
+      "sizes": [
+        149,
+        143,
+        135,
+        134
+      ]
+    },
+    "linear_brightness": {
+      "5.0": 1.608,
+      "40.0": 1.521
+    }
+  },
+  "video": [
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f10.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f11.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f12.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f13.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f14.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f15.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f16.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f17.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f18.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f19.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f20.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f21.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f22.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f23.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f24.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f25.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f26.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f27.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f28.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f29.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f30.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f31.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f32.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f33.png",
+    "C:\\Users\\Riccardo\\AppData\\Local\\Temp\\opencode\\p4_phase1a_final\\video_f34.png"
+  ],
+  "status": "PASS",
+  "failures": []
+}

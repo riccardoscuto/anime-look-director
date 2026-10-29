@@ -95,9 +95,88 @@ operator or property changes.
   1080p +0.4%.
 - `preset_dev/phase1b_shooting_stars/` candidate boards, video, metrics,
   markers and performance.
-- Status: **VISUAL APPROVED** (2026-10-28); merge authorization pending; no
-  merge or release.
+- Status: **VISUAL APPROVED** and merged to `master` at `fe685d5`
+  (PR #2); no release.
 
+
+
+### Phase 2 - Atmosphere, Horizon and Sun Disk (candidate)
+
+Cloudless World; no cloud generator, compositor or material changes.
+
+#### Changed
+- Sun Elevation range -5..85 -> -30..85, preserving the presets.
+- Sun disk radius 1.5 -> 1.0 deg, strength 6 -> 4; disk masked by the ground
+  gradient at the horizon so it is cut when Horizon Offset raises the horizon.
+- `apply_sun_angles` refreshes the World disk immediately.
+- World marker 31 -> 32.
+
+#### Evidence
+- `preset_dev/phase2_atmosphere/`: four conditions and second framing, Sun
+  sweep +8..-8, Horizon Offset, Softness/Accent, UI before/after.
+- 37/37 OpenGL/Vulkan, interactive 5/5, ALD ALL, audit 44/44, Phase 6 17/17,
+  build PASS; markers 29/30/31 -> 32.
+- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
+
+### Phase 3 - UI cleanup
+
+UI-only; no World, Shooting Star, material or shader change.
+
+#### Changed
+- View3D sidebar mirrors the Scene Properties sections with the same drawing
+  functions: palette root plus Atmosphere & Sun, World Clouds, Stars & Milky
+  Way, Shooting Stars, Palette Customization, Materials & Shadows, Compositor
+  and Advanced Settings. All sub-panels are open and scrollable.
+- Scene Properties reordered: Atmosphere & Sun, grouped World Clouds, Stars &
+  Milky Way, autonomous Shooting Stars, Palette Customization, Materials &
+  Shadows, Compositor, Advanced Settings.
+- Sun Beams removed from Atmosphere; it exists only in the Compositor effects.
+- Shooting Stars uses the `ALD_UL_shooting_stars` list with Timing, Trajectory
+  and Appearance groups; operators and shader unchanged.
+- Compositor states are explicit through `compositor.scene_stack`: inactive,
+  configured/render-disabled, active in render, plus a read-only viewport
+  preview. A user compositor group is never treated as ALD. Applying a palette
+  never enables the compositor.
+- `ald.viewport_compositor` is limited to the current 3D view and is not called
+  by the UI.
+
+#### Evidence
+- `preset_dev/phase3_ui/`: before/after sidebar, Scene Properties, Shooting
+  Stars, compositor inactive/disabled/active/effects, legacy project and
+  narrow layout screenshots; `phase3_ui.json` (68 checks), invariance JSON and
+  comparison render, regression logs.
+- Pixel-identical render (`maxdiff 0`); World 719 / Compositor 31 nodes; marker
+  32 on both.
+- ALD ALL PASS; audit 44/44; Phase 6 technical 17/17; Phase 1A 37/37; Phase 1B
+  markers 29/30 -> 32; Phase 2 audit PASS; build PASS.
+- Status: **TECHNICAL PASS - UI REVIEW PENDING**; no merge or release.
+
+### Phase 4 - star look and cloud sun scatter (feature branch)
+
+Feature branch `feature/star-cloud-look`, based on `4db6718`. Look and shader
+changes; no merge or release.
+
+#### Changed
+- Shooting star `Thickness` maximum `0.05` -> `0.01 rad`; the shader clamps
+  old events and caps the head radius at `0.012 rad`. The default `0.0018`
+  is unchanged. Marker 33.
+- New per-event `Curvature` (default `0.0`, range -1..1): a signed sine bow
+  along the path normal, zero at the endpoints. Marker 34.
+- New `Cloud Sun Scatter` (default `0.0`, range 0..1) under World Clouds >
+  Lighting: a sun-facing silver-lining boost, not volumetric shadowing.
+  Marker 35.
+- Shooting Stars Trajectory shows `Curvature`; World Clouds Lighting shows
+  `Sun Scatter`; Thickness slider max is 0.01.
+
+#### Evidence
+- `preset_dev/star_thickness/`: before/after 0.05, 0.01, default; compare and
+  metrics.
+- `preset_dev/star_curvature/`: 0/0.5/1.0/-1.0 curves; Phase 1A 37/37.
+- `preset_dev/cloud_sun_scatter/`: 0/0.5/1.0; pixel difference and compare.
+- 68/68 UI, 44/44 audit, Phase 6 17/17, Phase 1A 37/37, Phase 1B markers
+  29/30 -> 35 with events/animation preserved, Phase 2 audit PASS, Phase 6
+  matrix 22 cells, ALD ALL PASS, build PASS.
+- Status: **TECHNICAL PASS - VISUAL REVIEW PENDING**; no merge or release.
 
 
 ## 2.62.0 - 2026-10-27

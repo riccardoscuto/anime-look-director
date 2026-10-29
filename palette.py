@@ -388,13 +388,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 31):
+                           or ng.get("ald_build") != 35):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 31
+        ng["ald_build"] = 35
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -410,7 +410,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 31
+        ng["ald_build"] = 35
     return ng
 
 
@@ -704,6 +704,9 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         duration = group_in.outputs[prefix + "Duration"]
         trail = group_in.outputs[prefix + "Trail"]
         thickness = group_in.outputs[prefix + "Thickness"]
+        # The UI max is 0.01 rad; clamp old saved events as well.
+        thickness = math(3140, base - 220, "MINIMUM", thickness, 0.01)
+        curvature = group_in.outputs[prefix + "Curvature"]
         brightness = group_in.outputs[prefix + "Brightness"]
         glow = group_in.outputs[prefix + "Glow"]
         enabled = group_in.outputs[prefix + "Enabled"]
@@ -723,6 +726,19 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         along_b = dot(4220, base - 100, view.outputs["Vector"], tangent)
         plane = dot(4220, base - 200, view.outputs["Vector"], normal)
         phi = math(4400, base, "ARCTAN2", along_b, along_a)
+
+        # Curvature: bow the great-circle band by a sine-shaped offset along
+        # the path normal. Zero keeps the original straight great-circle arc.
+        curve_u = math(4400, base - 220, "DIVIDE", phi, theta, clamp=True)
+        curve_pi = math(4580, base - 220, "MULTIPLY",
+                        curve_u, 3.141592653589793)
+        curve_sin = math(4760, base - 220, "SINE", curve_pi)
+        curve_amp = math(4580, base - 320, "MULTIPLY", curvature, theta)
+        curve_amp = math(4760, base - 320, "MULTIPLY", curve_amp, 0.35)
+        curve_bend = math(4940, base - 220, "MULTIPLY",
+                          curve_amp, curve_sin)
+        plane_curved = math(5120, base - 220, "SUBTRACT",
+                            plane, curve_bend)
 
         span = math(4400, base - 160, "SUBTRACT", duration, 1.0)
         span = math(4580, base - 160, "MAXIMUM", span, 1.0)
@@ -791,7 +807,7 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         taper = math(6200, base, "MULTIPLY", tail_curve, 0.94)
         taper = math(6380, base, "ADD", taper, 0.06)
         local_width = math(6560, base, "MULTIPLY", thickness, taper)
-        abs_plane = math(6020, base - 120, "ABSOLUTE", plane)
+        abs_plane = math(6020, base - 120, "ABSOLUTE", plane_curved)
         width = nodes.new("ShaderNodeMapRange")
         width.location = (6720, base - 60)
         width.clamp = True
@@ -812,7 +828,16 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         head_a = vector(6200, base - 260, "SCALE", start, cos_head)
         head_b = vector(6200, base - 380, "SCALE", tangent, sin_head)
         head_point = vector(6380, base - 320, "ADD", head_a, head_b)
-        head_dot = dot(6560, base - 320, view.outputs["Vector"], head_point)
+        head_pi = math(6380, base - 420, "MULTIPLY",
+                       progress, 3.141592653589793)
+        head_sin = math(6560, base - 420, "SINE", head_pi)
+        head_bend = math(6740, base - 420, "MULTIPLY", curvature, theta)
+        head_bend = math(6920, base - 420, "MULTIPLY", head_bend, 0.35)
+        head_bend = math(7100, base - 420, "MULTIPLY", head_bend, head_sin)
+        head_offset = vector(7280, base - 420, "SCALE", normal, head_bend)
+        head_point = vector(7460, base - 320, "ADD", head_point, head_offset)
+        head_point = vector(7640, base - 320, "NORMALIZE", head_point)
+        head_dot = dot(7820, base - 320, view.outputs["Vector"], head_point)
         head_dist = math(6740, base - 320, "SUBTRACT", 1.0, head_dot)
         head_dist = math(6920, base - 320, "MULTIPLY", head_dist, 2.0)
         head_dist = math(7100, base - 320, "MAXIMUM", head_dist, 0.0)
@@ -820,7 +845,9 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         head_radius = math(6560, base - 440, "ADD", head_radius, 0.8)
         head_radius = math(6740, base - 440, "MULTIPLY",
                            head_radius, thickness)
-        head_radius2 = math(6920, base - 440, "MULTIPLY",
+        head_radius = math(6920, base - 440, "MINIMUM",
+                           head_radius, 0.012)
+        head_radius2 = math(7100, base - 440, "MULTIPLY",
                             head_radius, head_radius)
         core_radius2 = math(6920, base - 500, "MULTIPLY",
                             head_radius2, 0.1225)
@@ -957,7 +984,8 @@ def _build_gradient_group(ng):
                           ("Cloud Vertical", 0.55),
                           ("Cloud Breakup", 0.35),
                           ("Cloud Detail", 0.60),
-                          ("Cloud Sun Lighting", 1.0)):
+                          ("Cloud Sun Lighting", 1.0),
+                          ("Cloud Sun Scatter", 0.0)):
         socket = ng.interface.new_socket(name=name, in_out="INPUT",
                                          socket_type="NodeSocketFloat")
         socket.min_value = 0.0
@@ -998,6 +1026,7 @@ def _build_gradient_group(ng):
         prefix = "Star%d " % index
         for suffix, default in (("Start U", 0.0), ("Start V", 0.0),
                                 ("End U", 0.0), ("End V", 0.0),
+                                ("Curvature", 0.0),
                                 ("Start Frame", 1.0), ("Duration", 24.0),
                                 ("Trail", 0.55), ("Thickness", 0.006),
                                 ("Brightness", 0.0), ("Glow", 1.0),
@@ -1259,11 +1288,16 @@ def _build_gradient_group(ng):
     links.new(disk.outputs["Result"], disk_scale.inputs[0])
     links.new(group_in.outputs["Sun Strength"], disk_scale.inputs[1])
 
+    disk_masked = nodes.new("ShaderNodeMath")
+    disk_masked.location = (1240, 320)
+    disk_masked.operation = "MULTIPLY"
+    links.new(disk_scale.outputs[0], disk_masked.inputs[0])
+    links.new(ground_blend.outputs["Result"], disk_masked.inputs[1])
     disk_color = nodes.new("ShaderNodeVectorMath")
-    disk_color.location = (1060, 360)
+    disk_color.location = (1420, 360)
     disk_color.operation = "SCALE"
     links.new(group_in.outputs["Sun Color"], disk_color.inputs["Vector"])
-    links.new(disk_scale.outputs[0], disk_color.inputs["Scale"])
+    links.new(disk_masked.outputs[0], disk_color.inputs["Scale"])
 
     sun_add = nodes.new("ShaderNodeMix")
     sun_add.location = (1240, 220)
@@ -1989,6 +2023,46 @@ def _build_gradient_group(ng):
     links.new(rim_masked.outputs[0], rim_boosted.inputs[0])
     links.new(group_in.outputs["Cloud Rim Boost"], rim_boosted.inputs[1])
 
+    # Sun Scatter boosts the silver lining on the side facing the sun. It
+    # changes only the rim mix, not the cloud body or the clear sky.
+    scatter_positive = nodes.new("ShaderNodeMath")
+    scatter_positive.location = (3400, -1040)
+    scatter_positive.operation = "MAXIMUM"
+    scatter_positive.inputs[1].default_value = 0.0
+    links.new(dot.outputs["Value"], scatter_positive.inputs[0])
+
+    scatter_phase = nodes.new("ShaderNodeMath")
+    scatter_phase.location = (3580, -1040)
+    scatter_phase.operation = "POWER"
+    scatter_phase.inputs[1].default_value = 4.0
+    links.new(scatter_positive.outputs[0], scatter_phase.inputs[0])
+
+    scatter_amount = nodes.new("ShaderNodeMath")
+    scatter_amount.location = (3760, -1040)
+    scatter_amount.operation = "MULTIPLY"
+    links.new(scatter_phase.outputs[0], scatter_amount.inputs[0])
+    links.new(group_in.outputs["Cloud Sun Scatter"],
+              scatter_amount.inputs[1])
+
+    scatter_boost = nodes.new("ShaderNodeMath")
+    scatter_boost.location = (3940, -1040)
+    scatter_boost.operation = "MULTIPLY"
+    links.new(scatter_amount.outputs[0], scatter_boost.inputs[0])
+    scatter_boost.inputs[1].default_value = 0.8
+
+    scatter_one = nodes.new("ShaderNodeMath")
+    scatter_one.location = (4120, -1040)
+    scatter_one.operation = "ADD"
+    links.new(scatter_boost.outputs[0], scatter_one.inputs[0])
+    scatter_one.inputs[1].default_value = 1.0
+
+    rim_scatter = nodes.new("ShaderNodeMath")
+    rim_scatter.location = (4300, -1040)
+    rim_scatter.operation = "MULTIPLY"
+    rim_scatter.use_clamp = True
+    links.new(rim_boosted.outputs[0], rim_scatter.inputs[0])
+    links.new(scatter_one.outputs[0], rim_scatter.inputs[1])
+
     mix_body = nodes.new("ShaderNodeMix")
     mix_body.location = (2800, -720)
     mix_body.data_type = "RGBA"
@@ -2005,7 +2079,7 @@ def _build_gradient_group(ng):
     a_sock, b_sock, result_sock = _rgba_sockets(mix_light)
     links.new(mix_body.outputs["Result"], a_sock)
     links.new(group_in.outputs["Cloud Light"], b_sock)
-    links.new(rim_boosted.outputs[0], mix_light.inputs["Factor"])
+    links.new(rim_scatter.outputs[0], mix_light.inputs["Factor"])
 
     horizon = nodes.new("ShaderNodeMapRange")
     horizon.location = (1440, 700)
@@ -2755,8 +2829,8 @@ def apply_preset_style(scene, p):
         settings.contrails = p.get("contrails", 0.0)
         settings.world_gradient = p.get("world_gradient", True)
         settings.sun_disk = p.get("sun_disk", True)
-        settings.sun_disk_size = p.get("sun_disk_size", 1.5)
-        settings.sun_disk_strength = p.get("sun_disk_strength", 6.0)
+        settings.sun_disk_size = p.get("sun_disk_size", 1.0)
+        settings.sun_disk_strength = p.get("sun_disk_strength", 4.0)
         settings.clouds = p.get("clouds", True)
         settings.cloud_wind = p.get("cloud_wind", 0.0)
         settings.cloud_type = p.get("cloud_type", "CUMULUS")
@@ -2844,6 +2918,7 @@ def apply_sun_angles(scene, elevation, azimuth):
     sun.rotation_euler = rotation_from_angles(elevation, azimuth)
     from . import cameras
     cameras.update_transforms(scene, force=True)
+    update_sun_controls(scene)
 
 
 def _scene_seconds(scene):
@@ -2916,8 +2991,10 @@ def _apply_star_slots(scene, settings, node):
         node.inputs[prefix + "Duration"].default_value = float(
             max(2, event.duration))
         node.inputs[prefix + "Trail"].default_value = float(event.trail)
-        node.inputs[prefix + "Thickness"].default_value = float(
-            event.thickness)
+        node.inputs[prefix + "Thickness"].default_value = min(
+            float(event.thickness), 0.01)
+        node.inputs[prefix + "Curvature"].default_value = float(
+            getattr(event, "curvature", 0.0))
         node.inputs[prefix + "Brightness"].default_value = float(
             event.brightness)
         node.inputs[prefix + "Glow"].default_value = float(event.glow)
@@ -2982,13 +3059,13 @@ def _apply_gradient(scene, settings, nt, background, p):
     if direction is not None:
         node.inputs["Sun Direction"].default_value = direction
     sun_disk = getattr(settings, "sun_disk", True) if settings else True
-    sun_strength = (getattr(settings, "sun_disk_strength", 6.0)
-                    if settings else 6.0)
+    sun_strength = (getattr(settings, "sun_disk_strength", 4.0)
+                    if settings else 4.0)
     disk_gate, glow_gate = _sun_fade(direction)
     node.inputs["Sun Strength"].default_value = (
         sun_strength * disk_gate if sun_disk and direction is not None else 0.0)
-    radius = max(0.1, getattr(settings, "sun_disk_size", 1.5)
-                 if settings else 1.5)
+    radius = max(0.1, getattr(settings, "sun_disk_size", 1.0)
+                 if settings else 1.0)
     softness = max(0.2, radius * 0.25)
     node.inputs["Sun Inner"].default_value = math.cos(math.radians(radius))
     node.inputs["Sun Outer"].default_value = math.cos(
@@ -3026,6 +3103,8 @@ def _apply_gradient(scene, settings, nt, background, p):
         getattr(settings, "cloud_detail", 0.60) if settings else 0.60)
     node.inputs["Cloud Sun Lighting"].default_value = (
         getattr(settings, "cloud_sun_lighting", 1.2) if settings else 1.2)
+    node.inputs["Cloud Sun Scatter"].default_value = (
+        getattr(settings, "cloud_sun_scatter", 0.0) if settings else 0.0)
     node.inputs["Contrails"].default_value = (
         getattr(settings, "contrails", 0.0) if settings else 0.0)
     node.inputs["Cloud Delta Gain"].default_value = (

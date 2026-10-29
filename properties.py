@@ -249,12 +249,17 @@ class ALD_ShootingStar(bpy.types.PropertyGroup):
     length: FloatProperty(name="Angular Length", default=18.0, min=1.0,
                           max=90.0, description="Trajectory length in degrees",
                           update=_on_star)
+    curvature: FloatProperty(name="Curvature", default=0.0, min=-1.0, max=1.0,
+                             description="Bend the great-circle path away "
+                                         "from a straight arc; 0 is off",
+                             update=_on_star)
     trail: FloatProperty(name="Trail", default=0.55, min=0.0, max=0.95,
                          update=_on_star)
     thickness: FloatProperty(name="Thickness", default=0.0018, min=0.0005,
-                             max=0.05,
+                             max=0.01,
                              description="Angular thickness in radians, "
-                                         "constant with elevation",
+                                         "constant with elevation; "
+                                         "max 0.01 rad (0.57 deg)",
                              update=_on_star)
     brightness: FloatProperty(name="Brightness", default=3.0, min=0.0,
                               max=30.0, update=_on_star)
@@ -391,11 +396,11 @@ class ALD_Settings(bpy.types.PropertyGroup):
         update=_on_world,
     )
     sun_disk_size: FloatProperty(
-        name="Sun Size", default=1.5, min=0.1, max=10.0,
+        name="Sun Size", default=1.0, min=0.1, max=10.0,
         description="Angular radius of the sun disk in degrees",
         update=_on_world)
     sun_disk_strength: FloatProperty(
-        name="Sun Strength", default=6.0, min=0.0, max=50.0,
+        name="Sun Strength", default=4.0, min=0.0, max=50.0,
         description="Brightness of the sun disk",
         update=_on_world)
     sun_glow_enabled: BoolProperty(
@@ -419,7 +424,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Optional turquoise/coral band between horizon and mid sky",
         update=_on_world)
     sun_elevation: FloatProperty(
-        name="Sun Elevation", default=35.0, min=-5.0, max=85.0,
+        name="Sun Elevation", default=35.0, min=-30.0, max=85.0,
         description="Sun height above the horizon in degrees",
         update=_on_sun_angles)
     sun_azimuth: FloatProperty(
@@ -469,6 +474,10 @@ class ALD_Settings(bpy.types.PropertyGroup):
     cloud_sun_lighting: FloatProperty(
         name="Sun Lighting", default=1.2, min=0.0, max=2.0,
         description="Strength of the light/dark variation inside the clouds",
+        update=_on_world)
+    cloud_sun_scatter: FloatProperty(
+        name="Sun Scatter", default=0.0, min=0.0, max=1.0,
+        description="Extra forward-scattered sunlight on the sunward clouds",
         update=_on_world)
     contrails: FloatProperty(
         name="Contrails", default=0.0, min=0.0, max=1.0,
