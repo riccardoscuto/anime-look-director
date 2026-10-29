@@ -1,0 +1,157 @@
+{
+  "release": "2.63.0",
+  "status": "IN REVIEW",
+  "scene": "lookdev: fixed camera, sun and spheres",
+  "presets": [
+    {
+      "key": "GOLDEN_HOUR",
+      "file": "0_golden_hour.png",
+      "label": "Golden Hour",
+      "intent": "Tramonto caldo, nuvole viola",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.5509,
+        "contrast": 0.0855,
+        "saturation": 0.2319
+      }
+    },
+    {
+      "key": "AFTER_SCHOOL",
+      "file": "1_after_school.png",
+      "label": "After School",
+      "intent": "Pomeriggio pesca/rosa",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.5923,
+        "contrast": 0.0921,
+        "saturation": 0.1648
+      }
+    },
+    {
+      "key": "SUMMER_NOON",
+      "file": "2_summer_noon.png",
+      "label": "Summer Noon",
+      "intent": "Mezzogiorno azzurro, nuvole bianche",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.6902,
+        "contrast": 0.0689,
+        "saturation": 0.1032
+      }
+    },
+    {
+      "key": "RAINY_TOKYO",
+      "file": "3_rainy_tokyo.png",
+      "label": "Rainy Tokyo",
+      "intent": "Grigio/teal piovoso",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.4554,
+        "contrast": 0.0951,
+        "saturation": 0.1484
+      }
+    },
+    {
+      "key": "NEON_NIGHT",
+      "file": "4_neon_night.png",
+      "label": "Neon Night",
+      "intent": "Notte magenta/blu",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.453,
+        "contrast": 0.1287,
+        "saturation": 0.279
+      }
+    },
+    {
+      "key": "SAKURA_SPRING",
+      "file": "5_sakura_spring.png",
+      "label": "Sakura Spring",
+      "intent": "Primavera rosa tenue",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.6677,
+        "contrast": 0.0672,
+        "saturation": 0.0795
+      }
+    },
+    {
+      "key": "TWILIGHT_DUSK",
+      "file": "6_twilight_dusk.png",
+      "label": "Twilight Dusk",
+      "intent": "Crepuscolo arancio/viola",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.468,
+        "contrast": 0.1059,
+        "saturation": 0.2756
+      }
+    },
+    {
+      "key": "SOFT_DAWN",
+      "file": "7_soft_dawn.png",
+      "label": "Soft Dawn",
+      "intent": "Alba lavanda/rosa",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.648,
+        "contrast": 0.0801,
+        "saturation": 0.1047
+      }
+    },
+    {
+      "key": "BLUE_HOUR",
+      "file": "8_blue_hour.png",
+      "label": "Blue Hour",
+      "intent": "Ora blu fredda",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.5144,
+        "contrast": 0.0919,
+        "saturation": 0.138
+      }
+    },
+    {
+      "key": "CLOUDY_AFTERNOON",
+      "file": "9_cloudy_afternoon.png",
+      "label": "Cloudy Afternoon",
+      "intent": "Pomeriggio coperto luminoso",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.6809,
+        "contrast": 0.0731,
+        "saturation": 0.0467
+      }
+    },
+    {
+      "key": "STORMY_SUNSET",
+      "file": "10_stormy_sunset.png",
+      "label": "Stormy Sunset",
+      "intent": "Tramonto tempestoso scuro",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.4741,
+        "contrast": 0.1143,
+        "saturation": 0.2605
+      }
+    },
+    {
+      "key": "MOONLIT_NIGHT",
+      "file": "11_moonlit_night.png",
+      "label": "Moonlit Night",
+      "intent": "Notte blu profonda, stelle",
+      "status": "pending",
+      "metrics": {
+        "luma": 0.3887,
+        "contrast": 0.095,
+        "saturation": 0.1907
+      }
+    }
+  ],
+  "notes": [
+    "All 12 render without visible banding or clipping at the lookdev framing.",
+    "Check differentiation: After School vs Sakura Spring, Soft Dawn vs Blue Hour, Golden Hour vs Twilight Dusk.",
+    "No preset values were changed in this review pass."
+  ],
+  "metrics_source": "ALD LOOKDEV log, 2.63.0 lookdev fixture"
+}
