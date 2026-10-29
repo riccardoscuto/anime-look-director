@@ -24,16 +24,9 @@
     "steps": [
       0,
       20,
-      26,
-      30,
-      34,
       38,
-      42,
       46,
-      50,
-      58,
-      62,
-      66
+      62
     ],
     "stack": false,
     "use_compositing": false
@@ -44,11 +37,7 @@
     "width": 1920,
     "height": 1009,
     "steps": [
-      50,
-      54,
-      58,
       62,
-      66,
       70
     ],
     "stack": true,
@@ -60,12 +49,7 @@
     "width": 1920,
     "height": 1009,
     "steps": [
-      50,
-      54,
-      58,
-      62,
-      66,
-      70
+      62
     ],
     "stack": true,
     "use_compositing": false
@@ -87,13 +71,33 @@
     "width": 1920,
     "height": 1009,
     "steps": [
-      20,
-      30,
-      38,
-      46,
-      54
+      30
     ],
     "stack": false,
     "use_compositing": false
+  },
+  "empty": {
+    "variant": "empty",
+    "state": "empty",
+    "width": 1920,
+    "height": 1009,
+    "steps": [
+      0,
+      62
+    ],
+    "stack": false,
+    "use_compositing": false
+  },
+  "stars": {
+    "add_count": 1,
+    "duplicate_count": 2,
+    "preview_frame": 21,
+    "remove_count": 1,
+    "events": 1,
+    "names": [
+      "Shooting Star 1"
+    ],
+    "frame": 21,
+    "selected": 0
   }
 }

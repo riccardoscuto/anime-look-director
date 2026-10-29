@@ -39,8 +39,10 @@ result is the same render as the base branch.
 
 ## Screenshots
 
-All images are captures of Blender 5.1.2 with the same fixture: NEON_NIGHT,
-clouds on, stars on, one shooting star, camera at the default framing.
+All images are captures of Blender 5.1.2. The standard fixture is NEON_NIGHT,
+clouds on, stars on, one shooting star, camera at the default framing. The
+`empty_*` images use a fresh scene with no objects; the `shooting_stars_*`
+sequence uses the standard scene with the event list cleared first.
 
 | File | Shows |
 |---|---|
@@ -51,9 +53,16 @@ clouds on, stars on, one shooting star, camera at the default framing.
 | `properties_top_after.png` | Current Scene Properties top |
 | `properties_before.png` | Base: Sun Glow and Sun Beams in the same row; ungrouped clouds |
 | `properties_after.png` | Current: Sun Beams gone; grouped clouds and stars |
+| `empty_project.png` | Scenario A: fresh scene after Apply Palette; sidebar only, no compositor |
+| `empty_compositor.png` | Scenario A: the same scene with the compositor panel inactive |
 | `shooting_stars_before.png` | Base: Shooting Stars inline in Stars & Milky Way |
 | `shooting_stars_after.png` | Current: autonomous Shooting Stars with the event list |
 | `shooting_stars_controls.png` | Current: Timing, Trajectory and Appearance |
+| `shooting_stars_empty.png` | Scenario C: no controlled event |
+| `shooting_stars_added.png` | Scenario C: Add creates the selected event |
+| `shooting_stars_duplicated.png` | Scenario C: Duplicate creates a copy at +12 frames |
+| `shooting_stars_preview.png` | Scenario C: Preview moves the timeline and frames the event |
+| `shooting_stars_removed.png` | Scenario C: Remove deletes the selected event |
 | `compositor_inactive.png` | Inactive: no ALD stack |
 | `compositor_disabled.png` | Configured; render disabled |
 | `compositor_active.png` | Active in render |
@@ -71,12 +80,12 @@ use the same startup fixture and window layout.
 | Check | Result |
 |---|---|
 | Panel registration, states and operators | 54/54 checks PASS (`phase3_ui.json`) |
-| Scenario A: preset with no compositor | PASS |
+| Scenario A: preset with no compositor | PASS; `empty_project.png` and `empty_compositor.png` |
 | Scenario B: Sun, horizon, clouds, stars | PASS |
-| Scenario C: add / duplicate / preview / remove and four-event cap | PASS |
+| Scenario C: add / duplicate / preview / remove and four-event cap | PASS; GUI sequence `shooting_stars_*` and `shooting_stars_lifecycle.json` |
 | Scenario D/E: inactive, foreign group, disabled, active | PASS |
 | Scenario F: real legacy project (4 events, marker 29, no stack) | PASS |
-| Scenario G: narrow and wide layout | PASS; see the screenshots |
+| Scenario G: narrow and wide layout | PASS; 1200x900 and 1920x1009 screenshots |
 | Render invariance | pixel-identical, `maxdiff 0` |
 | World / Compositor nodes | 719 / 31 on base and current |
 | World marker | 32 on both |
@@ -90,7 +99,8 @@ use the same startup fixture and window layout.
 | `build_release.py` | `ALD BUILD: PASS` |
 
 Logs are in `logs/`. `phase3_invariance.json`, `phase1a_metrics.json`,
-`phase1b_markers.json` and `phase2_audit.json` keep the machine-readable output.
+`phase1b_markers.json`, `phase2_audit.json`, `screenshots.json` and
+`shooting_stars_lifecycle.json` keep the machine-readable output.
 
 ## Reproduce
 
@@ -105,7 +115,16 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 
 The GUI screenshots need a user config with `show_splash = False`; the harness
 does not call `read_factory_settings` in the GUI timer. See
-`preset_dev/phase3_screenshots.py` for the arguments.
+`preset_dev/phase3_screenshots.py` for the arguments. Example:
+
+```powershell
+& $blender --python preset_dev\phase3_screenshots.py -- `
+  --out <dir> --variant current --state inactive --steps 0,20,38,46,62
+& $blender --python preset_dev\phase3_screenshots.py -- `
+  --out <dir> --variant empty --state empty --steps 0,62
+& $blender --python preset_dev\phase3_screenshots.py -- `
+  --out <dir> --variant stars --state stars --steps 0
+```
 
 ## Limitations
 

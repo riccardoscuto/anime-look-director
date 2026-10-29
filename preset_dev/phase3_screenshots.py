@@ -98,6 +98,13 @@ def setup_scene():
     scene.render.resolution_percentage = 100
     scene.render.use_compositing = False
     scene.view_settings.view_transform = "AgX"
+    if STATE == "empty":
+        scene.ald.palette = "GOLDEN_HOUR"
+        bpy.ops.ald.apply_palette()
+        scene.ald.clouds = True
+        scene.ald.stars = True
+        look.apply_world(scene)
+        return
     data = bpy.data.cameras.new("UI Shot Camera")
     data.lens = 32.0
     camera = bpy.data.objects.new("UI Shot Camera", data)
@@ -162,14 +169,56 @@ def click_sidebar_tab(window, area, y=242):
     print("TAB_CLICK", x, y, point.x, point.y, flush=True)
 
 
-def resize_window(width, height):
-    user32, hwnd = _window_handle()
-    if not hwnd:
-        print("RESIZE_NO_WINDOW", flush=True)
-        return
-    user32.ShowWindow(hwnd, 9)  # SW_RESTORE
-    user32.SetWindowPos(hwnd, 0, 60, 40, width, height, 0x0004)
-    print("RESIZE", width, height, flush=True)
+def run_stars(window, screen, area3d, props):
+    from anime_look_director import look
+    scene = bpy.context.scene
+    settings = scene.ald
+    while len(settings.shooting_star_events):
+        settings.shooting_star_events.remove(0)
+    settings.shooting_star_selected = 0
+    look.apply_world(scene)
+    scroll(props, 38)
+    shot(window, "empty", props)
+    if bpy.ops.ald.shooting_star_add() != {"FINISHED"}:
+        raise RuntimeError("shooting_star_add failed")
+    after_add = len(settings.shooting_star_events)
+    redraw(window, 4)
+    scroll(props, 38)
+    shot(window, "added", props)
+    if bpy.ops.ald.shooting_star_duplicate() != {"FINISHED"}:
+        raise RuntimeError("shooting_star_duplicate failed")
+    after_duplicate = len(settings.shooting_star_events)
+    redraw(window, 4)
+    scroll(props, 38)
+    shot(window, "duplicated", props)
+    region = next((r for r in area3d.regions if r.type == "WINDOW"), None)
+    with bpy.context.temp_override(window=window, screen=screen,
+                                   area=area3d, region=region):
+        if bpy.ops.ald.shooting_star_preview() != {"FINISHED"}:
+            raise RuntimeError("shooting_star_preview failed")
+    preview_frame = scene.frame_current
+    redraw(window, 4)
+    shot(window, "preview", props)
+    if bpy.ops.ald.shooting_star_remove() != {"FINISHED"}:
+        raise RuntimeError("shooting_star_remove failed")
+    after_remove = len(settings.shooting_star_events)
+    redraw(window, 4)
+    scroll(props, 38)
+    shot(window, "removed", props)
+    report = {
+        "add_count": after_add,
+        "duplicate_count": after_duplicate,
+        "preview_frame": preview_frame,
+        "remove_count": after_remove,
+        "events": len(settings.shooting_star_events),
+        "names": [event.name for event in settings.shooting_star_events],
+        "frame": scene.frame_current,
+        "selected": settings.shooting_star_selected,
+    }
+    with open(os.path.join(OUT, VARIANT + ".json"), "w",
+              encoding="utf-8") as handle:
+        json.dump(report, handle, indent=2)
+    print("PHASE3 STARS DONE", report, flush=True)
 
 
 def run():
@@ -189,6 +238,8 @@ def run():
     if area3d is None or props is None:
         raise RuntimeError("The default layout has no VIEW_3D/PROPERTIES")
     area3d.spaces.active.show_region_ui = True
+    if STATE == "empty":
+        area3d.spaces.active.shading.type = "RENDERED"
     props.spaces.active.context = "SCENE"
     redraw(window, 8)
     ui_region = next((r for r in area3d.regions if r.type == "UI"), None)
@@ -202,6 +253,9 @@ def run():
             print("TAB_SET_FAILED", exc, flush=True)
     click_sidebar_tab(window, area3d)
     redraw(window, 6)
+    if STATE == "stars":
+        run_stars(window, screen, area3d, props)
+        return
     shot(window, "sidebar", area3d)
     for steps in STEPS:
         scroll(props, steps)
