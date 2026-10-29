@@ -123,9 +123,10 @@ Cloudless World; no cloud generator, compositor or material changes.
 UI-only; no World, Shooting Star, material or shader change.
 
 #### Changed
-- View3D sidebar reduced to Quick Look: preset, Apply/Reset, Sun elevation,
-  clouds/type/amount/wind, stars. The Advanced Sky and Compositor copies are
-  removed.
+- View3D sidebar mirrors the Scene Properties sections with the same drawing
+  functions: palette root plus Atmosphere & Sun, World Clouds, Stars & Milky
+  Way, Shooting Stars, Palette Customization, Materials & Shadows, Compositor
+  and Advanced Settings. All sub-panels are open and scrollable.
 - Scene Properties reordered: Atmosphere & Sun, grouped World Clouds, Stars &
   Milky Way, autonomous Shooting Stars, Palette Customization, Materials &
   Shadows, Compositor, Advanced Settings.
@@ -142,7 +143,7 @@ UI-only; no World, Shooting Star, material or shader change.
 #### Evidence
 - `preset_dev/phase3_ui/`: before/after sidebar, Scene Properties, Shooting
   Stars, compositor inactive/disabled/active/effects, legacy project and
-  narrow layout screenshots; `phase3_ui.json` (54 checks), invariance JSON and
+  narrow layout screenshots; `phase3_ui.json` (68 checks), invariance JSON and
   comparison render, regression logs.
 - Pixel-identical render (`maxdiff 0`); World 719 / Compositor 31 nodes; marker
   32 on both.

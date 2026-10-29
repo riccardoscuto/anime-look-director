@@ -13,9 +13,11 @@ result is the same render as the base branch.
 
 ## What changed
 
-- View3D sidebar: Quick Look only (preset, Apply/Reset, Sun Elevation, Clouds
-  on/off, Cloud Type, Cloud Amount, Cloud Wind, Stars). Removed the duplicated
-  Advanced Sky panel and the compositor panel.
+- View3D sidebar: mirrors the Scene Properties sections with the same drawing
+  functions. The root holds the palette and the sub-panels are Atmosphere &
+  Sun, World Clouds, Stars & Milky Way, Shooting Stars, Palette Customization,
+  Materials & Shadows, Compositor and Advanced Settings. The sub-panels are
+  open and scrollable.
 - Scene Properties order: Atmosphere & Sun, World Clouds, Stars & Milky Way,
   Shooting Stars, Palette Customization, Materials & Shadows, Compositor,
   Advanced Settings.
@@ -37,6 +39,15 @@ result is the same render as the base branch.
 - Advanced Settings separates reversible actions (Disable/Restore legacy
   visibility) from destructive ones (Remove Permanently, scene actions).
 
+## Internal shader slots
+
+The `Star0`..`Star3` sockets on the `ALD | World Gradient` node group (Start
+U/V, End U/V, Start Frame, Duration, Trail, Thickness, Brightness, Glow,
+Enabled) are internal shader slots for the four controlled events. They are
+not add-on controls: the Shooting Stars panel writes them. They are visible
+only if the node group interface is opened in the Shader Editor and should not
+be edited by hand.
+
 ## Screenshots
 
 All images are captures of Blender 5.1.2. The standard fixture is NEON_NIGHT,
@@ -47,8 +58,8 @@ sequence uses the standard scene with the event list cleared first.
 | File | Shows |
 |---|---|
 | `sidebar_before.png` | Base `d8a94d8`: Quick Look + Advanced Sky + Compositor, no Clouds toggle |
-| `sidebar_after.png` | Current: compact Quick Look, Clouds toggle and cloud controls |
-| `sidebar_narrow.png` | Current at 1200x900: no control clipped or overlapped |
+| `sidebar_after.png` | Current: full Scene Properties mirror in the sidebar (palette root + open sections) |
+| `sidebar_narrow.png` | Current at 1200x900: full mirror, no control clipped or overlapped |
 | `properties_top_before.png` | Base Scene Properties top |
 | `properties_top_after.png` | Current Scene Properties top |
 | `properties_before.png` | Base: Sun Glow and Sun Beams in the same row; ungrouped clouds |
@@ -79,13 +90,13 @@ use the same startup fixture and window layout.
 
 | Check | Result |
 |---|---|
-| Panel registration, states and operators | 54/54 checks PASS (`phase3_ui.json`) |
+| Panel registration, states and operators | 68/68 checks PASS (`phase3_ui.json`) |
 | Scenario A: preset with no compositor | PASS; `empty_project.png` and `empty_compositor.png` |
 | Scenario B: Sun, horizon, clouds, stars | PASS |
 | Scenario C: add / duplicate / preview / remove and four-event cap | PASS; GUI sequence `shooting_stars_*` and `shooting_stars_lifecycle.json` |
 | Scenario D/E: inactive, foreign group, disabled, active | PASS |
 | Scenario F: real legacy project (4 events, marker 29, no stack) | PASS |
-| Scenario G: narrow and wide layout | PASS; 1200x900 and 1920x1009 screenshots |
+| Scenario G: narrow and wide layout | PASS; full mirror at 1200x900 and 1920x1009 |
 | Render invariance | pixel-identical, `maxdiff 0` |
 | World / Compositor nodes | 719 / 31 on base and current |
 | World marker | 32 on both |
@@ -137,4 +148,5 @@ does not call `read_factory_settings` in the GUI timer. See
   are preserved.
 - No aesthetic review of the UI was performed. This is a technical pass only.
 - The narrow capture is the full 1200x900 window; the sidebar is fixed-width
-  and remains fully visible. No 12-preset review was started.
+  and the full mirror is scrollable, with no control clipped horizontally. No
+  12-preset review was started.

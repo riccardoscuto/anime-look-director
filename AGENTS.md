@@ -74,10 +74,11 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   solar body range (-0.030..0.004); the default Sun Lighting is 1.2.
 - The Scene properties are the complete surface: Atmosphere & Sun, World
   Clouds, Stars & Milky Way, Shooting Stars, Palette Customization,
-  Materials & Shadows, Compositor, Advanced Settings. The View3D sidebar is
-  Quick Look only (preset, Apply/Reset, Sun elevation, clouds, cloud
-  type/amount/wind, stars); no Advanced Sky duplication, compositor or
-  material controls in the sidebar.
+  Materials & Shadows, Compositor, Advanced Settings. The View3D sidebar
+  mirrors the same sections with the same drawing functions; the root panel
+  holds the palette and the eight sub-panels are Atmosphere & Sun, World
+  Clouds, Stars & Milky Way, Shooting Stars, Palette Customization, Materials
+  & Shadows, Compositor and Advanced Settings.
 - The compositor is inactive by default. Its panel distinguishes inactive,
   configured/render-disabled and active-in-render, reports the viewport
   preview state, never mistakes a user group for an ALD stack
@@ -106,11 +107,11 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   on `phase-2-atmosphere`: Sun Elevation -30..85, immediate World sync,
   sun disk 1.0 deg / 4.0, ground-mask at the horizon, marker 32;
   **TECHNICAL PASS - VISUAL REVIEW PENDING**. Phase 3 UI cleanup is on
-  `phase-3-ui-cleanup` from `d8a94d8`: compact sidebar, autonomous Shooting
-  Stars, compositor states and grouped effects; 54 UI checks, pixel-identical
-  render, World 719 / Compositor 31 nodes, marker 32; evidence in
-  `preset_dev/phase3_ui/`, **TECHNICAL PASS - UI REVIEW PENDING**. No merge or
-  2.63 release.
+  `phase-3-ui-cleanup` from `d8a94d8`: full sidebar mirror of Scene Properties,
+  autonomous Shooting Stars, compositor states and grouped effects; 68 UI
+  checks, pixel-identical render, World 719 / Compositor 31 nodes, marker 32;
+  evidence in `preset_dev/phase3_ui/`, **TECHNICAL PASS - UI REVIEW PENDING**.
+  No merge or 2.63 release.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
@@ -197,8 +198,8 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   effects, and a read-only viewport preview line. Sun Beams lives only here.
 - `ALD_UL_shooting_stars` is the event list; the four-event cap and operators
   are unchanged.
-- The View3D sidebar uses `draw_quick_look` only. Full controls are not
-  duplicated there.
+- The View3D sidebar mirrors the Scene Properties sections with the same
+  drawing functions and open sub-panels; the root palette is shared.
 - Panel icons must come from the real Blender 5.1 enum; `CLOUD` does not exist,
   `WORLD` does.
 

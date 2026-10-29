@@ -55,15 +55,39 @@
     "pass": true,
     "detail": ""
   },
+  "registered.ALD_PT_view3d_atmosphere": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_clouds": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_shooting_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_custom": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_materials": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_compositor": {
+    "pass": true,
+    "detail": ""
+  },
+  "registered.ALD_PT_view3d_advanced": {
+    "pass": true,
+    "detail": ""
+  },
   "registered.ALD_PT_view3d": {
-    "pass": true,
-    "detail": ""
-  },
-  "removed.ALD_PT_view3d_advanced": {
-    "pass": true,
-    "detail": ""
-  },
-  "removed.ALD_PT_view3d_compositor": {
     "pass": true,
     "detail": ""
   },
@@ -83,7 +107,39 @@
     "pass": true,
     "detail": ""
   },
-  "sidebar.no_compositor": {
+  "sidebar.root": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_atmosphere": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_clouds": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_shooting_stars": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_custom": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_materials": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_compositor": {
+    "pass": true,
+    "detail": ""
+  },
+  "sidebar.ALD_PT_view3d_advanced": {
     "pass": true,
     "detail": ""
   },

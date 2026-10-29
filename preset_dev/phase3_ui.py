@@ -57,13 +57,21 @@ def main():
           and abs(scene.ald.cloud_amount - 0.7) < 1e-5
           and not scene.ald.stars)
 
-    for name in ("ALD_PT_scene", "ALD_PT_atmosphere", "ALD_PT_clouds",
-                 "ALD_PT_stars", "ALD_PT_shooting_stars", "ALD_PT_custom",
-                 "ALD_PT_materials", "ALD_PT_compositor", "ALD_PT_advanced",
-                 "ALD_PT_view3d"):
+    scene_panels = ("ALD_PT_scene", "ALD_PT_atmosphere", "ALD_PT_clouds",
+                    "ALD_PT_stars", "ALD_PT_shooting_stars", "ALD_PT_custom",
+                    "ALD_PT_materials", "ALD_PT_compositor", "ALD_PT_advanced")
+    view3d_sections = {
+        "ALD_PT_view3d_atmosphere": ("draw_atmosphere",),
+        "ALD_PT_view3d_clouds": ("draw_clouds",),
+        "ALD_PT_view3d_stars": ("draw_stars",),
+        "ALD_PT_view3d_shooting_stars": ("draw_shooting_stars",),
+        "ALD_PT_view3d_custom": ("draw_custom_colors",),
+        "ALD_PT_view3d_materials": ("draw_material_presets", "draw_shadows"),
+        "ALD_PT_view3d_compositor": ("draw_compositor",),
+        "ALD_PT_view3d_advanced": ("draw_legacy", "draw_scene_actions"),
+    }
+    for name in scene_panels + tuple(view3d_sections) + ("ALD_PT_view3d",):
         check("registered." + name, hasattr(bpy.types, name))
-    for name in ("ALD_PT_view3d_advanced", "ALD_PT_view3d_compositor"):
-        check("removed." + name, not hasattr(bpy.types, name))
 
     check("shooting.parent",
           bpy.types.ALD_PT_shooting_stars.bl_parent_id == "ALD_PT_scene")
@@ -73,15 +81,21 @@ def main():
           bpy.types.ALD_PT_view3d.bl_space_type == "VIEW_3D")
     check("sidebar.category",
           bpy.types.ALD_PT_view3d.bl_category == "Anime Look")
+    check("sidebar.root",
+          "draw_palette" in inspect.getsource(panels.ALD_PT_view3d.draw))
+    for name, functions in view3d_sections.items():
+        cls = getattr(bpy.types, name)
+        source = inspect.getsource(cls.draw)
+        check("sidebar." + name,
+              cls.bl_parent_id == "ALD_PT_view3d"
+              and all(function in source for function in functions))
 
-    quick = inspect.getsource(panels.draw_quick_look)
     atmosphere = inspect.getsource(panels.draw_atmosphere)
     clouds = inspect.getsource(panels.draw_clouds)
     shooting = inspect.getsource(panels.draw_shooting_stars)
     compositor_draw = inspect.getsource(panels.draw_compositor)
     viewport_op = inspect.getsource(
         operators.ALD_OT_viewport_compositor.execute)
-    check("sidebar.no_compositor", "compositor" not in quick.lower())
     check("atmosphere.no_beams", "god_rays" not in atmosphere)
     check("compositor.beams", "god_rays" in compositor_draw)
     check("clouds.groups",
@@ -95,7 +109,7 @@ def main():
               ("Inactive: no ALD stack", "Configured; render disabled",
                "Active in render", "Viewport preview")))
     check("compositor.foreign_warning",
-          "A non-ALD compositor group is assigned" in compositor_draw)
+          "Non-ALD compositor group" in compositor_draw)
     check("viewport_op.current_area", "context.area" in viewport_op
           and "context.window_manager.windows" not in viewport_op)
     check("shooting_event_controls",
