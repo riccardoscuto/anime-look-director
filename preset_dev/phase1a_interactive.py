@@ -279,7 +279,7 @@ def run():
           len(events) == 1 and events[0].name == "UI Star"
           and events[0].azimuth == 120.0 and events[0].elevation == 40.0
           and events[0].start_frame == 10 and events[0].duration == 24
-          and marker == 32 and marker_after == 32 and camera is not None
+          and marker == 33 and marker_after == 33 and camera is not None
           and matrix(camera) == camera_before_save,
           "%d event(s), marker %s->%s, camera %s" % (
               len(events), marker, marker_after, camera is not None))

@@ -1,0 +1,50 @@
+{
+  "fix": "thickness clamp + head radius cap",
+  "before": {
+    "0.0018": {
+      "requested": 0.0018,
+      "property": 0.0017999999690800905,
+      "shader_socket": 0.0017999999690800905
+    },
+    "0.005": {
+      "requested": 0.005,
+      "property": 0.004999999888241291,
+      "shader_socket": 0.004999999888241291
+    },
+    "0.01": {
+      "requested": 0.01,
+      "property": 0.009999999776482582,
+      "shader_socket": 0.009999999776482582
+    },
+    "0.05": {
+      "requested": 0.05,
+      "property": 0.05000000074505806,
+      "shader_socket": 0.05000000074505806
+    }
+  },
+  "after": {
+    "0.0018": {
+      "requested": 0.0018,
+      "property": 0.0017999999690800905,
+      "shader_socket": 0.0017999999690800905
+    },
+    "0.005": {
+      "requested": 0.005,
+      "property": 0.004999999888241291,
+      "shader_socket": 0.004999999888241291
+    },
+    "0.01": {
+      "requested": 0.01,
+      "property": 0.009999999776482582,
+      "shader_socket": 0.009999999776482582
+    },
+    "0.05": {
+      "requested": 0.05,
+      "property": 0.009999999776482582,
+      "shader_socket": 0.009999999776482582
+    }
+  },
+  "property_max": 0.01,
+  "head_radius_cap": 0.012,
+  "note": "before is 4db6718; after is the feature branch"
+}

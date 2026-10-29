@@ -252,9 +252,10 @@ class ALD_ShootingStar(bpy.types.PropertyGroup):
     trail: FloatProperty(name="Trail", default=0.55, min=0.0, max=0.95,
                          update=_on_star)
     thickness: FloatProperty(name="Thickness", default=0.0018, min=0.0005,
-                             max=0.05,
+                             max=0.01,
                              description="Angular thickness in radians, "
-                                         "constant with elevation",
+                                         "constant with elevation; "
+                                         "max 0.01 rad (0.57 deg)",
                              update=_on_star)
     brightness: FloatProperty(name="Brightness", default=3.0, min=0.0,
                               max=30.0, update=_on_star)

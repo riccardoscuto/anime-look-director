@@ -388,13 +388,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 32):
+                           or ng.get("ald_build") != 33):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 32
+        ng["ald_build"] = 33
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -410,7 +410,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 32
+        ng["ald_build"] = 33
     return ng
 
 
@@ -704,6 +704,8 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         duration = group_in.outputs[prefix + "Duration"]
         trail = group_in.outputs[prefix + "Trail"]
         thickness = group_in.outputs[prefix + "Thickness"]
+        # The UI max is 0.01 rad; clamp old saved events as well.
+        thickness = math(3140, base - 220, "MINIMUM", thickness, 0.01)
         brightness = group_in.outputs[prefix + "Brightness"]
         glow = group_in.outputs[prefix + "Glow"]
         enabled = group_in.outputs[prefix + "Enabled"]
@@ -820,7 +822,9 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         head_radius = math(6560, base - 440, "ADD", head_radius, 0.8)
         head_radius = math(6740, base - 440, "MULTIPLY",
                            head_radius, thickness)
-        head_radius2 = math(6920, base - 440, "MULTIPLY",
+        head_radius = math(6920, base - 440, "MINIMUM",
+                           head_radius, 0.012)
+        head_radius2 = math(7100, base - 440, "MULTIPLY",
                             head_radius, head_radius)
         core_radius2 = math(6920, base - 500, "MULTIPLY",
                             head_radius2, 0.1225)
@@ -2922,8 +2926,8 @@ def _apply_star_slots(scene, settings, node):
         node.inputs[prefix + "Duration"].default_value = float(
             max(2, event.duration))
         node.inputs[prefix + "Trail"].default_value = float(event.trail)
-        node.inputs[prefix + "Thickness"].default_value = float(
-            event.thickness)
+        node.inputs[prefix + "Thickness"].default_value = min(
+            float(event.thickness), 0.01)
         node.inputs[prefix + "Brightness"].default_value = float(
             event.brightness)
         node.inputs[prefix + "Glow"].default_value = float(event.glow)
