@@ -516,7 +516,7 @@ class ALD_PT_advanced(bpy.types.Panel):
 
 
 # ---------------------------------------------------------------------------
-# View3D sidebar: compact Quick Look + one Advanced Sky panel
+# View3D sidebar: compact Quick Look only
 # ---------------------------------------------------------------------------
 
 class ALD_PT_view3d(bpy.types.Panel):
