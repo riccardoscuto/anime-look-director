@@ -249,6 +249,10 @@ class ALD_ShootingStar(bpy.types.PropertyGroup):
     length: FloatProperty(name="Angular Length", default=18.0, min=1.0,
                           max=90.0, description="Trajectory length in degrees",
                           update=_on_star)
+    curvature: FloatProperty(name="Curvature", default=0.0, min=-1.0, max=1.0,
+                             description="Bend the great-circle path away "
+                                         "from a straight arc; 0 is off",
+                             update=_on_star)
     trail: FloatProperty(name="Trail", default=0.55, min=0.0, max=0.95,
                          update=_on_star)
     thickness: FloatProperty(name="Thickness", default=0.0018, min=0.0005,

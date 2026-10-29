@@ -115,7 +115,7 @@ def main():
     check("shooting_event_controls",
           all(name in shooting for name in
               ("start_frame", "duration", "azimuth", "elevation",
-               "direction", "length", "trail", "thickness",
+               "direction", "length", "curvature", "trail", "thickness",
                "brightness", "glow", "color")))
 
     # Scenario D/E: inactive, foreign, configured and active states.

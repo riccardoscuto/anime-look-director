@@ -388,13 +388,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 33):
+                           or ng.get("ald_build") != 34):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 33
+        ng["ald_build"] = 34
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -410,7 +410,7 @@ def _gradient_group():
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 33
+        ng["ald_build"] = 34
     return ng
 
 
@@ -706,6 +706,7 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         thickness = group_in.outputs[prefix + "Thickness"]
         # The UI max is 0.01 rad; clamp old saved events as well.
         thickness = math(3140, base - 220, "MINIMUM", thickness, 0.01)
+        curvature = group_in.outputs[prefix + "Curvature"]
         brightness = group_in.outputs[prefix + "Brightness"]
         glow = group_in.outputs[prefix + "Glow"]
         enabled = group_in.outputs[prefix + "Enabled"]
@@ -725,6 +726,19 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         along_b = dot(4220, base - 100, view.outputs["Vector"], tangent)
         plane = dot(4220, base - 200, view.outputs["Vector"], normal)
         phi = math(4400, base, "ARCTAN2", along_b, along_a)
+
+        # Curvature: bow the great-circle band by a sine-shaped offset along
+        # the path normal. Zero keeps the original straight great-circle arc.
+        curve_u = math(4400, base - 220, "DIVIDE", phi, theta, clamp=True)
+        curve_pi = math(4580, base - 220, "MULTIPLY",
+                        curve_u, 3.141592653589793)
+        curve_sin = math(4760, base - 220, "SINE", curve_pi)
+        curve_amp = math(4580, base - 320, "MULTIPLY", curvature, theta)
+        curve_amp = math(4760, base - 320, "MULTIPLY", curve_amp, 0.35)
+        curve_bend = math(4940, base - 220, "MULTIPLY",
+                          curve_amp, curve_sin)
+        plane_curved = math(5120, base - 220, "SUBTRACT",
+                            plane, curve_bend)
 
         span = math(4400, base - 160, "SUBTRACT", duration, 1.0)
         span = math(4580, base - 160, "MAXIMUM", span, 1.0)
@@ -793,7 +807,7 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         taper = math(6200, base, "MULTIPLY", tail_curve, 0.94)
         taper = math(6380, base, "ADD", taper, 0.06)
         local_width = math(6560, base, "MULTIPLY", thickness, taper)
-        abs_plane = math(6020, base - 120, "ABSOLUTE", plane)
+        abs_plane = math(6020, base - 120, "ABSOLUTE", plane_curved)
         width = nodes.new("ShaderNodeMapRange")
         width.location = (6720, base - 60)
         width.clamp = True
@@ -814,7 +828,16 @@ def _build_shooting_stars(nodes, links, group_in, cloud_visibility):
         head_a = vector(6200, base - 260, "SCALE", start, cos_head)
         head_b = vector(6200, base - 380, "SCALE", tangent, sin_head)
         head_point = vector(6380, base - 320, "ADD", head_a, head_b)
-        head_dot = dot(6560, base - 320, view.outputs["Vector"], head_point)
+        head_pi = math(6380, base - 420, "MULTIPLY",
+                       progress, 3.141592653589793)
+        head_sin = math(6560, base - 420, "SINE", head_pi)
+        head_bend = math(6740, base - 420, "MULTIPLY", curvature, theta)
+        head_bend = math(6920, base - 420, "MULTIPLY", head_bend, 0.35)
+        head_bend = math(7100, base - 420, "MULTIPLY", head_bend, head_sin)
+        head_offset = vector(7280, base - 420, "SCALE", normal, head_bend)
+        head_point = vector(7460, base - 320, "ADD", head_point, head_offset)
+        head_point = vector(7640, base - 320, "NORMALIZE", head_point)
+        head_dot = dot(7820, base - 320, view.outputs["Vector"], head_point)
         head_dist = math(6740, base - 320, "SUBTRACT", 1.0, head_dot)
         head_dist = math(6920, base - 320, "MULTIPLY", head_dist, 2.0)
         head_dist = math(7100, base - 320, "MAXIMUM", head_dist, 0.0)
@@ -1002,6 +1025,7 @@ def _build_gradient_group(ng):
         prefix = "Star%d " % index
         for suffix, default in (("Start U", 0.0), ("Start V", 0.0),
                                 ("End U", 0.0), ("End V", 0.0),
+                                ("Curvature", 0.0),
                                 ("Start Frame", 1.0), ("Duration", 24.0),
                                 ("Trail", 0.55), ("Thickness", 0.006),
                                 ("Brightness", 0.0), ("Glow", 1.0),
@@ -2928,6 +2952,8 @@ def _apply_star_slots(scene, settings, node):
         node.inputs[prefix + "Trail"].default_value = float(event.trail)
         node.inputs[prefix + "Thickness"].default_value = min(
             float(event.thickness), 0.01)
+        node.inputs[prefix + "Curvature"].default_value = float(
+            getattr(event, "curvature", 0.0))
         node.inputs[prefix + "Brightness"].default_value = float(
             event.brightness)
         node.inputs[prefix + "Glow"].default_value = float(event.glow)

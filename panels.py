@@ -143,6 +143,7 @@ def draw_shooting_stars(layout, context):
     col.prop(event, "elevation")
     col.prop(event, "direction")
     col.prop(event, "length")
+    col.prop(event, "curvature")
     box.label(text="Appearance")
     col = box.column(align=True)
     col.prop(event, "trail")
