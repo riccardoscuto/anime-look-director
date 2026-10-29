@@ -31,7 +31,9 @@ def draw_quick_look(layout, context):
     box.prop(s, "clouds", text="Clouds", toggle=True)
     if s.clouds:
         col = box.column(align=True)
-        col.prop(s, "cloud_type")
+        row = col.row(align=True)
+        row.label(text="Cloud Type")
+        row.prop(s, "cloud_type", text="")
         col.prop(s, "cloud_amount")
         col.prop(s, "cloud_wind")
     box.prop(s, "stars", toggle=True)
