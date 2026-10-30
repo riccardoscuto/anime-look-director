@@ -1,0 +1,122 @@
+{
+  "sizes": [
+    {
+      "size": 0.5,
+      "file": "size_0_5.png",
+      "metrics": {
+        "luma": 0.5622,
+        "contrast": 0.1313,
+        "saturation": 0.2206
+      }
+    },
+    {
+      "size": 2.0,
+      "file": "size_2_0.png",
+      "metrics": {
+        "luma": 0.5625,
+        "contrast": 0.1318,
+        "saturation": 0.2206
+      }
+    },
+    {
+      "size": 6.0,
+      "file": "size_6_0.png",
+      "metrics": {
+        "luma": 0.5648,
+        "contrast": 0.1359,
+        "saturation": 0.2203
+      }
+    },
+    {
+      "size": 12.0,
+      "file": "size_12_0.png",
+      "metrics": {
+        "luma": 0.573,
+        "contrast": 0.1488,
+        "saturation": 0.2199
+      }
+    }
+  ],
+  "styles": [
+    {
+      "style": "CLEAN",
+      "size": 3.0,
+      "file": "clean_3_0.png",
+      "metrics": {
+        "luma": 0.5629,
+        "contrast": 0.1325,
+        "saturation": 0.2205
+      }
+    },
+    {
+      "style": "ANIME_CINEMATIC",
+      "size": 3.0,
+      "file": "anime_cinematic_3_0.png",
+      "metrics": {
+        "luma": 0.5624,
+        "contrast": 0.1151,
+        "saturation": 0.2035
+      }
+    },
+    {
+      "style": "CLEAN",
+      "size": 10.0,
+      "file": "clean_10_0.png",
+      "metrics": {
+        "luma": 0.5695,
+        "contrast": 0.1436,
+        "saturation": 0.22
+      }
+    },
+    {
+      "style": "ANIME_CINEMATIC",
+      "size": 10.0,
+      "file": "anime_cinematic_10_0.png",
+      "metrics": {
+        "luma": 0.5708,
+        "contrast": 0.129,
+        "saturation": 0.2041
+      }
+    }
+  ],
+  "horizon": [
+    {
+      "elevation": -2.0,
+      "file": "elev_m2_0.png",
+      "metrics": {
+        "luma": 0.5639,
+        "contrast": 0.1008,
+        "saturation": 0.197
+      }
+    },
+    {
+      "elevation": 0.5,
+      "file": "elev_0_5.png",
+      "metrics": {
+        "luma": 0.6272,
+        "contrast": 0.0949,
+        "saturation": 0.1975
+      }
+    },
+    {
+      "elevation": 3.0,
+      "file": "elev_3_0.png",
+      "metrics": {
+        "luma": 0.642,
+        "contrast": 0.099,
+        "saturation": 0.1968
+      }
+    },
+    {
+      "elevation": 8.0,
+      "file": "elev_8_0.png",
+      "metrics": {
+        "luma": 0.635,
+        "contrast": 0.115,
+        "saturation": 0.1967
+      }
+    }
+  ],
+  "azimuth": 0.0,
+  "elevation": 25.0
+}

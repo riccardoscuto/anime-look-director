@@ -1,0 +1,44 @@
+{
+  "light_independent": {
+    "passed": true,
+    "energy": 4.199999809265137,
+    "rotation": [
+      1.13446,
+      0.0,
+      0.0
+    ],
+    "object_delta": 0.0
+  },
+  "cinematic": {
+    "passed": true,
+    "edge": 0.6000000238418579,
+    "glow_radius": 22.0,
+    "glow_gain": 0.6499999761581421,
+    "limb": 0.3499999940395355
+  },
+  "clean": {
+    "passed": true,
+    "edge": 0.25,
+    "glow_radius": 18.0,
+    "glow_gain": 1.0
+  },
+  "horizon": {
+    "passed": true,
+    "below_luma": 0.4493,
+    "rising_luma": 0.4711
+  },
+  "persistence": {
+    "passed": true,
+    "horizon_fade": 12.0,
+    "disk_color": [
+      1.0,
+      0.9,
+      0.8
+    ],
+    "pixel_delta": 0.0
+  },
+  "cost": {
+    "nodes": 812,
+    "build_seconds": 2.835
+  }
+}

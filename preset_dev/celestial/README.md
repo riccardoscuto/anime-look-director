@@ -117,5 +117,6 @@ they are not part of the Moon milestone.
 **Gate 0: PASS (strategy) - Phase 1 and 2A approved, 2B ready.**
 
 Evidence in `preset_dev/moon/`: Phase 1, 2A and 2B are approved and Gate 2 is
-closed; the premultiplied composition is verified numerically. The Moon
-milestone does not change the 12 presets, the clouds or the compositor.
+closed. Phase 3 (Sun System 2.0) is implemented and awaiting Gate 3; see
+`preset_dev/sun/README.md`. Neither milestone changes the 12 presets, the
+clouds or the compositor.

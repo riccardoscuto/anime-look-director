@@ -9,7 +9,7 @@ from mathutils import Vector
 from .shaders import moon as moon_shader
 
 GRADIENT_GROUP = "ALD | World Gradient"
-GRADIENT_BUILD = 39
+GRADIENT_BUILD = 40
 AUTO_SUN_TAG = "ald_auto_sun"
 SUN_OWNER_TAG = "ald_sun_owner"
 
@@ -496,7 +496,8 @@ def _gradient_group():
              "Cloud Sun Lighting", "Star Amount", "Star Density",
              "Cloud Offset", "Star0 Start U", "Moon Enabled",
              "Moon Direction", "Moon Size", "Moon Halo Color",
-             "Moon Light", "Moon Earthshine"} <= names
+             "Moon Light", "Moon Earthshine", "Sun Disk Tint",
+             "Sun Glow Radius", "Sun Limb Warmth", "Sun Glow Gain"} <= names
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
@@ -1024,6 +1025,24 @@ def _build_gradient_group(ng):
     sun_color = ng.interface.new_socket(name="Sun Color", in_out="INPUT",
                                         socket_type="NodeSocketColor")
     sun_color.default_value = (1.0, 0.9, 0.8, 1.0)
+    sun_tint = ng.interface.new_socket(name="Sun Disk Tint", in_out="INPUT",
+                                       socket_type="NodeSocketColor")
+    sun_tint.default_value = (1.0, 1.0, 1.0, 1.0)
+    sun_limb = ng.interface.new_socket(name="Sun Limb Warmth", in_out="INPUT",
+                                       socket_type="NodeSocketFloat")
+    sun_limb.default_value = 0.0
+    sun_limb.min_value = 0.0
+    sun_limb.max_value = 1.0
+    sun_glow_radius = ng.interface.new_socket(
+        name="Sun Glow Radius", in_out="INPUT", socket_type="NodeSocketFloat")
+    sun_glow_radius.default_value = 18.0
+    sun_glow_radius.min_value = 4.0
+    sun_glow_radius.max_value = 45.0
+    sun_glow_gain = ng.interface.new_socket(
+        name="Sun Glow Gain", in_out="INPUT", socket_type="NodeSocketFloat")
+    sun_glow_gain.default_value = 1.0
+    sun_glow_gain.min_value = 0.0
+    sun_glow_gain.max_value = 2.0
     sun_strength = ng.interface.new_socket(name="Sun Strength", in_out="INPUT",
                                            socket_type="NodeSocketFloat")
     sun_strength.min_value = 0.0
@@ -1413,10 +1432,38 @@ def _build_gradient_group(ng):
     disk_masked.operation = "MULTIPLY"
     links.new(disk_scale.outputs[0], disk_masked.inputs[0])
     links.new(ground_blend.outputs["Result"], disk_masked.inputs[1])
+    disk_tint = nodes.new("ShaderNodeVectorMath")
+    disk_tint.location = (1180, 480)
+    disk_tint.operation = "MULTIPLY"
+    links.new(group_in.outputs["Sun Color"], disk_tint.inputs[0])
+    links.new(group_in.outputs["Sun Disk Tint"], disk_tint.inputs[1])
+
+    warm_color = nodes.new("ShaderNodeRGB")
+    warm_color.location = (1180, 620)
+    warm_color.outputs[0].default_value = (1.0, 0.72, 0.45, 1.0)
+    limb_amount = nodes.new("ShaderNodeMath")
+    limb_amount.location = (1180, 740)
+    limb_amount.operation = "MULTIPLY"
+    links.new(group_in.outputs["Sun Limb Warmth"], limb_amount.inputs[0])
+    limb_invert = nodes.new("ShaderNodeMath")
+    limb_invert.location = (1000, 740)
+    limb_invert.operation = "SUBTRACT"
+    limb_invert.inputs[0].default_value = 1.0
+    links.new(disk.outputs["Result"], limb_invert.inputs[1])
+    links.new(limb_invert.outputs[0], limb_amount.inputs[1])
+    disk_warm = nodes.new("ShaderNodeMix")
+    disk_warm.location = (1360, 520)
+    disk_warm.data_type = "RGBA"
+    disk_warm.blend_type = "MIX"
+    a_sock, b_sock, result_sock = _rgba_sockets(disk_warm)
+    links.new(disk_tint.outputs["Vector"], a_sock)
+    links.new(warm_color.outputs[0], b_sock)
+    links.new(limb_amount.outputs[0], disk_warm.inputs["Factor"])
+
     disk_color = nodes.new("ShaderNodeVectorMath")
-    disk_color.location = (1420, 360)
+    disk_color.location = (1540, 360)
     disk_color.operation = "SCALE"
-    links.new(group_in.outputs["Sun Color"], disk_color.inputs["Vector"])
+    links.new(disk_warm.outputs["Result"], disk_color.inputs["Vector"])
     links.new(disk_masked.outputs[0], disk_color.inputs["Scale"])
 
     sun_add = nodes.new("ShaderNodeMix")
@@ -1438,11 +1485,27 @@ def _build_gradient_group(ng):
     gamma_plus.inputs[1].default_value = 0.0
     links.new(dot.outputs["Value"], gamma_plus.inputs[0])
 
+    glow_ratio = nodes.new("ShaderNodeMath")
+    glow_ratio.location = (1420, 620)
+    glow_ratio.operation = "DIVIDE"
+    glow_ratio.inputs[0].default_value = 18.0
+    links.new(group_in.outputs["Sun Glow Radius"], glow_ratio.inputs[1])
+    glow_ratio2 = nodes.new("ShaderNodeMath")
+    glow_ratio2.location = (1600, 620)
+    glow_ratio2.operation = "POWER"
+    glow_ratio2.inputs[1].default_value = 2.0
+    links.new(glow_ratio.outputs[0], glow_ratio2.inputs[0])
+    glow_power_value = nodes.new("ShaderNodeMath")
+    glow_power_value.location = (1780, 620)
+    glow_power_value.operation = "MULTIPLY"
+    glow_power_value.inputs[1].default_value = 3.5
+    links.new(glow_ratio2.outputs[0], glow_power_value.inputs[0])
+
     glow_power = nodes.new("ShaderNodeMath")
     glow_power.location = (1600, 400)
     glow_power.operation = "POWER"
-    glow_power.inputs[1].default_value = 3.5
     links.new(gamma_plus.outputs[0], glow_power.inputs[0])
+    links.new(glow_power_value.outputs[0], glow_power.inputs[1])
 
     abs_z = nodes.new("ShaderNodeMath")
     abs_z.location = (1420, 240)
@@ -1467,11 +1530,17 @@ def _build_gradient_group(ng):
     links.new(horizon_glow.outputs["Result"], glow_amount.inputs[1])
 
     # Narrow solar corona: gamma+^16 * 0.65, distinct from the wide lobe.
+    core_power_value = nodes.new("ShaderNodeMath")
+    core_power_value.location = (1780, 740)
+    core_power_value.operation = "MULTIPLY"
+    core_power_value.inputs[1].default_value = 16.0
+    links.new(glow_ratio2.outputs[0], core_power_value.inputs[0])
+
     core_power = nodes.new("ShaderNodeMath")
     core_power.location = (1600, 560)
     core_power.operation = "POWER"
-    core_power.inputs[1].default_value = 16.0
     links.new(gamma_plus.outputs[0], core_power.inputs[0])
+    links.new(core_power_value.outputs[0], core_power.inputs[1])
 
     core_amount = nodes.new("ShaderNodeMath")
     core_amount.location = (1780, 560)
@@ -1519,12 +1588,25 @@ def _build_gradient_group(ng):
     glow_scale.use_clamp = True
     links.new(glow_total.outputs[0], glow_scale.inputs[0])
     links.new(glow_gain.outputs[0], glow_scale.inputs[1])
+    glow_gain_style = nodes.new("ShaderNodeMath")
+    glow_gain_style.location = (2500, 440)
+    glow_gain_style.operation = "MULTIPLY"
+    links.new(glow_scale.outputs[0], glow_gain_style.inputs[0])
+    links.new(group_in.outputs["Sun Glow Gain"], glow_gain_style.inputs[1])
 
     glow_color = nodes.new("ShaderNodeVectorMath")
     glow_color.location = (2500, 320)
     glow_color.operation = "SCALE"
     links.new(group_in.outputs["Sun Color"], glow_color.inputs["Vector"])
-    links.new(glow_scale.outputs[0], glow_color.inputs["Scale"])
+    links.new(glow_gain_style.outputs[0], glow_color.inputs["Scale"])
+
+    # The visible sun disk and glow are camera-only: they are removed from the
+    # ambient branch so resizing the disk never changes object lighting.
+    sun_layer = nodes.new("ShaderNodeVectorMath")
+    sun_layer.location = (2680, 360)
+    sun_layer.operation = "ADD"
+    links.new(disk_color.outputs["Vector"], sun_layer.inputs[0])
+    links.new(glow_color.outputs["Vector"], sun_layer.inputs[1])
 
     glow_add = nodes.new("ShaderNodeMix")
     glow_add.location = (2320, 260)
@@ -2897,10 +2979,15 @@ def _build_gradient_group(ng):
     # Visible sky stays vivid; ambient light is scaled by World Strength.
     light_path = nodes.new("ShaderNodeLightPath")
     light_path.location = (2320, 420)
+    ambient_base = nodes.new("ShaderNodeVectorMath")
+    ambient_base.location = (2500, 220)
+    ambient_base.operation = "SUBTRACT"
+    links.new(sky_color, ambient_base.inputs[0])
+    links.new(sun_layer.outputs["Vector"], ambient_base.inputs[1])
     ambient = nodes.new("ShaderNodeVectorMath")
-    ambient.location = (2500, 220)
+    ambient.location = (2680, 220)
     ambient.operation = "SCALE"
-    links.new(sky_color, ambient.inputs["Vector"])
+    links.new(ambient_base.outputs["Vector"], ambient.inputs["Vector"])
     links.new(group_in.outputs["World Strength"], ambient.inputs["Scale"])
 
     visible = nodes.new("ShaderNodeMix")
@@ -3109,13 +3196,38 @@ def _smoothstep(edge0, edge1, value):
     return t * t * (3.0 - 2.0 * t)
 
 
-def _sun_fade(direction):
+def _sun_fade(direction, fade=7.0):
     """The disk and glow response when the Sun crosses the horizon."""
     if direction is None:
         return 0.0, 0.0
     height = float(direction[2])
-    return (_smoothstep(-0.015, 0.02, height),
-            _smoothstep(-0.12, 0.02, height))
+    width = max(0.5, float(fade)) / 7.0
+    return (_smoothstep(-0.015 * width, 0.02 * width, height),
+            _smoothstep(-0.12 * width, 0.02 * width, height))
+
+
+def _sun_shape(node, settings):
+    """Size, edge, tint and glow extent; independent of the Sun light."""
+    radius = max(0.1, getattr(settings, "sun_disk_size", 1.0)
+                 if settings else 1.0)
+    edge = max(0.02, min(3.0, getattr(settings, "sun_edge_softness", 0.25)
+                       if settings else 0.25))
+    softness = edge
+    node.inputs["Sun Inner"].default_value = math.cos(math.radians(radius))
+    node.inputs["Sun Outer"].default_value = math.cos(
+        math.radians(radius + softness))
+    tint = (getattr(settings, "sun_disk_color", (1.0, 1.0, 1.0))
+            if settings else (1.0, 1.0, 1.0))
+    node.inputs["Sun Disk Tint"].default_value = (
+        tint[0], tint[1], tint[2], 1.0)
+    node.inputs["Sun Limb Warmth"].default_value = (
+        getattr(settings, "sun_limb_warmth", 0.0) if settings else 0.0)
+    node.inputs["Sun Glow Radius"].default_value = max(
+        4.0, getattr(settings, "sun_glow_radius", 18.0)
+        if settings else 18.0)
+    node.inputs["Sun Glow Gain"].default_value = max(
+        0.0, getattr(settings, "sun_glow_gain", 1.0)
+        if settings else 1.0)
 
 
 def _star_angles(event):
@@ -3230,15 +3342,12 @@ def _apply_gradient(scene, settings, nt, background, p):
     sun_disk = getattr(settings, "sun_disk", True) if settings else True
     sun_strength = (getattr(settings, "sun_disk_strength", 4.0)
                     if settings else 4.0)
-    disk_gate, glow_gate = _sun_fade(direction)
+    fade = (getattr(settings, "sun_horizon_fade", 7.0)
+            if settings else 7.0)
+    disk_gate, glow_gate = _sun_fade(direction, fade)
     node.inputs["Sun Strength"].default_value = (
         sun_strength * disk_gate if sun_disk and direction is not None else 0.0)
-    radius = max(0.1, getattr(settings, "sun_disk_size", 1.0)
-                 if settings else 1.0)
-    softness = max(0.2, radius * 0.25)
-    node.inputs["Sun Inner"].default_value = math.cos(math.radians(radius))
-    node.inputs["Sun Outer"].default_value = math.cos(
-        math.radians(radius + softness))
+    _sun_shape(node, settings)
     sun_glow_on = getattr(settings, "sun_glow_enabled", True) if settings else True
     node.inputs["Sun Glow"].default_value = (
         (getattr(settings, "sun_glow", 0.45) if settings else 0.45)
@@ -3382,6 +3491,7 @@ def update_sun_controls(scene):
         wind = _cloud_offset(scene, settings)
         node.inputs["Cloud Offset"].default_value = (
             wind[0] + seed * 0.017, wind[1] + seed * 0.011, 0.0)
+        _sun_shape(node, settings)
     direction = sun_toward(scene)
     if direction is None:
         node.inputs["Sun Strength"].default_value = 0.0
@@ -3392,7 +3502,9 @@ def update_sun_controls(scene):
                 and o.data.type == "SUN"), None)
     if sun is not None and sun.data is not None:
         node.inputs["Sun Color"].default_value = _rgba(sun.data.color)
-    disk_gate, glow_gate = _sun_fade(direction)
+    fade = (getattr(settings, "sun_horizon_fade", 7.0)
+            if settings is not None else 7.0)
+    disk_gate, glow_gate = _sun_fade(direction, fade)
     if settings is not None and settings.sun_disk:
         node.inputs["Sun Strength"].default_value = (
             settings.sun_disk_strength * disk_gate)

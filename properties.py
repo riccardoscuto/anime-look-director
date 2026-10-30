@@ -100,14 +100,47 @@ def remove_property(owner, name):
         pass
 
 
+_sun_style_syncing = False
+
+SUN_STYLES = {
+    "CLEAN": {"edge": 0.25, "glow_radius": 18.0, "glow_gain": 1.0,
+              "color": (1.0, 1.0, 1.0), "limb": 0.0},
+    "ANIME_CINEMATIC": {"edge": 0.6, "glow_radius": 22.0, "glow_gain": 0.65,
+                        "color": (1.0, 0.94, 0.86), "limb": 0.35},
+}
+
+
 def _on_world(self, context):
     try:
         from . import look, palette
-        if palette.style_syncing() or _in_maintenance(context):
+        if (_sun_style_syncing or palette.style_syncing()
+                or _in_maintenance(context)):
             return
         scene = context.scene
         if scene is not None:
             look.apply_world(scene)
+    except Exception:
+        pass
+
+
+def _on_sun_style(self, context):
+    global _sun_style_syncing
+    try:
+        style = SUN_STYLES.get(self.sun_style)
+        if style is None:
+            return
+        _sun_style_syncing = True
+        try:
+            self.sun_edge_softness = style["edge"]
+            self.sun_glow_radius = style["glow_radius"]
+            self.sun_glow_gain = style["glow_gain"]
+            self.sun_disk_color = style["color"]
+            self.sun_limb_warmth = style["limb"]
+        finally:
+            _sun_style_syncing = False
+        from . import look
+        if context.scene is not None:
+            look.apply_world(context.scene)
     except Exception:
         pass
 
@@ -473,8 +506,29 @@ class ALD_Settings(bpy.types.PropertyGroup):
         update=_on_world,
     )
     sun_disk_size: FloatProperty(
-        name="Sun Size", default=1.0, min=0.1, max=10.0,
+        name="Sun Size (deg)", default=1.0, min=0.1, max=15.0,
         description="Angular radius of the sun disk in degrees",
+        update=_on_world)
+    sun_edge_softness: FloatProperty(
+        name="Edge Softness (deg)", default=0.25, min=0.02, max=3.0,
+        description="Width of the disk edge in degrees",
+        update=_on_world)
+    sun_disk_color: FloatVectorProperty(
+        name="Disk Color", subtype="COLOR", size=3, min=0.0, max=1.0,
+        default=(1.0, 1.0, 1.0),
+        description="Tint of the visible disk, independent of the Sun light",
+        update=_on_world)
+    sun_style: EnumProperty(
+        name="Style",
+        items=(("CLEAN", "Sun Clean", "Crisp disk and tighter glow"),
+               ("ANIME_CINEMATIC", "Anime Cinematic",
+                "Softer edge, wider glow and a warm limb")),
+        default="CLEAN",
+        description="Sun look; it writes edge, glow radius and disk tint",
+        update=_on_sun_style)
+    sun_limb_warmth: FloatProperty(
+        name="Limb Warmth", default=0.0, min=0.0, max=1.0,
+        description="Warm tint toward the disk limb",
         update=_on_world)
     sun_disk_strength: FloatProperty(
         name="Sun Strength", default=4.0, min=0.0, max=50.0,
@@ -487,6 +541,18 @@ class ALD_Settings(bpy.types.PropertyGroup):
     sun_glow: FloatProperty(
         name="Sun Glow", default=0.45, min=0.0, max=2.0,
         description="Mie-style anisotropic glare around the sun",
+        update=_on_world)
+    sun_glow_radius: FloatProperty(
+        name="Glow Radius", default=18.0, min=4.0, max=45.0,
+        description="Angular extent of the glow in degrees",
+        update=_on_world)
+    sun_glow_gain: FloatProperty(
+        name="Glow Gain", default=1.0, min=0.0, max=2.0,
+        description="Style gain applied to the glow",
+        update=_on_world)
+    sun_horizon_fade: FloatProperty(
+        name="Horizon Fade", default=7.0, min=0.5, max=20.0,
+        description="Degrees over which the disk and glow fade at the horizon",
         update=_on_world)
     sky_accent: FloatVectorProperty(
         name="Accent Color",

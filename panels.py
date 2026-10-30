@@ -52,17 +52,20 @@ def draw_atmosphere(layout, context):
         col.prop(s, "sky_accent_amount")
     row = box.row(align=True)
     row.prop(s, "sun_disk", toggle=True)
+    row.prop(s, "sun_glow_enabled", text="Glow", toggle=True)
+    box.prop(s, "sun_style")
+    col = box.column(align=True)
     if s.sun_disk:
-        col = box.column(align=True)
         col.prop(s, "sun_disk_size")
         col.prop(s, "sun_disk_strength")
-    row = box.row(align=True)
-    row.prop(s, "sun_glow_enabled", text="Sun Glow", toggle=True)
+        col.prop(s, "sun_edge_softness")
+        col.prop(s, "sun_disk_color")
     if s.sun_glow_enabled:
-        box.prop(s, "sun_glow", text="Glow Strength")
-    col = box.column(align=True)
+        col.prop(s, "sun_glow", text="Glow Strength")
+        col.prop(s, "sun_glow_radius")
     col.prop(s, "sun_elevation")
     col.prop(s, "sun_azimuth")
+    col.prop(s, "sun_horizon_fade")
     box.operator("ald.stage_backlight", icon="LIGHT")
 
 
