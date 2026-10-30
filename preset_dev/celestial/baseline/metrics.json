@@ -1,0 +1,65 @@
+{
+  "blender": "5.1.2",
+  "presets": {
+    "SUMMER_NOON": {
+      "build_seconds": 3.0665,
+      "nodes": 793,
+      "links": 1215,
+      "sockets": 89,
+      "renders": {
+        "1280x720": {
+          "seconds": 0.632,
+          "file": "summer_noon_1280x720.jpg",
+          "bytes": 47979
+        },
+        "1920x1080": {
+          "seconds": 0.55,
+          "file": "summer_noon_1920x1080.jpg",
+          "bytes": 87943
+        },
+        "2560x1440": {
+          "seconds": 0.861,
+          "file": "summer_noon_2560x1440.jpg",
+          "bytes": 137048
+        }
+      }
+    },
+    "MOONLIT_NIGHT": {
+      "build_seconds": 2.7118,
+      "nodes": 793,
+      "links": 1215,
+      "sockets": 89,
+      "renders": {
+        "1280x720": {
+          "seconds": 0.414,
+          "file": "moonlit_night_1280x720.jpg",
+          "bytes": 57355
+        },
+        "1920x1080": {
+          "seconds": 0.563,
+          "file": "moonlit_night_1920x1080.jpg",
+          "bytes": 103023
+        },
+        "2560x1440": {
+          "seconds": 0.893,
+          "file": "moonlit_night_2560x1440.jpg",
+          "bytes": 156517
+        }
+      }
+    }
+  },
+  "resolutions": [
+    [
+      1280,
+      720
+    ],
+    [
+      1920,
+      1080
+    ],
+    [
+      2560,
+      1440
+    ]
+  ]
+}
