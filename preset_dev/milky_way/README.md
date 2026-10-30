@@ -35,7 +35,7 @@ Blue Hour, Moonlit Night).
 
 `phase4/board.jpg` - eight cells: Moonlit Night Scientific/Cinematic, Blue
 Hour, Twilight Dusk, dust contrast 0.20/0.95, core close-up (50 mm) and the band
-behind clouds. 16 mm panorama at elevation 35 (the first four), 900x600.
+behind clouds. 16 mm panorama aimed at the core, 900x600.
 
 ## Technical checks
 
