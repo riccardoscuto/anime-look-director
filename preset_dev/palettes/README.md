@@ -1,10 +1,10 @@
 > **Superseded by `preset_dev/preset_identity/README.md`.** The identity
-> revision is **IN REVIEW - not approved**; this board is the first review.
+> revision is **VISUAL APPROVED** in 2.63.0; this board is the first review.
 
 # 12 presets - 2.63.0 review
 
-Status: **IN REVIEW - pending user sign-off.** No preset values were changed in
-this pass.
+Status: **superseded - VISUAL APPROVED in 2.63.0.** No preset values were
+changed in this first pass.
 
 The board `review.png` uses the fixed look-dev scene from
 `preset_dev/lookdev.py`: same camera, ground, spheres, sun and colour

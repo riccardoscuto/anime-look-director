@@ -43,7 +43,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Legacy migration (2.63 work) | `legacy/report.json`, `legacy/v256_report.json` | synthetic **36/36**; real v2.56.0 `.blend` **9/9** |
 | Cumulus baseline (2.63 work) | `phase1/contact.png`, `phase1/contact_lighting.png`, `phase1/metrics.json` | v1.0.3 vs v2.62 native/calibrated; **TECHNICAL PASS / VISUAL REVIEW PENDING** |
 | Palettes | `palettes/sheet.png`, `palettes/review.png`, `palettes/review.json` | first 12-preset review; superseded by the identity review |
-| Preset identity | `preset_identity/gradient_board.jpg`, `sun_board.jpg`, `cloud_board.jpg`, tuning boards, metrics | 12 presets; gradient, native Sun and full-cloud boards; **IN REVIEW - not approved** |
+| Preset identity | `preset_identity/gradient_board.jpg`, `sun_board.jpg`, `cloud_board.jpg`, tuning boards, metrics | 12 presets; gradient, native Sun and full-cloud boards; **VISUAL APPROVED - 2.63.0** |
 | UI | `preset_dev/phase3_ui/` | full Scene Properties mirror in the sidebar, autonomous Shooting Stars, compositor states; **VISUAL APPROVED - 2.63.0** |
 | Package | `dist/anime_look_director-2.63.0.zip` | extension build PASS; installed and enabled in an isolated config |
 
@@ -72,14 +72,11 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 
 ## 2.63.0 status
 
-2.63.0 is the current release candidate on `master` (merge `1e922a7` plus the
-release bump) and is **not published or tagged**. Phase 0 legacy safety, Phase 1A/1B shooting stars, Phase 2
-atmosphere, Phase 3 UI cleanup and Phase 4 star/cloud look are merged and
-visually approved. Phase 1 Cumulus baseline remains technically complete with
-its visual decision open. The 12-preset identity review is on `feature/preset-identity`; status
-**VISUAL APPROVED** and merged in 2.63.0; see
-`preset_dev/preset_identity/README.md`.
-No tag has been created.
+2.63.0 is released on `master` and tagged `v2.63.0` (merge `eadcad7`). Phase 0
+legacy safety, Phase 1A/1B shooting stars, Phase 2 atmosphere, Phase 3 UI
+cleanup, Phase 4 star/cloud look and the 12-preset identity revision are merged
+and visually approved. Phase 1 Cumulus baseline remains technically complete
+with its visual decision open. See `preset_dev/preset_identity/README.md`.
 
 Phase 3 UI evidence: `preset_dev/phase3_ui/`.
 Phase 4 evidence: `star_thickness/`, `star_curvature/`, `cloud_sun_scatter/`.

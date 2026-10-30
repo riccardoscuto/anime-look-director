@@ -95,7 +95,7 @@ sun 3.2; Twilight Dusk softness 0.26 / seed 71.
 - `phase2_audit.py` - **PASS**
 - `phase6_technical.py` - **17/17 PASS**
 - `verify_all.py` - **ALD ALL PASS**, World audit 44/44
-- `build_release.py` - **PASS** (2.63.0 package built, not published)
+- `build_release.py` - **PASS** (2.63.0 package built and tagged)
 
 ## Known limits (documented, not reopened)
 
