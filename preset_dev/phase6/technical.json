@@ -23,7 +23,7 @@
     {
       "name": "wind advances the cloud field",
       "passed": true,
-      "detail": "offset [0.289833, 0.187208] -> [0.329, 0.197], delta 0.0197"
+      "detail": "offset [0.289833, 0.187208] -> [0.329, 0.197], delta 0.0226"
     },
     {
       "name": "wind is deterministic at a fixed frame",
@@ -38,7 +38,7 @@
     {
       "name": "the disabled star leaves the render",
       "passed": true,
-      "detail": "max 0.8235 vs 0.8235"
+      "detail": "max 0.8549 vs 0.8549"
     },
     {
       "name": "re-enabling restores the exact slot",
@@ -48,17 +48,17 @@
     {
       "name": "a plain scene copy shares identity and World",
       "passed": true,
-      "detail": "id b7f9af78"
+      "detail": "id c99e639f"
     },
     {
       "name": "ownership repair gives a new identity and World",
       "passed": true,
-      "detail": "id 3f65a93c"
+      "detail": "id d14a9a8c"
     },
     {
       "name": "the original scene is untouched by the copy",
       "passed": true,
-      "detail": "sky [0.008, 0.012, 0.065, 1.0]"
+      "detail": "sky [0.003, 0.008, 0.06, 1.0]"
     },
     {
       "name": "the World builds four fixed star slots",
@@ -73,7 +73,7 @@
     {
       "name": "apply and render stay within budget",
       "passed": true,
-      "detail": "apply 1.3 ms, render 173 ms"
+      "detail": "apply 1.6 ms, render 187 ms"
     },
     {
       "name": "the shooting star survives save/reload",
@@ -88,8 +88,8 @@
   ],
   "passed": 17,
   "total": 17,
-  "apply_ms": 1.32,
-  "render_ms": 173.5,
+  "apply_ms": 1.59,
+  "render_ms": 187.3,
   "objects": 5,
   "world_nodes": 3
 }

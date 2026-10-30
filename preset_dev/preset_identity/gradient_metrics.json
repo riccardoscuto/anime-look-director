@@ -1,0 +1,65 @@
+{
+  "mode": "gradients",
+  "presets": {
+    "GOLDEN_HOUR": {
+      "luma": 0.4214,
+      "contrast": 0.1399,
+      "saturation": 0.291
+    },
+    "AFTER_SCHOOL": {
+      "luma": 0.5485,
+      "contrast": 0.0968,
+      "saturation": 0.198
+    },
+    "SUMMER_NOON": {
+      "luma": 0.5285,
+      "contrast": 0.0983,
+      "saturation": 0.4101
+    },
+    "RAINY_TOKYO": {
+      "luma": 0.3344,
+      "contrast": 0.1182,
+      "saturation": 0.1849
+    },
+    "NEON_NIGHT": {
+      "luma": 0.2306,
+      "contrast": 0.1616,
+      "saturation": 0.2507
+    },
+    "SAKURA_SPRING": {
+      "luma": 0.5548,
+      "contrast": 0.0918,
+      "saturation": 0.3109
+    },
+    "TWILIGHT_DUSK": {
+      "luma": 0.2488,
+      "contrast": 0.1468,
+      "saturation": 0.2452
+    },
+    "SOFT_DAWN": {
+      "luma": 0.5311,
+      "contrast": 0.1093,
+      "saturation": 0.2527
+    },
+    "BLUE_HOUR": {
+      "luma": 0.349,
+      "contrast": 0.1376,
+      "saturation": 0.3478
+    },
+    "CLOUDY_AFTERNOON": {
+      "luma": 0.6074,
+      "contrast": 0.1033,
+      "saturation": 0.1162
+    },
+    "STORMY_SUNSET": {
+      "luma": 0.3814,
+      "contrast": 0.1382,
+      "saturation": 0.1785
+    },
+    "MOONLIT_NIGHT": {
+      "luma": 0.2621,
+      "contrast": 0.1202,
+      "saturation": 0.2016
+    }
+  }
+}
