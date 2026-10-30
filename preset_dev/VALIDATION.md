@@ -1,7 +1,7 @@
 # Anime Look Director - World Sky Edition validation
 
-Release candidate: **2.63.0**, not published (Blender 5.1.2, Windows 11).
-Preset identity review: **IN REVIEW - not approved**.
+Release: **2.63.0** (Blender 5.1.2, Windows 11).
+Preset identity review: **VISUAL APPROVED** (2026-10-30).
 
 ## Commands
 
@@ -77,7 +77,8 @@ release bump) and is **not published or tagged**. Phase 0 legacy safety, Phase 1
 atmosphere, Phase 3 UI cleanup and Phase 4 star/cloud look are merged and
 visually approved. Phase 1 Cumulus baseline remains technically complete with
 its visual decision open. The 12-preset identity review is on `feature/preset-identity`; status
-**IN REVIEW - not approved**; see `preset_dev/preset_identity/README.md`.
+**VISUAL APPROVED** and merged in 2.63.0; see
+`preset_dev/preset_identity/README.md`.
 No tag has been created.
 
 Phase 3 UI evidence: `preset_dev/phase3_ui/`.

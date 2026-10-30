@@ -1,4 +1,4 @@
-# Preset identity - final candidate (IN REVIEW, not approved)
+# Preset identity - APPROVED for 2.63.0
 
 Response to the artistic review of the 12 presets. Release 2.63.0 is **not
 published or tagged** while the visual sign-off is open.
@@ -131,6 +131,8 @@ folder were assembled from that output and the final board render.
 
 ## Status
 
-**IN REVIEW - not approved.** Two artistic passes plus this targeted pass.
-No further pass until the user approves or names the remaining issue.
-No tag, release or merge.
+**VISUAL APPROVED - 2.63.0 unblocked.** The user approved all 12 presets on
+2026-10-30, including the After School / Sakura Spring World -10% pass, the
+Twilight Dusk softness 0.26 and the four cloud seeds. Two artistic passes plus
+this targeted pass were made; no further pass is planned. Merged to `master`
+with this evidence.

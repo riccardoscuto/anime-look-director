@@ -118,11 +118,11 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   37/37 Phase 1A, 44/44 audit, 17/17 Phase 6, Phase 1B markers 29/30 -> 35
   with events and animation preserved, Phase 2 audit, matrix 22 cells, ALD ALL
   and build PASS. Visual status: **APPROVED for 2.63.0**. The 12-preset review
-  is on `feature/preset-identity`; status **IN REVIEW - not approved**. Final
-  candidate: After School and Sakura Spring World -10% (0.86 / 0.83), Twilight
-  Dusk softness 0.26, per-preset cloud seeds 17/43/71/97 written by
-  `apply_preset_style`; see `preset_dev/preset_identity/README.md`. 2.63.0 is
-  not published/tagged.
+  is on `feature/preset-identity`; status **VISUAL APPROVED - merged in
+  2.63.0**. Final tuning: After School and Sakura Spring World -10% (0.86 /
+  0.83), Twilight Dusk softness 0.26, per-preset cloud seeds 17/43/71/97
+  written by `apply_preset_style`; see
+  `preset_dev/preset_identity/README.md`.
 - Phase 6 evidence is `preset_dev/phase6/contact.png` (22 cells),
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and

@@ -1,11 +1,10 @@
 # Changelog
 
 ## 2.63.0 - 2026-10-29
-World Sky Edition release candidate: legacy safety, atmosphere/Sun, full
-View3D mirror, shooting-star look and cloud Sun Scatter. The 12-preset review
-is in progress; the identity revision is on `feature/preset-identity`
-(per-preset cloud seeds 17/43/71/97; final lighting/softness pass) and 2.63.0
-is not published or tagged.
+World Sky Edition release: legacy safety, atmosphere/Sun, full View3D
+mirror, shooting-star look, cloud Sun Scatter and the approved 12-preset
+identity revision (per-preset cloud seeds 17/43/71/97; final lighting/softness
+pass).
 
 Phase 0: legacy ALD safety.
 
