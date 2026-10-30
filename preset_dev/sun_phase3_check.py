@@ -33,9 +33,11 @@ def render(scene, name):
     return path
 
 
-def lower_delta(a, b):
-    left = lookdev.load_rgba(a).reshape(900, 900, 4)[450:, :, :3]
-    right = lookdev.load_rgba(b).reshape(900, 900, 4)[450:, :, :3]
+def crop_delta(a, b, rows=(300, 900), cols=(0, 900)):
+    left = lookdev.load_rgba(a).reshape(900, 900, 4)[
+        rows[0]:rows[1], cols[0]:cols[1], :3]
+    right = lookdev.load_rgba(b).reshape(900, 900, 4)[
+        rows[0]:rows[1], cols[0]:cols[1], :3]
     return float(np.abs(left - right).max())
 
 
@@ -76,20 +78,73 @@ def main():
     small = render(scene, "light_size_1")
     scene.ald.sun_disk_size = 12.0
     large = render(scene, "light_size_12")
+    delta = crop_delta(small, large)
+
+    # Second angle: a close-up with the ground and spheres, so shadows are
+    # clearly visible in the comparison.
+    close_data = bpy.data.cameras.new("Sun Close Camera")
+    close_data.lens = 50.0
+    close = bpy.data.objects.new("Sun Close Camera", close_data)
+    scene.collection.objects.link(close)
+    close.location = (4.0, -6.0, 3.0)
+    from mathutils import Vector
+    close.rotation_euler = (Vector((0.0, 0.0, 1.0)) - close.location).to_track_quat(
+        "-Z", "Y").to_euler()
+    original_camera = scene.camera
+    scene.camera = close
+    scene.ald.sun_disk_size = 1.0
+    close_small = render(scene, "light_close_1")
+    scene.ald.sun_disk_size = 12.0
+    close_large = render(scene, "light_close_12")
+    close_delta = crop_delta(close_small, close_large, rows=(250, 900))
+    scene.camera = original_camera
+
     checks["light_independent"] = {
         "passed": (abs(float(sun.data.energy) - energy) < 1e-6
                    and tuple(round(value, 5) for value in sun.rotation_euler)
-                   == rotation),
+                   == rotation
+                   and delta < 0.01 and close_delta < 0.01),
         "energy": energy, "rotation": rotation,
-        "object_delta": round(lower_delta(small, large), 5),
+        "object_delta": round(delta, 5),
+        "object_delta_close": round(close_delta, 5),
+    }
+
+    # Disk and glow toggles are independent, including the animated path.
+    def node_values():
+        node = palette._gradient_node(scene.world.node_tree)
+        return (node.inputs["Sun Strength"].default_value,
+                node.inputs["Sun Glow"].default_value)
+
+    scene.ald.sun_disk = False
+    scene.ald.sun_glow_enabled = True
+    palette.update_sun_controls(scene)
+    glow_only = node_values()
+    scene.ald.sun_disk = True
+    scene.ald.sun_glow_enabled = False
+    palette.update_sun_controls(scene)
+    disk_only = node_values()
+    scene.ald.sun_disk = False
+    scene.ald.sun_glow_enabled = False
+    palette.update_sun_controls(scene)
+    both_off = node_values()
+    scene.ald.sun_disk = True
+    scene.ald.sun_glow_enabled = True
+    palette.update_sun_controls(scene)
+    checks["toggle_independence"] = {
+        "passed": (glow_only[0] == 0.0 and glow_only[1] > 0.0
+                   and disk_only[0] > 0.0 and disk_only[1] == 0.0
+                   and both_off == (0.0, 0.0)),
+        "glow_only": [round(value, 4) for value in glow_only],
+        "disk_only": [round(value, 4) for value in disk_only],
+        "both_off": [round(value, 4) for value in both_off],
     }
 
     scene.ald.sun_style = "ANIME_CINEMATIC"
     checks["cinematic"] = {
-        "passed": (abs(scene.ald.sun_edge_softness - 0.6) < 1e-4
-                   and abs(scene.ald.sun_glow_radius - 22.0) < 1e-4
-                   and abs(scene.ald.sun_glow_gain - 0.65) < 1e-4
-                   and abs(scene.ald.sun_limb_warmth - 0.35) < 1e-4),
+        "passed": (abs(scene.ald.sun_edge_softness - 0.8) < 1e-4
+                   and abs(scene.ald.sun_glow_radius - 26.0) < 1e-4
+                   and abs(scene.ald.sun_glow_gain - 0.75) < 1e-4
+                   and abs(scene.ald.sun_limb_warmth - 0.45) < 1e-4),
         "edge": scene.ald.sun_edge_softness,
         "glow_radius": scene.ald.sun_glow_radius,
         "glow_gain": scene.ald.sun_glow_gain,

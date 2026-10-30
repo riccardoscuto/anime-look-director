@@ -1,0 +1,96 @@
+{
+  "palettes": [
+    "GOLDEN_HOUR",
+    "SUMMER_NOON"
+  ],
+  "cases": [
+    {
+      "palette": "GOLDEN_HOUR",
+      "style": "CLEAN",
+      "size": 3.0,
+      "file": "golden_hour_clean_3_0.png",
+      "metrics": {
+        "luma": 0.5629,
+        "contrast": 0.1325,
+        "saturation": 0.2205
+      }
+    },
+    {
+      "palette": "GOLDEN_HOUR",
+      "style": "ANIME_CINEMATIC",
+      "size": 3.0,
+      "file": "golden_hour_anime_cinematic_3_0.png",
+      "metrics": {
+        "luma": 0.6034,
+        "contrast": 0.0974,
+        "saturation": 0.1733
+      }
+    },
+    {
+      "palette": "GOLDEN_HOUR",
+      "style": "CLEAN",
+      "size": 10.0,
+      "file": "golden_hour_clean_10_0.png",
+      "metrics": {
+        "luma": 0.5695,
+        "contrast": 0.1436,
+        "saturation": 0.22
+      }
+    },
+    {
+      "palette": "GOLDEN_HOUR",
+      "style": "ANIME_CINEMATIC",
+      "size": 10.0,
+      "file": "golden_hour_anime_cinematic_10_0.png",
+      "metrics": {
+        "luma": 0.6112,
+        "contrast": 0.1102,
+        "saturation": 0.1737
+      }
+    },
+    {
+      "palette": "SUMMER_NOON",
+      "style": "CLEAN",
+      "size": 3.0,
+      "file": "summer_noon_clean_3_0.png",
+      "metrics": {
+        "luma": 0.6129,
+        "contrast": 0.0905,
+        "saturation": 0.2604
+      }
+    },
+    {
+      "palette": "SUMMER_NOON",
+      "style": "ANIME_CINEMATIC",
+      "size": 3.0,
+      "file": "summer_noon_anime_cinematic_3_0.png",
+      "metrics": {
+        "luma": 0.6362,
+        "contrast": 0.0756,
+        "saturation": 0.2207
+      }
+    },
+    {
+      "palette": "SUMMER_NOON",
+      "style": "CLEAN",
+      "size": 10.0,
+      "file": "summer_noon_clean_10_0.png",
+      "metrics": {
+        "luma": 0.6264,
+        "contrast": 0.1159,
+        "saturation": 0.252
+      }
+    },
+    {
+      "palette": "SUMMER_NOON",
+      "style": "ANIME_CINEMATIC",
+      "size": 10.0,
+      "file": "summer_noon_anime_cinematic_10_0.png",
+      "metrics": {
+        "luma": 0.6512,
+        "contrast": 0.1016,
+        "saturation": 0.2107
+      }
+    }
+  ]
+}

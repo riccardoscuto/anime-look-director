@@ -7,14 +7,30 @@
       0.0,
       0.0
     ],
-    "object_delta": 0.0
+    "object_delta": 0.0,
+    "object_delta_close": 0.0
+  },
+  "toggle_independence": {
+    "passed": true,
+    "glow_only": [
+      0.0,
+      0.6
+    ],
+    "disk_only": [
+      4.0,
+      0.0
+    ],
+    "both_off": [
+      0.0,
+      0.0
+    ]
   },
   "cinematic": {
     "passed": true,
-    "edge": 0.6000000238418579,
-    "glow_radius": 22.0,
-    "glow_gain": 0.6499999761581421,
-    "limb": 0.3499999940395355
+    "edge": 0.800000011920929,
+    "glow_radius": 26.0,
+    "glow_gain": 0.75,
+    "limb": 0.44999998807907104
   },
   "clean": {
     "passed": true,
@@ -39,6 +55,6 @@
   },
   "cost": {
     "nodes": 812,
-    "build_seconds": 2.835
+    "build_seconds": 2.982
   }
 }

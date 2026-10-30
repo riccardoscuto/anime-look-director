@@ -16,11 +16,13 @@ their default render are preserved.
   Anime Cinematic so the broader glow does not wash the sky.
 - **Disk Color** tints only the visible disk, never the Sun light.
 - **Sun Style**: `Sun Clean` (edge 0.25, radius 18, neutral tint, no limb
-  warmth) and `Anime Cinematic` (edge 0.6, radius 22, gain 0.65, warm tint,
-  limb warmth 0.35). Styles do not touch size, energy or direction.
+  warmth) and `Anime Cinematic` (edge 0.8, radius 26, gain 0.75, warm tint
+  `(1.0, 0.90, 0.80)`, limb warmth 0.45). Styles do not touch size, energy or
+  direction.
 - **Limb warmth**: a subtle warm tint toward the disk edge, used by Cinematic.
-- **Horizon Fade** (0.5-20 deg, default 7) scales the existing disk/glow fade
-  widths. The default preserves the old behaviour exactly.
+- **Horizon Fade** (0.5-20 deg, default 7) is an angular width: the disk and
+  glow thresholds are computed from degrees. 7 deg reproduces the old blend
+  (delta below 0.004 in the default comparison).
 - **Camera-only sun**: the disk and glow are removed from the ambient branch,
   so enlarging the disk cannot change object lighting. Only the visible sky
   changes.
@@ -40,7 +42,10 @@ the pixels:
 | Legacy build -> current build | 35 -> **40** |
 | Max pixel delta, default Sun | **0.00392** (JPEG-scale, sky only) |
 | Sun light energy / rotation after size 1 -> 12 | unchanged |
-| Object region delta, size 1 -> 12 | **0.0** |
+| Object region delta, size 1 -> 12 | **0.0** (wide and close-up) |
+| Disk OFF + Glow ON after an update | strength 0, glow **0.6** |
+| Disk ON + Glow OFF after an update | strength **4.0**, glow 0 |
+| Both OFF | **0 / 0** |
 
 The default Sun therefore matches the released look, and resizing the disk is
 purely visual.
@@ -49,6 +54,8 @@ purely visual.
 
 - `phase3/sizes_board.jpg` - radius 0.5 / 2 / 6 / 12 deg, Clean, elevation 25.
 - `phase3/styles_board.jpg` - Clean vs Anime Cinematic at 3 and 10 deg.
+- `style_compare/compare_board.jpg` - Clean/Cinematic at 3/10 deg on Golden
+  Hour and Summer Noon.
 - `phase3/horizon_board.jpg` - elevation -2 / 0.5 / 3 / 8 deg, radius 4.
 
 Individual renders are produced by `preset_dev/sun_phase3.py`; only the boards
@@ -62,7 +69,7 @@ and metrics are kept.
 |---|---|
 | Sun light energy/rotation on resize | unchanged (4.2, same rotation) |
 | Object lighting on resize | delta **0.0** |
-| Cinematic values | edge 0.6, radius 22, gain 0.65, limb 0.35 |
+| Cinematic values | edge 0.8, radius 26, gain 0.75, limb 0.45 |
 | Clean values | edge 0.25, radius 18, gain 1.0 |
 | Horizon -2 vs +0.5 | luma **0.449 -> 0.471** |
 | Save/reopen | fade/color kept, pixel delta **0.0** |
@@ -77,6 +84,9 @@ Existing gates: `verify_all` **ALD ALL PASS**, Phase 3 UI **68/68 PASS**.
 - The style changes edge, glow radius/gain and disk tint; it deliberately does
   not change size or light energy.
 - The Moon light remains deferred; this phase only touches the Sun.
+- The disk and glow are camera-ray only by design. They therefore do not
+  appear in glossy reflections; reflection rays receive the sky without the
+  drawn Sun. Documented, not hidden.
 
 ## Reproduce
 
@@ -97,5 +107,6 @@ The default comparison needs a 2.63.0 `.blend`:
 
 ## Gate 3
 
-**Technical PASS. Visual approval pending.** The size/style boards and the
-horizon strip are the review material.
+**Technical PASS. Visual approval pending for Anime Cinematic.** The size and
+horizon boards are approved; the Clean/Cinematic comparison on Golden Hour and
+Summer Noon is the review material for the final style check.

@@ -105,8 +105,8 @@ _sun_style_syncing = False
 SUN_STYLES = {
     "CLEAN": {"edge": 0.25, "glow_radius": 18.0, "glow_gain": 1.0,
               "color": (1.0, 1.0, 1.0), "limb": 0.0},
-    "ANIME_CINEMATIC": {"edge": 0.6, "glow_radius": 22.0, "glow_gain": 0.65,
-                        "color": (1.0, 0.94, 0.86), "limb": 0.35},
+    "ANIME_CINEMATIC": {"edge": 0.8, "glow_radius": 26.0, "glow_gain": 0.75,
+                        "color": (1.0, 0.90, 0.80), "limb": 0.45},
 }
 
 
@@ -552,7 +552,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         update=_on_world)
     sun_horizon_fade: FloatProperty(
         name="Horizon Fade", default=7.0, min=0.5, max=20.0,
-        description="Degrees over which the disk and glow fade at the horizon",
+        description="Angular width of the horizon fade in degrees; 7 matches the original blend",
         update=_on_world)
     sky_accent: FloatVectorProperty(
         name="Accent Color",

@@ -53,9 +53,9 @@
       "size": 3.0,
       "file": "anime_cinematic_3_0.png",
       "metrics": {
-        "luma": 0.5624,
-        "contrast": 0.1151,
-        "saturation": 0.2035
+        "luma": 0.6034,
+        "contrast": 0.0974,
+        "saturation": 0.1733
       }
     },
     {
@@ -73,9 +73,9 @@
       "size": 10.0,
       "file": "anime_cinematic_10_0.png",
       "metrics": {
-        "luma": 0.5708,
-        "contrast": 0.129,
-        "saturation": 0.2041
+        "luma": 0.6112,
+        "contrast": 0.1102,
+        "saturation": 0.1737
       }
     }
   ],
@@ -84,18 +84,18 @@
       "elevation": -2.0,
       "file": "elev_m2_0.png",
       "metrics": {
-        "luma": 0.5639,
-        "contrast": 0.1008,
-        "saturation": 0.197
+        "luma": 0.5653,
+        "contrast": 0.1004,
+        "saturation": 0.1972
       }
     },
     {
       "elevation": 0.5,
       "file": "elev_0_5.png",
       "metrics": {
-        "luma": 0.6272,
+        "luma": 0.6274,
         "contrast": 0.0949,
-        "saturation": 0.1975
+        "saturation": 0.1974
       }
     },
     {

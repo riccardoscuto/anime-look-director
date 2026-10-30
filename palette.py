@@ -3197,13 +3197,14 @@ def _smoothstep(edge0, edge1, value):
 
 
 def _sun_fade(direction, fade=7.0):
-    """The disk and glow response when the Sun crosses the horizon."""
+    """Angular disk and glow fade at the horizon (fade in degrees)."""
     if direction is None:
         return 0.0, 0.0
     height = float(direction[2])
-    width = max(0.5, float(fade)) / 7.0
-    return (_smoothstep(-0.015 * width, 0.02 * width, height),
-            _smoothstep(-0.12 * width, 0.02 * width, height))
+    fade = max(0.5, float(fade))
+    top = math.sin(math.radians(fade * 0.16))
+    return (_smoothstep(-math.sin(math.radians(fade * 0.12)), top, height),
+            _smoothstep(-math.sin(math.radians(fade)), top, height))
 
 
 def _sun_shape(node, settings):
@@ -3495,6 +3496,7 @@ def update_sun_controls(scene):
     direction = sun_toward(scene)
     if direction is None:
         node.inputs["Sun Strength"].default_value = 0.0
+        node.inputs["Sun Glow"].default_value = 0.0
         return
     node.inputs["Sun Direction"].default_value = direction
     sun = next((o for o in scene.objects
@@ -3505,9 +3507,11 @@ def update_sun_controls(scene):
     fade = (getattr(settings, "sun_horizon_fade", 7.0)
             if settings is not None else 7.0)
     disk_gate, glow_gate = _sun_fade(direction, fade)
-    if settings is not None and settings.sun_disk:
+    if settings is not None:
+        # Disk and glow are independent: a hidden disk never disables the glow.
         node.inputs["Sun Strength"].default_value = (
-            settings.sun_disk_strength * disk_gate)
+            settings.sun_disk_strength * disk_gate
+            if settings.sun_disk else 0.0)
         node.inputs["Sun Glow"].default_value = (
             settings.sun_glow * glow_gate
             if settings.sun_glow_enabled else 0.0)
