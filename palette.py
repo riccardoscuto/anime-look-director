@@ -9,7 +9,7 @@ from mathutils import Vector
 from .shaders import moon as moon_shader
 
 GRADIENT_GROUP = "ALD | World Gradient"
-GRADIENT_BUILD = 38
+GRADIENT_BUILD = 39
 AUTO_SUN_TAG = "ald_auto_sun"
 SUN_OWNER_TAG = "ald_sun_owner"
 
@@ -436,6 +436,27 @@ def _smooth(node):
             node.interpolation_type = "SMOOTHSTEP"
     except Exception:
         pass
+
+
+def over_color(nodes, links, sky, premultiplied, alpha, location=(0, 0)):
+    """C = C_premultiplied + (1 - alpha) * C_sky (linear space)."""
+    x, y = location
+    invert = nodes.new("ShaderNodeMath")
+    invert.location = (x, y - 120)
+    invert.operation = "SUBTRACT"
+    invert.inputs[0].default_value = 1.0
+    links.new(alpha, invert.inputs[1])
+    sky_scaled = nodes.new("ShaderNodeVectorMath")
+    sky_scaled.location = (x + 180, y - 60)
+    sky_scaled.operation = "SCALE"
+    links.new(sky, sky_scaled.inputs[0])
+    links.new(invert.outputs[0], sky_scaled.inputs["Scale"])
+    over = nodes.new("ShaderNodeVectorMath")
+    over.location = (x + 360, y)
+    over.operation = "ADD"
+    links.new(sky_scaled.outputs["Vector"], over.inputs[0])
+    links.new(premultiplied, over.inputs[1])
+    return over.outputs["Vector"]
 
 
 def _rgba_sockets(mix):
@@ -2866,15 +2887,12 @@ def _build_gradient_group(ng):
     links.new(moon_node.outputs["Color"], moon_color.inputs[0])
     links.new(moon_gate.outputs["Result"], moon_color.inputs["Scale"])
 
-    moon_mix = nodes.new("ShaderNodeMix")
-    moon_mix.location = (2800, -720)
-    moon_mix.data_type = "RGBA"
-    moon_mix.blend_type = "MIX"
-    a_sock, b_sock, result_sock = _rgba_sockets(moon_mix)
-    links.new(sky_color, a_sock)
-    links.new(moon_color.outputs["Vector"], b_sock)
-    links.new(moon_alpha.outputs[0], moon_mix.inputs["Factor"])
-    sky_color = result_sock
+    # Premultiplied over: the Moon colour already contains its coverage, so
+    # the sky is scaled by (1 - alpha) and added once. A Mix node would
+    # multiply the Moon colour by alpha a second time.
+    sky_color = over_color(nodes, links, sky_color,
+                           moon_color.outputs["Vector"],
+                           moon_alpha.outputs[0], (2800, -720))
 
     # Visible sky stays vivid; ambient light is scaled by World Strength.
     light_path = nodes.new("ShaderNodeLightPath")

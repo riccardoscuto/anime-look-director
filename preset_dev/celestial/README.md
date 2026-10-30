@@ -116,6 +116,6 @@ they are not part of the Moon milestone.
 
 **Gate 0: PASS (strategy) - Phase 1 and 2A approved, 2B ready.**
 
-Evidence in `preset_dev/moon/`: full disk, phase geometry and animation are
-approved; earthshine/halo refinements await the final Gate 2 review. The Moon
+Evidence in `preset_dev/moon/`: Phase 1, 2A and 2B are approved and Gate 2 is
+closed; the premultiplied composition is verified numerically. The Moon
 milestone does not change the 12 presets, the clouds or the compositor.

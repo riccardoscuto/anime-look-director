@@ -1,0 +1,31 @@
+{
+  "sky": 0.3,
+  "moon": 0.8,
+  "rows": [
+    {
+      "alpha": 0.25,
+      "expected": 0.425,
+      "measured": 0.4248,
+      "error": 0.0002,
+      "old_mix_value": 0.275,
+      "passed": true
+    },
+    {
+      "alpha": 0.5,
+      "expected": 0.55,
+      "measured": 0.5498,
+      "error": 0.0002,
+      "old_mix_value": 0.35,
+      "passed": true
+    },
+    {
+      "alpha": 0.75,
+      "expected": 0.675,
+      "measured": 0.6748,
+      "error": 0.0002,
+      "old_mix_value": 0.525,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

@@ -3,9 +3,9 @@
     "passed": true,
     "fractions": {
       "0.0": 0.0,
-      "0.25": 0.256,
-      "0.5": 0.505,
-      "0.75": 0.751,
+      "0.25": 0.243,
+      "0.5": 0.476,
+      "0.75": 0.714,
       "1.0": 1.0
     }
   },
@@ -14,7 +14,7 @@
     "disk": 0.736,
     "sky": 0.276,
     "max_step_up": 0.0052,
-    "min": 0.271
+    "min": 0.272
   },
   "waxing_side": {
     "passed": true,
@@ -23,15 +23,17 @@
   },
   "sun_linked": {
     "passed": true,
-    "fraction": 0.435,
-    "centroid_x": 0.412
+    "fraction": 0.411,
+    "expected": 0.43,
+    "separation_degrees": 81.93,
+    "centroid_x": 0.411
   },
   "animation": {
     "passed": true,
     "fractions": [
       0.0,
-      0.227,
-      0.723,
+      0.216,
+      0.685,
       1.0
     ]
   },
@@ -42,8 +44,8 @@
     "pixel_delta": 0.0
   },
   "cost": {
-    "nodes": 798,
-    "moon_nodes": 173,
-    "build_seconds": 2.777
+    "nodes": 800,
+    "moon_nodes": 174,
+    "build_seconds": 2.747
   }
 }

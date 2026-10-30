@@ -5,13 +5,13 @@
     "has_moon_group": false
   },
   "migrated_after": {
-    "build": 38,
+    "build": 39,
     "has_moon_socket": true,
-    "moon_version": 3
+    "moon_version": 4
   },
   "rebuild_pixel_delta": 0.0,
   "moon_visible": true,
-  "moon_center_luma": 0.4155,
+  "moon_center_luma": 0.4399,
   "sky_center_luma": 0.3736,
   "passed": true
 }

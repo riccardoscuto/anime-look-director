@@ -7,7 +7,7 @@ import bpy
 from .common import Graph
 
 GROUP = "ALD | Moon"
-MOON_VERSION = 3
+MOON_VERSION = 4
 
 STYLES = {
     "ANIME_CLEAN": {
@@ -377,6 +377,9 @@ def build():
                                g.math("MULTIPLY", phase_k, 0.75,
                                       x=1460, y=1080), x=1640, y=1080),
                         halo_gate, x=1820, y=1080)
+    # The correct premultiplied over exposes the halo at its true strength;
+    # this keeps the approved intensity from the Phase 2B review.
+    halo_scale = g.math("MULTIPLY", halo_scale, 0.5, x=2000, y=1080)
 
     # The halo follows the lit limb; at full phase it stays symmetric.
     offset = g.math("MAXIMUM",
@@ -412,8 +415,8 @@ def build():
     side_weight = g.math("ADD",
                          g.math("SUBTRACT", 1.0, side_amount, x=1820, y=1480),
                          g.math("MULTIPLY", side_amount,
-                                g.math("ADD", 0.15,
-                                       g.math("MULTIPLY", side, 0.85,
+                                g.math("ADD", 0.05,
+                                       g.math("MULTIPLY", side, 0.95,
                                               x=2000, y=1600),
                                        x=2180, y=1600), x=2180, y=1480),
                          x=2360, y=1480)

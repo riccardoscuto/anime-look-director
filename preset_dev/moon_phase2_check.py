@@ -5,6 +5,7 @@
 """
 
 import json
+import math
 import os
 import statistics
 import sys
@@ -42,7 +43,11 @@ def render(scene, name):
 
 def lit_stats(path, size=500):
     pixels = lookdev.load_rgba(path).reshape(size, size, 4)[:, :, :3].mean(axis=2)
-    mask = pixels > 0.45
+    yy, xx = np.mgrid[0:size, 0:size]
+    # Restrict to the disk: the halo is not part of the illuminated area.
+    circle = ((xx - size * 0.5) ** 2 + (yy - size * 0.5) ** 2
+              < (size * 0.205) ** 2)
+    mask = (pixels > 0.45) & circle
     area = int(mask.sum())
     if area == 0:
         return 0, 0.5
@@ -150,10 +155,18 @@ def main():
     scene.ald.sun_azimuth = 90.0
     linked_path = render(scene, "sun_linked_90")
     linked_area, linked_x = lit_stats(linked_path)
+    sun = Vector((math.cos(math.radians(ELEVATION)) * math.sin(math.radians(90.0)),
+                  -math.cos(math.radians(ELEVATION)) * math.cos(math.radians(90.0)),
+                  math.sin(math.radians(ELEVATION))))
+    moon_dir = Vector(moon.direction(AZIMUTH, ELEVATION))
+    separation = math.degrees(math.acos(max(-1.0, min(1.0, sun.dot(moon_dir)))))
+    expected = 0.5 * (1.0 - math.cos(math.radians(separation)))
     checks["sun_linked"] = {
-        "passed": (abs(linked_area / full_area - 0.5) <= 0.08
+        "passed": (abs(linked_area / full_area - expected) <= 0.06
                    and linked_x < 0.48),
         "fraction": round(linked_area / full_area, 3),
+        "expected": round(expected, 3),
+        "separation_degrees": round(separation, 2),
         "centroid_x": round(linked_x, 3),
     }
 

@@ -1,9 +1,9 @@
 # Phase 1-2 - Procedural Moon
 
-Branch `feature/celestial`. Phase 1 (full disk, four styles) and Phase 2A
-(phase geometry, animation) are visually approved. Phase 2B (earthshine and
-halo) is implemented and ready for the final Gate 2 review. The Moon is **off
-by default**: existing files and the twelve presets are unchanged.
+Branch `feature/celestial`. Phase 1 (full disk, four styles), Phase 2A
+(phase geometry, animation) and Phase 2B (earthshine, halo, compositing) are
+visually approved; Gate 2 is closed. The Moon is **off by default**: existing
+files and the twelve presets are unchanged.
 
 ## Phase 1 (approved)
 
@@ -15,8 +15,9 @@ by default**: existing files and the twelve presets are unchanged.
   limb darkening, deterministic seed.
 - Four styles: Anime Clean, Anime Painterly, Detailed Moon, Ethereal Moon.
 - Compositing: disk and halo are separate premultiplied layers; the halo is
-  multiplied by `1 - disk_alpha`, so it never flattens the surface. Clouds pass
-  in front; stars/Milky Way never show through the disk.
+  multiplied by `1 - disk_alpha`, so it never flattens the surface. The World
+  uses the premultiplied over `C = C_moon + (1 - alpha) * C_sky`, not a Mix
+  factor. Clouds pass in front; stars/Milky Way never show through the disk.
 - Evidence: `styles/moon_styles.jpg`, metrics in `styles/metrics.json`.
 
 ## Phase 2A (approved) - phases and animation
@@ -45,9 +46,13 @@ by default**: existing files and the twelve presets are unchanged.
   its wider radius.
 - **New Moon has no residual halo**: the halo is gated to zero as the
   illuminated fraction reaches 0.
-- **Alpha union corrected**: alpha = disk + halo x (1 - disk), clamped, instead
-  of `max`. The premultiplied colour is composited once by the World; the wide
-  soft edge test shows no dark ring or double attenuation.
+- **Alpha union corrected**: alpha = disk + halo x (1 - disk), clamped.
+- **Final composition corrected**: the World now does a true premultiplied
+  over (`C_moon + (1 - alpha) * C_sky`) instead of a Mix node, which attenuated
+  the Moon colour a second time. A numeric test at alpha 0.25/0.50/0.75 matches
+  the expected linear result within 0.0002 (see below). The halo scale was
+  halved to keep the intensity approved in the 2B review, once the correct
+  composite exposed its true strength.
 - **Cloud occlusion**: a cloud crossing the disk is rendered in
   `phases/2b/final/crescent_clouds.png`; the disk is hidden where the cloud
   passes, with no abnormal transparency.
@@ -79,23 +84,27 @@ Phase 2: `preset_dev/moon_phase2_check.py` -> `phases/check/check.json`.
 
 | Check | Result |
 |---|---|
-| Lit area 0/0.25/0.5/0.75/1 | **0.0 / 0.256 / 0.505 / 0.751 / 1.0** |
+| Lit area 0/0.25/0.5/0.75/1 | **0.0 / 0.243 / 0.476 / 0.714 / 1.0** |
 | Waxing / waning side | centroid **0.622 / 0.376** |
-| Sun Linked, Sun 90 deg away | fraction **0.435**, lit toward the Sun |
-| Animation frames 1/8/16/24 | **0.0 / 0.227 / 0.723 / 1.0** |
-| Alpha edge (soft 0.6 deg) | disk 0.736, sky 0.276, min **0.271**, no undershoot |
+| Sun Linked (Sun 81.93 deg away) | fraction **0.411** vs expected **0.430** |
+| Animation frames 1/8/16/24 | **0.0 / 0.216 / 0.685 / 1.0** |
+| Alpha edge (soft 0.6 deg) | disk 0.736, sky 0.276, min **0.272**, no undershoot |
+| Premultiplied over, alpha 0.25/0.5/0.75 | **0.4248 / 0.5498 / 0.6748** vs 0.425 / 0.55 / 0.675 |
 | Persistence | phase/waxing kept, pixel delta **0.0** |
-| World / Moon nodes | **798 / 173** |
-| Build time | **2.78 s** (2.63.0 baseline 2.71-3.07 s) |
+| World / Moon nodes | **800 / 174** |
+| Build time | **2.75 s** (2.63.0 baseline 2.71-3.07 s) |
+
+Alpha composition: `preset_dev/moon_alpha_check.py` ->
+`phases/check/alpha_check.json` (linear values from a constant World).
 
 Existing gates: `verify_all` **ALD ALL PASS**, Phase 3 UI **68/68 PASS**.
 
 ## Migration from 2.63.0
 
-World group `ald_build 38`, Moon group `ald_moon_version 3`; bump both together
+World group `ald_build 39`, Moon group `ald_moon_version 4`; bump both together
 on the next schema change. A real 2.63.0 file (`preset_dev/moon_legacy_file.py`)
-opens with build 35 and no Moon; after explicit Apply it becomes build 38 /
-Moon version 3, render delta **0.0**, and the Moon renders. Evidence:
+opens with build 35 and no Moon; after explicit Apply it becomes build 39 /
+Moon version 4, render delta **0.0**, and the Moon renders. Evidence:
 `migration/migration.json`, `migration/legacy_before.png`,
 `migration/legacy_moon.png`. Migration only on Apply, never on open.
 
@@ -120,6 +129,9 @@ python preset_dev\moon_phase2b_board.py
 
 & $blender -b --factory-startup --gpu-backend vulkan --python-exit-code 1 `
   --python preset_dev\moon_phase2_check.py
+
+& $blender -b --factory-startup --gpu-backend vulkan --python-exit-code 1 `
+  --python preset_dev\moon_alpha_check.py
 ```
 
 Phase 1 and 2A commands are unchanged (`moon_styles.py`, `moon_phases.py`,
@@ -127,6 +139,6 @@ Phase 1 and 2A commands are unchanged (`moon_styles.py`, `moon_phases.py`,
 
 ## Gate status
 
-**Gate 1: APPROVED.** **Phase 2A: APPROVED.**
-**Phase 2B: READY - awaiting the final reduced-board review.** Phase 3
-(Sun System 2.0) starts only after Gate 2 is closed.
+**Gate 1: APPROVED.** **Phase 2A: APPROVED.** **Phase 2B: VISUAL APPROVED.**
+**Gate 2: CLOSED** - composition corrected and checked numerically. Phase 3
+(Sun System 2.0) may start.
