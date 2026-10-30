@@ -118,5 +118,6 @@ they are not part of the Moon milestone.
 
 Evidence in `preset_dev/moon/`: Phase 1, 2A and 2B are approved and Gate 2 is
 closed. Phase 3 (Sun System 2.0) is implemented and awaiting Gate 3; see
-`preset_dev/sun/README.md`. Neither milestone changes the 12 presets, the
-clouds or the compositor.
+`preset_dev/sun/README.md`. Phase 4 (Milky Way 2.0) is implemented and awaiting
+Gate 4; see `preset_dev/milky_way/README.md`. The milestones do not change the
+12 presets, the clouds or the compositor.

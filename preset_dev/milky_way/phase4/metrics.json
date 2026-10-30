@@ -1,0 +1,78 @@
+{
+  "cases": [
+    {
+      "label": "Moonlit Night, Scientific",
+      "file": "moonlit_scientific.png",
+      "metrics": {
+        "luma": 0.274,
+        "contrast": 0.0783,
+        "saturation": 0.2205
+      }
+    },
+    {
+      "label": "Moonlit Night, Cinematic",
+      "file": "moonlit_cinematic.png",
+      "metrics": {
+        "luma": 0.2978,
+        "contrast": 0.0905,
+        "saturation": 0.2131
+      }
+    },
+    {
+      "label": "Blue Hour, Scientific",
+      "file": "blue_hour.png",
+      "metrics": {
+        "luma": 0.3596,
+        "contrast": 0.0864,
+        "saturation": 0.4256
+      }
+    },
+    {
+      "label": "Twilight Dusk, Scientific",
+      "file": "twilight.png",
+      "metrics": {
+        "luma": 0.2225,
+        "contrast": 0.115,
+        "saturation": 0.2566
+      }
+    },
+    {
+      "label": "Dust contrast 0.20",
+      "file": "dust_low.png",
+      "metrics": {
+        "luma": 0.2817,
+        "contrast": 0.0858,
+        "saturation": 0.2204
+      }
+    },
+    {
+      "label": "Dust contrast 0.95",
+      "file": "dust_high.png",
+      "metrics": {
+        "luma": 0.2712,
+        "contrast": 0.0764,
+        "saturation": 0.2207
+      }
+    },
+    {
+      "label": "Core close-up (50 mm)",
+      "file": "core_close.png",
+      "metrics": {
+        "luma": 0.3674,
+        "contrast": 0.0711,
+        "saturation": 0.0933
+      }
+    },
+    {
+      "label": "Band behind clouds",
+      "file": "clouds.png",
+      "metrics": {
+        "luma": 0.2884,
+        "contrast": 0.0827,
+        "saturation": 0.2143
+      }
+    }
+  ],
+  "azimuth": 120.0,
+  "elevation": 45.0
+}

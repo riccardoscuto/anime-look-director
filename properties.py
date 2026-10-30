@@ -101,6 +101,37 @@ def remove_property(owner, name):
 
 
 _sun_style_syncing = False
+_mw_style_syncing = False
+
+from .shaders import milky_way as milky_way_shader
+
+MW_STYLES = milky_way_shader.STYLES
+
+
+def _on_mw_style(self, context):
+    global _mw_style_syncing
+    try:
+        style = MW_STYLES.get(self.milky_way_style)
+        if style is None:
+            return
+        _mw_style_syncing = True
+        try:
+            self.milky_way_width = style["width"]
+            self.milky_way_core_strength = style["core"]
+            self.milky_way_dust_contrast = style["dust_contrast"]
+            self.milky_way_dust_density = style["dust_density"]
+            self.milky_way_detail = style["detail"]
+            self.milky_way_star_concentration = style["stars"]
+            self.milky_way_core_color = style["core_color"]
+            self.milky_way_outer_color = style["outer_color"]
+            self.milky_way_dust_color = style["dust_color"]
+        finally:
+            _mw_style_syncing = False
+        from . import look
+        if context.scene is not None:
+            look.apply_world(context.scene)
+    except Exception:
+        pass
 
 SUN_STYLES = {
     "CLEAN": {"edge": 0.25, "glow_radius": 18.0, "glow_gain": 1.0,
@@ -113,8 +144,8 @@ SUN_STYLES = {
 def _on_world(self, context):
     try:
         from . import look, palette
-        if (_sun_style_syncing or palette.style_syncing()
-                or _in_maintenance(context)):
+        if (_sun_style_syncing or _mw_style_syncing
+                or palette.style_syncing() or _in_maintenance(context)):
             return
         scene = context.scene
         if scene is not None:
@@ -760,6 +791,75 @@ class ALD_Settings(bpy.types.PropertyGroup):
     milky_way: FloatProperty(
         name="Milky Way", default=0.0, min=0.0, max=1.0,
         description="Luminous anime Galactic River with dark cosmic dust rift",
+        update=_on_world)
+    milky_way_enabled: BoolProperty(
+        name="Enable Milky Way", default=True,
+        description="Show the Milky Way band",
+        update=_on_world)
+    milky_way_style: EnumProperty(
+        name="Style",
+        items=(("SCIENTIFIC", "Scientific Inspired",
+                "Observable structure with a warm core and dust lanes"),
+               ("ANIME_CINEMATIC", "Anime Cinematic",
+                "Same structure with freer color and contrast")),
+        default="SCIENTIFIC",
+        description="Milky Way look; it writes width, structure and colors",
+        update=_on_mw_style)
+    milky_way_width: FloatProperty(
+        name="Width", default=12.0, min=5.0, max=40.0,
+        description="Angular half-width of the band in degrees",
+        update=_on_world)
+    milky_way_rotation: FloatProperty(
+        name="Rotation", default=120.0, min=-180.0, max=180.0,
+        description="Azimuth of the galactic pole",
+        update=_on_world)
+    milky_way_elevation: FloatProperty(
+        name="Elevation", default=-45.0, min=-90.0, max=90.0,
+        description="Elevation of the galactic pole in degrees",
+        update=_on_world)
+    milky_way_core_position: FloatProperty(
+        name="Core Position", default=90.0, min=-180.0, max=180.0,
+        description="Position of the bulge along the band",
+        update=_on_world)
+    milky_way_core_strength: FloatProperty(
+        name="Core Strength", default=0.70, min=0.0, max=2.0,
+        description="Brightness of the galactic bulge",
+        update=_on_world)
+    milky_way_dust_contrast: FloatProperty(
+        name="Dust Contrast", default=0.75, min=0.0, max=1.0,
+        description="Darkness of the dust lanes",
+        update=_on_world)
+    milky_way_dust_density: FloatProperty(
+        name="Dust Density", default=0.65, min=0.0, max=1.0,
+        description="Coverage of the dust lanes",
+        update=_on_world)
+    milky_way_detail: FloatProperty(
+        name="Detail", default=0.60, min=0.0, max=1.0,
+        description="Amount of small-scale structure",
+        update=_on_world)
+    milky_way_star_concentration: FloatProperty(
+        name="Star Concentration", default=0.45, min=0.0, max=1.0,
+        description="Extra stars inside the band",
+        update=_on_world)
+    milky_way_core_color: FloatVectorProperty(
+        name="Core Color", subtype="COLOR", size=3, min=0.0, max=1.0,
+        default=(1.0, 0.72, 0.40),
+        update=_on_world)
+    milky_way_outer_color: FloatVectorProperty(
+        name="Outer Color", subtype="COLOR", size=3, min=0.0, max=1.0,
+        default=(0.22, 0.38, 0.90),
+        update=_on_world)
+    milky_way_dust_color: FloatVectorProperty(
+        name="Dust Color", subtype="COLOR", size=3, min=0.0, max=1.0,
+        default=(0.010, 0.010, 0.030),
+        update=_on_world)
+    milky_way_horizon_fade: FloatProperty(
+        name="Horizon Fade", default=6.0, min=0.0, max=20.0,
+        description="Degrees over which the band fades at the horizon",
+        update=_on_world)
+    milky_way_seed: IntProperty(
+        name="Seed", default=3, min=0, max=999,
+        description="Deterministic structure seed",
         update=_on_world)
     shooting_star_events: CollectionProperty(type=ALD_ShootingStar)
     shooting_star_selected: IntProperty(

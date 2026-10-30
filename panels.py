@@ -153,7 +153,32 @@ def draw_stars(layout, context):
         col = box.column(align=True)
         col.prop(s, "star_strength")
         col.prop(s, "star_density")
-        col.prop(s, "milky_way")
+        box.prop(s, "milky_way_enabled", text="Milky Way", toggle=True)
+        if s.milky_way_enabled:
+            col = box.column(align=True)
+            col.prop(s, "milky_way")
+            if s.milky_way > 0.0:
+                box.prop(s, "milky_way_style")
+                box.label(text="Geometry")
+                col = box.column(align=True)
+                col.prop(s, "milky_way_width")
+                col.prop(s, "milky_way_rotation")
+                col.prop(s, "milky_way_elevation")
+                col.prop(s, "milky_way_core_position")
+                box.label(text="Structure")
+                col = box.column(align=True)
+                col.prop(s, "milky_way_core_strength")
+                col.prop(s, "milky_way_dust_contrast")
+                col.prop(s, "milky_way_dust_density")
+                col.prop(s, "milky_way_detail")
+                col.prop(s, "milky_way_star_concentration")
+                box.label(text="Color")
+                col = box.column(align=True)
+                col.prop(s, "milky_way_core_color")
+                col.prop(s, "milky_way_outer_color")
+                col.prop(s, "milky_way_dust_color")
+                col.prop(s, "milky_way_horizon_fade")
+                col.prop(s, "milky_way_seed")
 
 
 def draw_shooting_stars(layout, context):

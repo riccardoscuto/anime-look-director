@@ -1,0 +1,21 @@
+{
+  "off_band_stars": {
+    "passed": true,
+    "corner_delta": 0.00392
+  },
+  "moon_occlusion": {
+    "passed": true,
+    "disc_delta": 0.0
+  },
+  "persistence": {
+    "passed": true,
+    "style": "ANIME_CINEMATIC",
+    "dust": 0.550000011920929,
+    "pixel_delta": 0.0
+  },
+  "cost": {
+    "nodes": 790,
+    "mw_nodes": 89,
+    "build_seconds": 2.588
+  }
+}

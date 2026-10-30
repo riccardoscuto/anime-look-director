@@ -6,10 +6,11 @@ import bpy
 from bpy.app.handlers import persistent
 from mathutils import Vector
 
+from .shaders import milky_way as milky_way_shader
 from .shaders import moon as moon_shader
 
 GRADIENT_GROUP = "ALD | World Gradient"
-GRADIENT_BUILD = 40
+GRADIENT_BUILD = 41
 AUTO_SUN_TAG = "ald_auto_sun"
 SUN_OWNER_TAG = "ald_sun_owner"
 
@@ -497,7 +498,8 @@ def _gradient_group():
              "Cloud Offset", "Star0 Start U", "Moon Enabled",
              "Moon Direction", "Moon Size", "Moon Halo Color",
              "Moon Light", "Moon Earthshine", "Sun Disk Tint",
-             "Sun Glow Radius", "Sun Limb Warmth", "Sun Glow Gain"} <= names
+             "Sun Glow Radius", "Sun Limb Warmth", "Sun Glow Gain",
+             "MW Pole", "MW Width", "MW Core Color"} <= names
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
@@ -1151,6 +1153,32 @@ def _build_gradient_group(ng):
     milky_way.min_value = 0.0
     milky_way.max_value = 1.0
     milky_way.default_value = 0.0
+    for name, default in (("MW Pole", (0.58, 0.34, -0.74)),
+                          ("MW Core", (1.0, 0.0, 0.0)),
+                          ("MW Cross", (0.0, 1.0, 0.0))):
+        socket = ng.interface.new_socket(name=name, in_out="INPUT",
+                                         socket_type="NodeSocketVector")
+        socket.default_value = default
+    for name, default, minimum, maximum in (
+            ("MW Width", 0.314, 0.02, 0.7),
+            ("MW Core Strength", 0.7, 0.0, 2.0),
+            ("MW Dust Contrast", 0.65, 0.0, 1.0),
+            ("MW Dust Density", 0.6, 0.0, 1.0),
+            ("MW Detail", 0.6, 0.0, 1.0),
+            ("MW Star Concentration", 0.45, 0.0, 1.0),
+            ("MW Horizon", 0.105, 0.0, 0.7),
+            ("MW Seed", 3.0, 0.0, 999.0)):
+        socket = ng.interface.new_socket(name=name, in_out="INPUT",
+                                         socket_type="NodeSocketFloat")
+        socket.default_value = default
+        socket.min_value = minimum
+        socket.max_value = maximum
+    for name, default in (("MW Core Color", (1.0, 0.86, 0.62, 1.0)),
+                          ("MW Outer Color", (0.3, 0.46, 0.85, 1.0)),
+                          ("MW Dust Color", (0.01, 0.01, 0.03, 1.0))):
+        socket = ng.interface.new_socket(name=name, in_out="INPUT",
+                                         socket_type="NodeSocketColor")
+        socket.default_value = default
     cloud_offset = ng.interface.new_socket(name="Cloud Offset", in_out="INPUT",
                                            socket_type="NodeSocketVector")
     cloud_offset.default_value = (0.0, 0.0, 0.0)
@@ -2727,191 +2755,43 @@ def _build_gradient_group(ng):
     tan_v.operation = "NORMALIZE"
     links.new(tan_v_raw.outputs["Vector"], tan_v.inputs[0])
 
-    # Milky Way: a diagonal galactic river with a dark dust rift.
-    mw_axis = nodes.new("ShaderNodeVectorMath")
-    mw_axis.location = (1880, -1880)
-    mw_axis.operation = "DOT_PRODUCT"
-    mw_axis.inputs[1].default_value = (0.58, 0.34, -0.74)
-    links.new(view_norm.outputs["Vector"], mw_axis.inputs[0])
+    # Milky Way: structured great-circle band with bulge and dust lanes.
+    mw_group = milky_way_shader.build()
+    mw_node = nodes.new("ShaderNodeGroup")
+    mw_node.node_tree = mw_group
+    mw_node.location = (2600, -1900)
+    links.new(view_norm.outputs["Vector"], mw_node.inputs["View"])
+    links.new(cloud_amount_node.outputs[0], mw_node.inputs["Cloud Visibility"])
+    links.new(group_in.outputs["Milky Way"], mw_node.inputs["Intensity"])
+    for name in ("MW Pole", "MW Core", "MW Cross", "MW Width",
+                 "MW Core Strength", "MW Dust Contrast", "MW Dust Density",
+                 "MW Detail", "MW Star Concentration", "MW Horizon",
+                 "MW Seed", "MW Core Color", "MW Outer Color",
+                 "MW Dust Color"):
+        links.new(group_in.outputs[name], mw_node.inputs[name])
 
-    mw_warp_noise = nodes.new("ShaderNodeTexNoise")
-    mw_warp_noise.location = (1880, -2040)
-    mw_warp_noise.inputs["Scale"].default_value = 2.4
-    mw_warp_noise.inputs["Detail"].default_value = 5.0
-    mw_warp_noise.inputs["Roughness"].default_value = 0.56
-    mw_warp_noise.inputs["Distortion"].default_value = 0.35
-    links.new(view_norm.outputs["Vector"], mw_warp_noise.inputs["Vector"])
-
-    mw_warp_centered = nodes.new("ShaderNodeMath")
-    mw_warp_centered.location = (2060, -2040)
-    mw_warp_centered.operation = "SUBTRACT"
-    mw_warp_centered.inputs[1].default_value = 0.5
-    links.new(mw_warp_noise.outputs["Fac"], mw_warp_centered.inputs[0])
-
-    mw_warp_amt = nodes.new("ShaderNodeMath")
-    mw_warp_amt.location = (2240, -2040)
-    mw_warp_amt.operation = "MULTIPLY"
-    mw_warp_amt.inputs[1].default_value = 0.22
-    links.new(mw_warp_centered.outputs[0], mw_warp_amt.inputs[0])
-
-    mw_d = nodes.new("ShaderNodeMath")
-    mw_d.location = (2420, -1960)
-    mw_d.operation = "ADD"
-    links.new(mw_axis.outputs["Value"], mw_d.inputs[0])
-    links.new(mw_warp_amt.outputs[0], mw_d.inputs[1])
-
-    mw_abs_d = nodes.new("ShaderNodeMath")
-    mw_abs_d.location = (2600, -1960)
-    mw_abs_d.operation = "ABSOLUTE"
-    links.new(mw_d.outputs[0], mw_abs_d.inputs[0])
-
-    mw_outer = nodes.new("ShaderNodeMapRange")
-    mw_outer.location = (2780, -1960)
-    mw_outer.clamp = True
-    _smooth(mw_outer)
-    mw_outer.inputs["From Min"].default_value = 0.0
-    mw_outer.inputs["From Max"].default_value = 0.26
-    mw_outer.inputs["To Min"].default_value = 1.0
-    mw_outer.inputs["To Max"].default_value = 0.0
-    links.new(mw_abs_d.outputs[0], mw_outer.inputs["Value"])
-
-    mw_detail_noise = nodes.new("ShaderNodeTexNoise")
-    mw_detail_noise.location = (2780, -2120)
-    mw_detail_noise.inputs["Scale"].default_value = 6.5
-    mw_detail_noise.inputs["Detail"].default_value = 6.0
-    mw_detail_noise.inputs["Roughness"].default_value = 0.62
-    mw_detail_noise.inputs["Distortion"].default_value = 0.40
-    links.new(view_norm.outputs["Vector"], mw_detail_noise.inputs["Vector"])
-
-    mw_rift_width = nodes.new("ShaderNodeMath")
-    mw_rift_width.location = (2960, -2120)
-    mw_rift_width.operation = "MULTIPLY"
-    mw_rift_width.inputs[1].default_value = 0.065
-    links.new(mw_detail_noise.outputs["Fac"], mw_rift_width.inputs[0])
-
-    mw_rift = nodes.new("ShaderNodeMapRange")
-    mw_rift.location = (3140, -2120)
-    mw_rift.clamp = True
-    _smooth(mw_rift)
-    mw_rift.inputs["From Min"].default_value = 0.008
-    mw_rift.inputs["To Min"].default_value = 0.12
-    mw_rift.inputs["To Max"].default_value = 1.0
-    links.new(mw_abs_d.outputs[0], mw_rift.inputs["Value"])
-    links.new(mw_rift_width.outputs[0], mw_rift.inputs["From Max"])
-
-    mw_clouds = nodes.new("ShaderNodeMapRange")
-    mw_clouds.location = (3140, -2280)
-    mw_clouds.clamp = True
-    _smooth(mw_clouds)
-    mw_clouds.inputs["From Min"].default_value = 0.25
-    mw_clouds.inputs["From Max"].default_value = 0.78
-    mw_clouds.inputs["To Min"].default_value = 0.35
-    mw_clouds.inputs["To Max"].default_value = 1.0
-    links.new(mw_detail_noise.outputs["Fac"], mw_clouds.inputs["Value"])
-
-    mw_band1 = nodes.new("ShaderNodeMath")
-    mw_band1.location = (3320, -2040)
-    mw_band1.operation = "MULTIPLY"
-    mw_band1.use_clamp = True
-    links.new(mw_outer.outputs["Result"], mw_band1.inputs[0])
-    links.new(mw_rift.outputs["Result"], mw_band1.inputs[1])
-
-    mw_band = nodes.new("ShaderNodeMath")
-    mw_band.location = (3500, -2040)
-    mw_band.operation = "MULTIPLY"
-    mw_band.use_clamp = True
-    links.new(mw_band1.outputs[0], mw_band.inputs[0])
-    links.new(mw_clouds.outputs["Result"], mw_band.inputs[1])
-
-    mw_mask1 = nodes.new("ShaderNodeMath")
-    mw_mask1.location = (3680, -2040)
-    mw_mask1.operation = "MULTIPLY"
-    mw_mask1.use_clamp = True
-    links.new(mw_band.outputs[0], mw_mask1.inputs[0])
-    links.new(zenith.outputs["Result"], mw_mask1.inputs[1])
-
-    mw_mask = nodes.new("ShaderNodeMath")
-    mw_mask.location = (3860, -2040)
-    mw_mask.operation = "MULTIPLY"
-    mw_mask.use_clamp = True
-    links.new(mw_mask1.outputs[0], mw_mask.inputs[0])
-    links.new(cloud_hide.outputs[0], mw_mask.inputs[1])
-
-    mw_mask_amt = nodes.new("ShaderNodeMath")
-    mw_mask_amt.location = (4040, -2040)
-    mw_mask_amt.operation = "MULTIPLY"
-    mw_mask_amt.use_clamp = True
-    links.new(mw_mask.outputs[0], mw_mask_amt.inputs[0])
-    links.new(group_in.outputs["Milky Way"], mw_mask_amt.inputs[1])
-
-    mw_star_boost = nodes.new("ShaderNodeMath")
-    mw_star_boost.location = (4040, -2200)
-    mw_star_boost.operation = "MULTIPLY"
-    mw_star_boost.use_clamp = True
-    mw_star_boost.inputs[1].default_value = 0.65
-    links.new(mw_outer.outputs["Result"], mw_star_boost.inputs[0])
-
-    mw_star_boost2 = nodes.new("ShaderNodeMath")
-    mw_star_boost2.location = (4220, -2200)
-    mw_star_boost2.operation = "MULTIPLY"
-    mw_star_boost2.use_clamp = True
-    links.new(mw_star_boost.outputs[0], mw_star_boost2.inputs[0])
-    links.new(group_in.outputs["Milky Way"], mw_star_boost2.inputs[1])
+    mw_add = nodes.new("ShaderNodeMix")
+    mw_add.location = (2800, -1900)
+    mw_add.data_type = "RGBA"
+    mw_add.blend_type = "ADD"
+    a_sock, b_sock, result_sock = _rgba_sockets(mw_add)
+    links.new(sky_color, a_sock)
+    links.new(mw_node.outputs["Color"], b_sock)
+    mw_add.inputs["Factor"].default_value = 1.0
+    sky_color = mw_add.outputs["Result"]
 
     cluster_total = nodes.new("ShaderNodeMath")
-    cluster_total.location = (4400, -2200)
+    cluster_total.location = (2800, -2200)
     cluster_total.operation = "ADD"
     cluster_total.use_clamp = True
     links.new(cluster_mask.outputs["Result"], cluster_total.inputs[0])
-    links.new(mw_star_boost2.outputs[0], cluster_total.inputs[1])
+    links.new(mw_node.outputs["Star Boost"], cluster_total.inputs[1])
     for link in list(tier1_stars.inputs[1].links):
         links.remove(link)
     links.new(cluster_total.outputs[0], tier1_stars.inputs[1])
     for link in list(tier2_stars.inputs[1].links):
         links.remove(link)
     links.new(cluster_total.outputs[0], tier2_stars.inputs[1])
-
-    mw_cyan = nodes.new("ShaderNodeRGB")
-    mw_cyan.location = (3320, -2280)
-    mw_cyan.outputs[0].default_value = (0.06, 0.58, 0.95, 1.0)
-
-    mw_violet = nodes.new("ShaderNodeRGB")
-    mw_violet.location = (3320, -2440)
-    mw_violet.outputs[0].default_value = (0.16, 0.08, 0.52, 1.0)
-
-    mw_color_mix = nodes.new("ShaderNodeMix")
-    mw_color_mix.location = (3500, -2360)
-    mw_color_mix.data_type = "RGBA"
-    mw_color_mix.blend_type = "MIX"
-    a_sock, b_sock, result_sock = _rgba_sockets(mw_color_mix)
-    links.new(mw_cyan.outputs[0], a_sock)
-    links.new(mw_violet.outputs[0], b_sock)
-    links.new(mw_detail_noise.outputs["Fac"], mw_color_mix.inputs["Factor"])
-
-    mw_color_tint = nodes.new("ShaderNodeMix")
-    mw_color_tint.location = (3680, -2360)
-    mw_color_tint.data_type = "RGBA"
-    mw_color_tint.blend_type = "MIX"
-    mw_color_tint.inputs["Factor"].default_value = 0.20
-    a_sock, b_sock, result_sock = _rgba_sockets(mw_color_tint)
-    links.new(mw_color_mix.outputs["Result"], a_sock)
-    links.new(group_in.outputs["Cloud Light"], b_sock)
-
-    mw_color_scale = nodes.new("ShaderNodeVectorMath")
-    mw_color_scale.location = (3860, -2360)
-    mw_color_scale.operation = "SCALE"
-    mw_color_scale.inputs["Scale"].default_value = 0.85
-    links.new(mw_color_tint.outputs["Result"], mw_color_scale.inputs["Vector"])
-
-    mw_mix = nodes.new("ShaderNodeMix")
-    mw_mix.location = (4040, -200)
-    mw_mix.data_type = "RGBA"
-    mw_mix.blend_type = "ADD"
-    a_sock, b_sock, result_sock = _rgba_sockets(mw_mix)
-    links.new(sky_color, a_sock)
-    links.new(mw_color_scale.outputs["Vector"], b_sock)
-    links.new(mw_mask_amt.outputs[0], mw_mix.inputs["Factor"])
-    sky_color = mw_mix.outputs["Result"]
 
     star_visibility = nodes.new("ShaderNodeMath")
     star_visibility.location = (2040, 1200)
@@ -3398,16 +3278,17 @@ def _apply_gradient(scene, settings, nt, background, p):
     node.inputs["Star Amount"].default_value = max(0.0, min(1.0, star_amount))
     node.inputs["Star Density"].default_value = (
         getattr(settings, "star_density", 180.0) if settings else 180.0)
+    milky_way_on = (getattr(settings, "milky_way_enabled", True)
+                    and getattr(settings, "stars", True)) if settings else False
     node.inputs["Milky Way"].default_value = (
-        (getattr(settings, "milky_way", 0.0)
-         if getattr(settings, "stars", True) else 0.0)
-        if settings else 0.0)
+        getattr(settings, "milky_way", 0.0) if milky_way_on else 0.0)
     seed = int(getattr(settings, "cloud_seed", 17)) if settings else 17
     wind = _cloud_offset(scene, settings)
     node.inputs["Cloud Offset"].default_value = (
         wind[0] + seed * 0.017, wind[1] + seed * 0.011, 0.0)
     if settings is not None:
         _apply_star_slots(scene, settings, node)
+        milky_way_shader.write_values(node, settings)
         moon_shader.write_values(node, settings, sun_toward(scene))
 
     # Remember the original world background so disabling the gradient can
