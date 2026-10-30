@@ -1,108 +1,121 @@
-# Phase 1 - Procedural Moon (Gate 1 ready, visual approval pending)
+# Phase 1-2 - Procedural Moon
 
-Branch `feature/celestial`. Full moon only: phases, earthshine and the optional
-Moon light are Phase 2. No preset, cloud or compositor value changed; the Moon
-is **off by default**, so existing files render exactly as in 2.63.0.
+Branch `feature/celestial`. Phase 1 (full disk and four styles) is **visually
+approved**; Phase 2 (phases, earthshine, Sun link) is implemented and ready for
+its visual gate. The Moon is **off by default**: existing files and the twelve
+presets are unchanged.
 
-## What is implemented
+## Phase 1 (approved)
 
-- Node group `ALD | Moon` (123 nodes), nested inside `ALD | World Gradient`.
-  `palette.py` only adds 5 nodes and 15 group sockets; the Moon logic lives in
-  `shaders/moon.py`, with shared helpers in `shaders/common.py`.
+- Node group `ALD | Moon`, nested inside `ALD | World Gradient`. Moon logic in
+  `shaders/moon.py`, shared helpers in `shaders/common.py`; `palette.py` only
+  adds the group node, the sockets and the final composite.
 - Angular disk from `dot(view, direction)` against `cos(radius)`, size in
-  degrees, independent soft edge, radius cap at 40 deg. The surface uses an
-  orthographic projection of the sky cap, so the disk stays circular and the
-  detail never depends on camera distance or framing.
-- Surface: low-frequency maria, two crater layers (main and secondary) with
-  per-cell radius and rim strength, micro grain, warm/cool tonal variation and
-  spherical limb darkening. All deterministic from `Moon Seed`.
+  degrees, independent soft edge, orthographic sky-cap projection (circular at
+  any position, no camera-distance dependence).
+- Surface: maria, two crater layers with per-cell radius and rim strength,
+  micro grain, warm/cool tint, spherical limb darkening, deterministic seed.
 - Four styles: Anime Clean, Anime Painterly, Detailed Moon, Ethereal Moon.
-  Selecting a style writes the individual controls; the controls remain
-  editable afterwards. Clean and Detailed are unchanged from the approved
-  review; Painterly and Ethereal were refined after it (see below).
-- Integration: the disk is composited after the stars, so stars and the Milky
-  Way never show through it; it is multiplied by the cloud visibility mask, so
-  clouds pass in front; a tight horizon gate cuts the disk at the shifted
-  horizon while the sky gradient keeps its own wider ground blend.
-- Controls: Enable Moon, Style, Size, Azimuth, Elevation, Brightness, Color,
-  Surface Detail, Crater Strength, Surface Contrast, Edge Softness, Glow,
-  Halo Radius, Halo Color, Surface Seed. Scene panel and View3D sidebar share
-  `draw_moon`.
+  Clean and Detailed were approved in the first review; Painterly and Ethereal
+  were refined after it (lower glow/halo, sharper edge, more contrast).
+- Compositing: disk and halo are separate premultiplied layers; the halo is
+  multiplied by `1 - disk_alpha` and never lifts the surface. One mix in the
+  World. Clouds pass in front, stars/Milky Way never show through the disk.
+- File migration: World group `ald_build 37`, Moon group `ald_moon_version 2`;
+  a real 2.63.0 file rebuilds on explicit Apply with pixel delta 0.0 and the
+  Moon then works (see Migration below).
 
-## Compositing (fixed after the review)
+Evidence: `styles/moon_styles.jpg` (4 styles x 1.2/3/6 deg) and the older
+`checks/` images; style metrics in `styles/metrics.json`.
 
-Disk and halo are two layers. Both are premultiplied by their own coverage;
-the halo is multiplied by `1 - disk_alpha`, so it only fills the sky outside
-the disk and never lifts the surface detail. The World composites both once,
-with `alpha = max(disk, halo_outside)`. No opacity is applied twice. This is
-why Painterly and Ethereal recovered their surface readability without a new
-effect.
+## Phase 2 (implemented)
 
-## Style refinements
+- Eight phases plus continuous illumination: New, Waxing Crescent, First
+  Quarter, Waxing Gibbous, Full, Waning Gibbous, Last Quarter, Waning Crescent;
+  the `Illumination` slider covers everything in between. Selecting a named
+  phase writes the slider; moving the slider switches the menu to Custom.
+- The lit fraction comes from a sphere normal and a light vector, not a dark
+  circle overlay. The terminator is a true great circle; its soft band lives on
+  the dark side only, so the approved full Moon stays fully lit.
+- Modes: **Manual** (illumination, waxing/waning, lit-side rotation) and
+  **Sun Linked** (light direction from the Sun and Moon sky directions; not an
+  ephemeris simulation).
+- Earthshine: a faint fill on the unlit side. The Moon body stays opaque at any
+  visible phase, so stars never shine through it; at New the disk fades out.
+- Halo: tight + wide terms, scaled by illumination, dimmed by clouds.
+- Animation: the phase property is keyframable; the frame handler refreshes
+  the World each frame. Verified 0 -> 1 over keyframes.
 
-| Style | Glow | Halo | Contrast | Edge |
-|---|---|---|---|---|
-| Anime Painterly | 0.45 -> **0.25** | 3.0 -> **1.8** | 0.65 | 0.12 -> **0.10** |
-| Ethereal Moon | 0.55 -> **0.30** | 5.0 -> **3.0** | 0.40 -> **0.55** | 0.16 -> **0.10** |
+Controls: Enable, Style, Phase Mode, Phase, Illumination, Waxing, Lit Side
+Rotation, Earthshine, Size, Azimuth, Elevation, Brightness, Color, Surface
+Detail, Crater Strength, Surface Contrast, Edge Softness, Glow, Halo Radius,
+Halo Color, Surface Seed. Scene panel and View3D sidebar share `draw_moon`.
 
-The global maria depth and crater floor were reduced after the compositing
-fix, because the halo no longer brightens the disk: depth 0.55 x contrast,
-crater floor -0.32, rim 0.22. Clean and Detailed keep their own parameters.
+## Boards
 
-## Style board
+- `phases/named_board.jpg` - the eight phases, Detailed Moon, 4 deg, same sky
+  and camera.
+- `phases/sweep_board.jpg` - continuous illumination 0.0 -> 1.0 in nine steps.
+- `phases/sun_linked_quarter.png` - Sun 90 deg from the Moon: quarter phase,
+  lit toward the Sun.
+- `phases/check/crescent_context.png` - waxing crescent with stars and clouds
+  in front; no star shines through the disk.
+- `styles/moon_styles.jpg` - the approved Phase 1 style board.
 
-`styles/moon_styles.jpg` - four styles x 1.2 / 3.0 / 6.0 deg, Moonlit Night,
-clouds/stars/Sun disk off, 135 mm, AgX, same sky and camera. A smaller
-`styles/moon_styles_small.jpg` is kept for quick review. Per-case
-luma/contrast/saturation in `styles/metrics.json`. The 12 individual renders
-are regenerated by the command below; only the boards are kept in the repo.
+Only boards and metrics are kept in the repo; individual renders are produced
+by the scripts.
 
 ## Technical checks
 
-`preset_dev/moon_phase1_check.py` -> `checks/checks.json`; kept images:
-`disk_6deg.png`, `horizon_rising.png`, `context_clouds_stars.png`.
+Phase 1: `preset_dev/moon_phase1_check.py` -> `checks/checks.json`.
 
 | Check | Result |
 |---|---|
-| Disk circular at 22 deg elevation (flat surface) | aspect **1.004** (286 x 285 px) |
-| Disk circular high (120 deg azimuth, 60 deg elevation) | aspect **1.000** |
-| Moon below the horizon (-6 deg) | pixel delta **0.0** vs Moon off |
-| Rising Moon visible | luma 0.238 |
-| Save/reopen | style/size/seed kept, pixel delta **0.0** |
-| World group | 793 -> **798** nodes, 123 in the Moon child |
-| Build time | **2.65 s** (2.63.0 baseline 2.71-3.07 s) |
-| Render time, Moon on vs off | within noise (-1.6% to +1.7% across runs) |
+| Disk circular at 22 deg and at 60 deg | aspect **1.004 / 1.000** |
+| Moon below the horizon | pixel delta **0.0** vs Moon off |
+| Save/reopen | pixel delta **0.0** |
+| Full Moon vs Phase 1 | unchanged (lit = 1 across the disk) |
+
+Phase 2: `preset_dev/moon_phase2_check.py` -> `phases/check/check.json`.
+
+| Check | Result |
+|---|---|
+| Lit area fractions 0/0.25/0.5/0.75/1 | **0.0 / 0.259 / 0.511 / 0.759 / 1.0** |
+| Waxing / waning side | centroid **0.622 / 0.376** |
+| Sun Linked, Sun 90 deg away | fraction **0.44**, lit toward the Sun |
+| Phase animation, frames 1/8/16/24 | **0.0 / 0.23 / 0.73 / 1.0** |
+| Persistence | phase/waxing kept, pixel delta **0.0** |
+| World group / Moon group | **798 / 143** nodes |
+| Build time | **2.70 s** (2.63.0 baseline 2.71-3.07 s) |
+
+Existing gates: `verify_all` **ALD ALL PASS**, Phase 3 UI **68/68 PASS**.
 
 ## Migration from 2.63.0
 
-The World group marker is now **`ald_build = 36`** (was 35) and the socket
-validation includes the Moon inputs. The Moon group carries its own
-**`ald_moon_version = 1`**; bump it together with `ald_build` on the next Moon
-schema change.
-
 `preset_dev/moon_legacy_file.py` builds a real 2.63.0 `.blend` from the
 published package; `preset_dev/moon_migration_check.py` opens it with the
-current build. Evidence in `migration/migration.json`,
-`migration/legacy_before.png`, `migration/legacy_moon.png`:
+current build. Evidence: `migration/migration.json`,
+`migration/legacy_before.png`, `migration/legacy_moon.png`.
 
-- legacy file: `ald_build 35`, **no** Moon socket, no `ALD | Moon` group;
-- after an explicit Apply: `ald_build 36`, Moon sockets present, Moon version 1;
-- render before vs after Apply with the Moon off: pixel delta **0.0**;
-- enabling the Moon in the migrated file: disk visible (centre luma 0.414 vs
-  0.374 sky), no errors.
+- legacy file: `ald_build 35`, no Moon socket, no `ALD | Moon`;
+- after explicit Apply: `ald_build 37`, Moon sockets, `ald_moon_version 2`;
+- render before/after with the Moon off: pixel delta **0.0**;
+- enabling the Moon: disk visible, no errors.
 
-Migration happens only on an explicit Apply, never on file open.
+Migration happens only on Apply, never on file open. Bump `ald_build` and
+`ald_moon_version` together on the next Moon schema change.
 
-## Known limits (Phase 2 or later)
+## Known limits
 
-- Full moon only: no phases, no terminator, no earthshine yet.
-- Craters are stylised, not a photographic crater map.
-- The halo dims behind clouds but does not yet brighten selectively through
-  thin cloud gaps; that is Phase 2.3/2.4.
-- No Moon light source: the disk is World-only. Object lighting stays on the
-  Sun.
-- `Moonlit Night` still uses its stylised Sun disk; enabling the new Moon
-  there is a visual choice for a later preset pass, not changed here.
+- Sun Linked is a direction-based artistic link, not date/place astronomy.
+- The halo is still a ring around the whole disk at crescent phases; the lit
+  limb glow and the dark-limb ring are not separated yet.
+- The Moon light for object illumination is **not implemented**. The disk is
+  World-only; existing Sun lights are untouched. That optional extension needs
+  its own identification/ownership/cleanup and is deferred.
+- Craters remain stylised rather than photographic.
+- `Moonlit Night` still uses its stylised Sun disk; enabling the real Moon
+  there remains a later preset decision.
 
 ## Reproduce
 
@@ -110,27 +123,18 @@ Migration happens only on an explicit Apply, never on file open.
 $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 
 & $blender -b --factory-startup --gpu-backend vulkan --python-exit-code 1 `
-  --python preset_dev\moon_styles.py -- --out preset_dev\moon\styles
-python preset_dev\moon_styles_board.py
+  --python preset_dev\moon_phases.py -- --out preset_dev\moon\phases
+python preset_dev\moon_phases_board.py
 
 & $blender -b --factory-startup --gpu-backend vulkan --python-exit-code 1 `
-  --python preset_dev\moon_phase1_check.py
-
-& $blender -b --factory-startup --gpu-backend vulkan --python-exit-code 1 `
-  --python preset_dev\moon_migration_check.py -- <legacy_2.63.0.blend>
+  --python preset_dev\moon_phase2_check.py
 ```
 
-The legacy file needs the 2.63.0 package under an isolated
-`BLENDER_USER_SCRIPTS`; `moon_legacy_file.py` creates it.
+Phase 1 commands are unchanged (`moon_styles.py`, `moon_styles_board.py`,
+`moon_phase1_check.py`).
 
-## Gate 1 checklist
+## Gate status
 
-- [x] Disk/halo compositing separated; no double opacity, halo outside disk.
-- [x] Migration verified on a real 2.63.0 `.blend` (markers 35 -> 36, Moon
-      version 1, pixel delta 0.0, Moon visible).
-- [x] Painterly and Ethereal refined; Clean and Detailed untouched.
-- [x] Final board at 1.2 / 3.0 / 6.0 deg.
-- [x] Regressions (`ALD ALL PASS`, UI 68/68), save/reopen and performance.
-
-**Gate 1: READY - awaiting final visual approval.** Phase 2 does not start
-until the four styles are approved or the remaining issue is named.
+**Gate 1: VISUAL APPROVED** (full disk and the four styles).
+**Gate 2: READY - awaiting visual approval.** Phase 3 (Sun System 2.0) does not
+start until the phase board and the crescent-in-context render are approved.

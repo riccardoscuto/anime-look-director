@@ -224,6 +224,18 @@ def _on_star(self, context):
 
 
 _moon_style_syncing = False
+_moon_phase_syncing = False
+
+PHASES = {
+    "NEW": (0.0, True),
+    "WAXING_CRESCENT": (0.18, True),
+    "FIRST_QUARTER": (0.5, True),
+    "WAXING_GIBBOUS": (0.82, True),
+    "FULL": (1.0, True),
+    "WANING_GIBBOUS": (0.82, False),
+    "LAST_QUARTER": (0.5, False),
+    "WANING_CRESCENT": (0.18, False),
+}
 
 
 def _on_moon(self, context):
@@ -246,6 +258,41 @@ def _on_moon_style(self, context):
             moon_shader.apply_style(self)
         finally:
             _moon_style_syncing = False
+        from . import palette
+        if context.scene is not None:
+            palette.update_moon_controls(context.scene)
+    except Exception:
+        pass
+
+
+def _on_moon_phase(self, context):
+    global _moon_phase_syncing
+    try:
+        from . import palette
+        if not _moon_phase_syncing:
+            _moon_phase_syncing = True
+            try:
+                self.moon_phase_name = "CUSTOM"
+            finally:
+                _moon_phase_syncing = False
+        if context.scene is not None:
+            palette.update_moon_controls(context.scene)
+    except Exception:
+        pass
+
+
+def _on_moon_phase_name(self, context):
+    global _moon_phase_syncing
+    try:
+        if self.moon_phase_name == "CUSTOM":
+            return
+        phase, waxing = PHASES[self.moon_phase_name]
+        _moon_phase_syncing = True
+        try:
+            self.moon_phase = phase
+            self.moon_waxing = waxing
+        finally:
+            _moon_phase_syncing = False
         from . import palette
         if context.scene is not None:
             palette.update_moon_controls(context.scene)
@@ -530,6 +577,43 @@ class ALD_Settings(bpy.types.PropertyGroup):
     moon_seed: IntProperty(
         name="Surface Seed", default=7, min=0, max=999,
         description="Deterministic surface pattern seed",
+        update=_on_moon)
+    moon_phase_mode: EnumProperty(
+        name="Phase Mode",
+        items=(("MANUAL", "Manual", "Phase and orientation set by hand"),
+               ("SUN_LINKED", "Sun Linked",
+                "Lit side derived from the Sun and Moon directions")),
+        default="MANUAL",
+        description="How the Moon phase is derived",
+        update=_on_moon)
+    moon_phase_name: EnumProperty(
+        name="Phase",
+        items=(("NEW", "New Moon", ""),
+               ("WAXING_CRESCENT", "Waxing Crescent", ""),
+               ("FIRST_QUARTER", "First Quarter", ""),
+               ("WAXING_GIBBOUS", "Waxing Gibbous", ""),
+               ("FULL", "Full Moon", ""),
+               ("WANING_GIBBOUS", "Waning Gibbous", ""),
+               ("LAST_QUARTER", "Last Quarter", ""),
+               ("WANING_CRESCENT", "Waning Crescent", ""),
+               ("CUSTOM", "Custom", "Set by the illumination slider")),
+        default="FULL",
+        update=_on_moon_phase_name)
+    moon_phase: FloatProperty(
+        name="Illumination", default=1.0, min=0.0, max=1.0,
+        description="Illuminated fraction: 0 new, 1 full",
+        update=_on_moon_phase)
+    moon_waxing: BoolProperty(
+        name="Waxing", default=True,
+        description="Waxing phase; off mirrors the lit side",
+        update=_on_moon_phase)
+    moon_lit_rotation: FloatProperty(
+        name="Lit Side Rotation", default=0.0, min=-180.0, max=180.0,
+        description="Rotate the terminator around the disk centre",
+        update=_on_moon_phase)
+    moon_earthshine: FloatProperty(
+        name="Earthshine", default=0.12, min=0.0, max=1.0,
+        description="Faint fill on the unlit side",
         update=_on_moon)
     clouds: BoolProperty(
         name="Anime Clouds",

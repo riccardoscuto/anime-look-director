@@ -7,7 +7,7 @@ import bpy
 from .common import Graph
 
 GROUP = "ALD | Moon"
-MOON_VERSION = 1
+MOON_VERSION = 2
 
 STYLES = {
     "ANIME_CLEAN": {
@@ -72,7 +72,28 @@ def apply_style(settings):
     settings.moon_halo_color = style["halo_color"]
 
 
-def write_values(node, settings):
+def light_vector(settings, sun_direction=None):
+    """Local light direction for the phase term, or None for a full Moon."""
+    from mathutils import Vector
+
+    moon_direction = Vector(
+        direction(settings.moon_azimuth, settings.moon_elevation))
+    right, up = basis(moon_direction)
+    right, up = Vector(right), Vector(up)
+    if (getattr(settings, "moon_phase_mode", "MANUAL") == "SUN_LINKED"
+            and sun_direction is not None):
+        sun = Vector(sun_direction).normalized()
+        return (sun.dot(right), sun.dot(up), -sun.dot(moon_direction))
+    phase = max(0.0, min(1.0, float(getattr(settings, "moon_phase", 1.0))))
+    theta = math.acos(max(-1.0, min(1.0, 2.0 * phase - 1.0)))
+    sign = 1.0 if getattr(settings, "moon_waxing", True) else -1.0
+    rotation = math.radians(getattr(settings, "moon_lit_rotation", 0.0))
+    return (sign * math.sin(theta) * math.cos(rotation),
+            sign * math.sin(theta) * math.sin(rotation),
+            math.cos(theta))
+
+
+def write_values(node, settings, sun_direction=None):
     """Push the Moon settings into an existing ALD | Moon group node."""
     if node is None or settings is None:
         return
@@ -94,6 +115,8 @@ def write_values(node, settings):
         "Moon Halo Radius": settings.moon_halo_radius,
         "Moon Halo Color": tuple(settings.moon_halo_color)[:3] + (1.0,),
         "Moon Seed": float(settings.moon_seed),
+        "Moon Light": light_vector(settings, sun_direction),
+        "Moon Earthshine": settings.moon_earthshine,
     }
     for name, value in values.items():
         socket = node.inputs.get(name)
@@ -156,16 +179,18 @@ def build():
     _input(ng, "Moon Right", "NodeSocketVector", (1.0, 0.0, 0.0))
     _input(ng, "Moon Up", "NodeSocketVector", (0.0, 0.0, 1.0))
     _input(ng, "Moon Size", "NodeSocketFloat", 2.6, 0.05, 40.0)
-    _input(ng, "Moon Brightness", "NodeSocketFloat", 1.0, 0.0, 20.0)
+    _input(ng, "Moon Brightness", "NodeSocketFloat", 0.8, 0.0, 20.0)
     _input(ng, "Moon Color", "NodeSocketColor", (1.0, 0.97, 0.9, 1.0))
     _input(ng, "Moon Surface Detail", "NodeSocketFloat", 0.25, 0.0, 1.0)
-    _input(ng, "Moon Crater Strength", "NodeSocketFloat", 0.35, 0.0, 1.0)
-    _input(ng, "Moon Surface Contrast", "NodeSocketFloat", 0.45, 0.0, 1.0)
-    _input(ng, "Moon Edge Softness", "NodeSocketFloat", 0.14, 0.0, 1.0)
-    _input(ng, "Moon Glow", "NodeSocketFloat", 0.35, 0.0, 4.0)
-    _input(ng, "Moon Halo Radius", "NodeSocketFloat", 2.0, 0.0, 30.0)
+    _input(ng, "Moon Crater Strength", "NodeSocketFloat", 0.30, 0.0, 1.0)
+    _input(ng, "Moon Surface Contrast", "NodeSocketFloat", 0.55, 0.0, 1.0)
+    _input(ng, "Moon Edge Softness", "NodeSocketFloat", 0.05, 0.0, 1.0)
+    _input(ng, "Moon Glow", "NodeSocketFloat", 0.30, 0.0, 4.0)
+    _input(ng, "Moon Halo Radius", "NodeSocketFloat", 1.6, 0.0, 30.0)
     _input(ng, "Moon Halo Color", "NodeSocketColor", (0.72, 0.8, 1.0, 1.0))
     _input(ng, "Moon Seed", "NodeSocketFloat", 7.0, 0.0, 999.0)
+    _input(ng, "Moon Light", "NodeSocketVector", (0.0, 0.0, 1.0))
+    _input(ng, "Moon Earthshine", "NodeSocketFloat", 0.12, 0.0, 1.0)
     _input(ng, "Cloud Visibility", "NodeSocketFloat", 0.0, 0.0, 1.0)
     _input(ng, "Moon Enabled", "NodeSocketFloat", 0.0, 0.0, 1.0)
     ng.interface.new_socket(name="Color", in_out="OUTPUT",
@@ -272,6 +297,18 @@ def build():
     limb = g.math("ADD", 0.32, g.math("MULTIPLY", normal_z, 0.68,
                                       x=220, y=-500), x=400, y=-500)
 
+    # Phase term: the light vector arrives in the local disk frame (+z toward
+    # the viewer). The soft band lives on the dark side only, so a full moon
+    # keeps the whole disk lit and identical to the approved Phase 1 look.
+    light_socket = group_in.outputs["Moon Light"]
+    normal = g.node("ShaderNodeCombineXYZ", 220, -640)
+    g.feed(normal.inputs["X"], u)
+    g.feed(normal.inputs["Y"], v)
+    g.feed(normal.inputs["Z"], normal_z)
+    ndl = g.vmath("DOT_PRODUCT", normal.outputs["Vector"], light_socket,
+                  x=400, y=-640)
+    lit = g.maprange(ndl, -0.03, 0.0, 0.0, 1.0, x=580, y=-640)
+
     base = group_in.outputs["Moon Color"]
     cool = g.vmath("MULTIPLY", base, (0.84, 0.89, 1.05), x=80, y=600)
     warm = g.vmath("MULTIPLY", base, (1.05, 1.0, 0.9), x=80, y=460)
@@ -285,6 +322,18 @@ def build():
     shaded = g.scale_color(shaded, limb, x=2720, y=100)
     shaded = g.scale_color(shaded, group_in.outputs["Moon Brightness"],
                            x=2900, y=100)
+    earthshine = group_in.outputs["Moon Earthshine"]
+    earth = g.scale_color(group_in.outputs["Moon Halo Color"],
+                          g.math("MULTIPLY", earthshine, 1.0,
+                                 x=2540, y=-220), x=2720, y=-220)
+    earth = g.scale_color(
+        earth,
+        g.math("MULTIPLY", g.math("SUBTRACT", 1.0, lit, x=2720, y=-360),
+               g.math("ADD", 0.35, g.math("MULTIPLY", normal_z, 0.65,
+                                          x=2540, y=-360), x=2720, y=-360),
+               x=2900, y=-300), x=3080, y=-220)
+    shaded = g.vmath("ADD", g.scale_color(shaded, lit, x=2900, y=100),
+                     earth, x=3260, y=0)
 
     # Halo: a tight glow plus a wide atmospheric falloff, independent of size.
     chord = g.math("SQRT",
@@ -311,6 +360,16 @@ def build():
     wide = g.math("MULTIPLY", wide, group_in.outputs["Moon Glow"],
                   x=560, y=980)
     halo = g.math("ADD", tight, wide, x=740, y=900)
+    light_sep = g.node("ShaderNodeSeparateXYZ", 740, 1080)
+    g.feed(light_sep.inputs["Vector"], light_socket)
+    phase_k = g.math("MULTIPLY",
+                     g.math("ADD", light_sep.outputs["Z"], 1.0,
+                            x=920, y=1080),
+                     0.5, x=1100, y=1080)
+    halo_scale = g.math("ADD", 0.3,
+                        g.math("MULTIPLY", phase_k, 0.7,
+                               x=1280, y=1080), x=1460, y=1080)
+    halo = g.math("MULTIPLY", halo, halo_scale, x=920, y=900)
 
     cloud = group_in.outputs["Cloud Visibility"]
     disk_open = g.math("SUBTRACT", 1.0,
@@ -319,7 +378,11 @@ def build():
     halo_open = g.math("SUBTRACT", 1.0,
                        g.math("MULTIPLY", cloud, 0.65, x=-300, y=1320),
                        x=-120, y=1320)
+    # The Moon body is opaque at any visible phase, so stars never shine
+    # through the earthshine side. A new Moon fades the whole disk out.
+    disk_gate = g.maprange(phase_k, 0.01, 0.06, 0.0, 1.0, x=200, y=1400)
     disk_alpha = g.math("MULTIPLY", disk, disk_open, x=600, y=1200)
+    disk_alpha = g.math("MULTIPLY", disk_alpha, disk_gate, x=780, y=1200)
     halo_alpha = g.math("MULTIPLY", halo, halo_open, x=780, y=1320)
     halo_alpha = g.math("MINIMUM", halo_alpha, 1.0, x=960, y=1320)
     # Halo and disk are separate layers: the halo only fills the sky outside

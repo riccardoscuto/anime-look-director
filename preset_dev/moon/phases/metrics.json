@@ -1,0 +1,186 @@
+{
+  "size": 4.0,
+  "azimuth": 0.0,
+  "elevation": 22.0,
+  "named": [
+    {
+      "name": "NEW",
+      "phase": 0.0,
+      "waxing": true,
+      "file": "new.png",
+      "metrics": {
+        "luma": 0.2737,
+        "contrast": 0.0446,
+        "saturation": 0.2635
+      }
+    },
+    {
+      "name": "WAXING_CRESCENT",
+      "phase": 0.18000000715255737,
+      "waxing": true,
+      "file": "waxing_crescent.png",
+      "metrics": {
+        "luma": 0.2779,
+        "contrast": 0.0561,
+        "saturation": 0.2525
+      }
+    },
+    {
+      "name": "FIRST_QUARTER",
+      "phase": 0.5,
+      "waxing": true,
+      "file": "first_quarter.png",
+      "metrics": {
+        "luma": 0.2848,
+        "contrast": 0.0761,
+        "saturation": 0.2512
+      }
+    },
+    {
+      "name": "WAXING_GIBBOUS",
+      "phase": 0.8199999928474426,
+      "waxing": true,
+      "file": "waxing_gibbous.png",
+      "metrics": {
+        "luma": 0.2918,
+        "contrast": 0.0918,
+        "saturation": 0.2499
+      }
+    },
+    {
+      "name": "FULL",
+      "phase": 1.0,
+      "waxing": true,
+      "file": "full.png",
+      "metrics": {
+        "luma": 0.2951,
+        "contrast": 0.096,
+        "saturation": 0.2493
+      }
+    },
+    {
+      "name": "WANING_GIBBOUS",
+      "phase": 0.8199999928474426,
+      "waxing": false,
+      "file": "waning_gibbous.png",
+      "metrics": {
+        "luma": 0.2915,
+        "contrast": 0.0908,
+        "saturation": 0.2499
+      }
+    },
+    {
+      "name": "LAST_QUARTER",
+      "phase": 0.5,
+      "waxing": false,
+      "file": "last_quarter.png",
+      "metrics": {
+        "luma": 0.2847,
+        "contrast": 0.0758,
+        "saturation": 0.2512
+      }
+    },
+    {
+      "name": "WANING_CRESCENT",
+      "phase": 0.18000000715255737,
+      "waxing": false,
+      "file": "waning_crescent.png",
+      "metrics": {
+        "luma": 0.2777,
+        "contrast": 0.0545,
+        "saturation": 0.2526
+      }
+    }
+  ],
+  "sweep": [
+    {
+      "phase": 0.0,
+      "file": "sweep/phase_000.png",
+      "metrics": {
+        "luma": 0.2737,
+        "contrast": 0.0446,
+        "saturation": 0.2635
+      }
+    },
+    {
+      "phase": 0.125,
+      "file": "sweep/phase_012.png",
+      "metrics": {
+        "luma": 0.2766,
+        "contrast": 0.0511,
+        "saturation": 0.2528
+      }
+    },
+    {
+      "phase": 0.25,
+      "file": "sweep/phase_025.png",
+      "metrics": {
+        "luma": 0.2791,
+        "contrast": 0.0592,
+        "saturation": 0.2523
+      }
+    },
+    {
+      "phase": 0.375,
+      "file": "sweep/phase_038.png",
+      "metrics": {
+        "luma": 0.2819,
+        "contrast": 0.0678,
+        "saturation": 0.2518
+      }
+    },
+    {
+      "phase": 0.5,
+      "file": "sweep/phase_050.png",
+      "metrics": {
+        "luma": 0.2847,
+        "contrast": 0.0758,
+        "saturation": 0.2512
+      }
+    },
+    {
+      "phase": 0.625,
+      "file": "sweep/phase_062.png",
+      "metrics": {
+        "luma": 0.2874,
+        "contrast": 0.0827,
+        "saturation": 0.2507
+      }
+    },
+    {
+      "phase": 0.75,
+      "file": "sweep/phase_075.png",
+      "metrics": {
+        "luma": 0.2901,
+        "contrast": 0.0882,
+        "saturation": 0.2502
+      }
+    },
+    {
+      "phase": 0.875,
+      "file": "sweep/phase_088.png",
+      "metrics": {
+        "luma": 0.2927,
+        "contrast": 0.0927,
+        "saturation": 0.2497
+      }
+    },
+    {
+      "phase": 1.0,
+      "file": "sweep/phase_100.png",
+      "metrics": {
+        "luma": 0.2951,
+        "contrast": 0.096,
+        "saturation": 0.2493
+      }
+    }
+  ],
+  "sun_linked": {
+    "file": "sun_linked_quarter.png",
+    "metrics": {
+      "luma": 0.2832,
+      "contrast": 0.0719,
+      "saturation": 0.2515
+    }
+  }
+}

@@ -75,6 +75,18 @@ def draw_moon(layout, context):
         box.label(text="Moon is off", icon="INFO")
         return
     box.prop(s, "moon_style")
+    box.label(text="Phase")
+    box.prop(s, "moon_phase_mode")
+    if s.moon_phase_mode == "MANUAL":
+        col = box.column(align=True)
+        col.prop(s, "moon_phase_name")
+        col.prop(s, "moon_phase")
+        col.prop(s, "moon_waxing")
+        col.prop(s, "moon_lit_rotation")
+    else:
+        box.label(text="Phase follows the Sun", icon="INFO")
+    box.prop(s, "moon_earthshine")
+    box.label(text="Position")
     col = box.column(align=True)
     col.prop(s, "moon_size")
     col.prop(s, "moon_azimuth")

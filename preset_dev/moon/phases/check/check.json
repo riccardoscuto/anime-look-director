@@ -1,0 +1,42 @@
+{
+  "phase_area": {
+    "passed": true,
+    "fractions": {
+      "0.0": 0.0,
+      "0.25": 0.259,
+      "0.5": 0.511,
+      "0.75": 0.759,
+      "1.0": 1.0
+    }
+  },
+  "waxing_side": {
+    "passed": true,
+    "waxing_x": 0.622,
+    "waning_x": 0.376
+  },
+  "sun_linked": {
+    "passed": true,
+    "fraction": 0.44,
+    "centroid_x": 0.412
+  },
+  "animation": {
+    "passed": true,
+    "fractions": [
+      0.0,
+      0.23,
+      0.73,
+      1.0
+    ]
+  },
+  "persistence": {
+    "passed": true,
+    "phase": 0.25,
+    "waxing": true,
+    "pixel_delta": 0.0
+  },
+  "cost": {
+    "nodes": 798,
+    "moon_nodes": 143,
+    "build_seconds": 2.699
+  }
+}

@@ -5,9 +5,9 @@
     "has_moon_group": false
   },
   "migrated_after": {
-    "build": 36,
+    "build": 37,
     "has_moon_socket": true,
-    "moon_version": 1
+    "moon_version": 2
   },
   "rebuild_pixel_delta": 0.0,
   "moon_visible": true,
