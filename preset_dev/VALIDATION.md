@@ -41,7 +41,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Phase 6 matrix | `phase6/contact.png`, `phase6/metrics.json` | 22 cells: families x Sun, palettes, coverage, camera, wind, stars |
 | Phase 6 technical | `phase6/technical.json` | **17/17 PASS** |
 | Legacy migration (2.63 work) | `legacy/report.json`, `legacy/v256_report.json` | synthetic **36/36**; real v2.56.0 `.blend` **9/9** |
-| Cumulus baseline (2.63 work) | `phase1/contact.png`, `phase1/contact_lighting.png`, `phase1/metrics.json` | v1.0.3 vs v2.62 native/calibrated; **TECHNICAL PASS / VISUAL REVIEW PENDING** |
+| Cumulus baseline (2.63 work) | `phase1/contact.png`, `phase1/contact_lighting.png`, `phase1/metrics.json` | v1.0.3 vs v2.62 native/calibrated; **TECHNICAL PASS / CLOSED as documented limit** |
 | Palettes | `palettes/sheet.png`, `palettes/review.png`, `palettes/review.json` | first 12-preset review; superseded by the identity review |
 | Preset identity | `preset_identity/gradient_board.jpg`, `sun_board.jpg`, `cloud_board.jpg`, tuning boards, metrics | 12 presets; gradient, native Sun and full-cloud boards; **VISUAL APPROVED - 2.63.0** |
 | UI | `preset_dev/phase3_ui/` | full Scene Properties mirror in the sidebar, autonomous Shooting Stars, compositor states; **VISUAL APPROVED - 2.63.0** |
@@ -61,7 +61,7 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 | Old files are not auto-cleaned | DONE | documented, source audit |
 | Phase 0 visual baseline | DONE | `preset_dev/world_baseline/` |
 | Phase 2 cloudless sky | DONE | broad accent, Sun fade, `preset_dev/sky/` |
-| Phase 3 cloud families | DONE | Cumulus gate approved; the 22-cell matrix covers all three |
+| Phase 3 cloud families | DONE | Cumulus gate approved; Stratocumulus and Cirrus accepted as documented limits; the 22-cell matrix covers all three |
 | Phase 3 sunset | APPROVED | GOLDEN_HOUR side/backlit |
 | Shooting stars | APPROVED | controlled event, Preview, starfield-consistent line |
 | Phase 5 presets/UI | DONE | five presets, Quick Look, full Scene sections |

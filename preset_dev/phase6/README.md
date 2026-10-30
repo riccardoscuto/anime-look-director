@@ -49,8 +49,10 @@ gnomonic coordinates as the Sky panel and are inside the camera frame.
   and is not a broken disk.
 - Coverage 0.00 still shows the flat ground color; that band is the World
   ground, not a cloud.
-- Stratocumulus and Cirrus are documented here but do not have an individual
-  aesthetic sign-off; Cumulus remains the approved family.
+- Stratocumulus and Cirrus are documented here but have no individual
+  aesthetic sign-off. **Closed on 2026-10-30 as accepted documented limits**:
+  no further aesthetic work on these families is planned for the 2.63 line.
+  Cumulus remains the approved family.
 
 ## Commands
 

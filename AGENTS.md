@@ -92,11 +92,12 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   sunset gate is approved at 2.59.1. The shooting-star gate is approved at
   2.60.1; its 2.63 Phase 1A reliability work is technical-only and has no
   aesthetic approval. Phase 5 (presets and compact UI) and Phase 6 (release
-  matrix, technical gate, package) are complete at 2.62.0; 2.63.0 is the
-  current release candidate on `master`.
+  matrix, technical gate, package) are complete at 2.62.0; 2.63.0 is released
+  and tagged `v2.63.0` on `master`.
 - 2.63 work: Phase 0 legacy safety is complete (44/44 audit, 36/36 synthetic
   and 9/9 on a real v2.56.0 file); Phase 1 Cumulus baseline is complete at
-  `preset_dev/phase1/` with the visual decision pending. The shooting-star
+  `preset_dev/phase1/` and **closed as a documented limit** (technical PASS,
+  no aesthetic sign-off). The shooting-star
   Phase 0 audit is at `preset_dev/audit_shooting_stars/` (branch
   `audit/shooting-stars`, `85c8170`). Phase 1A is complete on
   `phase-1a-shooting-stars`: 37/37 technical checks and 5/5 interactive
@@ -127,7 +128,8 @@ World-only visual baseline (Phase 0 evidence) and Phase 2 sky matrix:
   `metrics.json` and `technical.json` (17/17). The technical gate covers
   idempotence, determinism, wind, star isolation, ownership, persistence and
   cost. Stratocumulus and Cirrus are documented but have no individual
-  aesthetic sign-off; Cumulus is the approved family.
+  aesthetic sign-off; **closed on 2026-10-30 as accepted documented limits**
+  for the 2.63 line. Cumulus is the approved family.
 - A field edit calls `_on_star` and refreshes the World immediately; Add
   places the event in the current camera direction at the current frame, and
   Preview moves the timeline to 1/3 of the event and frames it in the 3D view

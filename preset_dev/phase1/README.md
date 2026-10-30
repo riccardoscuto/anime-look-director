@@ -1,9 +1,10 @@
 # Phase 1 - Cumulus baseline (v1.0.3 vs v2.62.0)
 
-Status: **TECHNICAL PASS / VISUAL REVIEW PENDING**
+Status: **CLOSED - technical PASS, no aesthetic sign-off (documented limit).**
 
-No cloud or World shader was modified. This is the comparison that must be
-accepted before Phase 2 starts.
+No cloud or World shader was modified. This was the comparison proposed before
+Phase 2; Phase 2 onward shipped independently, and the board is now closed as
+a documented limit.
 
 ## Conditions
 
@@ -176,6 +177,10 @@ python preset_dev\phase1_compare.py
 
 ## Decision
 
-The comparison is technically complete. The visual decision is **pending**:
-Phase 2 must not start until the user accepts this baseline and the recovered
-target. No `APPROVED` or `ARTISTIC GATE PASSED` status is claimed.
+**CLOSED on 2026-10-30 as a documented limit.** The comparison is technically
+complete; no cloud-generator work is planned for the 2.63 line. Cumulus at the
+current generator is the approved family for this release, and the gap against
+v1.0.3 (one dominant bank instead of several separate masses) is recorded as a
+known limitation of the existing algorithm, not as an open defect. No
+`APPROVED` or `ARTISTIC GATE PASSED` status is claimed for this board, and
+Phase 2 onward shipped independently of this decision.

@@ -26,7 +26,8 @@ Phase 0: legacy ALD safety.
 - `preset_dev/legacy_v256_check.py` - 9/9 PASS on a real v2.56.0 `.blend`.
 - `preset_dev/legacy/README.md`.
 - Phase 1 Cumulus baseline: `preset_dev/phase1/` (v1.0.3 vs v2.62 native and
-  calibrated coverage); technical PASS, visual review pending.
+  calibrated coverage); technical PASS, visual sign-off closed as a documented
+  limit (2026-10-30).
 
 ### Phase 1A - Shooting Stars
 
