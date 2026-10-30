@@ -1,0 +1,86 @@
+{
+  "earthshine": [
+    {
+      "value": 0.12,
+      "file": "e_012.png",
+      "metrics": {
+        "luma": 0.2773,
+        "contrast": 0.0562,
+        "saturation": 0.2529
+      }
+    },
+    {
+      "value": 0.05,
+      "file": "e_005.png",
+      "metrics": {
+        "luma": 0.2722,
+        "contrast": 0.0599,
+        "saturation": 0.2521
+      }
+    },
+    {
+      "value": 0.02,
+      "file": "e_002.png",
+      "metrics": {
+        "luma": 0.2687,
+        "contrast": 0.0675,
+        "saturation": 0.2516
+      }
+    }
+  ],
+  "final": [
+    {
+      "name": "NEW",
+      "file": "new.png",
+      "metrics": {
+        "luma": 0.2735,
+        "contrast": 0.0446,
+        "saturation": 0.2652
+      }
+    },
+    {
+      "name": "WAXING_CRESCENT",
+      "file": "waxing_crescent.png",
+      "metrics": {
+        "luma": 0.2722,
+        "contrast": 0.0599,
+        "saturation": 0.2521
+      }
+    },
+    {
+      "name": "FIRST_QUARTER",
+      "file": "first_quarter.png",
+      "metrics": {
+        "luma": 0.281,
+        "contrast": 0.0782,
+        "saturation": 0.2514
+      }
+    },
+    {
+      "name": "FULL",
+      "file": "full.png",
+      "metrics": {
+        "luma": 0.2952,
+        "contrast": 0.0962,
+        "saturation": 0.2492
+      }
+    },
+    {
+      "name": "WANING_CRESCENT",
+      "file": "waning_crescent.png",
+      "metrics": {
+        "luma": 0.272,
+        "contrast": 0.0583,
+        "saturation": 0.2522
+      }
+    }
+  ],
+  "clouds": {
+    "file": "crescent_clouds.png",
+    "metrics": {
+      "luma": 0.3982,
+      "contrast": 0.0825,
+      "saturation": 0.1914
+    }
+  }
+}

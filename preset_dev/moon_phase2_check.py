@@ -111,6 +111,26 @@ def main():
         "fractions": fractions,
     }
 
+    # Compositing at intermediate alpha: a wide soft edge must not produce a
+    # dark ring from a double attenuation.
+    scene.ald.moon_phase = 1.0
+    scene.ald.moon_earthshine = 0.0
+    scene.ald.moon_edge_softness = 0.6
+    edge_path = render(scene, "alpha_edge")
+    edge_pixels = lookdev.load_rgba(edge_path).reshape(500, 500, 4)
+    row = edge_pixels[250, 250:430, :3].mean(axis=1)
+    sky = float(row[-10:].mean())
+    disk = float(row[:10].mean())
+    steps = np.diff(row)
+    checks["alpha_edge"] = {
+        "passed": (float(steps.max()) <= 0.01
+                   and float(row.min()) >= min(disk, sky) - 0.01),
+        "disk": round(disk, 3), "sky": round(sky, 3),
+        "max_step_up": round(float(steps.max()), 4),
+        "min": round(float(row.min()), 3),
+    }
+    scene.ald.moon_edge_softness = 0.04
+
     scene.ald.moon_phase = 0.25
     scene.ald.moon_waxing = True
     waxing_path = render(scene, "waxing_025")
@@ -161,7 +181,7 @@ def main():
     # Crescent in context: clouds and stars in front.
     scene.ald.moon_phase = 0.18
     scene.ald.moon_waxing = True
-    scene.ald.moon_earthshine = 0.12
+    scene.ald.moon_earthshine = 0.05
     scene.ald.clouds = True
     scene.ald.stars = True
     data.lens = 85.0

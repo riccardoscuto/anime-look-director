@@ -612,7 +612,7 @@ class ALD_Settings(bpy.types.PropertyGroup):
         description="Rotate the terminator around the disk centre",
         update=_on_moon_phase)
     moon_earthshine: FloatProperty(
-        name="Earthshine", default=0.12, min=0.0, max=1.0,
+        name="Earthshine", default=0.05, min=0.0, max=1.0,
         description="Faint fill on the unlit side",
         update=_on_moon)
     clouds: BoolProperty(

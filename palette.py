@@ -9,7 +9,7 @@ from mathutils import Vector
 from .shaders import moon as moon_shader
 
 GRADIENT_GROUP = "ALD | World Gradient"
-GRADIENT_BUILD = 37
+GRADIENT_BUILD = 38
 AUTO_SUN_TAG = "ald_auto_sun"
 SUN_OWNER_TAG = "ald_sun_owner"
 

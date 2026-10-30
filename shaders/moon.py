@@ -7,7 +7,7 @@ import bpy
 from .common import Graph
 
 GROUP = "ALD | Moon"
-MOON_VERSION = 2
+MOON_VERSION = 3
 
 STYLES = {
     "ANIME_CLEAN": {
@@ -190,7 +190,7 @@ def build():
     _input(ng, "Moon Halo Color", "NodeSocketColor", (0.72, 0.8, 1.0, 1.0))
     _input(ng, "Moon Seed", "NodeSocketFloat", 7.0, 0.0, 999.0)
     _input(ng, "Moon Light", "NodeSocketVector", (0.0, 0.0, 1.0))
-    _input(ng, "Moon Earthshine", "NodeSocketFloat", 0.12, 0.0, 1.0)
+    _input(ng, "Moon Earthshine", "NodeSocketFloat", 0.05, 0.0, 1.0)
     _input(ng, "Cloud Visibility", "NodeSocketFloat", 0.0, 0.0, 1.0)
     _input(ng, "Moon Enabled", "NodeSocketFloat", 0.0, 0.0, 1.0)
     ng.interface.new_socket(name="Color", in_out="OUTPUT",
@@ -328,6 +328,11 @@ def build():
                                  x=2540, y=-220), x=2720, y=-220)
     earth = g.scale_color(
         earth,
+        g.math("ADD", 0.55, g.math("MULTIPLY", light, 0.5,
+                                   x=2540, y=-440), x=2720, y=-440),
+        x=2900, y=-220)
+    earth = g.scale_color(
+        earth,
         g.math("MULTIPLY", g.math("SUBTRACT", 1.0, lit, x=2720, y=-360),
                g.math("ADD", 0.35, g.math("MULTIPLY", normal_z, 0.65,
                                           x=2540, y=-360), x=2720, y=-360),
@@ -366,10 +371,54 @@ def build():
                      g.math("ADD", light_sep.outputs["Z"], 1.0,
                             x=920, y=1080),
                      0.5, x=1100, y=1080)
-    halo_scale = g.math("ADD", 0.3,
-                        g.math("MULTIPLY", phase_k, 0.7,
-                               x=1280, y=1080), x=1460, y=1080)
+    halo_gate = g.maprange(phase_k, 0.0, 0.04, 0.0, 1.0, x=1280, y=1080)
+    halo_scale = g.math("MULTIPLY",
+                        g.math("ADD", 0.25,
+                               g.math("MULTIPLY", phase_k, 0.75,
+                                      x=1460, y=1080), x=1640, y=1080),
+                        halo_gate, x=1820, y=1080)
+
+    # The halo follows the lit limb; at full phase it stays symmetric.
+    offset = g.math("MAXIMUM",
+                    g.math("SQRT",
+                           g.math("ADD", g.math("MULTIPLY", u, u, x=740, y=1220),
+                                  g.math("MULTIPLY", v, v, x=740, y=1320),
+                                  x=920, y=1280), x=1100, y=1280),
+                    0.001, x=1280, y=1280)
+    transverse = g.math("MAXIMUM",
+                        g.math("SQRT",
+                               g.math("ADD",
+                                      g.math("MULTIPLY", light_sep.outputs["X"],
+                                             light_sep.outputs["X"],
+                                             x=920, y=1440),
+                                      g.math("MULTIPLY", light_sep.outputs["Y"],
+                                             light_sep.outputs["Y"],
+                                             x=920, y=1540),
+                                      x=1100, y=1480), x=1280, y=1480),
+                        0.001, x=1460, y=1480)
+    side_dot = g.math("DIVIDE",
+                      g.math("ADD",
+                             g.math("MULTIPLY", u, light_sep.outputs["X"],
+                                    x=920, y=1600),
+                             g.math("MULTIPLY", v, light_sep.outputs["Y"],
+                                    x=920, y=1700), x=1100, y=1640),
+                      g.math("MULTIPLY", offset, transverse,
+                             x=1460, y=1640), x=1640, y=1640)
+    side = g.math("ADD", 0.5, g.math("MULTIPLY", side_dot, 0.5,
+                                     x=1820, y=1640), clamp=True,
+                  x=2000, y=1640)
+    side_amount = g.maprange(transverse, 0.02, 0.25, 0.0, 1.0,
+                             x=1640, y=1480)
+    side_weight = g.math("ADD",
+                         g.math("SUBTRACT", 1.0, side_amount, x=1820, y=1480),
+                         g.math("MULTIPLY", side_amount,
+                                g.math("ADD", 0.15,
+                                       g.math("MULTIPLY", side, 0.85,
+                                              x=2000, y=1600),
+                                       x=2180, y=1600), x=2180, y=1480),
+                         x=2360, y=1480)
     halo = g.math("MULTIPLY", halo, halo_scale, x=920, y=900)
+    halo = g.math("MULTIPLY", halo, side_weight, x=1100, y=900)
 
     cloud = group_in.outputs["Cloud Visibility"]
     disk_open = g.math("SUBTRACT", 1.0,
@@ -391,9 +440,11 @@ def build():
     halo_outside = g.math(
         "MULTIPLY", halo_alpha,
         g.math("SUBTRACT", 1.0, disk_alpha, x=960, y=1440), x=1140, y=1440)
-    alpha = g.math("MAXIMUM", disk_alpha, halo_outside, x=1320, y=1260)
+    # Exact premultiplied "over": halo_outside already excludes the disk.
+    alpha = g.math("ADD", disk_alpha, halo_outside, x=1320, y=1260)
+    alpha = g.math("MINIMUM", alpha, 1.0, x=1500, y=1260)
     alpha = g.math("MULTIPLY", alpha, group_in.outputs["Moon Enabled"],
-                   x=1500, y=1260)
+                   x=1680, y=1260)
 
     disk_rgb = g.scale_color(shaded, disk_alpha, x=3080, y=600)
     halo_rgb = g.scale_color(group_in.outputs["Moon Halo Color"], halo_outside,

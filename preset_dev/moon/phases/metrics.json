@@ -9,9 +9,9 @@
       "waxing": true,
       "file": "new.png",
       "metrics": {
-        "luma": 0.2737,
+        "luma": 0.2735,
         "contrast": 0.0446,
-        "saturation": 0.2635
+        "saturation": 0.2652
       }
     },
     {
@@ -20,9 +20,9 @@
       "waxing": true,
       "file": "waxing_crescent.png",
       "metrics": {
-        "luma": 0.2779,
-        "contrast": 0.0561,
-        "saturation": 0.2525
+        "luma": 0.2722,
+        "contrast": 0.0599,
+        "saturation": 0.2521
       }
     },
     {
@@ -31,9 +31,9 @@
       "waxing": true,
       "file": "first_quarter.png",
       "metrics": {
-        "luma": 0.2848,
-        "contrast": 0.0761,
-        "saturation": 0.2512
+        "luma": 0.281,
+        "contrast": 0.0782,
+        "saturation": 0.2514
       }
     },
     {
@@ -42,9 +42,9 @@
       "waxing": true,
       "file": "waxing_gibbous.png",
       "metrics": {
-        "luma": 0.2918,
-        "contrast": 0.0918,
-        "saturation": 0.2499
+        "luma": 0.2898,
+        "contrast": 0.0925,
+        "saturation": 0.2506
       }
     },
     {
@@ -53,9 +53,9 @@
       "waxing": true,
       "file": "full.png",
       "metrics": {
-        "luma": 0.2951,
-        "contrast": 0.096,
-        "saturation": 0.2493
+        "luma": 0.2952,
+        "contrast": 0.0962,
+        "saturation": 0.2492
       }
     },
     {
@@ -64,9 +64,9 @@
       "waxing": false,
       "file": "waning_gibbous.png",
       "metrics": {
-        "luma": 0.2915,
-        "contrast": 0.0908,
-        "saturation": 0.2499
+        "luma": 0.2895,
+        "contrast": 0.0915,
+        "saturation": 0.2507
       }
     },
     {
@@ -75,9 +75,9 @@
       "waxing": false,
       "file": "last_quarter.png",
       "metrics": {
-        "luma": 0.2847,
-        "contrast": 0.0758,
-        "saturation": 0.2512
+        "luma": 0.2809,
+        "contrast": 0.0779,
+        "saturation": 0.2514
       }
     },
     {
@@ -86,9 +86,9 @@
       "waxing": false,
       "file": "waning_crescent.png",
       "metrics": {
-        "luma": 0.2777,
-        "contrast": 0.0545,
-        "saturation": 0.2526
+        "luma": 0.272,
+        "contrast": 0.0583,
+        "saturation": 0.2522
       }
     }
   ],
@@ -97,90 +97,90 @@
       "phase": 0.0,
       "file": "sweep/phase_000.png",
       "metrics": {
-        "luma": 0.2737,
+        "luma": 0.2735,
         "contrast": 0.0446,
-        "saturation": 0.2635
+        "saturation": 0.2652
       }
     },
     {
       "phase": 0.125,
       "file": "sweep/phase_012.png",
       "metrics": {
-        "luma": 0.2766,
-        "contrast": 0.0511,
-        "saturation": 0.2528
+        "luma": 0.2706,
+        "contrast": 0.0554,
+        "saturation": 0.2523
       }
     },
     {
       "phase": 0.25,
       "file": "sweep/phase_025.png",
       "metrics": {
-        "luma": 0.2791,
-        "contrast": 0.0592,
-        "saturation": 0.2523
+        "luma": 0.2739,
+        "contrast": 0.0625,
+        "saturation": 0.252
       }
     },
     {
       "phase": 0.375,
       "file": "sweep/phase_038.png",
       "metrics": {
-        "luma": 0.2819,
-        "contrast": 0.0678,
-        "saturation": 0.2518
+        "luma": 0.2773,
+        "contrast": 0.0704,
+        "saturation": 0.2517
       }
     },
     {
       "phase": 0.5,
       "file": "sweep/phase_050.png",
       "metrics": {
-        "luma": 0.2847,
-        "contrast": 0.0758,
-        "saturation": 0.2512
+        "luma": 0.2809,
+        "contrast": 0.0779,
+        "saturation": 0.2514
       }
     },
     {
       "phase": 0.625,
       "file": "sweep/phase_062.png",
       "metrics": {
-        "luma": 0.2874,
-        "contrast": 0.0827,
-        "saturation": 0.2507
+        "luma": 0.2843,
+        "contrast": 0.0843,
+        "saturation": 0.2511
       }
     },
     {
       "phase": 0.75,
       "file": "sweep/phase_075.png",
       "metrics": {
-        "luma": 0.2901,
-        "contrast": 0.0882,
-        "saturation": 0.2502
+        "luma": 0.2877,
+        "contrast": 0.0892,
+        "saturation": 0.2508
       }
     },
     {
       "phase": 0.875,
       "file": "sweep/phase_088.png",
       "metrics": {
-        "luma": 0.2927,
-        "contrast": 0.0927,
-        "saturation": 0.2497
+        "luma": 0.291,
+        "contrast": 0.093,
+        "saturation": 0.2505
       }
     },
     {
       "phase": 1.0,
       "file": "sweep/phase_100.png",
       "metrics": {
-        "luma": 0.2951,
-        "contrast": 0.096,
-        "saturation": 0.2493
+        "luma": 0.2952,
+        "contrast": 0.0962,
+        "saturation": 0.2492
       }
     }
   ],
   "sun_linked": {
     "file": "sun_linked_quarter.png",
     "metrics": {
-      "luma": 0.2832,
-      "contrast": 0.0719,
-      "saturation": 0.2515
+      "luma": 0.279,
+      "contrast": 0.0743,
+      "saturation": 0.2516
     }
   }
 }
