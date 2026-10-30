@@ -2,14 +2,14 @@
   "disk_circular": {
     "passed": true,
     "aspect": 1.004,
-    "width": 274,
-    "height": 273
+    "width": 286,
+    "height": 285
   },
   "disk_circular_high": {
     "passed": true,
-    "aspect": 1.004,
-    "width": 274,
-    "height": 273
+    "aspect": 1.0,
+    "width": 276,
+    "height": 276
   },
   "below_horizon_hidden": {
     "passed": true,
@@ -30,11 +30,11 @@
     "group": {
       "nodes": 798,
       "links": 1240,
-      "moon_nodes": 121
+      "moon_nodes": 123
     },
-    "build_seconds": 2.673,
-    "render_off_seconds": 0.281,
-    "render_on_seconds": 0.266,
-    "render_delta_pct": -5.4
+    "build_seconds": 2.655,
+    "render_off_seconds": 0.257,
+    "render_on_seconds": 0.253,
+    "render_delta_pct": -1.6
   }
 }

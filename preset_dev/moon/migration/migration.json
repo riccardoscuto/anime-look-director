@@ -1,0 +1,17 @@
+{
+  "legacy_before": {
+    "build": 35,
+    "has_moon_socket": false,
+    "has_moon_group": false
+  },
+  "migrated_after": {
+    "build": 36,
+    "has_moon_socket": true,
+    "moon_version": 1
+  },
+  "rebuild_pixel_delta": 0.0,
+  "moon_visible": true,
+  "moon_center_luma": 0.4138,
+  "sky_center_luma": 0.3736,
+  "passed": true
+}

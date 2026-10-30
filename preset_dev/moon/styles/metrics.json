@@ -18,8 +18,8 @@
       "size": 1.2,
       "file": "anime_clean_1_2deg.png",
       "metrics": {
-        "luma": 0.2773,
-        "contrast": 0.0575,
+        "luma": 0.2769,
+        "contrast": 0.0543,
         "saturation": 0.2626
       }
     },
@@ -28,9 +28,9 @@
       "size": 3.0,
       "file": "anime_clean_3_0deg.png",
       "metrics": {
-        "luma": 0.2911,
-        "contrast": 0.0946,
-        "saturation": 0.2548
+        "luma": 0.2883,
+        "contrast": 0.0823,
+        "saturation": 0.2545
       }
     },
     {
@@ -38,9 +38,9 @@
       "size": 6.0,
       "file": "anime_clean_6_0deg.png",
       "metrics": {
-        "luma": 0.3368,
-        "contrast": 0.1609,
-        "saturation": 0.2296
+        "luma": 0.3257,
+        "contrast": 0.1345,
+        "saturation": 0.2286
       }
     },
     {
@@ -48,9 +48,9 @@
       "size": 1.2,
       "file": "anime_painterly_1_2deg.png",
       "metrics": {
-        "luma": 0.2811,
-        "contrast": 0.0657,
-        "saturation": 0.2589
+        "luma": 0.2764,
+        "contrast": 0.0525,
+        "saturation": 0.2625
       }
     },
     {
@@ -58,9 +58,9 @@
       "size": 3.0,
       "file": "anime_painterly_3_0deg.png",
       "metrics": {
-        "luma": 0.2985,
-        "contrast": 0.1056,
-        "saturation": 0.2482
+        "luma": 0.2868,
+        "contrast": 0.0779,
+        "saturation": 0.2545
       }
     },
     {
@@ -68,9 +68,9 @@
       "size": 6.0,
       "file": "anime_painterly_6_0deg.png",
       "metrics": {
-        "luma": 0.3515,
-        "contrast": 0.1724,
-        "saturation": 0.218
+        "luma": 0.3215,
+        "contrast": 0.1268,
+        "saturation": 0.2291
       }
     },
     {
@@ -78,9 +78,9 @@
       "size": 1.2,
       "file": "detailed_moon_1_2deg.png",
       "metrics": {
-        "luma": 0.2762,
-        "contrast": 0.0543,
-        "saturation": 0.2633
+        "luma": 0.2759,
+        "contrast": 0.0522,
+        "saturation": 0.2632
       }
     },
     {
@@ -88,9 +88,9 @@
       "size": 3.0,
       "file": "detailed_moon_3_0deg.png",
       "metrics": {
-        "luma": 0.2879,
-        "contrast": 0.0869,
-        "saturation": 0.2561
+        "luma": 0.286,
+        "contrast": 0.0788,
+        "saturation": 0.2558
       }
     },
     {
@@ -98,9 +98,9 @@
       "size": 6.0,
       "file": "detailed_moon_6_0deg.png",
       "metrics": {
-        "luma": 0.3282,
-        "contrast": 0.1477,
-        "saturation": 0.2324
+        "luma": 0.3208,
+        "contrast": 0.1301,
+        "saturation": 0.231
       }
     },
     {
@@ -108,9 +108,9 @@
       "size": 1.2,
       "file": "ethereal_moon_1_2deg.png",
       "metrics": {
-        "luma": 0.2877,
-        "contrast": 0.075,
-        "saturation": 0.2566
+        "luma": 0.2772,
+        "contrast": 0.0533,
+        "saturation": 0.2622
       }
     },
     {
@@ -118,9 +118,9 @@
       "size": 3.0,
       "file": "ethereal_moon_3_0deg.png",
       "metrics": {
-        "luma": 0.3092,
-        "contrast": 0.115,
-        "saturation": 0.2465
+        "luma": 0.2882,
+        "contrast": 0.0777,
+        "saturation": 0.2548
       }
     },
     {
@@ -128,9 +128,9 @@
       "size": 6.0,
       "file": "ethereal_moon_6_0deg.png",
       "metrics": {
-        "luma": 0.3695,
-        "contrast": 0.1786,
-        "saturation": 0.2195
+        "luma": 0.3231,
+        "contrast": 0.1237,
+        "saturation": 0.2312
       }
     }
   ]

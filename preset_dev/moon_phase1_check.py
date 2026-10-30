@@ -62,7 +62,7 @@ def median_render(scene, path, count=3):
 def disk_aspect(path):
     pixels = lookdev.load_rgba(path).reshape(-1, 4)[:, :3]
     luma = pixels.mean(axis=1)
-    mask = luma > 0.60
+    mask = luma > max(0.40, 0.5 * float(luma.max()))
     height = int(round(math.sqrt(len(luma))))
     rows = np.nonzero(mask.reshape(height, height).any(axis=1))[0]
     cols = np.nonzero(mask.reshape(height, height).any(axis=0))[0]
@@ -111,9 +111,16 @@ def main():
     scene.ald.moon_size = SIZE
     scene.ald.moon_azimuth = AZIMUTH
     scene.ald.moon_elevation = ELEVATION
+    scene.ald.moon_style = "DETAILED_MOON"
+    scene.ald.moon_size = SIZE
     camera.rotation_euler = Vector(
         moon.direction(AZIMUTH, ELEVATION)).to_track_quat("-Z", "Y").to_euler()
 
+    # Geometry checks use a flat surface so the silhouette is measured, not
+    # the maria distribution.
+    scene.ald.moon_surface_contrast = 0.0
+    scene.ald.moon_crater_strength = 0.0
+    scene.ald.moon_surface_detail = 0.0
     checks = {}
     disk_path = render(scene, "disk_6deg")
     aspect, width, height = disk_aspect(disk_path)

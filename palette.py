@@ -9,6 +9,7 @@ from mathutils import Vector
 from .shaders import moon as moon_shader
 
 GRADIENT_GROUP = "ALD | World Gradient"
+GRADIENT_BUILD = 36
 AUTO_SUN_TAG = "ald_auto_sun"
 SUN_OWNER_TAG = "ald_sun_owner"
 
@@ -454,13 +455,13 @@ def _gradient_group():
     """Return the shared world-gradient group, building it on first use."""
     ng = bpy.data.node_groups.get(GRADIENT_GROUP)
     if ng is not None and (ng.bl_idname != "ShaderNodeTree"
-                           or ng.get("ald_build") != 35):
+                           or ng.get("ald_build") != GRADIENT_BUILD):
         bpy.data.node_groups.remove(ng)
         ng = None
     if ng is None:
         ng = bpy.data.node_groups.new(GRADIENT_GROUP, "ShaderNodeTree")
         _build_gradient_group(ng)
-        ng["ald_build"] = 35
+        ng["ald_build"] = GRADIENT_BUILD
         return ng
     names = {item.name for item in ng.interface.items_tree
              if getattr(item, "in_out", "") == "INPUT"}
@@ -472,11 +473,12 @@ def _gradient_group():
              "Cloud Rim Boost", "Cloud Cumulus", "Cloud Stratocumulus",
              "Cloud Cirrus", "Cloud Vertical", "Cloud Breakup", "Cloud Detail",
              "Cloud Sun Lighting", "Star Amount", "Star Density",
-             "Cloud Offset", "Star0 Start U"} <= names
+             "Cloud Offset", "Star0 Start U", "Moon Enabled",
+             "Moon Direction", "Moon Size", "Moon Halo Color"} <= names
             or "ShaderNodeMix" not in types
             or "ShaderNodeValToRGB" in types):
         _build_gradient_group(ng)
-        ng["ald_build"] = 35
+        ng["ald_build"] = GRADIENT_BUILD
     return ng
 
 

@@ -7,6 +7,7 @@ import bpy
 from .common import Graph
 
 GROUP = "ALD | Moon"
+MOON_VERSION = 1
 
 STYLES = {
     "ANIME_CLEAN": {
@@ -16,17 +17,17 @@ STYLES = {
     },
     "ANIME_PAINTERLY": {
         "size": 2.8, "brightness": 0.72, "detail": 0.55, "crater": 0.60,
-        "contrast": 0.65, "edge": 0.12, "glow": 0.45, "halo": 3.0,
+        "contrast": 0.55, "edge": 0.10, "glow": 0.25, "halo": 1.8,
         "color": (1.0, 0.95, 0.86), "halo_color": (0.80, 0.78, 0.95),
     },
     "DETAILED_MOON": {
-        "size": 3.0, "brightness": 0.82, "detail": 1.0, "crater": 0.95,
-        "contrast": 0.80, "edge": 0.04, "glow": 0.22, "halo": 1.2,
+        "size": 3.0, "brightness": 0.82, "detail": 1.0, "crater": 0.85,
+        "contrast": 0.75, "edge": 0.04, "glow": 0.22, "halo": 1.2,
         "color": (0.98, 0.96, 0.92), "halo_color": (0.70, 0.78, 0.95),
     },
     "ETHEREAL_MOON": {
         "size": 3.2, "brightness": 0.65, "detail": 0.30, "crater": 0.35,
-        "contrast": 0.40, "edge": 0.16, "glow": 0.55, "halo": 5.0,
+        "contrast": 0.45, "edge": 0.10, "glow": 0.30, "halo": 3.0,
         "color": (0.86, 0.92, 1.0), "halo_color": (0.55, 0.72, 1.0),
     },
 }
@@ -136,16 +137,18 @@ def _crater_layer(g, mapped, scale, weight, y):
                                  x=740, y=y - 320),
                           x=920, y=y - 320)
     rim = g.math("MULTIPLY", rim, rim_strength, x=1280, y=y)
-    floor = g.math("MULTIPLY", inner, -0.45, x=1100, y=y - 120)
-    edge = g.math("MULTIPLY", rim, 0.25, x=1460, y=y)
+    floor = g.math("MULTIPLY", inner, -0.32, x=1100, y=y - 120)
+    edge = g.math("MULTIPLY", rim, 0.22, x=1460, y=y)
     effect = g.math("ADD", floor, edge, x=1640, y=y)
     return g.math("MULTIPLY", effect, weight, x=1820, y=y)
 
 
 def build():
     ng = bpy.data.node_groups.get(GROUP)
-    if ng is not None:
+    if ng is not None and ng.get("ald_moon_version") == MOON_VERSION:
         return ng
+    if ng is not None:
+        bpy.data.node_groups.remove(ng)
     ng = bpy.data.node_groups.new(GROUP, "ShaderNodeTree")
 
     _input(ng, "View", "NodeSocketVector", (0.0, 0.0, 1.0))
@@ -241,7 +244,7 @@ def build():
     contrast = group_in.outputs["Moon Surface Contrast"]
     maria_depth = g.math("MULTIPLY",
                          g.math("MULTIPLY", maria, contrast, x=80, y=240),
-                         0.90, x=260, y=240)
+                         0.55, x=260, y=240)
     tone = g.math("SUBTRACT", 1.0, maria_depth, x=440, y=240)
 
     crater_amount = g.math("MULTIPLY",
@@ -319,12 +322,18 @@ def build():
     disk_alpha = g.math("MULTIPLY", disk, disk_open, x=600, y=1200)
     halo_alpha = g.math("MULTIPLY", halo, halo_open, x=780, y=1320)
     halo_alpha = g.math("MINIMUM", halo_alpha, 1.0, x=960, y=1320)
-    alpha = g.math("MAXIMUM", disk_alpha, halo_alpha, x=1140, y=1260)
+    # Halo and disk are separate layers: the halo only fills the sky outside
+    # the disk, so it never flattens the surface detail. Both are premultiplied
+    # by their own coverage and composited once by the World.
+    halo_outside = g.math(
+        "MULTIPLY", halo_alpha,
+        g.math("SUBTRACT", 1.0, disk_alpha, x=960, y=1440), x=1140, y=1440)
+    alpha = g.math("MAXIMUM", disk_alpha, halo_outside, x=1320, y=1260)
     alpha = g.math("MULTIPLY", alpha, group_in.outputs["Moon Enabled"],
-                   x=1320, y=1260)
+                   x=1500, y=1260)
 
     disk_rgb = g.scale_color(shaded, disk_alpha, x=3080, y=600)
-    halo_rgb = g.scale_color(group_in.outputs["Moon Halo Color"], halo_alpha,
+    halo_rgb = g.scale_color(group_in.outputs["Moon Halo Color"], halo_outside,
                              x=3080, y=900)
     color = g.vmath("ADD", disk_rgb, halo_rgb, x=3260, y=700)
     color = g.scale_color(color, group_in.outputs["Moon Enabled"],
@@ -332,4 +341,5 @@ def build():
 
     g.feed(group_out.inputs["Color"], color)
     g.feed(group_out.inputs["Alpha"], alpha)
+    ng["ald_moon_version"] = MOON_VERSION
     return ng
