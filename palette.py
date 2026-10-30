@@ -6,6 +6,8 @@ import bpy
 from bpy.app.handlers import persistent
 from mathutils import Vector
 
+from .shaders import moon as moon_shader
+
 GRADIENT_GROUP = "ALD | World Gradient"
 AUTO_SUN_TAG = "ald_auto_sun"
 SUN_OWNER_TAG = "ald_sun_owner"
@@ -1109,6 +1111,34 @@ def _build_gradient_group(ng):
     cloud_offset = ng.interface.new_socket(name="Cloud Offset", in_out="INPUT",
                                            socket_type="NodeSocketVector")
     cloud_offset.default_value = (0.0, 0.0, 0.0)
+
+    for name, default in (("Moon Direction", (0.0, 0.0, 1.0)),
+                          ("Moon Right", (1.0, 0.0, 0.0)),
+                          ("Moon Up", (0.0, 0.0, 1.0))):
+        socket = ng.interface.new_socket(name=name, in_out="INPUT",
+                                         socket_type="NodeSocketVector")
+        socket.default_value = default
+    for name, default, minimum, maximum in (
+            ("Moon Enabled", 0.0, 0.0, 1.0),
+            ("Moon Size", 2.6, 0.05, 40.0),
+            ("Moon Brightness", 1.6, 0.0, 20.0),
+            ("Moon Surface Detail", 0.25, 0.0, 1.0),
+            ("Moon Crater Strength", 0.25, 0.0, 1.0),
+            ("Moon Surface Contrast", 0.35, 0.0, 1.0),
+            ("Moon Edge Softness", 0.14, 0.0, 1.0),
+            ("Moon Glow", 0.35, 0.0, 4.0),
+            ("Moon Halo Radius", 2.0, 0.0, 30.0),
+            ("Moon Seed", 7.0, 0.0, 999.0)):
+        socket = ng.interface.new_socket(name=name, in_out="INPUT",
+                                         socket_type="NodeSocketFloat")
+        socket.default_value = default
+        socket.min_value = minimum
+        socket.max_value = maximum
+    for name, default in (("Moon Color", (1.0, 0.97, 0.9, 1.0)),
+                          ("Moon Halo Color", (0.72, 0.8, 1.0, 1.0))):
+        socket = ng.interface.new_socket(name=name, in_out="INPUT",
+                                         socket_type="NodeSocketColor")
+        socket.default_value = default
 
     ng.interface.new_socket(name="Color", in_out="OUTPUT",
                             socket_type="NodeSocketColor")
@@ -2792,6 +2822,54 @@ def _build_gradient_group(ng):
     star_add.inputs["Factor"].default_value = 1.0
     sky_color = result_sock
 
+    # Moon: drawn after the stars so the disk occludes them, and gated by the
+    # same shifted horizon as the ground.
+    moon_node = nodes.new("ShaderNodeGroup")
+    moon_node.node_tree = moon_shader.build()
+    moon_node.location = (2400, -700)
+    links.new(view_norm.outputs["Vector"], moon_node.inputs["View"])
+    links.new(cloud_amount_node.outputs[0],
+              moon_node.inputs["Cloud Visibility"])
+    for name in ("Moon Direction", "Moon Right", "Moon Up", "Moon Size",
+                 "Moon Brightness", "Moon Color", "Moon Surface Detail",
+                 "Moon Crater Strength", "Moon Surface Contrast",
+                 "Moon Edge Softness", "Moon Glow", "Moon Halo Radius",
+                 "Moon Halo Color", "Moon Seed", "Moon Enabled"):
+        links.new(group_in.outputs[name], moon_node.inputs[name])
+
+    # Tight horizon gate: the disk is cut at the horizon, not faded through
+    # the ground. The gradient keeps its own wider ground blend.
+    moon_gate = nodes.new("ShaderNodeMapRange")
+    moon_gate.location = (2400, -980)
+    moon_gate.clamp = True
+    _smooth(moon_gate)
+    moon_gate.inputs["From Min"].default_value = -0.005
+    moon_gate.inputs["From Max"].default_value = 0.005
+    links.new(shifted_z.outputs[0], moon_gate.inputs["Value"])
+
+    moon_alpha = nodes.new("ShaderNodeMath")
+    moon_alpha.location = (2600, -700)
+    moon_alpha.operation = "MULTIPLY"
+    moon_alpha.use_clamp = True
+    links.new(moon_node.outputs["Alpha"], moon_alpha.inputs[0])
+    links.new(moon_gate.outputs["Result"], moon_alpha.inputs[1])
+
+    moon_color = nodes.new("ShaderNodeVectorMath")
+    moon_color.location = (2600, -860)
+    moon_color.operation = "SCALE"
+    links.new(moon_node.outputs["Color"], moon_color.inputs[0])
+    links.new(moon_gate.outputs["Result"], moon_color.inputs["Scale"])
+
+    moon_mix = nodes.new("ShaderNodeMix")
+    moon_mix.location = (2800, -720)
+    moon_mix.data_type = "RGBA"
+    moon_mix.blend_type = "MIX"
+    a_sock, b_sock, result_sock = _rgba_sockets(moon_mix)
+    links.new(sky_color, a_sock)
+    links.new(moon_color.outputs["Vector"], b_sock)
+    links.new(moon_alpha.outputs[0], moon_mix.inputs["Factor"])
+    sky_color = result_sock
+
     # Visible sky stays vivid; ambient light is scaled by World Strength.
     light_path = nodes.new("ShaderNodeLightPath")
     light_path.location = (2320, 420)
@@ -3194,6 +3272,7 @@ def _apply_gradient(scene, settings, nt, background, p):
         wind[0] + seed * 0.017, wind[1] + seed * 0.011, 0.0)
     if settings is not None:
         _apply_star_slots(scene, settings, node)
+        moon_shader.write_values(node, settings)
 
     # Remember the original world background so disabling the gradient can
     # restore an HDRI or the user's own color instead of a flat fill.
@@ -3297,6 +3376,17 @@ def update_sun_controls(scene):
     else:
         node.inputs["Sun Strength"].default_value = 0.0
         node.inputs["Sun Glow"].default_value = 0.0
+
+
+def update_moon_controls(scene):
+    """Push the Moon controls into the World without rebuilding the group."""
+    world = scene.world
+    if world is None or world.node_tree is None:
+        return
+    node = _gradient_node(world.node_tree)
+    if node is None:
+        return
+    moon_shader.write_values(node, getattr(scene, "ald", None))
 
 
 @persistent

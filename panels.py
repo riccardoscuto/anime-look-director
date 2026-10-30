@@ -66,6 +66,35 @@ def draw_atmosphere(layout, context):
     box.operator("ald.stage_backlight", icon="LIGHT")
 
 
+def draw_moon(layout, context):
+    s = context.scene.ald
+    box = layout.box()
+    box.label(text="Moon", icon="LIGHT")
+    box.prop(s, "moon_enabled", text="Enable Moon", toggle=True)
+    if not s.moon_enabled:
+        box.label(text="Moon is off", icon="INFO")
+        return
+    box.prop(s, "moon_style")
+    col = box.column(align=True)
+    col.prop(s, "moon_size")
+    col.prop(s, "moon_azimuth")
+    col.prop(s, "moon_elevation")
+    box.label(text="Surface")
+    col = box.column(align=True)
+    col.prop(s, "moon_color")
+    col.prop(s, "moon_brightness")
+    col.prop(s, "moon_surface_detail")
+    col.prop(s, "moon_crater_strength")
+    col.prop(s, "moon_surface_contrast")
+    col.prop(s, "moon_seed")
+    box.label(text="Atmosphere")
+    col = box.column(align=True)
+    col.prop(s, "moon_edge_softness")
+    col.prop(s, "moon_glow")
+    col.prop(s, "moon_halo_radius")
+    col.prop(s, "moon_halo_color")
+
+
 def draw_clouds(layout, context):
     s = context.scene.ald
     box = layout.box()
@@ -406,6 +435,20 @@ class ALD_PT_atmosphere(bpy.types.Panel):
         draw_atmosphere(self.layout, context)
 
 
+class ALD_PT_moon(bpy.types.Panel):
+    bl_label = "Moon"
+    bl_idname = "ALD_PT_moon"
+    bl_parent_id = "ALD_PT_scene"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
+    bl_order = -48
+    bl_options = {"DEFAULT_CLOSED"}
+
+    def draw(self, context):
+        draw_moon(self.layout, context)
+
+
 class ALD_PT_clouds(bpy.types.Panel):
     bl_label = "World Clouds"
     bl_idname = "ALD_PT_clouds"
@@ -542,6 +585,20 @@ class ALD_PT_view3d_clouds(bpy.types.Panel):
         draw_clouds(self.layout, context)
 
 
+class ALD_PT_view3d_moon(bpy.types.Panel):
+    bl_label = "Moon"
+    bl_idname = "ALD_PT_view3d_moon"
+    bl_parent_id = "ALD_PT_view3d"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Anime Look"
+    bl_order = -48
+    bl_options = {"DEFAULT_CLOSED"}
+
+    def draw(self, context):
+        draw_moon(self.layout, context)
+
+
 class ALD_PT_view3d_stars(bpy.types.Panel):
     bl_label = "Stars & Milky Way"
     bl_idname = "ALD_PT_view3d_stars"
@@ -622,10 +679,12 @@ class ALD_PT_view3d_advanced(bpy.types.Panel):
         draw_scene_actions(self.layout, context)
 
 
-_classes = (ALD_UL_shooting_stars, ALD_PT_scene, ALD_PT_atmosphere, ALD_PT_clouds,
+_classes = (ALD_UL_shooting_stars, ALD_PT_scene, ALD_PT_atmosphere,
+            ALD_PT_moon, ALD_PT_clouds,
             ALD_PT_stars, ALD_PT_shooting_stars, ALD_PT_custom,
             ALD_PT_materials, ALD_PT_compositor, ALD_PT_advanced,
-            ALD_PT_view3d, ALD_PT_view3d_atmosphere, ALD_PT_view3d_clouds,
+            ALD_PT_view3d, ALD_PT_view3d_atmosphere, ALD_PT_view3d_moon,
+            ALD_PT_view3d_clouds,
             ALD_PT_view3d_stars, ALD_PT_view3d_shooting_stars,
             ALD_PT_view3d_custom, ALD_PT_view3d_materials,
             ALD_PT_view3d_compositor, ALD_PT_view3d_advanced)

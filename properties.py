@@ -223,6 +223,36 @@ def _on_star(self, context):
         pass
 
 
+_moon_style_syncing = False
+
+
+def _on_moon(self, context):
+    try:
+        from . import palette
+        if _moon_style_syncing:
+            return
+        if context.scene is not None:
+            palette.update_moon_controls(context.scene)
+    except Exception:
+        pass
+
+
+def _on_moon_style(self, context):
+    global _moon_style_syncing
+    try:
+        from .shaders import moon as moon_shader
+        _moon_style_syncing = True
+        try:
+            moon_shader.apply_style(self)
+        finally:
+            _moon_style_syncing = False
+        from . import palette
+        if context.scene is not None:
+            palette.update_moon_controls(context.scene)
+    except Exception:
+        pass
+
+
 class ALD_ShootingStar(bpy.types.PropertyGroup):
     """A controlled 2D shooting star in the World shader."""
 
@@ -431,6 +461,76 @@ class ALD_Settings(bpy.types.PropertyGroup):
         name="Sun Azimuth", default=0.0, min=-180.0, max=180.0,
         description="Sun horizontal angle in degrees",
         update=_on_sun_angles)
+    moon_enabled: BoolProperty(
+        name="Moon",
+        default=False,
+        description="Draw a procedural Moon in the World",
+        update=_on_moon)
+    moon_style: EnumProperty(
+        name="Style",
+        items=(("ANIME_CLEAN", "Anime Clean",
+                "Clean disk with restrained surface detail"),
+               ("ANIME_PAINTERLY", "Anime Painterly",
+                "Soft painterly surface and warm tone"),
+               ("DETAILED_MOON", "Detailed Moon",
+                "Richer craters and stronger surface contrast"),
+               ("ETHEREAL_MOON", "Ethereal Moon",
+                "Cool low-contrast disk with a wide halo")),
+        default="ANIME_CLEAN",
+        description="Surface and glow style; it writes the controls below",
+        update=_on_moon_style)
+    moon_size: FloatProperty(
+        name="Moon Size", default=2.6, min=0.05, max=40.0,
+        description="Apparent disk diameter in degrees",
+        update=_on_moon)
+    moon_azimuth: FloatProperty(
+        name="Moon Azimuth", default=20.0, min=-180.0, max=180.0,
+        description="Moon horizontal angle in degrees",
+        update=_on_moon)
+    moon_elevation: FloatProperty(
+        name="Moon Elevation", default=35.0, min=-90.0, max=90.0,
+        description="Moon height above the horizon in degrees",
+        update=_on_moon)
+    moon_brightness: FloatProperty(
+        name="Brightness", default=0.80, min=0.0, max=20.0,
+        description="Surface brightness of the lit disk",
+        update=_on_moon)
+    moon_color: FloatVectorProperty(
+        name="Color", subtype="COLOR", size=3, min=0.0, max=1.0,
+        default=(1.0, 0.97, 0.90),
+        update=_on_moon)
+    moon_surface_detail: FloatProperty(
+        name="Surface Detail", default=0.25, min=0.0, max=1.0,
+        description="Amount of micro surface variation",
+        update=_on_moon)
+    moon_crater_strength: FloatProperty(
+        name="Crater Strength", default=0.30, min=0.0, max=1.0,
+        description="Crater floor and rim contrast",
+        update=_on_moon)
+    moon_surface_contrast: FloatProperty(
+        name="Surface Contrast", default=0.55, min=0.0, max=1.0,
+        description="Depth of the maria and tonal variation",
+        update=_on_moon)
+    moon_edge_softness: FloatProperty(
+        name="Edge Softness", default=0.05, min=0.0, max=1.0,
+        description="Disk edge blur in degrees",
+        update=_on_moon)
+    moon_glow: FloatProperty(
+        name="Glow", default=0.30, min=0.0, max=4.0,
+        description="Near-disk glow and wide halo strength",
+        update=_on_moon)
+    moon_halo_radius: FloatProperty(
+        name="Halo Radius", default=1.6, min=0.0, max=30.0,
+        description="Halo falloff beyond the disk in degrees",
+        update=_on_moon)
+    moon_halo_color: FloatVectorProperty(
+        name="Halo Color", subtype="COLOR", size=3, min=0.0, max=1.0,
+        default=(0.72, 0.80, 1.0),
+        update=_on_moon)
+    moon_seed: IntProperty(
+        name="Surface Seed", default=7, min=0, max=999,
+        description="Deterministic surface pattern seed",
+        update=_on_moon)
     clouds: BoolProperty(
         name="Anime Clouds",
         default=True,

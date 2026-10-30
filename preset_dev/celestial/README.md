@@ -114,7 +114,8 @@ they are not part of the Moon milestone.
 - [x] Versioning and migration strategy defined.
 - [x] Existing tests: `verify_all` **ALD ALL PASS**, World audit 44/44.
 
-**Gate 0: PASS (strategy) - Phase 1 (Procedural Moon) may start.**
+**Gate 0: PASS (strategy) - Phase 1 implemented on this branch.**
 
-No Moon code is written until the full-disk style board is reviewed. The
-Moon milestone must not change the 12 presets, the clouds or the compositor.
+Phase 1 evidence is in `preset_dev/moon/`: technical PASS, visual approval
+pending. The Moon milestone does not change the 12 presets, the clouds or the
+compositor.

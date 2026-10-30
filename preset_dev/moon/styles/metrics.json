@@ -1,0 +1,137 @@
+{
+  "styles": [
+    "ANIME_CLEAN",
+    "ANIME_PAINTERLY",
+    "DETAILED_MOON",
+    "ETHEREAL_MOON"
+  ],
+  "sizes": [
+    1.2,
+    3.0,
+    6.0
+  ],
+  "azimuth": 0.0,
+  "elevation": 22.0,
+  "cases": [
+    {
+      "style": "ANIME_CLEAN",
+      "size": 1.2,
+      "file": "anime_clean_1_2deg.png",
+      "metrics": {
+        "luma": 0.2773,
+        "contrast": 0.0575,
+        "saturation": 0.2626
+      }
+    },
+    {
+      "style": "ANIME_CLEAN",
+      "size": 3.0,
+      "file": "anime_clean_3_0deg.png",
+      "metrics": {
+        "luma": 0.2911,
+        "contrast": 0.0946,
+        "saturation": 0.2548
+      }
+    },
+    {
+      "style": "ANIME_CLEAN",
+      "size": 6.0,
+      "file": "anime_clean_6_0deg.png",
+      "metrics": {
+        "luma": 0.3368,
+        "contrast": 0.1609,
+        "saturation": 0.2296
+      }
+    },
+    {
+      "style": "ANIME_PAINTERLY",
+      "size": 1.2,
+      "file": "anime_painterly_1_2deg.png",
+      "metrics": {
+        "luma": 0.2811,
+        "contrast": 0.0657,
+        "saturation": 0.2589
+      }
+    },
+    {
+      "style": "ANIME_PAINTERLY",
+      "size": 3.0,
+      "file": "anime_painterly_3_0deg.png",
+      "metrics": {
+        "luma": 0.2985,
+        "contrast": 0.1056,
+        "saturation": 0.2482
+      }
+    },
+    {
+      "style": "ANIME_PAINTERLY",
+      "size": 6.0,
+      "file": "anime_painterly_6_0deg.png",
+      "metrics": {
+        "luma": 0.3515,
+        "contrast": 0.1724,
+        "saturation": 0.218
+      }
+    },
+    {
+      "style": "DETAILED_MOON",
+      "size": 1.2,
+      "file": "detailed_moon_1_2deg.png",
+      "metrics": {
+        "luma": 0.2762,
+        "contrast": 0.0543,
+        "saturation": 0.2633
+      }
+    },
+    {
+      "style": "DETAILED_MOON",
+      "size": 3.0,
+      "file": "detailed_moon_3_0deg.png",
+      "metrics": {
+        "luma": 0.2879,
+        "contrast": 0.0869,
+        "saturation": 0.2561
+      }
+    },
+    {
+      "style": "DETAILED_MOON",
+      "size": 6.0,
+      "file": "detailed_moon_6_0deg.png",
+      "metrics": {
+        "luma": 0.3282,
+        "contrast": 0.1477,
+        "saturation": 0.2324
+      }
+    },
+    {
+      "style": "ETHEREAL_MOON",
+      "size": 1.2,
+      "file": "ethereal_moon_1_2deg.png",
+      "metrics": {
+        "luma": 0.2877,
+        "contrast": 0.075,
+        "saturation": 0.2566
+      }
+    },
+    {
+      "style": "ETHEREAL_MOON",
+      "size": 3.0,
+      "file": "ethereal_moon_3_0deg.png",
+      "metrics": {
+        "luma": 0.3092,
+        "contrast": 0.115,
+        "saturation": 0.2465
+      }
+    },
+    {
+      "style": "ETHEREAL_MOON",
+      "size": 6.0,
+      "file": "ethereal_moon_6_0deg.png",
+      "metrics": {
+        "luma": 0.3695,
+        "contrast": 0.1786,
+        "saturation": 0.2195
+      }
+    }
+  ]
+}

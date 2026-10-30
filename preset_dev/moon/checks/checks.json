@@ -1,0 +1,40 @@
+{
+  "disk_circular": {
+    "passed": true,
+    "aspect": 1.004,
+    "width": 274,
+    "height": 273
+  },
+  "disk_circular_high": {
+    "passed": true,
+    "aspect": 1.004,
+    "width": 274,
+    "height": 273
+  },
+  "below_horizon_hidden": {
+    "passed": true,
+    "max_delta": 0.0
+  },
+  "rising_visible": {
+    "passed": true,
+    "luma": 0.2383
+  },
+  "persistence": {
+    "passed": true,
+    "max_pixel_delta": 0.0,
+    "style": "DETAILED_MOON",
+    "size": 6.0,
+    "seed": 7
+  },
+  "cost": {
+    "group": {
+      "nodes": 798,
+      "links": 1240,
+      "moon_nodes": 121
+    },
+    "build_seconds": 2.673,
+    "render_off_seconds": 0.281,
+    "render_on_seconds": 0.266,
+    "render_delta_pct": -5.4
+  }
+}
